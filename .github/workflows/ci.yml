@@ -28,4 +28,3 @@ jobs:
 
       - name: Release compile check
         run: cargo check --release --all-targets
-        

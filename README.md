@@ -169,8 +169,9 @@ runtime/assets/
 2. Visual Studio 2022 Build Tools；
 3. “使用 C++ 的桌面开发”工作负载；
 4. Windows 10/11 SDK；
-5. CMake；
-6. Python 3.9 或更高版本。
+5. [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)；
+6. CMake；
+7. Python 3.9 或更高版本。
 
 仓库中的 `rust-toolchain.toml` 会选择 stable Rust，并安装 `rustfmt` 与 `clippy`。`Cargo.toml` 声明的最低 Rust 版本为 1.77，但公开构建建议直接使用当前 stable 工具链。
 
