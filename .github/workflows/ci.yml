@@ -28,3 +28,35 @@ jobs:
 
       - name: Release compile check
         run: cargo check --release --all-targets
+
+  build:
+
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Prepare Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        with:
+          vulkan-query-version: 1.4.304.1
+          vulkan-components: Vulkan-Headers, Vulkan-Loader
+          vulkan-use-cache: true
+
+      - name: build
+        run: |
+          cargo build --release --bin mc112-client
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: minecraft-1.12.2-windows
+          path: target/release/*.exe
