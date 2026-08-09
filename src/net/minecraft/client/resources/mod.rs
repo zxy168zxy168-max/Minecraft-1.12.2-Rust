@@ -5,3 +5,5 @@
 #[path = "SimpleReloadableResourceManager.rs"] pub mod SimpleReloadableResourceManager;
 #[path = "DefaultPlayerSkin.rs"] pub mod DefaultPlayerSkin;
 #[path = "SkinManager.rs"] pub mod SkinManager;
+#[path = "Language.rs"] pub mod Language;
+#[path = "LanguageManager.rs"] pub mod LanguageManager;

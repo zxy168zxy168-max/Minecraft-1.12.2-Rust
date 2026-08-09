@@ -78,6 +78,7 @@ use crate::net::minecraft::client::gui::ScaledResolution::ScaledResolution;
 use crate::net::minecraft::client::main::GameConfiguration::{GameConfiguration, PropertyMap, Proxy};
 use crate::net::minecraft::client::renderer::ItemRenderer::ItemRenderer;
 use crate::net::minecraft::client::resources::Locale::Locale;
+use crate::net::minecraft::client::resources::LanguageManager::LanguageManager;
 use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::ResourceManager;
 use crate::net::minecraft::client::resources::ResourcePackRepository::{
     defaultPackIconBytes, defaultPackIconLocation, folder_assets_root, ResourcePackKind,
@@ -358,6 +359,9 @@ enum RuntimeGuiAction {
     OpenOfflineLogin,
     AccountAuthenticated { session: Session, returnToManager: bool },
     ToggleUnicode,
+    /// MCP `GuiLanguage.List.elementClicked`: switch the current language,
+    /// persist it to options.txt and refresh the locale/fonts/screen.
+    SetLanguage(String),
     SetFov(f32),
     ToggleForceSprint,
     OpenVideoSettings,
@@ -682,6 +686,10 @@ struct MainMenuRuntime {
     /// requested by a server-driven GuiContainer transition. The winit
     /// application owns the actual OS cursor and consumes this request.
     pendingWorldMouseFocus: Option<bool>,
+    /// MCP `Minecraft#mcLanguageManager`: parsed from each pack's
+    /// `pack.mcmeta` "language" section; owns the current language and the
+    /// sorted language list the GuiLanguage screen renders.
+    languageManager: LanguageManager,
 }
 
 impl MainMenuRuntime {
@@ -716,6 +724,12 @@ impl MainMenuRuntime {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_nanos() as i64;
+        // MCP `Minecraft#mcLanguageManager`: built with the configured
+        // language, then populated from every pack's language metadata
+        // (MCP `LanguageManager.parseLanguageMetadata` during
+        // `refreshResources`).
+        let mut languageManager = LanguageManager::new(minecraft.gameSettings.language.clone());
+        languageManager.parseLanguageMetadata(&minecraft.resourceManager.read_pack_metadatas("pack"));
         let mut runtime = Self {
             locale,
             fontRendererObj,
@@ -757,6 +771,7 @@ impl MainMenuRuntime {
             lastInventoryClick: None,
             inventoryShiftClickedStack: ItemStack::EMPTY,
             pendingWorldMouseFocus: None,
+            languageManager,
         };
         runtime.resize(minecraft, framebufferWidth, framebufferHeight);
         Ok(runtime)
@@ -3206,9 +3221,16 @@ impl MainMenuRuntime {
             } else if !pressed {
                 (Vec::new(), false, false, None, None, None, None, None)
             } else {
-                shared.withRead(|state| {
+                // Mutable: the ported item predictions (bucket fill, throwable
+                // shrink) mutate the local inventory and world, matching the
+                // source client's synchronous `Item#onItemRightClick` side
+                // effects. The server remains authoritative over both.
+                shared.withWrite(|state| {
                     self.playerController.setGameType(state.gameType);
-                    let (Some(world), Some(player)) = (&state.worldClient, &state.thePlayer) else {
+                    let (Some(world), Some(player)) = (
+                        state.worldClient.as_mut(),
+                        state.thePlayer.as_mut(),
+                    ) else {
                         return (Vec::new(), false, false, None, None, None, None, None);
                     };
                     let reach = self.playerController.getBlockReachDistance();
@@ -3315,7 +3337,7 @@ impl MainMenuRuntime {
                             // MAIN_HAND first, then OFF_HAND. PASS/FAIL continue; SUCCESS
                             // owns the click and terminates the loop.
                             for hand in [EnumHand::MainHand, EnumHand::OffHand] {
-                                let stack = player.getHeldItem(hand);
+                                let stack = player.getHeldItem(hand).clone();
 
                                 if let Some(hit) = blockResult {
                                     if !world.getBlockState(hit.getBlockPos()).isAir() {
@@ -3329,6 +3351,17 @@ impl MainMenuRuntime {
                                         let predictedBlockState = result.predictedBlockState;
                                         if let Some(packet) = result.packet {
                                             packets.push(packet);
+                                        }
+                                        // Local item-use sound (e.g. hoe till),
+                                        // matching the remote branch of the
+                                        // source `Item#onItemUse`.
+                                        if let Some((name, volume, pitch)) = result.sound {
+                                            player.queueSoundAtPlayer(
+                                                name,
+                                                SoundCategory::Blocks,
+                                                volume,
+                                                pitch,
+                                            );
                                         }
                                         if result.result == EnumActionResult::Success {
                                             packets.push(CPacketAnimation::new(hand).writePacketData());
@@ -3360,16 +3393,163 @@ impl MainMenuRuntime {
 
                                 // `PlayerControllerMP#processRightClick` always sends the
                                 // hand packet before evaluating Item#useItemRightClick.
-                                packets.push(self.playerController.processRightClick(hand));
+                                let airResult =
+                                    self.playerController.processRightClick(world, player, hand);
+                                packets.push(airResult.packet);
+
+                                // Apply the client-side item predictions: bucket
+                                // fill swaps the held stack and removes the source
+                                // liquid; throwables shrink and play their sound.
+                                // The server is authoritative and overwrites both.
+                                let mut airConsumed = false;
+                                if let Some(fill) = airResult.fillBucket {
+                                    // MCP `ItemBucket#fillBucket`: creative
+                                    // keeps the empty bucket; survival either
+                                    // swaps the hand to the filled bucket when
+                                    // the stack runs out, or keeps one empty
+                                    // bucket and stows a filled one in the
+                                    // first free slot.
+                                    if !player.capabilities.isCreativeMode {
+                                        let heldIndex = if hand == EnumHand::MainHand {
+                                            player.inventory.currentItem as i32
+                                        } else {
+                                            40
+                                        };
+                                        let filled = ItemStack {
+                                            itemId: fill.bucket,
+                                            count: 1,
+                                            itemDamage: 0,
+                                            tagCompound: None,
+                                        };
+                                        let held = player
+                                            .inventory
+                                            .getStackInSlot(heldIndex)
+                                            .cloned()
+                                            .unwrap_or(ItemStack::EMPTY);
+                                        if held.count - 1 <= 0 {
+                                            let _ = player
+                                                .inventory
+                                                .setInventorySlotContents(heldIndex, filled);
+                                        } else {
+                                            let mut remaining = held.clone();
+                                            remaining.shrink(1);
+                                            let _ = player
+                                                .inventory
+                                                .setInventorySlotContents(heldIndex, remaining);
+                                            // `InventoryPlayer#addItemStackToInventory`
+                                            // for a max-stack-1 bucket: first free slot.
+                                            if let Some(emptySlot) = (0..player.inventory.mainInventory.len())
+                                                .find(|slot| player.inventory.mainInventory[*slot].isEmpty())
+                                            {
+                                                let _ = player
+                                                    .inventory
+                                                    .setInventorySlotContents(emptySlot as i32, filled);
+                                            }
+                                        }
+                                    }
+                                    // Sound and source removal run in every
+                                    // mode, matching the remote branch order.
+                                    let _ = world.invalidateRegionAndSetBlock(
+                                        fill.source,
+                                        crate::net::minecraft::block::state::IBlockState::IBlockState::default(),
+                                    );
+                                    player.queueSoundAtPlayer(
+                                        fill.sound,
+                                        SoundCategory::Players,
+                                        1.0,
+                                        1.0,
+                                    );
+                                    airConsumed = true;
+                                }
+                                if let Some(empty) = airResult.emptyBucket {
+                                    // `ItemBucket#onItemRightClick` full-bucket
+                                    // branch: survival swaps the hand to the
+                                    // empty bucket; creative keeps the full one.
+                                    // The empty sound plays at the destination
+                                    // block in every mode (`tryPlaceContainedLiquid`
+                                    // plays it with SoundCategory.BLOCKS, 1.0/1.0).
+                                    if !player.capabilities.isCreativeMode {
+                                        let heldIndex = if hand == EnumHand::MainHand {
+                                            player.inventory.currentItem as i32
+                                        } else {
+                                            40
+                                        };
+                                        let _ = player.inventory.setInventorySlotContents(
+                                            heldIndex,
+                                            ItemStack {
+                                                itemId: crate::net::minecraft::item::ItemBucket::BUCKET,
+                                                count: 1,
+                                                itemDamage: 0,
+                                                tagCompound: None,
+                                            },
+                                        );
+                                    }
+                                    player.queueSoundAt(
+                                        empty.sound,
+                                        SoundCategory::Blocks,
+                                        [
+                                            empty.destination.x as f32 + 0.5,
+                                            empty.destination.y as f32 + 0.5,
+                                            empty.destination.z as f32 + 0.5,
+                                        ],
+                                        1.0,
+                                        1.0,
+                                    );
+                                    airConsumed = true;
+                                }
+                                if let Some(thrown) = airResult.thrown {
+                                    // `ItemSnowball/ItemEgg/ItemEnderPearl
+                                    // #onItemRightClick`: creative players do
+                                    // not consume.
+                                    if !player.capabilities.isCreativeMode {
+                                        let heldIndex = if hand == EnumHand::MainHand {
+                                            player.inventory.currentItem as i32
+                                        } else {
+                                            40
+                                        };
+                                        let mut stack = player
+                                            .inventory
+                                            .getStackInSlot(heldIndex)
+                                            .cloned()
+                                            .unwrap_or(ItemStack::EMPTY);
+                                        stack.shrink(1);
+                                        let _ = player
+                                            .inventory
+                                            .setInventorySlotContents(heldIndex, stack);
+                                    }
+                                    player.queueSoundAtPlayer(
+                                        thrown.sound,
+                                        thrown.category,
+                                        0.5,
+                                        thrown.pitch,
+                                    );
+                                    airConsumed = true;
+                                }
+                                if airConsumed {
+                                    return (
+                                        packets,
+                                        false,
+                                        false,
+                                        None,
+                                        Some(hand),
+                                        Some(hand),
+                                        None,
+                                        None,
+                                    );
+                                }
 
                                 // The currently ported source-backed SUCCESS path consists
                                 // of items with a timed use action (eat/drink, bow, shield).
                                 // Ordinary items remain PASS so the off hand can be tried.
+                                // Food is gated by `ItemFood#onItemRightClick` ->
+                                // `EntityPlayer#canEat(alwaysEdible)`: `(alwaysEdible ||
+                                // needFood()) && !disableDamage`.
                                 let canStart = stack.getItemUseAction()
                                     != crate::net::minecraft::item::EnumAction::EnumAction::None
                                     && (!stack.isFood()
-                                        || player.getFoodStats().getFoodLevel() < 20
-                                        || stack.isAlwaysEdible())
+                                        || ((player.getFoodStats().getFoodLevel() < 20
+                                            || stack.isAlwaysEdible())
+                                            && !player.capabilities.disableDamage))
                                     && (stack.itemId != 261
                                         || state.gameType == GameType::Creative
                                         || player
@@ -3552,7 +3732,7 @@ impl MainMenuRuntime {
             ActiveGuiScreen::ResourcePacks(screen) => screen.initGui(width, height, &self.locale),
             ActiveGuiScreen::Multiplayer(screen) => screen.initGui(width, height, &self.locale),
             ActiveGuiScreen::WorldSelection(screen) => screen.initGui(width, height, &self.locale),
-            ActiveGuiScreen::Language { screen, .. } => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
+            ActiveGuiScreen::Language { screen, .. } => screen.initGui(width, height, &self.locale, &minecraft.gameSettings, &self.languageManager),
             ActiveGuiScreen::AddServer { screen, .. } => screen.initGui(width, height, &self.locale, &self.fontRendererObj),
             ActiveGuiScreen::DirectConnect { screen, .. } => screen.initGui(width, height, &self.locale, &self.fontRendererObj, &minecraft.gameSettings.lastServer),
             ActiveGuiScreen::ConfirmDelete { screen, .. } => screen.initGui(width, height, &self.fontRendererObj),
@@ -3621,6 +3801,27 @@ impl MainMenuRuntime {
     fn openLanguage(&mut self, minecraft: &Minecraft, parent: ScreenId) {
         self.currentScreen = ActiveGuiScreen::Language { screen: GuiLanguage::new(minecraft.gameSettings.language.clone()), parent };
         self.initCurrentScreen(minecraft);
+    }
+
+    /// MCP `GuiLanguage.List.elementClicked` + `Minecraft.refreshResources`:
+    /// switch the language manager and `gameSettings.language`, reload the
+    /// `Locale` (MCP `LanguageManager.onResourceManagerReload` loads
+    /// `[en_us, current]`), refresh the font unicode/bidi flags and re-init
+    /// the visible screen so every translated label updates. The caller
+    /// persists options.txt first, as elementClicked does via saveOptions.
+    fn setLanguage(&mut self, minecraft: &Minecraft, languageCode: &str) {
+        self.languageManager.setCurrentLanguage(languageCode);
+        let mut languageCodes = vec!["en_us"];
+        if languageCode != "en_us" {
+            languageCodes.push(languageCode);
+        }
+        self.locale = Locale::load(&minecraft.resourceManager, &languageCodes, &["minecraft"]);
+        let unicode = self.locale.is_unicode() || minecraft.gameSettings.forceUnicodeFont;
+        self.fontRendererObj.set_unicode_flag(unicode);
+        self.fontRendererObj.set_bidi_flag(self.languageManager.isCurrentLanguageBidirectional());
+        self.worldRenderer.setUnicodeFlag(unicode);
+        self.initCurrentScreen(minecraft);
+        self.lastGuiFrame = Instant::now();
     }
 
     fn openDirectConnect(&mut self, minecraft: &Minecraft) {
@@ -4878,10 +5079,11 @@ impl MainMenuRuntime {
                 }
             }),
             ActiveGuiScreen::Language { screen, parent } => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                playGuiSound(soundHandler, Some(&interaction.sound));
+                playGuiSound(soundHandler, interaction.sound.as_ref());
                 match interaction.action {
                     GuiLanguageAction::Done => RuntimeGuiAction::Switch(*parent),
                     GuiLanguageAction::ToggleUnicode => RuntimeGuiAction::ToggleUnicode,
+                    GuiLanguageAction::SelectLanguage(code) => RuntimeGuiAction::SetLanguage(code),
                 }
             }),
             ActiveGuiScreen::AddServer { screen, editingIndex, .. } => screen.mouseClicked(mouseX, mouseY, 0, &self.fontRendererObj, &self.locale).map(|interaction| {
@@ -4965,6 +5167,13 @@ impl MainMenuRuntime {
                     None
                 }
             }
+            ActiveGuiScreen::Language { screen, .. } => {
+                if screen.mouseDragged(mouseY) {
+                    Some(RuntimeGuiAction::None)
+                } else {
+                    None
+                }
+            }
             _ => None,
         }
     }
@@ -4995,6 +5204,7 @@ impl MainMenuRuntime {
             ActiveGuiScreen::ChatSettings(screen) => screen.mouseReleased(mouseX, mouseY),
             ActiveGuiScreen::ShaderSettings(screen) => screen.mouseReleased(),
             ActiveGuiScreen::ResourcePacks(screen) => screen.mouseReleased(),
+            ActiveGuiScreen::Language { screen, .. } => screen.mouseReleased(),
             _ => {}
         }
     }
@@ -5114,6 +5324,7 @@ impl MainMenuRuntime {
             }
             ActiveGuiScreen::ResourcePacks(screen) => screen.scroll(lines),
             ActiveGuiScreen::ShaderSettings(screen) => screen.scroll(lines),
+            ActiveGuiScreen::Language { screen, .. } => screen.scroll(lines),
             _ => false,
         }
     }
@@ -5888,6 +6099,16 @@ impl MinecraftApplication {
                 runtime.fontRendererObj.set_unicode_flag(unicode);
                 runtime.worldRenderer.setUnicodeFlag(unicode);
                 runtime.resize(minecraft, extent.width, extent.height);
+            }
+            RuntimeGuiAction::SetLanguage(code) => {
+                let minecraft = self.minecraft.as_mut().expect("Minecraft state");
+                minecraft.gameSettings.language = code.clone();
+                if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
+                    log::error!("Couldn't save options.txt: {error}");
+                }
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                runtime.setLanguage(minecraft, &code);
+                log::info!("switched game language to {code}");
             }
             RuntimeGuiAction::SetFov(value) => {
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");

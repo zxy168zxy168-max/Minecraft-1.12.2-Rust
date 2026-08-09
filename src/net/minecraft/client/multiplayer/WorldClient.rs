@@ -43,6 +43,7 @@ use crate::net::minecraft::tileentity::TileEntityPiston::TileEntityPiston;
 use crate::net::minecraft::tileentity::TileEntityShulkerBox::TileEntityShulkerBox;
 use crate::net::minecraft::tileentity::TileEntitySign::TileEntitySign;
 use crate::net::minecraft::tileentity::TileEntitySkull::TileEntitySkull;
+use crate::net::minecraft::world::EnumDifficulty::EnumDifficulty;
 use crate::net::minecraft::world::EnumSkyBlock::EnumSkyBlock;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 use crate::net::minecraft::world::biome::BiomeColorHelper::BiomeAccess;
@@ -79,6 +80,8 @@ pub struct WorldClient {
     shulkerBoxTileEntities: HashMap<BlockPos, TileEntityShulkerBox>,
     signTileEntities: HashMap<BlockPos, TileEntitySign>,
     lastLightningBolt: i32,
+    /// WorldInfo difficulty from `NetHandlerPlayClient#handleServerDifficulty`.
+    difficulty: EnumDifficulty,
     totalWorldTime: i64,
     worldTime: i64,
     doDaylightCycle: bool,
@@ -108,6 +111,7 @@ impl WorldClient {
             shulkerBoxTileEntities: HashMap::new(),
             signTileEntities: HashMap::new(),
             lastLightningBolt: 0,
+            difficulty: EnumDifficulty::Normal,
             totalWorldTime: 0,
             worldTime: 0,
             doDaylightCycle: true,
@@ -1088,6 +1092,14 @@ impl WorldClient {
     pub fn endPortalTileEntities(&self) -> impl Iterator<Item = &TileEntityEndPortal> {
         self.endPortalTileEntities.values()
     }
+
+    /// `WorldInfo#setDifficulty` from `NetHandlerPlayClient#handleServerDifficulty`.
+    pub fn setDifficulty(&mut self, difficulty: EnumDifficulty) {
+        self.difficulty = difficulty;
+    }
+
+    pub fn getDifficulty(&self) -> EnumDifficulty { self.difficulty }
+
 
     pub fn flowerPotTileEntities(&self) -> impl Iterator<Item = &TileEntityFlowerPot> {
         self.flowerPotTileEntities.values()

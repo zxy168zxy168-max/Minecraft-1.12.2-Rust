@@ -19,6 +19,7 @@ use crate::net::minecraft::entity::EntityLivingBase;
 use crate::net::minecraft::entity::player::InventoryPlayer::InventoryPlayer;
 use crate::net::minecraft::entity::player::PlayerCapabilities::PlayerCapabilities;
 use crate::net::minecraft::inventory::ContainerPlayer::ContainerPlayer;
+use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
 use crate::net::minecraft::inventory::OpenContainer::OpenContainer;
 use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::item::ItemElytra::ItemElytra;
@@ -45,6 +46,7 @@ use crate::net::minecraft::util::math::MathHelper::{
     cos as minecraft_cos, sin as minecraft_sin, wrap_degrees_f32,
 };
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
+use crate::net::minecraft::world::EnumDifficulty::EnumDifficulty;
 use crate::net::minecraft::world::GameType::GameType;
 use crate::net::minecraft::stats::RecipeBook::RecipeBook;
 use crate::net::minecraft::potion::PotionEffect::PotionEffect;
@@ -876,6 +878,21 @@ impl EntityPlayerSP {
         if self.flyToggleTimer > 0 {
             self.flyToggleTimer -= 1;
         }
+
+        // MCP `EntityPlayer#onLivingUpdate` peaceful regeneration, which runs
+        // on the vanilla client too (`!isRemote` is not applied here). The
+        // 1.12.2 protocol never syncs gamerules to clients, so the client's
+        // `GameRules` always keeps the default `naturalRegeneration=true`;
+        // the port reflects that by omitting the gamerule lookup.
+        if world.getDifficulty() == EnumDifficulty::Peaceful {
+            if self.health < Self::getMaxHealth() && self.entity.ticksExisted % 20 == 0 {
+                self.heal(1.0);
+            }
+            if self.foodStats.needFood() && self.entity.ticksExisted % 10 == 0 {
+                self.foodStats.setFoodLevel(self.foodStats.getFoodLevel() + 1);
+            }
+        }
+
         if self.jumpTicks > 0 {
             self.jumpTicks -= 1;
         }
@@ -1293,6 +1310,17 @@ impl EntityPlayerSP {
     /// eye position. It is used by the mining-speed penalty and underwater
     /// overlays once that renderer is connected.
     pub fn isInsideWater(&self, world: &WorldClient) -> bool {
+        // MCP `Entity#isInsideOfMaterial` returns false while riding a boat.
+        if let Some(vehicleId) = self.entity.ridingEntityId {
+            if world.getNonPlayerEntityByID(vehicleId).is_some_and(|vehicle| {
+                matches!(
+                    &vehicle.kind,
+                    ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. }
+                )
+            }) {
+                return false;
+            }
+        }
         let eye_y = self.entity.posY + self.getEyeHeight() as f64;
         let pos = BlockPos::new(
             self.entity.posX.floor() as i32,
@@ -1511,6 +1539,53 @@ impl EntityPlayerSP {
         if emitter.isExpired() {
             self.totemParticleEmitter = None;
         }
+    }
+
+    /// MCP `EntityLivingBase#heal` (client health field).
+    pub fn heal(&mut self, healAmount: f32) {
+        if self.health > 0.0 {
+            self.setHealth(self.health + healAmount);
+        }
+    }
+
+    /// MCP `EntityLivingBase#setHealth` with the clamp against max health.
+    pub fn setHealth(&mut self, health: f32) {
+        self.health = health.clamp(0.0, Self::getMaxHealth());
+    }
+
+    /// MCP `EntityLivingBase#getMaxHealth` via the default MAX_HEALTH 20.
+    pub const fn getMaxHealth() -> f32 { 20.0 }
+
+    /// MCP `EntityLivingBase#shouldHeal`.
+    pub const fn shouldHeal(&self) -> bool {
+        self.health > 0.0 && self.health < Self::getMaxHealth()
+    }
+
+    /// MCP `EntityPlayer#getTotalArmorValue`: the sum of the armor slot
+    /// damage reductions (the ARMOR attribute equivalent for a thin client).
+    pub fn getTotalArmorValue(&self) -> i32 {
+        self.inventory.armorInventory.iter().enumerate().fold(0, |total, (index, stack)| {
+            let Some(definition) = crate::net::minecraft::item::ItemArmor::ItemArmor::definition(stack.itemId) else {
+                return total;
+            };
+            let slot = match index {
+                0 => EntityEquipmentSlot::Feet,
+                1 => EntityEquipmentSlot::Legs,
+                2 => EntityEquipmentSlot::Chest,
+                _ => EntityEquipmentSlot::Head,
+            };
+            total + definition.material.damageReduction(slot)
+        })
+    }
+
+    /// MCP `Entity#getAir`: the data-manager AIR value, 300 when full.
+    pub fn getAir(&self) -> i32 {
+        self.dataManager.varInt(1, 300)
+    }
+
+    /// `Item#itemRand` throw pitch: `0.4 / (rand * 0.4 + 0.8)`.
+    pub fn throwSoundPitch(&mut self) -> f32 {
+        0.4 / (self.soundRandomizer.next_f32() * 0.4 + 0.8)
     }
 
     pub fn handleStatusUpdate(&mut self, opcode: i8) {
@@ -2231,5 +2306,52 @@ mod tests {
         assert_eq!(packets[0].id, 0x15);
         assert_eq!(packets[1].id, 0x0D);
         assert_eq!(player.getEyeHeight(), 1.54);
+    }
+
+    #[test]
+    fn peaceful_difficulty_regenerates_health_and_food_at_vanilla_intervals() {
+        // EntityPlayer#onLivingUpdate: heal 1 per 20 ticks when below max
+        // health, foodLevel +1 per 10 ticks while needFood, both unguarded
+        // by isRemote (the vanilla client runs them too).
+        let mut world = WorldClient::new(0);
+        world.setDifficulty(EnumDifficulty::Peaceful);
+        let mut player = EntityPlayerSP::new(7);
+        player.health = 15.0;
+        player.entity.ticksExisted = 20;
+        player.foodStats.setFoodLevel(10);
+        let _ = player.onLivingUpdate(&mut world, MovementKeyState::default(), GameType::Survival);
+        assert_eq!(player.health, 16.0);
+        assert_eq!(player.foodStats.getFoodLevel(), 11);
+
+        let mut world = WorldClient::new(0);
+        world.setDifficulty(EnumDifficulty::Peaceful);
+        let mut player = EntityPlayerSP::new(7);
+        player.health = 15.0;
+        player.entity.ticksExisted = 19;
+        player.foodStats.setFoodLevel(10);
+        let _ = player.onLivingUpdate(&mut world, MovementKeyState::default(), GameType::Survival);
+        assert_eq!(player.health, 15.0);
+        assert_eq!(player.foodStats.getFoodLevel(), 10);
+
+        // Non-peaceful difficulty does not enter the block.
+        let mut world = WorldClient::new(0);
+        world.setDifficulty(EnumDifficulty::Normal);
+        let mut player = EntityPlayerSP::new(7);
+        player.health = 15.0;
+        player.entity.ticksExisted = 20;
+        player.foodStats.setFoodLevel(10);
+        let _ = player.onLivingUpdate(&mut world, MovementKeyState::default(), GameType::Survival);
+        assert_eq!(player.health, 15.0);
+        assert_eq!(player.foodStats.getFoodLevel(), 10);
+
+        // Full health/food stay capped.
+        let mut world = WorldClient::new(0);
+        world.setDifficulty(EnumDifficulty::Peaceful);
+        let mut player = EntityPlayerSP::new(7);
+        player.entity.ticksExisted = 20;
+        player.foodStats.setFoodLevel(20);
+        let _ = player.onLivingUpdate(&mut world, MovementKeyState::default(), GameType::Survival);
+        assert_eq!(player.health, 20.0);
+        assert_eq!(player.foodStats.getFoodLevel(), 20);
     }
 }

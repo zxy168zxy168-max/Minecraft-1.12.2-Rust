@@ -27,6 +27,25 @@ impl ArmorMaterial {
     pub const fn defaultColor(self) -> i32 {
         if matches!(self, Self::Leather) { 0xA06540 } else { 0xFFFFFF }
     }
+
+    /// `ArmorMaterial#getDamageReductionAmount`, indexed by slot. The MCP
+    /// array is ordered [FEET, LEGS, CHEST, HEAD] (`EntityEquipmentSlot#getIndex`).
+    pub const fn damageReduction(self, slot: EntityEquipmentSlot) -> i32 {
+        let values: [i32; 4] = match self {
+            Self::Leather => [1, 2, 3, 1],
+            Self::Chain => [1, 4, 5, 2],
+            Self::Iron => [2, 5, 6, 2],
+            Self::Gold => [1, 3, 5, 2],
+            Self::Diamond => [3, 6, 8, 3],
+        };
+        match slot {
+            EntityEquipmentSlot::Feet => values[0],
+            EntityEquipmentSlot::Legs => values[1],
+            EntityEquipmentSlot::Chest => values[2],
+            EntityEquipmentSlot::Head => values[3],
+            _ => 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -130,6 +149,19 @@ mod tests {
         root.setTag("display", crate::net::minecraft::nbt::NBTBase::NBTBase::Compound(display));
         let dyed = ItemStack { tagCompound: Some(root), ..plain };
         assert_eq!(ItemArmor::getColor(&dyed), 0x123456);
+    }
+
+    #[test]
+    fn damage_reduction_matches_armor_material_tables() {
+        // [feet, legs, chest, head].
+        assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Feet), 1);
+        assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Legs), 2);
+        assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Chest), 3);
+        assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Head), 1);
+        assert_eq!(ArmorMaterial::Iron.damageReduction(EntityEquipmentSlot::Chest), 6);
+        assert_eq!(ArmorMaterial::Diamond.damageReduction(EntityEquipmentSlot::Head), 3);
+        assert_eq!(ArmorMaterial::Chain.damageReduction(EntityEquipmentSlot::Legs), 4);
+        assert_eq!(ArmorMaterial::Gold.damageReduction(EntityEquipmentSlot::Chest), 5);
     }
 
     #[test]

@@ -18,5 +18,7 @@
 #[path = "crafting/mod.rs"] pub mod crafting;
 
 #[path = "ItemArmor.rs"] pub mod ItemArmor;
+#[path = "ItemHoe.rs"] pub mod ItemHoe;
+#[path = "ItemBucket.rs"] pub mod ItemBucket;
 
 #[path = "ItemElytra.rs"] pub mod ItemElytra;

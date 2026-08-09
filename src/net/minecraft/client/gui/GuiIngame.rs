@@ -7,6 +7,12 @@ use crate::net::minecraft::world::GameType::GameType;
 use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
 use crate::net::minecraft::scoreboard::ScorePlayerTeam::ScorePlayerTeam;
 
+/// `MobEffects` ids referenced by the player-stats potion variants.
+const REGENERATION_POTION_ID: u8 = 10;
+const HUNGER_POTION_ID: u8 = 17;
+const POISON_POTION_ID: u8 = 19;
+const WITHER_POTION_ID: u8 = 20;
+
 /// Source texture used by a `GuiIngame` textured rectangle. The Vulkan
 /// backend resolves these logical MCP resources through the shared atlas.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,10 +20,13 @@ pub enum HudTexture {
     Widgets,
     Icons,
     BossBars,
+    /// `GuiContainer.INVENTORY_BACKGROUND` (container/inventory.png): potion
+    /// effect icons and their frames.
+    Inventory,
 }
 
 /// Backend-neutral equivalent of `Gui.drawTexturedModalRect` arguments.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HudTexturedQuad {
     pub texture: HudTexture,
     pub x: i32,
@@ -28,6 +37,8 @@ pub struct HudTexturedQuad {
     pub textureY: i32,
     pub textureWidth: i32,
     pub textureHeight: i32,
+    /// Alpha multiplier for the quad (flicker etc.), 1.0 opaque.
+    pub alpha: f32,
 }
 
 
@@ -61,11 +72,12 @@ pub struct HudScaledText {
     pub scale: i32,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct IngameHudFrame {
     pub hotbar: Vec<HudTexturedQuad>,
     pub crosshair: Vec<HudTexturedQuad>,
     pub playerStats: Vec<HudTexturedQuad>,
+    pub potionEffects: Vec<HudTexturedQuad>,
     pub experienceBar: Vec<HudTexturedQuad>,
     pub experienceLevel: Option<HudText>,
     pub scoreboardRectangles: Vec<HudSolidRect>,
@@ -131,10 +143,10 @@ impl GuiIngame {
     /// Ports the normal-player branches of `GuiIngame.renderHotbar`,
     /// `renderAttackIndicator`, and `renderPlayerStats` from 1.12.2.
     ///
-    /// Potion-specific heart/food variants, absorption, armor, mount health and
-    /// underwater air wait for their corresponding gameplay state. The normal
-    /// survival/adventure health and food paths below use the original texture
-    /// coordinates, seeded jitter and damage/healing flash counters.
+    /// Absorption, poison/wither heart variants, hardcore rows, the hunger
+    /// effect variant and the regeneration heartbeat follow the original
+    /// texture coordinates, seeded jitter and damage/healing flash counters.
+    /// Mount health waits for its corresponding gameplay state.
     #[allow(clippy::too_many_arguments)]
     pub fn buildFrameWithFont(
         &mut self,
@@ -148,6 +160,11 @@ impl GuiIngame {
         absorptionAmount: f32,
         foodLevel: i32,
         saturationLevel: f32,
+        armorValue: i32,
+        air: i32,
+        inWater: bool,
+        hardcoreMode: bool,
+        activePotionEffects: &[crate::net::minecraft::potion::PotionEffect::PotionEffect],
         experience: f32,
         experienceLevel: i32,
         xpBarCap: i32,
@@ -183,6 +200,7 @@ impl GuiIngame {
                 textureY: 0,
                 textureWidth: 182,
                 textureHeight: 22,
+                alpha: 1.0,
             });
             frame.hotbar.push(HudTexturedQuad {
                 texture: HudTexture::Widgets,
@@ -194,6 +212,7 @@ impl GuiIngame {
                 textureY: 22,
                 textureWidth: 24,
                 textureHeight: 22,
+                alpha: 1.0,
             });
 
             if offhandNonEmpty {
@@ -218,6 +237,7 @@ impl GuiIngame {
                     textureY: 22,
                     textureWidth: 29,
                     textureHeight: 24,
+                    alpha: 1.0,
                 });
             }
 
@@ -231,9 +251,14 @@ impl GuiIngame {
                 textureY: 0,
                 textureWidth: 16,
                 textureHeight: 16,
+                alpha: 1.0,
             });
         }
 
+        // MCP `GuiIngame#renderGameOverlay` gates renderPlayerStats behind
+        // `PlayerControllerMP#shouldDrawHUD`, which delegates straight to
+        // `GameType#isSurvivalOrAdventure` — creative players do not see the
+        // health/food/armor/air bars.
         if gameType.isSurvivalOrAdventure() {
             self.appendPlayerStats(
                 &mut frame.playerStats,
@@ -243,6 +268,11 @@ impl GuiIngame {
                 absorptionAmount,
                 foodLevel,
                 saturationLevel,
+                armorValue,
+                air,
+                inWater,
+                hardcoreMode,
+                activePotionEffects,
                 hurtResistantTime,
                 systemTimeMillis,
             );
@@ -255,6 +285,11 @@ impl GuiIngame {
                 xpBarCap,
             );
         }
+
+        // MCP `GuiIngame#renderGameOverlay` calls renderPotionEffects
+        // unconditionally (outside the survival/adventure gate), so creative
+        // players see their effect icons too.
+        self.appendPotionEffects(&mut frame.potionEffects, guiWidth, activePotionEffects);
 
         if let Some(scoreboard) = scoreboard {
             self.appendScoreboard(&mut frame, guiWidth, guiHeight, scoreboard, localPlayerName, fontRenderer);
@@ -360,7 +395,8 @@ impl GuiIngame {
         let fontRenderer = FontRenderer::test_metric_renderer();
         self.buildFrameWithFont(
             guiWidth, guiHeight, currentHotbarSlot, offhandNonEmpty, primaryHand, gameType,
-            playerHealth, absorptionAmount, foodLevel, saturationLevel, experience, experienceLevel, xpBarCap,
+            playerHealth, absorptionAmount, foodLevel, saturationLevel, 0, 300, false, false, &[],
+            experience, experienceLevel, xpBarCap,
             hurtResistantTime, playerTicksExisted, systemTimeMillis, scoreboard, localPlayerName,
             actionBarText, actionBarAge, 0.0, false, [0.0; 3], 0.0, 0.0, None, &fontRenderer,
         )
@@ -497,6 +533,7 @@ impl GuiIngame {
                 textureY: 64,
                 textureWidth: 182,
                 textureHeight: 5,
+                alpha: 1.0,
             });
             let filled = (experience * 183.0) as i32;
             if filled > 0 {
@@ -510,6 +547,7 @@ impl GuiIngame {
                     textureY: 69,
                     textureWidth: filled,
                     textureHeight: 5,
+                    alpha: 1.0,
                 });
             }
         }
@@ -537,6 +575,11 @@ impl GuiIngame {
         absorptionAmount: f32,
         foodLevel: i32,
         saturationLevel: f32,
+        armorValue: i32,
+        air: i32,
+        inWater: bool,
+        hardcore: bool,
+        effects: &[crate::net::minecraft::potion::PotionEffect::PotionEffect],
         hurtResistantTime: i32,
         systemTimeMillis: u64,
     ) {
@@ -576,38 +619,89 @@ impl GuiIngame {
         let totalHeartSlots = ((maxHealth + absorption as f32) / 2.0).ceil() as i32;
         let mut absorptionRemaining = absorption;
 
+        // MCP GuiIngame#renderPlayerStats: `j3 = updateCounter % ceil(f + 5)`.
+        // The matching heart (while no absorption is shown) is lifted 2px.
+        let regenFlashHeart = if effects.iter().any(|effect| effect.getPotionId() == REGENERATION_POTION_ID) {
+            self.updateCounter.rem_euclid(maxHealth as i32 + 5)
+        } else {
+            -1
+        };
+        // MCP heart texture row: `9 * i5` with `i5 = 5` on hardcore worlds.
+        let heartTextureY = if hardcore { 45 } else { 0 };
+        // MCP `k5 = 16`, plus 36 while POISON is active or 72 while WITHER is
+        // active; the full/flash/absorption UVs all offset from this base.
+        let heartVariantOffset = if effects.iter().any(|effect| effect.getPotionId() == POISON_POTION_ID) {
+            36
+        } else if effects.iter().any(|effect| effect.getPotionId() == WITHER_POTION_ID) {
+            72
+        } else {
+            0
+        };
+
+        // MCP GuiIngame#renderPlayerStats "armor" section: ten 9x9 icons at
+        // `j2 = baseline - (rows - 1) * rowHeight - 10`, full/half/empty by
+        // `k * 2 + 1` against the total armor value.
+        let armorY = baseline - (heartRows - 1) * rowHeight - 10;
+        for armorIndex in 0..10 {
+            if armorValue > 0 {
+                let x = left + armorIndex * 8;
+                let (textureX, textureY) = if armorIndex * 2 + 1 < armorValue {
+                    (34, 9)
+                } else if armorIndex * 2 + 1 == armorValue {
+                    (25, 9)
+                } else {
+                    (16, 9)
+                };
+                output.push(icon_quad(x, armorY, textureX, textureY));
+            }
+        }
+
         for heartIndex in (0..totalHeartSlots).rev() {
             let row = (heartIndex + 1 + 9) / 10 - 1;
             let mut y = baseline - row * rowHeight;
             if currentHealth <= 4 {
                 y += self.rand.next_i32_bound(2);
             }
+            // MCP: `if (l2 <= 0 && j5 == j3) l4 -= 2` after the low-health
+            // jitter, using the pre-absorption value of `l2`.
+            if absorptionRemaining <= 0 && heartIndex == regenFlashHeart {
+                y -= 2;
+            }
             let x = left + heartIndex.rem_euclid(10) * 8;
-            output.push(icon_quad(x, y, 16 + if flash { 9 } else { 0 }, 0));
+            output.push(icon_quad(x, y, 16 + if flash { 9 } else { 0 }, heartTextureY));
 
             if flash {
                 if heartIndex * 2 + 1 < previousHealth {
-                    output.push(icon_quad(x, y, 70, 0));
+                    output.push(icon_quad(x, y, 16 + heartVariantOffset + 54, heartTextureY));
                 } else if heartIndex * 2 + 1 == previousHealth {
-                    output.push(icon_quad(x, y, 79, 0));
+                    output.push(icon_quad(x, y, 16 + heartVariantOffset + 63, heartTextureY));
                 }
             }
 
             if absorptionRemaining > 0 {
                 if absorptionRemaining == absorption && absorption % 2 == 1 {
-                    output.push(icon_quad(x, y, 169, 0));
+                    output.push(icon_quad(x, y, 16 + heartVariantOffset + 153, heartTextureY));
                     absorptionRemaining -= 1;
                 } else {
-                    output.push(icon_quad(x, y, 160, 0));
+                    output.push(icon_quad(x, y, 16 + heartVariantOffset + 144, heartTextureY));
                     absorptionRemaining -= 2;
                 }
             } else if heartIndex * 2 + 1 < currentHealth {
-                output.push(icon_quad(x, y, 52, 0));
+                output.push(icon_quad(x, y, 16 + heartVariantOffset + 36, heartTextureY));
             } else if heartIndex * 2 + 1 == currentHealth {
-                output.push(icon_quad(x, y, 61, 0));
+                output.push(icon_quad(x, y, 16 + heartVariantOffset + 45, heartTextureY));
             }
         }
 
+        // MCP: HUNGER shifts the food row to its variant: background
+        // `16 + j7 * 9` with `j7 = 13`, full `l6 + 36` and half `l6 + 45`
+        // with `l6 = 16 + 36`.
+        let (foodBackgroundX, foodFullX, foodHalfX) =
+            if effects.iter().any(|effect| effect.getPotionId() == HUNGER_POTION_ID) {
+                (133, 88, 97)
+            } else {
+                (16, 52, 61)
+            };
         for foodIndex in 0..10 {
             let mut y = baseline;
             if saturationLevel <= 0.0
@@ -616,12 +710,104 @@ impl GuiIngame {
                 y += self.rand.next_i32_bound(3) - 1;
             }
             let x = right - foodIndex * 8 - 9;
-            output.push(icon_quad(x, y, 16, 27));
+            output.push(icon_quad(x, y, foodBackgroundX, 27));
             if foodIndex * 2 + 1 < foodLevel {
-                output.push(icon_quad(x, y, 52, 27));
+                output.push(icon_quad(x, y, foodFullX, 27));
             } else if foodIndex * 2 + 1 == foodLevel {
-                output.push(icon_quad(x, y, 61, 27));
+                output.push(icon_quad(x, y, foodHalfX, 27));
             }
+        }
+
+        // MCP GuiIngame#renderPlayerStats "air" section: bubbles while the
+        // player is inside water, right-aligned at `baseline - 10`. The air
+        // value is used as-is (no clamp), matching the source.
+        if inWater {
+            let consumed = ((air - 2) as f64 * 10.0 / 300.0).ceil() as i32;
+            let remaining = (air as f64 * 10.0 / 300.0).ceil() as i32 - consumed;
+            for bubble in 0..(consumed + remaining) {
+                let x = right - bubble * 8 - 9;
+                let (textureX, textureY) = if bubble < consumed {
+                    (16, 18)
+                } else {
+                    (25, 18)
+                };
+                output.push(icon_quad(x, baseline - 10, textureX, textureY));
+            }
+        }
+    }
+
+    /// MCP `GuiIngame#renderPotionEffects`: beneficial effects stack on the
+    /// top row from the right, harmful ones on the second row, with the
+    /// inventory-texture frame and 18x18 icon. The last 200 ticks fade the
+    /// icon via the alpha ramp.
+    fn appendPotionEffects(
+        &self,
+        output: &mut Vec<HudTexturedQuad>,
+        guiWidth: i32,
+        effects: &[crate::net::minecraft::potion::PotionEffect::PotionEffect],
+    ) {
+        if effects.is_empty() {
+            return;
+        }
+        let mut beneficialCount = 0;
+        let mut harmfulCount = 0;
+        // `Ordering.natural().reverse().sortedCopy`: longest duration first.
+        let mut sorted = effects.to_vec();
+        sorted.sort_by(|a, b| b.getDuration().cmp(&a.getDuration()));
+        for effect in &sorted {
+            let Some(meta) = crate::net::minecraft::potion::Potion::potion_meta(effect.getPotionId()) else {
+                continue;
+            };
+            if !meta.hasStatusIcon() || !effect.doesShowParticles() {
+                continue;
+            }
+            let mut x = guiWidth;
+            let mut y = 1;
+            if meta.beneficial {
+                beneficialCount += 1;
+                x -= 25 * beneficialCount;
+            } else {
+                harmfulCount += 1;
+                x -= 25 * harmfulCount;
+                y += 26;
+            }
+            let mut alpha = 1.0_f32;
+            if !effect.getIsAmbient() && effect.getDuration() <= 200 {
+                let flash = 10 - effect.getDuration() / 20;
+                alpha = (effect.getDuration() as f32 / 10.0 / 5.0 * 0.5).clamp(0.0, 0.5)
+                    + (effect.getDuration() as f32 * std::f32::consts::PI / 5.0).cos()
+                        * (flash as f32 / 10.0 * 0.25).clamp(0.0, 0.25);
+            }
+            let (frameX, frameY, frameSize) = if effect.getIsAmbient() {
+                (165, 166, 24)
+            } else {
+                (141, 166, 24)
+            };
+            output.push(HudTexturedQuad {
+                texture: HudTexture::Inventory,
+                x,
+                y,
+                width: frameSize,
+                height: frameSize,
+                textureX: frameX,
+                textureY: frameY,
+                textureWidth: frameSize,
+                textureHeight: frameSize,
+                alpha: 1.0,
+            });
+            let (iconX, iconY) = meta.iconRect();
+            output.push(HudTexturedQuad {
+                texture: HudTexture::Inventory,
+                x: x + 3,
+                y: y + 3,
+                width: 18,
+                height: 18,
+                textureX: iconX,
+                textureY: iconY,
+                textureWidth: 18,
+                textureHeight: 18,
+                alpha,
+            });
         }
     }
 }
@@ -637,6 +823,7 @@ const fn icon_quad(x: i32, y: i32, textureX: i32, textureY: i32) -> HudTexturedQ
         textureY,
         textureWidth: 9,
         textureHeight: 9,
+        alpha: 1.0,
     }
 }
 
@@ -693,6 +880,7 @@ mod tests {
             textureY: 0,
             textureWidth: 182,
             textureHeight: 22,
+            alpha: 1.0,
         });
         assert_eq!(frame.hotbar[1].x, 148);
         assert_eq!(frame.hotbar[1].y, 157);
@@ -711,6 +899,77 @@ mod tests {
     }
 
     #[test]
+    fn armor_bar_uses_full_half_empty_uvs_at_j2() {
+        let mut gui = GuiIngame::new();
+        let frame = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            20.0, 0.0, 20, 5.0, 5, 300, false, false, &[],
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        // 5 armor: k*2+1 < 5 => full (34,9) for k=0,1; ==5 => half (25,9) k=2;
+        // >5 => empty (16,9) for k=3..9. y = 141 - (1-1)*10 - 10 = 131.
+        assert!(frame.playerStats.contains(&icon_quad(69, 131, 34, 9)));
+        assert!(frame.playerStats.contains(&icon_quad(85, 131, 25, 9)));
+        assert!(frame.playerStats.contains(&icon_quad(93, 131, 16, 9)));
+    }
+
+    #[test]
+    fn air_bubbles_render_while_in_water() {
+        let mut gui = GuiIngame::new();
+        // 150 air: consumed = ceil(148*10/300) = 5 empty-ish (16,18),
+        // remaining = ceil(150*10/300) - 5 = 0 => 5 bubbles at y = 141-10 = 131.
+        let frame = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            20.0, 0.0, 20, 5.0, 0, 150, true, false, &[],
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        // Bubbles right-aligned from x = right - 9 = 242.
+        assert!(frame.playerStats.contains(&icon_quad(242, 131, 16, 18)));
+        assert!(frame.playerStats.contains(&icon_quad(234, 131, 16, 18)));
+        assert!(!frame.playerStats.contains(&icon_quad(242, 131, 25, 18)));
+        // Dry player: no bubbles at all.
+        let dry = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            20.0, 0.0, 20, 5.0, 0, 300, false, false, &[],
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        assert!(!dry.playerStats.iter().any(|quad| quad.textureY == 18));
+    }
+
+    #[test]
+    fn potion_icons_stack_beneficial_top_row_and_harmful_second_row() {
+        let mut gui = GuiIngame::new();
+        use crate::net::minecraft::potion::PotionEffect::PotionEffect;
+        let effects = [
+            PotionEffect::new(1, 400, 0, false, true),   // speed, beneficial
+            PotionEffect::new(2, 400, 0, false, true),   // slowness, harmful
+        ];
+        let frame = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            20.0, 0.0, 20, 5.0, 0, 300, false, false, &effects,
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        // Beneficial first: frame x = 320 - 25 = 295, y = 1; icon at +3.
+        assert!(frame.potionEffects.iter().any(|quad|
+            quad.x == 295 && quad.y == 1 && quad.width == 24 && quad.textureY == 166));
+        assert!(frame.potionEffects.iter().any(|quad|
+            quad.x == 298 && quad.y == 4 && quad.textureX == 0 && quad.textureY == 198));
+        // Harmful second row: frame y = 27, icon at y = 30.
+        assert!(frame.potionEffects.iter().any(|quad|
+            quad.x == 295 && quad.y == 27 && quad.width == 24 && quad.textureY == 166));
+        assert!(frame.potionEffects.iter().any(|quad|
+            quad.x == 298 && quad.y == 30 && quad.textureX == 18 && quad.textureY == 198));
+    }
+
+    #[test]
     fn absorption_uses_vanilla_yellow_heart_uvs() {
         let mut gui = GuiIngame::new();
         let frame = gui.buildFrame(
@@ -719,6 +978,86 @@ mod tests {
             None, "", None, 0,
         );
         assert!(frame.playerStats.iter().any(|quad| quad.textureX == 160 && quad.textureY == 0));
+    }
+
+    #[test]
+    fn poison_and_hardcore_shift_heart_uvs_like_render_player_stats() {
+        use crate::net::minecraft::potion::PotionEffect::PotionEffect;
+        let mut gui = GuiIngame::new();
+        // k5 = 16 + 36 (poison) = 52; hardcore row textureY = 9 * 5 = 45.
+        let effects = [PotionEffect::new(19, 200, 0, false, true)]; // poison
+        let frame = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            20.0, 0.0, 20, 5.0, 0, 300, false, true, &effects,
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        // Full current heart at k5 + 36 = 88 on the hardcore row.
+        assert!(frame.playerStats.contains(&icon_quad(69, 141, 88, 45)));
+        // Poison absorption full heart at k5 + 144 = 196 on the second row.
+        let poisoned = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            20.0, 4.0, 20, 5.0, 0, 300, false, false, &effects,
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        assert!(poisoned.playerStats.contains(&icon_quad(69, 131, 196, 0)));
+    }
+
+    #[test]
+    fn wither_uses_own_heart_variant_uvs() {
+        use crate::net::minecraft::potion::PotionEffect::PotionEffect;
+        let mut gui = GuiIngame::new();
+        // k5 = 16 + 72 (wither) = 88: current full heart at 88 + 36 = 124.
+        let effects = [PotionEffect::new(20, 400, 0, false, true)]; // wither
+        // 19 health keeps heart 0 full and the last heart half (133).
+        let frame = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            19.0, 0.0, 20, 5.0, 0, 300, false, false, &effects,
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        assert!(frame.playerStats.contains(&icon_quad(69, 141, 124, 0)));
+    }
+
+    #[test]
+    fn hunger_effect_shifts_food_row_to_variant_uvs() {
+        use crate::net::minecraft::potion::PotionEffect::PotionEffect;
+        let mut gui = GuiIngame::new();
+        // HUNGER: background 16 + 13 * 9 = 133, full l6 + 36 = 88.
+        let effects = [PotionEffect::new(17, 200, 0, false, true)]; // hunger
+        let frame = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            20.0, 0.0, 20, 5.0, 0, 300, false, false, &effects,
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        assert!(frame.playerStats.contains(&icon_quad(242, 141, 133, 27)));
+        assert!(frame.playerStats.contains(&icon_quad(242, 141, 88, 27)));
+        assert!(!frame.playerStats.contains(&icon_quad(242, 141, 52, 27)));
+    }
+
+    #[test]
+    fn regeneration_heartbeat_lifts_the_matching_heart() {
+        use crate::net::minecraft::potion::PotionEffect::PotionEffect;
+        let mut gui = GuiIngame::new();
+        // updateCounter = playerTicksExisted = 1 → heartbeat heart 1 % 25 = 1.
+        let effects = [PotionEffect::new(10, 200, 0, false, true)]; // regeneration
+        let frame = gui.buildFrameWithFont(
+            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
+            20.0, 0.0, 20, 5.0, 0, 300, false, false, &effects,
+            0.0, 0, 7, 0, 1, 2_000, None, "", None, 0,
+            0.0, false, [0.0; 3], 0.0, 0.0, None,
+            &FontRenderer::test_metric_renderer(),
+        );
+        // Heart 1 (x = 69 + 8 = 77) is lifted from y 141 to 139.
+        assert!(frame.playerStats.contains(&icon_quad(77, 139, 16, 0)));
+        // Hearts 2..10 stay at the baseline.
+        assert!(frame.playerStats.contains(&icon_quad(69, 141, 16, 0)));
     }
 
     #[test]
@@ -768,6 +1107,7 @@ mod tests {
             textureY: 64,
             textureWidth: 182,
             textureHeight: 5,
+            alpha: 1.0,
         });
         assert_eq!(frame.experienceBar[1].width, 91);
         assert_eq!(frame.experienceBar[1].textureY, 69);
@@ -782,6 +1122,8 @@ mod tests {
 
     #[test]
     fn creative_keeps_hotbar_but_hides_survival_stats() {
+        // `PlayerControllerMP#shouldDrawHUD` is `GameType#isSurvivalOrAdventure`
+        // in 1.12.2, so creative players see neither the stats nor the exp bar.
         let mut gui = GuiIngame::new();
         let frame = frame(&mut gui, GameType::Creative);
         assert!(!frame.hotbar.is_empty());

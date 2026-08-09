@@ -22,7 +22,7 @@ pub struct PlayerTabHead {
     pub renderHat: bool,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct PlayerTabFrame {
     pub rectangles: Vec<HudSolidRect>,
     pub heads: Vec<PlayerTabHead>,
@@ -198,6 +198,7 @@ impl GuiPlayerTabOverlay {
                 textureY: 176 + ping_index * 8,
                 textureWidth: 10,
                 textureHeight: 8,
+                alpha: 1.0,
             });
         }
 

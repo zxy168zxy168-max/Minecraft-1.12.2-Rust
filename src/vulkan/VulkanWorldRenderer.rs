@@ -1447,6 +1447,11 @@ pub struct WorldRenderCapture {
     itemActivationRandomY: f32,
     foodLevel: i32,
     saturationLevel: f32,
+    armorValue: i32,
+    air: i32,
+    inWater: bool,
+    hardcoreMode: bool,
+    activePotionEffects: Vec<crate::net::minecraft::potion::PotionEffect::PotionEffect>,
     experience: f32,
     experienceLevel: i32,
     playerCreativeMode: bool,
@@ -2525,6 +2530,10 @@ impl VulkanWorldRenderer {
             absorptionAmount,
             foodLevel,
             saturationLevel,
+            armorValue,
+            air,
+            inWater,
+            activePotionEffects,
             experience,
             experienceLevel,
             xpBarCap,
@@ -2570,6 +2579,10 @@ impl VulkanWorldRenderer {
                     player.getAbsorptionAmount(),
                     player.getFoodStats().getFoodLevel(),
                     player.getFoodStats().getSaturationLevel(),
+                    player.getTotalArmorValue(),
+                    player.getAir(),
+                    state.worldClient.as_ref().is_some_and(|world| player.isInsideWater(world)),
+                    player.activePotionEffects.values().copied().collect(),
                     player.experience,
                     player.experienceLevel,
                     player.xpBarCap(),
@@ -2602,8 +2615,8 @@ impl VulkanWorldRenderer {
             .unwrap_or((
                 0, false, vec![ItemStack::EMPTY; 9], ItemStack::EMPTY,
                 vec![ItemStack::EMPTY; 46], ItemStack::EMPTY,
-                20.0, 0.0, 20, 5.0, 0.0, 0, 7, 0, 0, 0.0, EnumHand::MainHand,
-                0.0, 0.0, 0.0, false, false, false, 0.0, 0.0,
+                20.0, 0.0, 20, 5.0, 0, 300, false, Vec::new(), 0.0, 0, 7, 0, 0, 0.0,
+                EnumHand::MainHand, 0.0, 0.0, 0.0, false, false, false, 0.0, 0.0,
             ));
         let (
             itemActivationItem,
@@ -2722,6 +2735,11 @@ impl VulkanWorldRenderer {
                 itemActivationRandomY,
                 foodLevel,
                 saturationLevel,
+                armorValue,
+                air,
+                inWater,
+                hardcoreMode: state.hardcoreMode,
+                activePotionEffects,
                 experience,
                 experienceLevel,
                 playerCreativeMode,
@@ -3526,6 +3544,11 @@ impl VulkanWorldRenderer {
             itemActivationRandomY,
             foodLevel,
             saturationLevel,
+            armorValue,
+            air,
+            inWater,
+            hardcoreMode: state.hardcoreMode,
+            activePotionEffects,
             experience,
             experienceLevel,
             playerCreativeMode,
@@ -9720,6 +9743,7 @@ fn build_ingame_hud(
             &mut vertices, &mut indices, atlas.barsRectangle,
             quad.x, quad.y, quad.width, quad.height,
             quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            quad.alpha,
         );
     }
     for text in &bossFrame.texts {
@@ -9769,6 +9793,11 @@ fn build_ingame_hud(
         capture.absorptionAmount,
         capture.foodLevel,
         capture.saturationLevel,
+        capture.armorValue,
+        capture.air,
+        capture.inWater,
+        capture.hardcoreMode,
+        &capture.activePotionEffects,
         capture.experience,
         capture.experienceLevel,
         capture.xpBarCap,
@@ -9794,11 +9823,13 @@ fn build_ingame_hud(
             HudTexture::Widgets => atlas.widgetsRectangle,
             HudTexture::Icons => atlas.iconsRectangle,
             HudTexture::BossBars => atlas.barsRectangle,
+            HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
             &mut vertices, &mut indices, rectangle,
             quad.x, quad.y, quad.width, quad.height,
             quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            quad.alpha,
         );
     }
     push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
@@ -9821,11 +9852,13 @@ fn build_ingame_hud(
             HudTexture::Widgets => atlas.widgetsRectangle,
             HudTexture::Icons => atlas.iconsRectangle,
             HudTexture::BossBars => atlas.barsRectangle,
+            HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
             &mut vertices, &mut indices, rectangle,
             quad.x, quad.y, quad.width, quad.height,
             quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            quad.alpha,
         );
     }
     push_hud_range(&mut drawRanges, HudPipelineKind::Crosshair, begin, indices.len() as u32);
@@ -9836,11 +9869,32 @@ fn build_ingame_hud(
             HudTexture::Widgets => atlas.widgetsRectangle,
             HudTexture::Icons => atlas.iconsRectangle,
             HudTexture::BossBars => atlas.barsRectangle,
+            HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
             &mut vertices, &mut indices, rectangle,
             quad.x, quad.y, quad.width, quad.height,
             quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            quad.alpha,
+        );
+    }
+    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+
+    // `GuiIngame#renderPotionEffects` draws before the hotbar in the MCP
+    // overlay order; keep it adjacent to playerStats in the same alpha range.
+    begin = indices.len() as u32;
+    for quad in &hud.potionEffects {
+        let rectangle = match quad.texture {
+            HudTexture::Widgets => atlas.widgetsRectangle,
+            HudTexture::Icons => atlas.iconsRectangle,
+            HudTexture::BossBars => atlas.barsRectangle,
+            HudTexture::Inventory => atlas.inventoryRectangle,
+        };
+        append_hud_quad(
+            &mut vertices, &mut indices, rectangle,
+            quad.x, quad.y, quad.width, quad.height,
+            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            quad.alpha,
         );
     }
     push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
@@ -9851,11 +9905,13 @@ fn build_ingame_hud(
             HudTexture::Widgets => atlas.widgetsRectangle,
             HudTexture::Icons => atlas.iconsRectangle,
             HudTexture::BossBars => atlas.barsRectangle,
+            HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
             &mut vertices, &mut indices, rectangle,
             quad.x, quad.y, quad.width, quad.height,
             quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            quad.alpha,
         );
     }
     if let Some(text) = &hud.experienceLevel {
@@ -9992,11 +10048,13 @@ fn build_ingame_hud(
                 HudTexture::Widgets => atlas.widgetsRectangle,
                 HudTexture::Icons => atlas.iconsRectangle,
                 HudTexture::BossBars => atlas.barsRectangle,
+            HudTexture::Inventory => atlas.inventoryRectangle,
             };
             append_hud_quad(
                 &mut vertices, &mut indices, rectangle,
                 quad.x, quad.y, quad.width, quad.height,
                 quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+                quad.alpha,
             );
         }
         for text in tab.texts {
@@ -14372,6 +14430,7 @@ fn append_hud_quad(
     rectangle: [f32; 4],
     x: i32, y: i32, width: i32, height: i32,
     textureX: i32, textureY: i32, textureWidth: i32, textureHeight: i32,
+    alpha: f32,
 ) {
     let u0 = rectangle[0] + (rectangle[2] - rectangle[0]) * textureX as f32 / 256.0;
     let v0 = rectangle[1] + (rectangle[3] - rectangle[1]) * textureY as f32 / 256.0;
@@ -14382,7 +14441,7 @@ fn append_hud_quad(
     let right = (x + width) as f32;
     let bottom = (y + height) as f32;
     let base = vertices.len() as u32;
-    let color = [1.0, 1.0, 1.0, 1.0];
+    let color = [1.0, 1.0, 1.0, alpha];
     let lightmap = [15.0, 15.0];
     vertices.extend_from_slice(&[
         WorldVertex { position: [left, bottom, 0.0], uv: [u0, v1], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },

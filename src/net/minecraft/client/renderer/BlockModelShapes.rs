@@ -1077,6 +1077,7 @@ fn approximately_array(left: [f32; 3], right: [f32; 3]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::net::minecraft::client::renderer::block::model::ItemCameraTransforms::ItemCameraTransforms;
 
     #[test]
     fn common_state_mapper_names_match_mcp() {
@@ -1185,6 +1186,10 @@ mod tests {
                 faces: HashMap::new(),
             }],
             ambientOcclusion: true,
+            gui3d: false,
+            transforms: ItemCameraTransforms::default(),
+            generated: false,
+            builtInRenderer: false,
             namespace: "minecraft".to_owned(),
         };
         assert!(!model_is_full_cube(&model));

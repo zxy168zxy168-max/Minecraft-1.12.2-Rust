@@ -6,7 +6,7 @@ use crate::net::minecraft::client::gui::GuiIngame::{HudText, HudTexturedQuad, Hu
 use crate::net::minecraft::network::play::server::SPacketUpdateBossInfo::{Operation, SPacketUpdateBossInfo};
 use crate::net::minecraft::world::BossInfo::Overlay;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct BossOverlayFrame {
     pub bars: Vec<HudTexturedQuad>,
     pub texts: Vec<HudText>,
@@ -98,6 +98,7 @@ fn append_bar(
         textureY: colorOrdinal * 10,
         textureWidth: width,
         textureHeight: 5,
+        alpha: 1.0,
     });
     if overlay != Overlay::Progress {
         bars.push(HudTexturedQuad {
@@ -107,6 +108,7 @@ fn append_bar(
             textureY: 80 + (overlay.ordinal() - 1) * 10,
             textureWidth: width,
             textureHeight: 5,
+            alpha: 1.0,
         });
     }
 }
