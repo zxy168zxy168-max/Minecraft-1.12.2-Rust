@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-windows:
 
     runs-on: windows-latest
     env:
@@ -39,3 +39,25 @@ jobs:
         with:
           name: minecraft-1.12.2-windows
           path: target/release/*.exe
+
+  build-linux:
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Vulkan-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install libvulkan-dev -y
+
+      - name: Build
+        run: |
+          cargo build --release --bin mc112-client
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: minecraft-1.12.2-linux
+          path: target/release/mc112-client     
