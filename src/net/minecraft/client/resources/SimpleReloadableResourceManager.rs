@@ -130,11 +130,18 @@ impl ResourceManager {
         for pack in &self.packs {
             match &pack.pack {
                 ResourcePackSource::Directory(directory) => {
-                    let path = directory.assets_root().join(format!("{name}.mcmeta"));
+                    // FolderResourcePack stores `<pack>/assets` as its namespace
+                    // root, while IResourcePack#getPackMetadata reads the root
+                    // `<pack>/{name}.mcmeta`. Runtime default assets may not have
+                    // a parent metadata file; LanguageManager supplies the
+                    // canonical en_us DefaultResourcePack fallback in that case.
+                    let file = format!("{name}.mcmeta");
+                    let path = directory.assets_root().parent()
+                        .map(|root| root.join(&file))
+                        .filter(|candidate| candidate.is_file())
+                        .unwrap_or_else(|| directory.assets_root().join(&file));
                     if path.is_file() {
-                        if let Ok(bytes) = fs::read(path) {
-                            sections.push(bytes);
-                        }
+                        if let Ok(bytes) = fs::read(path) { sections.push(bytes); }
                     }
                 }
                 ResourcePackSource::Zip(zip) => {

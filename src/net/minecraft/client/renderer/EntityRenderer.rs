@@ -11,10 +11,10 @@ pub struct LightmapParameters {
 
 /// Rendering-light subset of MCP 1.12.2 `EntityRenderer`.
 ///
-/// The Vulkan fragment shader evaluates the same 16 x 16 lightmap function
-/// analytically. Keeping the canonical CPU implementation here preserves the
-/// class responsibility and supplies a regression oracle without rebuilding
-/// every `RenderChunk` whenever time or gamma changes.
+/// Both native backends now consume the same CPU-built 16 x 16 lightmap,
+/// mirroring vanilla's `DynamicTexture` responsibility. RenderChunk geometry
+/// remains immutable when time, torch flicker or gamma changes; only the tiny
+/// lightmap texture is refreshed.
 pub struct EntityRenderer;
 
 impl EntityRenderer {
@@ -93,6 +93,40 @@ impl EntityRenderer {
             (green * 0.96 + 0.03).clamp(0.0, 1.0),
             (blue * 0.96 + 0.03).clamp(0.0, 1.0),
         ]
+    }
+
+    /// Builds the 16 x 16 RGBA lightmap backing MCP `DynamicTexture`.
+    /// Indexing matches `EntityRenderer#updateLightmap`: sky light is the
+    /// major coordinate (`i / 16`) and block light is the minor coordinate
+    /// (`i % 16`). The currently ported state intentionally excludes weather,
+    /// lightning, boss tint and night vision until those authoritative source
+    /// states are connected; both native render backends consume this one
+    /// implementation so they cannot drift from each other.
+    pub fn buildLightmapRgba(parameters: LightmapParameters) -> [u8; 16 * 16 * 4] {
+        let provider = WorldProvider::new(parameters.dimension);
+        let mut rgba = [0_u8; 16 * 16 * 4];
+        for skyLight in 0_u8..16 {
+            for blockLight in 0_u8..16 {
+                let color = Self::lightmapColor(&provider, skyLight, blockLight, parameters);
+                let offset = (skyLight as usize * 16 + blockLight as usize) * 4;
+                rgba[offset] = (color[0] * 255.0).floor() as u8;
+                rgba[offset + 1] = (color[1] * 255.0).floor() as u8;
+                rgba[offset + 2] = (color[2] * 255.0).floor() as u8;
+                rgba[offset + 3] = 255;
+            }
+        }
+        rgba
+    }
+
+    /// Builds the native-backend texture directly from the compact frame
+    /// parameters stored in `WorldPushConstants`.
+    pub fn buildLightmapRgbaFromArray(parameters: [f32; 4]) -> [u8; 16 * 16 * 4] {
+        Self::buildLightmapRgba(LightmapParameters {
+            sunBrightness: parameters[0],
+            torchFlickerX: parameters[1],
+            gammaSetting: parameters[2].clamp(0.0, 1.0),
+            dimension: parameters[3] as i32,
+        })
     }
 
     /// MCP `updateTorchFlicker`, with random samples supplied by the caller so

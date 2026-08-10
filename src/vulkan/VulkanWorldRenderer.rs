@@ -25,6 +25,7 @@ use crate::net::minecraft::creativetab::CreativeTabs::{
 use crate::net::minecraft::client::model::ModelShield::ModelShield;
 use crate::net::minecraft::inventory::ContainerHorseInventory::HorseInventorySpec;
 use std::collections::{HashMap, HashSet, VecDeque};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::fmt::{self, Write as _};
 use std::path::PathBuf;
 use std::sync::{mpsc, Arc, OnceLock};
@@ -97,6 +98,9 @@ use crate::net::minecraft::client::renderer::entity::RenderChicken::RenderChicke
 use crate::net::minecraft::client::renderer::entity::RenderMooshroom::RenderMooshroom;
 use crate::net::minecraft::client::renderer::entity::RenderCreeper::RenderCreeper;
 use crate::net::minecraft::client::renderer::entity::RenderSpider::{RenderSpider, SpiderVariant};
+use crate::net::minecraft::client::renderer::entity::RenderEnderman::RenderEnderman;
+use crate::net::minecraft::client::renderer::entity::RenderSquid::RenderSquid;
+use crate::net::minecraft::client::renderer::entity::RenderDragon::RenderDragon;
 use crate::net::minecraft::client::renderer::entity::RenderSlime::RenderSlime;
 use crate::net::minecraft::client::renderer::entity::RenderMagmaCube::RenderMagmaCube;
 use crate::net::minecraft::client::renderer::entity::RenderBlaze::RenderBlaze;
@@ -142,6 +146,9 @@ use crate::net::minecraft::client::model::ModelSheep2::ModelSheep2;
 use crate::net::minecraft::client::model::ModelChicken::ModelChicken;
 use crate::net::minecraft::client::model::ModelCreeper::ModelCreeper;
 use crate::net::minecraft::client::model::ModelSpider::ModelSpider;
+use crate::net::minecraft::client::model::ModelEnderman::ModelEnderman;
+use crate::net::minecraft::client::model::ModelSquid::ModelSquid;
+use crate::net::minecraft::client::model::ModelDragon::ModelDragon;
 use crate::net::minecraft::client::model::ModelSlime::ModelSlime;
 use crate::net::minecraft::client::model::ModelMagmaCube::ModelMagmaCube;
 use crate::net::minecraft::client::model::ModelBlaze::ModelBlaze;
@@ -173,6 +180,8 @@ use crate::net::minecraft::client::renderer::entity::layers::LayerSheepWool::Lay
 use crate::net::minecraft::client::renderer::entity::layers::LayerMooshroomMushroom::LayerMooshroomMushroom;
 use crate::net::minecraft::client::renderer::entity::layers::LayerCreeperCharge::LayerCreeperCharge;
 use crate::net::minecraft::client::renderer::entity::layers::LayerSpiderEyes::LayerSpiderEyes;
+use crate::net::minecraft::client::renderer::entity::layers::LayerEndermanEyes::LayerEndermanEyes;
+use crate::net::minecraft::client::renderer::entity::layers::LayerHeldBlock::LayerHeldBlock;
 use crate::net::minecraft::client::renderer::entity::layers::LayerSlimeGel::LayerSlimeGel;
 use crate::net::minecraft::client::renderer::entity::layers::LayerWolfCollar::LayerWolfCollar;
 use crate::net::minecraft::client::renderer::entity::layers::LayerLlamaDecor::LayerLlamaDecor;
@@ -211,7 +220,8 @@ use crate::net::minecraft::client::renderer::chunk::CompiledChunk::CompiledChunk
 use crate::net::minecraft::client::renderer::chunk::RenderChunk::RenderChunkKey;
 use crate::net::minecraft::client::renderer::chunk::VisGraph::VisGraph;
 use crate::net::minecraft::client::renderer::RenderGlobal::{
-    drawSelectionBox, setupTerrainWithLookup, SelectionBoxRenderState,
+    drawSelectionBox, setupTerrainWithLookupScratch, SelectionBoxRenderState,
+    TerrainTraversalScratch,
 };
 use crate::net::minecraft::client::renderer::BlockModelShapes::{
     BlockModelShapes, ResolvedBlockModel, ResolvedFace,
@@ -251,14 +261,14 @@ use crate::vulkan::NativeImage::NativeImage;
 use crate::vulkan::TextureSource::{TextureAnimation, TextureSource};
 
 const MAX_GLOBAL_BLOCK_STATE_ID: i32 = (255 << 4) | 15;
-// reference-renderer-style background scheduling: one priority column plus two normal
-// streaming columns may be built concurrently. A column job retains the MCP
-// 16x16x16 RenderChunk outputs, but shares one immutable 3x3 column snapshot
-// and one scheduling/channel operation across all dirty vertical sections.
-const MAX_PRIORITY_BACKGROUND_COLUMN_JOBS: usize = 1;
-const MAX_NORMAL_BACKGROUND_COLUMN_JOBS: usize = 2;
+// Reference-renderer-style background scheduling. One interactive column lane
+// remains fixed; normal streaming lanes scale with the dedicated mesh worker
+// pool and are capped to prevent world loading from starving Winit/render work.
+// Every column still produces independent MCP 16x16x16 RenderChunk outputs.
+const PRIORITY_BACKGROUND_COLUMN_JOBS: usize = 1;
+const MAX_NORMAL_BACKGROUND_COLUMN_JOBS: usize = 4;
 const MAX_FINISHED_COLUMN_BATCHES_PER_FRAME: usize =
-    MAX_PRIORITY_BACKGROUND_COLUMN_JOBS + MAX_NORMAL_BACKGROUND_COLUMN_JOBS;
+    PRIORITY_BACKGROUND_COLUMN_JOBS + MAX_NORMAL_BACKGROUND_COLUMN_JOBS;
 const MAX_FINISHED_CHUNKS_PER_FRAME: usize = 24;
 const MAX_FINISHED_CHUNK_BYTES_PER_FRAME: usize = 8 * 1024 * 1024;
 const MAX_SINGLE_FINISHED_CHUNK_BYTES: usize = 1024 * 1024;
@@ -291,7 +301,8 @@ pub struct WorldVertex {
     pub uv: [f32; 2],
     pub color: [f32; 4],
     /// Vanilla lightmap coordinates expressed as discrete block/sky levels.
-    /// The shader reproduces the 16 x 16 linear-filtered lightmap.
+    /// Both native backends sample MCP EntityRenderer's 16 x 16 linear-filtered
+    /// DynamicTexture equivalent.
     pub lightmap: [f32; 2],
     /// OptiFine `SVertexBuilder.entityData`: mapped block id, metadata and
     /// `EnumBlockRenderType` ordinal. Non-block geometry uses -1 sentinels.
@@ -452,6 +463,10 @@ pub struct WorldRenderFrame {
     pub chunkUploads: Vec<ChunkMeshUpload>,
     pub removedChunks: Vec<RenderChunkKey>,
     pub visibleChunks: Vec<VisibleChunk>,
+    /// Ordered visible-section signature computed while `RenderGlobal` order is
+    /// already being materialized. Vulkan combines this with its resident
+    /// chunk-topology revision so steady-state indirect-plan reuse is O(1).
+    pub visibleChunkOrderSignature: u64,
     /// Latest dynamic stream generation retained for diagnostics and backward
     /// compatibility. Each stream below owns an independent generation so one
     /// changing particle does not force entities, HUD and first-person buffers
@@ -478,7 +493,7 @@ pub struct WorldRenderFrame {
     pub blockEntityIndices: Arc<Vec<u32>>,
     pub staticEntityVertices: Arc<Vec<WorldVertex>>,
     pub staticEntityIndices: Arc<Vec<u32>>,
-    pub entityDrawRanges: Vec<WorldEntityDrawRange>,
+    pub entityDrawRanges: Arc<Vec<WorldEntityDrawRange>>,
     /// MCP `RenderGlobal#renderEntities` immediately follows the ordinary
     /// entity pass with `RenderManager#renderMultipass`. In 1.12.2 boats use
     /// that pass for `ModelBoat#noWater`: RGBA writes are masked while depth
@@ -496,7 +511,12 @@ pub struct WorldRenderFrame {
     /// and tile-entity overlays.
     pub skyAlphaIndexCount: u32,
     pub skyCelestialIndexCount: u32,
-    pub entityOverlayDrawRanges: Vec<EntityOverlayDrawRange>,
+    /// MCP `RenderGlobal#renderClouds` geometry follows the sky ranges in the
+    /// shared overlay stream so both backends preserve source render order.
+    pub cloudIndexCount: u32,
+    pub cloudFancy: bool,
+    pub cloudsAboveCamera: bool,
+    pub entityOverlayDrawRanges: Arc<Vec<EntityOverlayDrawRange>>,
     pub renderedRemotePlayers: usize,
     pub renderedNonPlayerEntities: usize,
     pub particleVertices: Arc<Vec<WorldVertex>>,
@@ -511,13 +531,14 @@ pub struct WorldRenderFrame {
     pub selectionIndices: Arc<Vec<u32>>,
     pub firstPersonVertices: Arc<Vec<WorldVertex>>,
     pub firstPersonIndices: Arc<Vec<u32>>,
-    pub firstPersonDrawRanges: Vec<FirstPersonDrawRange>,
+    pub firstPersonDrawRanges: Arc<Vec<FirstPersonDrawRange>>,
     pub firstPersonPushConstants: WorldPushConstants,
     pub hudVertices: Arc<Vec<WorldVertex>>,
     pub hudIndices: Arc<Vec<u32>>,
-    pub hudDrawRanges: Vec<HudDrawRange>,
+    pub hudDrawRanges: Arc<Vec<HudDrawRange>>,
     pub pushConstants: WorldPushConstants,
     pub skyPushConstants: WorldPushConstants,
+    pub cloudPushConstants: WorldPushConstants,
     pub hudPushConstants: WorldPushConstants,
     pub clearColor: [f32; 4],
 }
@@ -649,14 +670,15 @@ struct CachedDynamicMeshes {
     blockEntityIndices: Arc<Vec<u32>>,
     staticEntityVertices: Arc<Vec<WorldVertex>>,
     staticEntityIndices: Arc<Vec<u32>>,
-    entityDrawRanges: Vec<WorldEntityDrawRange>,
+    entityDrawRanges: Arc<Vec<WorldEntityDrawRange>>,
     entityDepthVertices: Arc<Vec<WorldVertex>>,
     entityDepthIndices: Arc<Vec<u32>>,
     entityOverlayVertices: Arc<Vec<WorldVertex>>,
     entityOverlayIndices: Arc<Vec<u32>>,
     skyAlphaIndexCount: u32,
     skyCelestialIndexCount: u32,
-    entityOverlayDrawRanges: Vec<EntityOverlayDrawRange>,
+    cloudIndexCount: u32,
+    entityOverlayDrawRanges: Arc<Vec<EntityOverlayDrawRange>>,
     renderedRemotePlayers: usize,
     renderedNonPlayerEntities: usize,
     particleVertices: Arc<Vec<WorldVertex>>,
@@ -669,20 +691,20 @@ struct CachedDynamicMeshes {
     selectionIndices: Arc<Vec<u32>>,
     firstPersonVertices: Arc<Vec<WorldVertex>>,
     firstPersonIndices: Arc<Vec<u32>>,
-    firstPersonDrawRanges: Vec<FirstPersonDrawRange>,
+    firstPersonDrawRanges: Arc<Vec<FirstPersonDrawRange>>,
     firstPersonPushConstants: WorldPushConstants,
     hudVertices: Arc<Vec<WorldVertex>>,
     hudIndices: Arc<Vec<u32>>,
-    hudDrawRanges: Vec<HudDrawRange>,
+    hudDrawRanges: Arc<Vec<HudDrawRange>>,
     hudPushConstants: WorldPushConstants,
 }
 
 #[derive(Debug)]
 struct RenderFrameMeshCache {
     dynamic: Option<CachedDynamicMeshes>,
-    blockEntities: HashMap<BlockEntityMeshIdentity, CachedBlockEntityMesh>,
+    blockEntities: FxHashMap<BlockEntityMeshIdentity, CachedBlockEntityMesh>,
     blockEntityEpoch: u64,
-    staticEntities: HashMap<StaticEntityMeshIdentity, CachedStaticEntityMesh>,
+    staticEntities: FxHashMap<StaticEntityMeshIdentity, CachedStaticEntityMesh>,
     staticEntityEpoch: u64,
     nextGeneration: u64,
     profileBuilds: u64,
@@ -698,9 +720,9 @@ impl Default for RenderFrameMeshCache {
     fn default() -> Self {
         Self {
             dynamic: None,
-            blockEntities: HashMap::new(),
+            blockEntities: FxHashMap::default(),
             blockEntityEpoch: 0,
-            staticEntities: HashMap::new(),
+            staticEntities: FxHashMap::default(),
             staticEntityEpoch: 0,
             nextGeneration: 1,
             profileBuilds: 0,
@@ -917,11 +939,12 @@ impl RenderFrameMeshCache {
                 && meshes.entityOverlayIndices.as_ref() == previous.entityOverlayIndices.as_ref()
                 && meshes.skyAlphaIndexCount == previous.skyAlphaIndexCount
                 && meshes.skyCelestialIndexCount == previous.skyCelestialIndexCount
+                && meshes.cloudIndexCount == previous.cloudIndexCount
                 && meshes.entityOverlayDrawRanges == previous.entityOverlayDrawRanges;
             if sameOverlay {
                 meshes.entityOverlayVertices = Arc::clone(&previous.entityOverlayVertices);
                 meshes.entityOverlayIndices = Arc::clone(&previous.entityOverlayIndices);
-                meshes.entityOverlayDrawRanges = previous.entityOverlayDrawRanges.clone();
+                meshes.entityOverlayDrawRanges = Arc::clone(&previous.entityOverlayDrawRanges);
                 meshes.entityOverlayMeshGeneration = previous.entityOverlayMeshGeneration;
             } else {
                 meshes.entityOverlayMeshGeneration = self.nextStreamGeneration();
@@ -975,7 +998,7 @@ impl RenderFrameMeshCache {
             if sameFirstPerson {
                 meshes.firstPersonVertices = Arc::clone(&previous.firstPersonVertices);
                 meshes.firstPersonIndices = Arc::clone(&previous.firstPersonIndices);
-                meshes.firstPersonDrawRanges = previous.firstPersonDrawRanges.clone();
+                meshes.firstPersonDrawRanges = Arc::clone(&previous.firstPersonDrawRanges);
                 meshes.firstPersonMeshGeneration = previous.firstPersonMeshGeneration;
             } else {
                 meshes.firstPersonMeshGeneration = self.nextStreamGeneration();
@@ -988,7 +1011,7 @@ impl RenderFrameMeshCache {
             if sameHud {
                 meshes.hudVertices = Arc::clone(&previous.hudVertices);
                 meshes.hudIndices = Arc::clone(&previous.hudIndices);
-                meshes.hudDrawRanges = previous.hudDrawRanges.clone();
+                meshes.hudDrawRanges = Arc::clone(&previous.hudDrawRanges);
                 meshes.hudMeshGeneration = previous.hudMeshGeneration;
             } else {
                 meshes.hudMeshGeneration = self.nextStreamGeneration();
@@ -1440,6 +1463,7 @@ pub struct WorldRenderCapture {
     inventorySlots: Vec<ItemStack>,
     inventoryCursorStack: ItemStack,
     playerHealth: f32,
+    playerMaxHealth: f32,
     absorptionAmount: f32,
     itemActivationItem: ItemStack,
     itemActivationTicks: i32,
@@ -1452,6 +1476,9 @@ pub struct WorldRenderCapture {
     inWater: bool,
     hardcoreMode: bool,
     activePotionEffects: Vec<crate::net::minecraft::potion::PotionEffect::PotionEffect>,
+    ridingLivingEntity: bool,
+    mountHealth: Option<(f32, f32)>,
+    horseJumpPower: Option<f32>,
     experience: f32,
     experienceLevel: i32,
     playerCreativeMode: bool,
@@ -1481,6 +1508,10 @@ pub struct WorldRenderCapture {
     gameType: GameType,
     fov: f32,
     renderDistanceChunks: i32,
+    cloudMode: i32,
+    cloudHeight: f32,
+    cloudTickCounter: i32,
+    cloudColor: [f32; 3],
     dimension: i32,
     totalWorldTime: i64,
     worldTime: i64,
@@ -1560,24 +1591,32 @@ struct ChunkBuildBatchResult {
     results: Vec<ChunkBuildResult>,
 }
 
-/// reference-renderer-style background dispatcher. The renderer keeps one priority and
-/// two streaming column lanes, while vertical RenderChunk sections within each
-/// immutable 3x3 snapshot are built in parallel on a cpu_count - 1 Rayon pool.
-/// MCP still receives one CompiledChunk per 16x16x16 section.
+/// Reference-renderer-style background dispatcher. The renderer keeps one
+/// interactive priority lane and scales normal streaming lanes conservatively
+/// with the dedicated mesh-worker pool. Vertical RenderChunk sections within
+/// each immutable 3x3 snapshot are still built in parallel, and MCP still
+/// receives one CompiledChunk per 16x16x16 section.
 struct ChunkMeshDispatcher {
     sender: mpsc::Sender<ChunkBuildBatchResult>,
     receiver: mpsc::Receiver<ChunkBuildBatchResult>,
     /// A renderer-owned pool reserves one logical CPU for Winit/render work and
     /// prevents unrelated global Rayon jobs from changing chunk-build latency.
     pool: Option<rayon::ThreadPool>,
+    normalColumnJobLimit: usize,
 }
 
 impl ChunkMeshDispatcher {
     fn new() -> Self {
         let (resultSender, resultReceiver) = mpsc::channel::<ChunkBuildBatchResult>();
         let workerCount = std::thread::available_parallelism()
-            .map(|count| count.get().saturating_sub(1).clamp(1, 12))
+            .map(|count| count.get().saturating_sub(1).clamp(1, 16))
             .unwrap_or(2);
+        // A column job already parallelises its vertical RenderChunk sections,
+        // so the lane count grows much more slowly than the worker count. This
+        // keeps high-core CPUs fed during streaming without flooding the pool or
+        // stealing the render thread. One interactive lane remains independent.
+        let normalColumnJobLimit = ((workerCount + 3) / 4)
+            .clamp(1, MAX_NORMAL_BACKGROUND_COLUMN_JOBS);
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(workerCount)
             .thread_name(|index| format!("mc112-chunk-mesh-{index}"))
@@ -1587,10 +1626,17 @@ impl ChunkMeshDispatcher {
                 error
             })
             .ok();
+        log::info!(
+            "chunk mesh dispatcher: workers={}, priority_column_lanes={}, streaming_column_lanes={}",
+            workerCount,
+            PRIORITY_BACKGROUND_COLUMN_JOBS,
+            normalColumnJobLimit,
+        );
         Self {
             sender: resultSender,
             receiver: resultReceiver,
             pool,
+            normalColumnJobLimit,
         }
     }
 
@@ -1632,6 +1678,14 @@ impl ChunkMeshDispatcher {
     fn tryReceive(&self) -> Option<ChunkBuildBatchResult> {
         self.receiver.try_recv().ok()
     }
+
+    const fn priorityColumnJobLimit(&self) -> usize {
+        PRIORITY_BACKGROUND_COLUMN_JOBS
+    }
+
+    const fn normalColumnJobLimit(&self) -> usize {
+        self.normalColumnJobLimit
+    }
 }
 
 /// Vulkan front end corresponding to MCP's
@@ -1641,6 +1695,20 @@ impl ChunkMeshDispatcher {
 /// immutable neighbourhood for dirty chunks. Chunk tessellation happens on
 /// background workers, and completed meshes are uploaded independently. A new
 /// server chunk therefore never rebuilds or replaces the complete world mesh.
+fn cancel_superseded_gpu_removals(
+    pending: &mut Vec<RenderChunkKey>,
+    pendingSet: &mut HashSet<RenderChunkKey>,
+    uploadedKeys: &FxHashSet<RenderChunkKey>,
+) -> usize {
+    if pending.is_empty() || uploadedKeys.is_empty() {
+        return 0;
+    }
+    let before = pending.len();
+    pending.retain(|key| !uploadedKeys.contains(key));
+    pendingSet.retain(|key| !uploadedKeys.contains(key));
+    before - pending.len()
+}
+
 pub struct VulkanWorldRenderer {
     blockModelShapes: BlockModelShapes,
     resourceManager: ResourceManager,
@@ -1664,7 +1732,7 @@ pub struct VulkanWorldRenderer {
     /// to be present in the tab list. Retain independent `NetworkPlayerInfo`
     /// objects so their asynchronous SkinManager callbacks survive frames.
     skullPlayerInfos: HashMap<String, NetworkPlayerInfo>,
-    chunkMeshes: HashMap<RenderChunkKey, CachedChunkMesh>,
+    chunkMeshes: FxHashMap<RenderChunkKey, CachedChunkMesh>,
     observedChunkRevisions: HashMap<RenderChunkKey, u64>,
     /// Hot-path scratch storage retained across frames. The reference renderer avoids
     /// reconstructing temporary world-index containers every frame; these
@@ -1674,12 +1742,20 @@ pub struct VulkanWorldRenderer {
     loadedSectionScratch: HashSet<RenderChunkKey>,
     removedSectionScratch: Vec<RenderChunkKey>,
     requiredChunkScratch: HashSet<ChunkKey>,
+    /// Reuses RenderGlobal.setupTerrain's result/visited/BFS storage across
+    /// rendered frames. The traversal rules themselves remain MCP-identical.
+    terrainTraversalScratch: TerrainTraversalScratch,
     /// Interactive rebuilds (block changes and neighbour invalidations) have a
     /// dedicated reference-renderer-style priority lane so they do not wait behind the
     /// initial streaming backlog.
     priorityPendingChunks: VecDeque<RenderChunkKey>,
     priorityQueuedChunks: HashSet<RenderChunkKey>,
     pendingChunks: VecDeque<RenderChunkKey>,
+    /// Capacity-retaining scratch for distance reordering and X/Z column
+    /// extraction. These are scheduling implementation details only; the
+    /// resulting nearest-first RenderChunk sequence is unchanged.
+    pendingChunkOrderScratch: Vec<RenderChunkKey>,
+    pendingColumnQueueScratch: VecDeque<RenderChunkKey>,
     /// `ChunkRenderDispatcher` keeps pending rebuilds in a priority queue.  The
     /// Rust VecDeque is only re-sorted when membership or the camera RenderChunk
     /// changes; re-sorting the same thousands of entries every rendered frame
@@ -1695,6 +1771,7 @@ pub struct VulkanWorldRenderer {
     loggedFirstDrawableChunk: bool,
     pendingGpuRemovals: Vec<RenderChunkKey>,
     pendingGpuRemovalSet: HashSet<RenderChunkKey>,
+    uploadedChunkKeyScratch: FxHashSet<RenderChunkKey>,
     emptyRenderChunks: HashSet<RenderChunkKey>,
     /// MCP `RenderGlobal#chunksToResortTransparency`: at most the first 15
     /// visible translucent RenderChunks are queued after the player moves more
@@ -1768,15 +1845,18 @@ impl VulkanWorldRenderer {
             dynamicPackIconAtlasDirty: false,
             elytraRotations: HashMap::new(),
             skullPlayerInfos: HashMap::new(),
-            chunkMeshes: HashMap::new(),
+            chunkMeshes: FxHashMap::default(),
             observedChunkRevisions: HashMap::new(),
             sectionScanScratch: Vec::new(),
             loadedSectionScratch: HashSet::new(),
             removedSectionScratch: Vec::new(),
             requiredChunkScratch: HashSet::new(),
+            terrainTraversalScratch: TerrainTraversalScratch::default(),
             priorityPendingChunks: VecDeque::new(),
             priorityQueuedChunks: HashSet::new(),
             pendingChunks: VecDeque::new(),
+            pendingChunkOrderScratch: Vec::new(),
+            pendingColumnQueueScratch: VecDeque::new(),
             pendingChunkOrderDirty: false,
             pendingChunkOrderCenter: None,
             queuedChunks: HashSet::new(),
@@ -1788,6 +1868,7 @@ impl VulkanWorldRenderer {
             loggedFirstDrawableChunk: false,
             pendingGpuRemovals: Vec::new(),
             pendingGpuRemovalSet: HashSet::new(),
+            uploadedChunkKeyScratch: FxHashSet::default(),
             emptyRenderChunks: HashSet::new(),
             chunksToResortTransparency: VecDeque::new(),
             chunksToResortTransparencySet: HashSet::new(),
@@ -2332,6 +2413,9 @@ impl VulkanWorldRenderer {
         fov: f32,
         renderDistanceChunks: i32,
         fancyGraphics: bool,
+        clouds: i32,
+        ofClouds: i32,
+        ofCloudsHeight: f32,
         ambientOcclusion: i32,
         partialTicks: f32,
         gammaSetting: f32,
@@ -2352,6 +2436,20 @@ impl VulkanWorldRenderer {
             .map(str::to_owned)
             .unwrap_or(localPlayerName);
         let renderDistanceChunks = renderDistanceChunks.clamp(2, 32);
+        // Vanilla `GameSettings#shouldRenderClouds` gates render distance; the
+        // OptiFine override then selects fast/fancy/off. Preserve the explicit
+        // renderClouds value before falling back to fancyGraphics.
+        let requestedCloudMode = match ofClouds {
+            1 => 1,
+            2 => 2,
+            3 => 0,
+            _ => match clouds {
+                1 => 1,
+                2 => 2,
+                0 => 0,
+                _ => if fancyGraphics { 2 } else { 1 },
+            },
+        };
         let reducedDebugInfo = reducedDebugInfo
             || state.thePlayer.as_ref().is_some_and(|player| player.hasReducedDebug);
         let centerChunk = ChunkKey::new(
@@ -2527,6 +2625,7 @@ impl VulkanWorldRenderer {
             inventorySlots,
             inventoryCursorStack,
             playerHealth,
+            playerMaxHealth,
             absorptionAmount,
             foodLevel,
             saturationLevel,
@@ -2534,6 +2633,9 @@ impl VulkanWorldRenderer {
             air,
             inWater,
             activePotionEffects,
+            ridingLivingEntity,
+            mountHealth,
+            horseJumpPower,
             experience,
             experienceLevel,
             xpBarCap,
@@ -2562,6 +2664,31 @@ impl VulkanWorldRenderer {
                     .first()
                     .cloned()
                     .unwrap_or(ItemStack::EMPTY);
+                let (ridingLivingEntity, mountHealth, horseJumpPower) = state
+                    .worldClient
+                    .as_ref()
+                    .and_then(|world| {
+                        let vehicleId = player.entity.ridingEntityId?;
+                        let vehicle = world.getNonPlayerEntityByID(vehicleId)?;
+                        let horseJumpPower = if vehicle.isHorseFamily() && vehicle.horseCanJump() {
+                            Some(player.getHorseJumpPower())
+                        } else {
+                            None
+                        };
+                        if !vehicle.isLivingBase() {
+                            return Some((false, None, horseJumpPower));
+                        }
+                        let maxHealth = vehicle
+                            .attributeMap
+                            .getAttributeInstanceByName("generic.maxHealth")
+                            .map(|attribute| attribute.getAttributeValue() as f32);
+                        Some((
+                            true,
+                            maxHealth.map(|maxHealth| (vehicle.health, maxHealth)),
+                            horseJumpPower,
+                        ))
+                    })
+                    .unwrap_or((false, None, None));
                 (
                     player.inventory.currentItem.clamp(0, 8),
                     !offhandStack.isEmpty(),
@@ -2576,6 +2703,7 @@ impl VulkanWorldRenderer {
                     },
                     player.inventory.getItemStack().clone(),
                     player.getHealth(),
+                    player.getMaxHealth(),
                     player.getAbsorptionAmount(),
                     player.getFoodStats().getFoodLevel(),
                     player.getFoodStats().getSaturationLevel(),
@@ -2583,6 +2711,9 @@ impl VulkanWorldRenderer {
                     player.getAir(),
                     state.worldClient.as_ref().is_some_and(|world| player.isInsideWater(world)),
                     player.activePotionEffects.values().copied().collect(),
+                    ridingLivingEntity,
+                    mountHealth,
+                    horseJumpPower,
                     player.experience,
                     player.experienceLevel,
                     player.xpBarCap(),
@@ -2615,8 +2746,8 @@ impl VulkanWorldRenderer {
             .unwrap_or((
                 0, false, vec![ItemStack::EMPTY; 9], ItemStack::EMPTY,
                 vec![ItemStack::EMPTY; 46], ItemStack::EMPTY,
-                20.0, 0.0, 20, 5.0, 0, 300, false, Vec::new(), 0.0, 0, 7, 0, 0, 0.0,
-                EnumHand::MainHand, 0.0, 0.0, 0.0, false, false, false, 0.0, 0.0,
+                20.0, 20.0, 0.0, 20, 5.0, 0, 300, false, Vec::new(), false, None, None, 0.0, 0, 7, 0, 0, 0.0, EnumHand::MainHand,
+                0.0, 0.0, 0.0, false, false, false, 0.0, 0.0,
             ));
         let (
             itemActivationItem,
@@ -2728,6 +2859,7 @@ impl VulkanWorldRenderer {
                 inventorySlots: inventorySlots.clone(),
                 inventoryCursorStack: inventoryCursorStack.clone(),
                 playerHealth,
+                playerMaxHealth,
                 absorptionAmount,
                 itemActivationItem: itemActivationItem.clone(),
                 itemActivationTicks,
@@ -2739,7 +2871,10 @@ impl VulkanWorldRenderer {
                 air,
                 inWater,
                 hardcoreMode: state.hardcoreMode,
-                activePotionEffects,
+                activePotionEffects: activePotionEffects.clone(),
+                ridingLivingEntity,
+                mountHealth,
+                horseJumpPower,
                 experience,
                 experienceLevel,
                 playerCreativeMode,
@@ -2769,6 +2904,10 @@ impl VulkanWorldRenderer {
                 gameType: state.gameType,
                 fov,
                 renderDistanceChunks,
+                cloudMode: 0,
+                cloudHeight: 128.0 + ofCloudsHeight.clamp(0.0, 1.0) * 128.0,
+                cloudTickCounter: state.cloudTickCounter,
+                cloudColor: [1.0, 1.0, 1.0],
                 dimension,
                 totalWorldTime: 0,
                 worldTime: 0,
@@ -2817,6 +2956,16 @@ impl VulkanWorldRenderer {
         self.advanceTorchFlicker(world.getTotalWorldTime());
         let totalWorldTime = world.getTotalWorldTime();
         let worldTime = world.getWorldTime();
+        let cloudHeight = world.getProvider().getCloudHeight()
+            + ofCloudsHeight.clamp(0.0, 1.0) * 128.0;
+        let cloudMode = if renderDistanceChunks >= 4
+            && world.getProvider().isSurfaceWorld()
+        {
+            requestedCloudMode
+        } else {
+            0
+        };
+        let cloudColor = world.getCloudColour(partialTicks);
         let thirdPersonView = thirdPersonView.rem_euclid(3);
         let (cameraPosition, cameraYaw, cameraPitch) = orient_camera_112(
             world,
@@ -3347,11 +3496,14 @@ impl VulkanWorldRenderer {
         if self.pendingChunkOrderDirty
             || self.pendingChunkOrderCenter != Some(centerRenderChunk)
         {
-            let mut orderedPending = self.pendingChunks.drain(..).collect::<Vec<_>>();
+            let mut orderedPending = std::mem::take(&mut self.pendingChunkOrderScratch);
+            orderedPending.clear();
+            orderedPending.extend(self.pendingChunks.drain(..));
             orderedPending.sort_by_key(|key| {
                 render_chunk_distance_squared(*key, centerRenderChunk)
             });
-            self.pendingChunks.extend(orderedPending);
+            self.pendingChunks.extend(orderedPending.drain(..));
+            self.pendingChunkOrderScratch = orderedPending;
             self.pendingChunkOrderDirty = false;
             self.pendingChunkOrderCenter = Some(centerRenderChunk);
         }
@@ -3362,7 +3514,9 @@ impl VulkanWorldRenderer {
         // This gives the worker enough contiguous work without occupying every
         // logical core for the first ten seconds after joining a server.
         let mut selectedBatches = Vec::<(bool, Vec<(RenderChunkKey, ChunkBuildToken)>)>::new();
-        while self.inflightPriorityColumnJobs < MAX_PRIORITY_BACKGROUND_COLUMN_JOBS {
+        let priorityColumnJobLimit = self.dispatcher.priorityColumnJobLimit();
+        let normalColumnJobLimit = self.dispatcher.normalColumnJobLimit();
+        while self.inflightPriorityColumnJobs < priorityColumnJobLimit {
             let selected = self.selectChunkColumnBuild(true, world, centerChunk, buildRadius);
             if selected.is_empty() {
                 break;
@@ -3370,7 +3524,7 @@ impl VulkanWorldRenderer {
             self.inflightPriorityColumnJobs += 1;
             selectedBatches.push((true, selected));
         }
-        while self.inflightNormalColumnJobs < MAX_NORMAL_BACKGROUND_COLUMN_JOBS {
+        while self.inflightNormalColumnJobs < normalColumnJobLimit {
             let selected = self.selectChunkColumnBuild(false, world, centerChunk, buildRadius);
             if selected.is_empty() {
                 break;
@@ -3431,12 +3585,22 @@ impl VulkanWorldRenderer {
             }
         }
         self.requiredChunkScratch = required;
-        let flowerPotContents = Arc::new(world.flowerPotTileEntities()
-            .map(|tile| (
-                tile.pos,
-                BlockFlowerPot::contentsName(Some(tile)).to_owned(),
-            ))
-            .collect::<HashMap<_, _>>());
+        // Flower-pot contents are consulted only by background RenderChunk
+        // meshing. Stable frames with no newly selected chunk build batches
+        // must not scan every TileEntityFlowerPot or allocate a HashMap which
+        // no worker can observe. This mirrors the reference renderer's
+        // compile-task-local snapshot lifetime without changing any generated
+        // block model or task input.
+        let flowerPotContents = if selectedBatches.is_empty() {
+            Arc::new(HashMap::new())
+        } else {
+            Arc::new(world.flowerPotTileEntities()
+                .map(|tile| (
+                    tile.pos,
+                    BlockFlowerPot::contentsName(Some(tile)).to_owned(),
+                ))
+                .collect::<HashMap<_, _>>())
+        };
         let jobs = selectedBatches
             .into_iter()
             .map(|(priority, selected)| ChunkBuildBatchRequest {
@@ -3537,6 +3701,7 @@ impl VulkanWorldRenderer {
             inventorySlots,
             inventoryCursorStack,
             playerHealth,
+            playerMaxHealth,
             absorptionAmount,
             itemActivationItem,
             itemActivationTicks,
@@ -3549,6 +3714,9 @@ impl VulkanWorldRenderer {
             inWater,
             hardcoreMode: state.hardcoreMode,
             activePotionEffects,
+            ridingLivingEntity,
+            mountHealth,
+            horseJumpPower,
             experience,
             experienceLevel,
             playerCreativeMode,
@@ -3585,6 +3753,10 @@ impl VulkanWorldRenderer {
             gameType: state.gameType,
             fov,
             renderDistanceChunks,
+            cloudMode,
+            cloudHeight,
+            cloudTickCounter: state.cloudTickCounter,
+            cloudColor,
             dimension,
             totalWorldTime,
             worldTime,
@@ -3694,6 +3866,29 @@ impl VulkanWorldRenderer {
             chunkUploads.extend(self.collectFinishedMeshesLimited(remaining));
         }
 
+        // A world switch can leave thousands of old resident sections queued for
+        // bounded GPU retirement. If the new world compiles the same RenderChunkKey
+        // before its old retirement reaches the front of that queue, the later
+        // key-only removal would otherwise delete the *new* resident mesh. Cancel
+        // those superseded retirements before draining the queue; each backend's
+        // replacement upload already retires/replaces the previous allocation.
+        if !chunkUploads.is_empty() && !self.pendingGpuRemovals.is_empty() {
+            self.uploadedChunkKeyScratch.clear();
+            self.uploadedChunkKeyScratch
+                .extend(chunkUploads.iter().map(|upload| upload.key));
+            let cancelled = cancel_superseded_gpu_removals(
+                &mut self.pendingGpuRemovals,
+                &mut self.pendingGpuRemovalSet,
+                &self.uploadedChunkKeyScratch,
+            );
+            if cancelled > 0 {
+                log::debug!(
+                    "cancelled {} stale GPU RenderChunk retirements superseded by current-world uploads",
+                    cancelled,
+                );
+            }
+        }
+
         let removalCount = self
             .pendingGpuRemovals
             .len()
@@ -3722,6 +3917,7 @@ impl VulkanWorldRenderer {
             &mut self.standardGalacticFontRenderer,
             &self.locale,
             self.worldGeneration,
+            &mut self.terrainTraversalScratch,
             &mut self.frameMeshCache,
         );
         self.updateTranslucentSorting(
@@ -4467,6 +4663,13 @@ impl VulkanWorldRenderer {
             RenderSpider::texture(SpiderVariant::Spider),
             RenderSpider::texture(SpiderVariant::CaveSpider),
             LayerSpiderEyes::texture(),
+            RenderEnderman::texture(),
+            LayerEndermanEyes::texture(),
+            RenderSquid::texture(),
+            RenderDragon::texture(),
+            RenderDragon::explodingTexture(),
+            RenderDragon::eyesTexture(),
+            RenderDragon::beamTexture(),
             RenderSlime::texture(),
             RenderMagmaCube::texture(),
             RenderBlaze::texture(),
@@ -4482,6 +4685,7 @@ impl VulkanWorldRenderer {
             TileEntityEndPortalRenderer::endPortalTexture(),
             ResourceLocation::parse("textures/environment/sun.png"),
             ResourceLocation::parse("textures/environment/moon_phases.png"),
+            ResourceLocation::parse("textures/environment/clouds.png"),
         ];
         entityTextures.extend(RenderBoat::allTextures());
         entityTextures.push(RenderMinecart::texture());
@@ -5683,25 +5887,40 @@ impl VulkanWorldRenderer {
     /// column share one background job and one 3x3 immutable snapshot, matching
     /// the reference column-mesh scheduling without changing MCP section outputs.
     fn takePendingColumn(&mut self, priority: bool) -> Vec<RenderChunkKey> {
-        let queue = if priority {
-            &mut self.priorityPendingChunks
+        // Move the active queue out so the large backing allocation can become
+        // next call's scratch instead of allocating a second queue for every
+        // selected X/Z column.
+        let mut work = if priority {
+            std::mem::take(&mut self.priorityPendingChunks)
         } else {
-            &mut self.pendingChunks
+            std::mem::take(&mut self.pendingChunks)
         };
-        let Some(first) = queue.pop_front() else {
+        let Some(first) = work.pop_front() else {
+            if priority {
+                self.priorityPendingChunks = work;
+            } else {
+                self.pendingChunks = work;
+            }
             return Vec::new();
         };
+
         let mut selected = Vec::with_capacity(16);
         selected.push(first);
-        let mut remaining = VecDeque::with_capacity(queue.len());
-        while let Some(candidate) = queue.pop_front() {
+        let mut remaining = std::mem::take(&mut self.pendingColumnQueueScratch);
+        remaining.clear();
+        while let Some(candidate) = work.pop_front() {
             if selected.len() < 16 && candidate.x == first.x && candidate.z == first.z {
                 selected.push(candidate);
             } else {
                 remaining.push_back(candidate);
             }
         }
-        *queue = remaining;
+        if priority {
+            self.priorityPendingChunks = remaining;
+        } else {
+            self.pendingChunks = remaining;
+        }
+        self.pendingColumnQueueScratch = work;
         for key in &selected {
             self.queuedChunks.remove(key);
             self.priorityQueuedChunks.remove(key);
@@ -8157,7 +8376,15 @@ fn build_dynamic_meshes(
         &mut entityOverlayVertices,
         &mut entityOverlayIndices,
     );
-    let skyOverlayIndexCount = skyAlphaIndexCount + skyCelestialIndexCount;
+    let cloudFirstIndex = entityOverlayIndices.len() as u32;
+    append_cloud_mesh(
+        capture,
+        atlas,
+        &mut entityOverlayVertices,
+        &mut entityOverlayIndices,
+    );
+    let cloudIndexCount = entityOverlayIndices.len() as u32 - cloudFirstIndex;
+    let skyOverlayIndexCount = skyAlphaIndexCount + skyCelestialIndexCount + cloudIndexCount;
     let playerGlintFirstIndex = entityOverlayIndices.len() as u32;
     if !playerGlintIndices.is_empty() {
         let base = entityOverlayVertices.len() as u32;
@@ -8383,14 +8610,15 @@ fn build_dynamic_meshes(
         blockEntityIndices: Arc::new(blockEntityIndices),
         staticEntityVertices: Arc::new(staticEntityVertices),
         staticEntityIndices: Arc::new(staticEntityIndices),
-        entityDrawRanges,
+        entityDrawRanges: Arc::new(entityDrawRanges),
         entityDepthVertices: Arc::new(entityDepthVertices),
         entityDepthIndices: Arc::new(entityDepthIndices),
         entityOverlayVertices: Arc::new(entityOverlayVertices),
         entityOverlayIndices: Arc::new(entityOverlayIndices),
         skyAlphaIndexCount,
         skyCelestialIndexCount,
-        entityOverlayDrawRanges,
+        cloudIndexCount,
+        entityOverlayDrawRanges: Arc::new(entityOverlayDrawRanges),
         renderedRemotePlayers,
         renderedNonPlayerEntities,
         particleVertices: Arc::new(particleVertices),
@@ -8403,11 +8631,11 @@ fn build_dynamic_meshes(
         selectionIndices: Arc::new(selectionIndices),
         firstPersonVertices: Arc::new(firstPersonVertices),
         firstPersonIndices: Arc::new(firstPersonIndices),
-        firstPersonDrawRanges,
+        firstPersonDrawRanges: Arc::new(firstPersonDrawRanges),
         firstPersonPushConstants,
         hudVertices: Arc::new(hudVertices),
         hudIndices: Arc::new(hudIndices),
-        hudDrawRanges,
+        hudDrawRanges: Arc::new(hudDrawRanges),
         hudPushConstants,
     }
 }
@@ -8415,7 +8643,7 @@ fn build_dynamic_meshes(
 fn make_frame(
     capture: WorldRenderCapture,
     atlas: Arc<AtlasState>,
-    chunks: &HashMap<RenderChunkKey, CachedChunkMesh>,
+    chunks: &FxHashMap<RenderChunkKey, CachedChunkMesh>,
     chunkUploads: Vec<ChunkMeshUpload>,
     removedChunks: Vec<RenderChunkKey>,
     guiIngame: &mut GuiIngame,
@@ -8426,6 +8654,7 @@ fn make_frame(
     standardGalacticFontRenderer: &mut FontRenderer,
     locale: &Locale,
     worldGeneration: u64,
+    terrainTraversalScratch: &mut TerrainTraversalScratch,
     frameMeshCache: &mut RenderFrameMeshCache,
 ) -> WorldRenderFrame {
     let provider = WorldProvider::new(capture.dimension);
@@ -8438,10 +8667,14 @@ fn make_frame(
         capture.partialTicks,
     );
     let fogColor = fog_color(capture.dimension, celestialAngle);
+    // MCP EntityRenderer#updateLightmap samples world sun brightness with a
+    // fixed partial tick of 1.0F. `lightmapUpdateNeeded` is driven by the
+    // tick-rate torch-flicker update, so the 16x16 DynamicTexture must not be
+    // invalidated merely because the render-frame partial tick changed.
     let lightmap = EntityRenderer::lightmapParameters(
         &provider,
         capture.worldTime,
-        capture.partialTicks,
+        1.0,
         capture.torchFlickerX,
         capture.gammaSetting,
     );
@@ -8475,8 +8708,8 @@ fn make_frame(
             .min_by_key(|key| (key.y - capture.centerRenderChunk.y).abs())
             .copied()
     };
-    let terrainOrder = terrainStart.map_or_else(Vec::new, |start| {
-        setupTerrainWithLookup(
+    if let Some(start) = terrainStart {
+        setupTerrainWithLookupScratch(
             start,
             capture.renderDistanceChunks,
             |key| chunks.get(&key).map(|mesh| mesh.compiledChunk),
@@ -8492,13 +8725,31 @@ fn make_frame(
                     maximum[2] as f64,
                 )
             },
-        )
-    });
+            terrainTraversalScratch,
+        );
+    } else {
+        terrainTraversalScratch.clear();
+    }
 
-    let mut visibleChunks = Vec::with_capacity(terrainOrder.len());
-    for key in terrainOrder {
+    const VISIBLE_ORDER_FNV_OFFSET: u64 = 0xcbf29ce484222325;
+    const VISIBLE_ORDER_FNV_PRIME: u64 = 0x100000001b3;
+    let mixVisibleKey = |hash: &mut u64, value: u64| {
+        for byte in value.to_le_bytes() {
+            *hash ^= u64::from(byte);
+            *hash = hash.wrapping_mul(VISIBLE_ORDER_FNV_PRIME);
+        }
+    };
+    let mut visibleChunkOrderSignature = VISIBLE_ORDER_FNV_OFFSET;
+    let mut visibleChunks = Vec::with_capacity(terrainTraversalScratch.result().len());
+    for key in terrainTraversalScratch.result().iter().copied() {
         let Some(mesh) = chunks.get(&key) else { continue; };
         if mesh.indexCount == 0 || !mesh.ready { continue; }
+        // `RenderGlobal#setupTerrain` already paid for this ordered traversal.
+        // Fold the key here instead of walking the complete visible list again
+        // in the Vulkan submit path every frame.
+        mixVisibleKey(&mut visibleChunkOrderSignature, key.x as u32 as u64);
+        mixVisibleKey(&mut visibleChunkOrderSignature, key.y as u32 as u64);
+        mixVisibleKey(&mut visibleChunkOrderSignature, key.z as u32 as u64);
         visibleChunks.push(VisibleChunk {
             key,
             aabbMin: [
@@ -8513,6 +8764,10 @@ fn make_frame(
             ],
         });
     }
+    mixVisibleKey(
+        &mut visibleChunkOrderSignature,
+        visibleChunks.len() as u64,
+    );
 
     let dynamicMeshes = if frameMeshCache.shouldRebuild(
         worldGeneration,
@@ -8576,6 +8831,7 @@ fn make_frame(
         chunkUploads,
         removedChunks,
         visibleChunks,
+        visibleChunkOrderSignature,
         dynamicMeshGeneration: [
             dynamicMeshes.entityMeshGeneration,
             dynamicMeshes.blockEntityMeshGeneration,
@@ -8606,14 +8862,17 @@ fn make_frame(
         blockEntityIndices: Arc::clone(&dynamicMeshes.blockEntityIndices),
         staticEntityVertices: Arc::clone(&dynamicMeshes.staticEntityVertices),
         staticEntityIndices: Arc::clone(&dynamicMeshes.staticEntityIndices),
-        entityDrawRanges: dynamicMeshes.entityDrawRanges.clone(),
+        entityDrawRanges: Arc::clone(&dynamicMeshes.entityDrawRanges),
         entityDepthVertices: Arc::clone(&dynamicMeshes.entityDepthVertices),
         entityDepthIndices: Arc::clone(&dynamicMeshes.entityDepthIndices),
         entityOverlayVertices: Arc::clone(&dynamicMeshes.entityOverlayVertices),
         entityOverlayIndices: Arc::clone(&dynamicMeshes.entityOverlayIndices),
         skyAlphaIndexCount: dynamicMeshes.skyAlphaIndexCount,
         skyCelestialIndexCount: dynamicMeshes.skyCelestialIndexCount,
-        entityOverlayDrawRanges: dynamicMeshes.entityOverlayDrawRanges.clone(),
+        cloudIndexCount: dynamicMeshes.cloudIndexCount,
+        cloudFancy: capture.cloudMode == 2,
+        cloudsAboveCamera: capture.cameraPosition[1] >= capture.cloudHeight,
+        entityOverlayDrawRanges: Arc::clone(&dynamicMeshes.entityOverlayDrawRanges),
         renderedRemotePlayers: dynamicMeshes.renderedRemotePlayers,
         renderedNonPlayerEntities: dynamicMeshes.renderedNonPlayerEntities,
         particleVertices: Arc::clone(&dynamicMeshes.particleVertices),
@@ -8626,11 +8885,11 @@ fn make_frame(
         selectionIndices: Arc::clone(&dynamicMeshes.selectionIndices),
         firstPersonVertices: Arc::clone(&dynamicMeshes.firstPersonVertices),
         firstPersonIndices: Arc::clone(&dynamicMeshes.firstPersonIndices),
-        firstPersonDrawRanges: dynamicMeshes.firstPersonDrawRanges.clone(),
+        firstPersonDrawRanges: Arc::clone(&dynamicMeshes.firstPersonDrawRanges),
         firstPersonPushConstants: dynamicMeshes.firstPersonPushConstants,
         hudVertices: Arc::clone(&dynamicMeshes.hudVertices),
         hudIndices: Arc::clone(&dynamicMeshes.hudIndices),
-        hudDrawRanges: dynamicMeshes.hudDrawRanges.clone(),
+        hudDrawRanges: Arc::clone(&dynamicMeshes.hudDrawRanges),
         pushConstants: WorldPushConstants {
             viewProjection: to_column_major(viewProjection),
             cameraPosition: [
@@ -8669,6 +8928,24 @@ fn make_frame(
             // The fragment shader's >10 sentinel bypasses both lightmap and
             // fog exactly as RenderGlobal does for sunrise/celestial passes.
             lightmapParameters: [1.0, 0.0, 0.0, 99.0],
+        },
+        cloudPushConstants: WorldPushConstants {
+            // EntityRenderer#renderCloudsCheck temporarily expands the world
+            // far plane to clipDistance * 4 before restoring terrain setup.
+            viewProjection: to_column_major(camera_matrix(
+                capture.cameraYaw,
+                capture.cameraPitch,
+                camera,
+                capture.fov.clamp(30.0, 110.0),
+                aspect,
+                0.05,
+                clipDistance * 4.0,
+            )),
+            cameraPosition: [camera[0], camera[1], camera[2], 0.0],
+            fogColor: [fogColor[0], fogColor[1], fogColor[2], 1.0],
+            fogParameters: [farPlaneDistance * 0.75, farPlaneDistance, clipDistance * 4.0, 0.1],
+            // Clouds are texture-coloured and unlit, but remain fogged.
+            lightmapParameters: [1.0, 0.0, 0.0, 98.0],
         },
         hudPushConstants: dynamicMeshes.hudPushConstants,
         clearColor,
@@ -9790,6 +10067,7 @@ fn build_ingame_hud(
         capture.primaryHand,
         capture.gameType,
         capture.playerHealth,
+        capture.playerMaxHealth,
         capture.absorptionAmount,
         capture.foodLevel,
         capture.saturationLevel,
@@ -9798,6 +10076,9 @@ fn build_ingame_hud(
         capture.inWater,
         capture.hardcoreMode,
         &capture.activePotionEffects,
+        capture.ridingLivingEntity,
+        capture.mountHealth,
+        capture.horseJumpPower,
         capture.experience,
         capture.experienceLevel,
         capture.xpBarCap,
@@ -9880,25 +10161,6 @@ fn build_ingame_hud(
     }
     push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
 
-    // `GuiIngame#renderPotionEffects` draws before the hotbar in the MCP
-    // overlay order; keep it adjacent to playerStats in the same alpha range.
-    begin = indices.len() as u32;
-    for quad in &hud.potionEffects {
-        let rectangle = match quad.texture {
-            HudTexture::Widgets => atlas.widgetsRectangle,
-            HudTexture::Icons => atlas.iconsRectangle,
-            HudTexture::BossBars => atlas.barsRectangle,
-            HudTexture::Inventory => atlas.inventoryRectangle,
-        };
-        append_hud_quad(
-            &mut vertices, &mut indices, rectangle,
-            quad.x, quad.y, quad.width, quad.height,
-            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
-            quad.alpha,
-        );
-    }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
-
     begin = indices.len() as u32;
     for quad in &hud.experienceBar {
         let rectangle = match quad.texture {
@@ -9916,6 +10178,23 @@ fn build_ingame_hud(
     }
     if let Some(text) = &hud.experienceLevel {
         append_experience_level_text(text, fontRenderer, atlas, &mut vertices, &mut indices);
+    }
+    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+
+    begin = indices.len() as u32;
+    for quad in &hud.potionEffects {
+        let rectangle = match quad.texture {
+            HudTexture::Widgets => atlas.widgetsRectangle,
+            HudTexture::Icons => atlas.iconsRectangle,
+            HudTexture::BossBars => atlas.barsRectangle,
+            HudTexture::Inventory => atlas.inventoryRectangle,
+        };
+        append_hud_quad(
+            &mut vertices, &mut indices, rectangle,
+            quad.x, quad.y, quad.width, quad.height,
+            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            quad.alpha,
+        );
     }
     push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
 
@@ -10048,7 +10327,7 @@ fn build_ingame_hud(
                 HudTexture::Widgets => atlas.widgetsRectangle,
                 HudTexture::Icons => atlas.iconsRectangle,
                 HudTexture::BossBars => atlas.barsRectangle,
-            HudTexture::Inventory => atlas.inventoryRectangle,
+                HudTexture::Inventory => atlas.inventoryRectangle,
             };
             append_hud_quad(
                 &mut vertices, &mut indices, rectangle,
@@ -15303,6 +15582,7 @@ fn append_non_player_entity_meshes_serial(
         };
         let entityVisible = inRenderRange && (
             renderer == EntityRendererKind::FishHook
+                || renderer == EntityRendererKind::EnderDragon // EntityDragon.ignoreFrustumCheck = true
                 || frustum.isBoxInFrustum(
                     bounds.min_x,
                     bounds.min_y,
@@ -15426,6 +15706,15 @@ fn append_non_player_entity_meshes_serial(
             ),
             EntityRendererKind::Spider => append_spider_mesh(
                 entity, partialTicks, packedLight, atlas, vertices, indices,
+            ),
+            EntityRendererKind::Enderman => append_enderman_mesh(
+                entity, partialTicks, packedLight, chunks, atlas, vertices, indices,
+            ),
+            EntityRendererKind::Squid => append_squid_mesh(
+                entity, partialTicks, packedLight, atlas, vertices, indices,
+            ),
+            EntityRendererKind::EnderDragon => append_dragon_mesh(
+                entity, partialTicks, packedLight, chunks, atlas, vertices, indices,
             ),
             EntityRendererKind::Slime => append_slime_mesh(
                 entity, partialTicks, packedLight, atlas, vertices, indices,
@@ -17590,6 +17879,150 @@ fn append_spider_mesh(
     );
 }
 
+
+fn append_enderman_mesh(
+    entity: &EntityOtherClient,
+    partialTicks: f32,
+    packedLight: u32,
+    chunks: &HashMap<ChunkKey, Chunk>,
+    atlas: &AtlasState,
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
+) {
+    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
+    if !RenderEnderman::supports(*entityType) { return; }
+    let input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
+    let pose = ModelEnderman::pose(
+        input,
+        RenderEnderman::carrying(entity),
+        RenderEnderman::attacking(entity),
+    );
+    let mesh = RenderLivingBase::buildMesh(input, ModelEnderman::boxes(pose, 0.0), 64.0, 32.0);
+    append_living_model_mesh(
+        mesh.clone(), RenderEnderman::texture(), packedLight, atlas, vertices, indices,
+    );
+    // MCP LayerEndermanEyes: same model, full-bright eye sheet. The common
+    // entity stream already carries the project's eye-overlay shader marker;
+    // texture/light ownership remains identical to the Java layer.
+    append_living_model_mesh_tinted(
+        mesh, LayerEndermanEyes::texture(), LayerEndermanEyes::packedFullBright(),
+        [1.0; 4], atlas, vertices, indices,
+    );
+
+    // MCP LayerHeldBlock, using the synchronized OptionalBlockState metadata.
+    let Some(globalStateId) = entity.endermanHeldBlockStateId() else { return; };
+    let state = IBlockState::fromGlobalStateId(globalStateId);
+    if state.isAir() { return; }
+    let Some(model) = model_for_state(&atlas.models, state) else { return; };
+    if model.missing { return; }
+    let colorPos = BlockPos::new(
+        entity.entity.posX.floor() as i32,
+        entity.entity.posY.floor() as i32,
+        entity.entity.posZ.floor() as i32,
+    );
+    let mut matrix = living_layer_base_matrix(input);
+    matrix = multiply4(matrix, translation4(LayerHeldBlock::TRANSLATION_1));
+    matrix = multiply4(matrix, rotation_x4(LayerHeldBlock::ROTATION_X));
+    matrix = multiply4(matrix, rotation_y4(LayerHeldBlock::ROTATION_Y));
+    matrix = multiply4(matrix, translation4(LayerHeldBlock::TRANSLATION_2));
+    matrix = multiply4(matrix, scale4_nonuniform(LayerHeldBlock::SCALE));
+    append_block_state_model_world_with_winding(
+        state, colorPos, model, matrix, packedLight, chunks, atlas,
+        [1.0; 4], None, false, vertices, indices,
+    );
+}
+
+fn append_squid_mesh(
+    entity: &EntityOtherClient,
+    partialTicks: f32,
+    packedLight: u32,
+    atlas: &AtlasState,
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
+) {
+    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
+    if !RenderSquid::supports(*entityType) { return; }
+    let mut input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
+    let worldPosition = input.position;
+    let bodyYaw = input.bodyYaw;
+    // Build only the prepareScale/model portion at the origin. RenderSquid's
+    // rotateCorpse transform is then prepended exactly below.
+    input.position = [0.0; 3];
+    input.bodyYaw = 180.0;
+    input.headYaw = 180.0;
+    input.deathRotation = 0.0;
+    input.adultTranslation = [0.0; 3];
+    let mut mesh = RenderLivingBase::buildMesh(
+        input,
+        ModelSquid::boxes(RenderSquid::tentacleAngle(entity, partialTicks)),
+        64.0,
+        32.0,
+    );
+    let [squidPitch, squidYaw] = RenderSquid::bodyAngles(entity, partialTicks);
+    let mut matrix = translation4(worldPosition);
+    matrix = multiply4(matrix, translation4([0.0, 0.5, 0.0]));
+    matrix = multiply4(matrix, rotation_y4(180.0 - bodyYaw));
+    matrix = multiply4(matrix, rotation_x4(squidPitch));
+    matrix = multiply4(matrix, rotation_y4(squidYaw));
+    matrix = multiply4(matrix, translation4([0.0, -1.2, 0.0]));
+    for vertex in &mut mesh.vertices {
+        vertex.position = transform_point3(matrix, vertex.position);
+    }
+    append_living_model_mesh(mesh, RenderSquid::texture(), packedLight, atlas, vertices, indices);
+}
+
+fn append_dragon_mesh(
+    entity: &EntityOtherClient,
+    partialTicks: f32,
+    packedLight: u32,
+    chunks: &HashMap<ChunkKey, Chunk>,
+    atlas: &AtlasState,
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
+) {
+    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
+    if !RenderDragon::supports(*entityType) { return; }
+    let landingScale = dragon_landing_takeoff_scale(entity, chunks);
+    let mesh = ModelDragon::mesh(entity, partialTicks, landingScale);
+    // RenderDragon#renderModel first draws the exploding alpha-pass during the
+    // 200-tick death animation, then always draws the normal dragon texture.
+    if let Some(alpha) = RenderDragon::deathAlpha(entity) {
+        append_living_model_mesh_tinted(
+            mesh.clone(), RenderDragon::explodingTexture(), packedLight,
+            [1.0, 1.0, 1.0, alpha.clamp(0.0, 1.0)], atlas, vertices, indices,
+        );
+    }
+    append_living_model_mesh(
+        mesh.clone(), RenderDragon::texture(), packedLight, atlas, vertices, indices,
+    );
+    append_living_model_mesh_tinted(
+        mesh, RenderDragon::eyesTexture(), RenderDragon::fullBright(),
+        [1.0; 4], atlas, vertices, indices,
+    );
+}
+
+fn dragon_landing_takeoff_scale(
+    entity: &EntityOtherClient,
+    chunks: &HashMap<ChunkKey, Chunk>,
+) -> f32 {
+    if !matches!(entity.dragonPhaseId(), 3 | 4) { return 1.0; }
+    // WorldGenEndPodium.END_PODIUM_LOCATION is BlockPos.ORIGIN. Port the
+    // World#getTopSolidOrLiquidBlock lookup needed by EntityDragon's
+    // getHeadPartYOffset landing/takeoff branch from the received snapshot.
+    let mut topY = 0_i32;
+    for y in (0..=255).rev() {
+        let state = snapshot_block_state(chunks, BlockPos::new(0, y, 0));
+        if !state.isAir() {
+            topY = y;
+            break;
+        }
+    }
+    let dx = entity.entity.posX - 0.5;
+    let dy = entity.entity.posY - (topY as f64 + 0.5);
+    let dz = entity.entity.posZ - 0.5;
+    (((dx * dx + dy * dy + dz * dz).sqrt() as f32) / 4.0).max(1.0)
+}
+
 fn append_slime_mesh(
     entity: &EntityOtherClient,
     partialTicks: f32,
@@ -19196,6 +19629,248 @@ fn append_shulker_box_tile_entity_meshes(
     }
 }
 
+
+
+/// Converts a repeating standalone texture coordinate quad into atlas-safe
+/// sub-quads. MCP binds `textures/environment/clouds.png` with GL_REPEAT;
+/// because this renderer stitches that texture into the shared atlas, integer
+/// wrap boundaries must be split explicitly instead of relying on sampler
+/// address mode that would also repeat the complete atlas.
+fn append_wrapped_cloud_quad(
+    positions: [[f32; 3]; 4],
+    sourceUvs: [[f32; 2]; 4],
+    rectangle: [f32; 4],
+    color: [f32; 4],
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
+) {
+    fn cuts(start: f32, end: f32) -> Vec<f32> {
+        let mut result = vec![0.0, 1.0];
+        let delta = end - start;
+        if delta.abs() > 1.0e-7 {
+            let minimum = start.min(end).floor() as i32;
+            let maximum = start.max(end).ceil() as i32;
+            for boundary in (minimum + 1)..maximum {
+                let t = (boundary as f32 - start) / delta;
+                if t > 1.0e-6 && t < 1.0 - 1.0e-6 {
+                    result.push(t);
+                }
+            }
+        }
+        result.sort_by(|left, right| left.total_cmp(right));
+        result.dedup_by(|left, right| (*left - *right).abs() < 1.0e-6);
+        result
+    }
+    fn bilerp3(values: [[f32; 3]; 4], s: f32, t: f32) -> [f32; 3] {
+        let a = [
+            values[0][0] + (values[1][0] - values[0][0]) * s,
+            values[0][1] + (values[1][1] - values[0][1]) * s,
+            values[0][2] + (values[1][2] - values[0][2]) * s,
+        ];
+        let b = [
+            values[3][0] + (values[2][0] - values[3][0]) * s,
+            values[3][1] + (values[2][1] - values[3][1]) * s,
+            values[3][2] + (values[2][2] - values[3][2]) * s,
+        ];
+        [
+            a[0] + (b[0] - a[0]) * t,
+            a[1] + (b[1] - a[1]) * t,
+            a[2] + (b[2] - a[2]) * t,
+        ]
+    }
+    fn bilerp2(values: [[f32; 2]; 4], s: f32, t: f32) -> [f32; 2] {
+        let a = [
+            values[0][0] + (values[1][0] - values[0][0]) * s,
+            values[0][1] + (values[1][1] - values[0][1]) * s,
+        ];
+        let b = [
+            values[3][0] + (values[2][0] - values[3][0]) * s,
+            values[3][1] + (values[2][1] - values[3][1]) * s,
+        ];
+        [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+    }
+
+    let sCuts = cuts(sourceUvs[0][0], sourceUvs[1][0]);
+    let tCuts = cuts(sourceUvs[0][1], sourceUvs[3][1]);
+    for sPair in sCuts.windows(2) {
+        for tPair in tCuts.windows(2) {
+            let s0 = sPair[0];
+            let s1 = sPair[1];
+            let t0 = tPair[0];
+            let t1 = tPair[1];
+            let middleUv = bilerp2(sourceUvs, (s0 + s1) * 0.5, (t0 + t1) * 0.5);
+            let uPeriod = middleUv[0].floor();
+            let vPeriod = middleUv[1].floor();
+            let corners = [(s0, t0), (s1, t0), (s1, t1), (s0, t1)];
+            let base = vertices.len() as u32;
+            for (s, t) in corners {
+                let source = bilerp2(sourceUvs, s, t);
+                let localU = (source[0] - uPeriod).clamp(0.0, 1.0);
+                let localV = (source[1] - vPeriod).clamp(0.0, 1.0);
+                vertices.push(WorldVertex {
+                    position: bilerp3(positions, s, t),
+                    uv: [
+                        rectangle[0] + (rectangle[2] - rectangle[0]) * localU,
+                        rectangle[1] + (rectangle[3] - rectangle[1]) * localV,
+                    ],
+                    color,
+                    lightmap: [15.0, 15.0],
+                    shaderEntity: [-3, 0, -1],
+                    shaderPadding: 0,
+                });
+            }
+            indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
+        }
+    }
+}
+
+/// MCP 1.12.2 `RenderGlobal#renderClouds` / `renderCloudsFancy`.
+fn append_cloud_mesh(
+    capture: &WorldRenderCapture,
+    atlas: &AtlasState,
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
+) {
+    if capture.cloudMode == 0 || capture.renderDistanceChunks < 4 || capture.dimension != 0 {
+        return;
+    }
+    let Some(rectangle) = atlas
+        .entityTextureRectangles
+        .get(&ResourceLocation::parse("textures/environment/clouds.png"))
+        .copied()
+    else {
+        return;
+    };
+    let color = [capture.cloudColor[0], capture.cloudColor[1], capture.cloudColor[2], 0.8];
+    let camera = capture.cameraPosition;
+    let tick = capture.cloudTickCounter as f32 + capture.partialTicks;
+
+    if capture.cloudMode != 2 {
+        let movedX = camera[0] as f64 + tick as f64 * 0.029999999329447746_f64;
+        let wrappedX = movedX.rem_euclid(2048.0) as f32;
+        let wrappedZ = (camera[2] as f64).rem_euclid(2048.0) as f32;
+        let uOffset = wrappedX * 4.8828125e-4;
+        let vOffset = wrappedZ * 4.8828125e-4;
+        let y = capture.cloudHeight + 0.33;
+        for x in (-256..256).step_by(32) {
+            for z in (-256..256).step_by(32) {
+                let x0 = x as f32;
+                let x1 = (x + 32) as f32;
+                let z0 = z as f32;
+                let z1 = (z + 32) as f32;
+                append_wrapped_cloud_quad(
+                    [
+                        [camera[0] + x0, y, camera[2] + z1],
+                        [camera[0] + x1, y, camera[2] + z1],
+                        [camera[0] + x1, y, camera[2] + z0],
+                        [camera[0] + x0, y, camera[2] + z0],
+                    ],
+                    [
+                        [x0 * 4.8828125e-4 + uOffset, z1 * 4.8828125e-4 + vOffset],
+                        [x1 * 4.8828125e-4 + uOffset, z1 * 4.8828125e-4 + vOffset],
+                        [x1 * 4.8828125e-4 + uOffset, z0 * 4.8828125e-4 + vOffset],
+                        [x0 * 4.8828125e-4 + uOffset, z0 * 4.8828125e-4 + vOffset],
+                    ],
+                    rectangle,
+                    color,
+                    vertices,
+                    indices,
+                );
+            }
+        }
+        return;
+    }
+
+    let cloudScale = 12.0_f32;
+    let movedX = (camera[0] as f64 + tick as f64 * 0.029999999329447746_f64) / 12.0;
+    let movedZ = camera[2] as f64 / 12.0 + 0.33000001311302185_f64;
+    let wrappedX = movedX.rem_euclid(2048.0);
+    let wrappedZ = movedZ.rem_euclid(2048.0);
+    let floorX = wrappedX.floor() as f32;
+    let floorZ = wrappedZ.floor() as f32;
+    let fractionX = (wrappedX - wrappedX.floor()) as f32;
+    let fractionZ = (wrappedZ - wrappedZ.floor()) as f32;
+    let uBase = floorX * 0.00390625;
+    let vBase = floorZ * 0.00390625;
+    let bottomY = capture.cloudHeight + 0.33;
+    let topY = bottomY + 4.0 - 9.765625e-4;
+    let xSide = [color[0] * 0.9, color[1] * 0.9, color[2] * 0.9, color[3]];
+    let bottom = [color[0] * 0.7, color[1] * 0.7, color[2] * 0.7, color[3]];
+    let zSide = [color[0] * 0.8, color[1] * 0.8, color[2] * 0.8, color[3]];
+    let relativeCloudY = capture.cloudHeight - camera[1] + 0.33;
+
+    let world = |x: f32, y: f32, z: f32| [camera[0] + x * cloudScale, y, camera[2] + z * cloudScale];
+    for cellX in -3..=4 {
+        for cellZ in -3..=4 {
+            let textureX = (cellX * 8) as f32;
+            let textureZ = (cellZ * 8) as f32;
+            let x0 = textureX - fractionX;
+            let x1 = x0 + 8.0;
+            let z0 = textureZ - fractionZ;
+            let z1 = z0 + 8.0;
+            let uv = |u: f32, v: f32| [u * 0.00390625 + uBase, v * 0.00390625 + vBase];
+
+            if relativeCloudY > -5.0 {
+                append_wrapped_cloud_quad(
+                    [world(x0, bottomY, z1), world(x1, bottomY, z1), world(x1, bottomY, z0), world(x0, bottomY, z0)],
+                    [uv(textureX, textureZ + 8.0), uv(textureX + 8.0, textureZ + 8.0), uv(textureX + 8.0, textureZ), uv(textureX, textureZ)],
+                    rectangle, bottom, vertices, indices,
+                );
+            }
+            if relativeCloudY <= 5.0 {
+                append_wrapped_cloud_quad(
+                    [world(x0, topY, z1), world(x1, topY, z1), world(x1, topY, z0), world(x0, topY, z0)],
+                    [uv(textureX, textureZ + 8.0), uv(textureX + 8.0, textureZ + 8.0), uv(textureX + 8.0, textureZ), uv(textureX, textureZ)],
+                    rectangle, color, vertices, indices,
+                );
+            }
+            if cellX > -1 {
+                for strip in 0..8 {
+                    let x = x0 + strip as f32;
+                    let u = textureX + strip as f32 + 0.5;
+                    append_wrapped_cloud_quad(
+                        [world(x, bottomY, z1), world(x, topY + 9.765625e-4, z1), world(x, topY + 9.765625e-4, z0), world(x, bottomY, z0)],
+                        [uv(u, textureZ + 8.0), uv(u, textureZ + 8.0), uv(u, textureZ), uv(u, textureZ)],
+                        rectangle, xSide, vertices, indices,
+                    );
+                }
+            }
+            if cellX <= 1 {
+                for strip in 0..8 {
+                    let x = x0 + strip as f32 + 1.0 - 9.765625e-4;
+                    let u = textureX + strip as f32 + 0.5;
+                    append_wrapped_cloud_quad(
+                        [world(x, bottomY, z1), world(x, topY + 9.765625e-4, z1), world(x, topY + 9.765625e-4, z0), world(x, bottomY, z0)],
+                        [uv(u, textureZ + 8.0), uv(u, textureZ + 8.0), uv(u, textureZ), uv(u, textureZ)],
+                        rectangle, xSide, vertices, indices,
+                    );
+                }
+            }
+            if cellZ > -1 {
+                for strip in 0..8 {
+                    let z = z0 + strip as f32;
+                    let v = textureZ + strip as f32 + 0.5;
+                    append_wrapped_cloud_quad(
+                        [world(x0, topY + 9.765625e-4, z), world(x1, topY + 9.765625e-4, z), world(x1, bottomY, z), world(x0, bottomY, z)],
+                        [uv(textureX, v), uv(textureX + 8.0, v), uv(textureX + 8.0, v), uv(textureX, v)],
+                        rectangle, zSide, vertices, indices,
+                    );
+                }
+            }
+            if cellZ <= 1 {
+                for strip in 0..8 {
+                    let z = z0 + strip as f32 + 1.0 - 9.765625e-4;
+                    let v = textureZ + strip as f32 + 0.5;
+                    append_wrapped_cloud_quad(
+                        [world(x0, topY + 9.765625e-4, z), world(x1, topY + 9.765625e-4, z), world(x1, bottomY, z), world(x0, bottomY, z)],
+                        [uv(textureX, v), uv(textureX + 8.0, v), uv(textureX + 8.0, v), uv(textureX, v)],
+                        rectangle, zSide, vertices, indices,
+                    );
+                }
+            }
+        }
+    }
+}
 
 /// MCP 1.12.2 `RenderGlobal#renderSky` celestial subset. The flat sky colour
 /// is supplied by the render-pass clear value; this mesh contains the
@@ -21772,14 +22447,15 @@ mod tests {
             blockEntityIndices: Arc::new(Vec::new()),
             staticEntityVertices: Arc::new(Vec::new()),
             staticEntityIndices: Arc::new(Vec::new()),
-            entityDrawRanges: Vec::new(),
+            entityDrawRanges: Arc::new(Vec::new()),
             entityDepthVertices: Arc::new(Vec::new()),
             entityDepthIndices: Arc::new(Vec::new()),
             entityOverlayVertices: Arc::new(Vec::new()),
             entityOverlayIndices: Arc::new(Vec::new()),
             skyAlphaIndexCount: 0,
             skyCelestialIndexCount: 0,
-            entityOverlayDrawRanges: Vec::new(),
+            cloudIndexCount: 0,
+            entityOverlayDrawRanges: Arc::new(Vec::new()),
             renderedRemotePlayers: 0,
             renderedNonPlayerEntities: 0,
             particleVertices: Arc::new(Vec::new()),
@@ -21792,11 +22468,11 @@ mod tests {
             selectionIndices: Arc::new(Vec::new()),
             firstPersonVertices: Arc::new(Vec::new()),
             firstPersonIndices: Arc::new(Vec::new()),
-            firstPersonDrawRanges: Vec::new(),
+            firstPersonDrawRanges: Arc::new(Vec::new()),
             firstPersonPushConstants: constants,
             hudVertices: Arc::new(Vec::new()),
             hudIndices: Arc::new(Vec::new()),
-            hudDrawRanges: Vec::new(),
+            hudDrawRanges: Arc::new(Vec::new()),
             hudPushConstants: constants,
         }
     }
@@ -21875,7 +22551,7 @@ mod tests {
         let mut second_input = empty_cached_dynamic_meshes_for_test();
         second_input.entityVertices = Arc::new(vec![test_vertex(1.0)]);
         second_input.entityIndices = Arc::new(vec![0]);
-        second_input.entityDrawRanges.push(WorldEntityDrawRange {
+        Arc::make_mut(&mut second_input.entityDrawRanges).push(WorldEntityDrawRange {
             pipeline: WorldEntityPipelineKind::Entities,
             mesh: WorldEntityMeshKind::Dynamic,
             firstIndex: 0,
@@ -21902,7 +22578,7 @@ mod tests {
         let mut first_input = empty_cached_dynamic_meshes_for_test();
         first_input.entityVertices = Arc::new(vec![test_vertex(1.0)]);
         first_input.entityIndices = Arc::new(vec![0]);
-        first_input.entityDrawRanges.push(WorldEntityDrawRange {
+        Arc::make_mut(&mut first_input.entityDrawRanges).push(WorldEntityDrawRange {
             pipeline: WorldEntityPipelineKind::Entities,
             mesh: WorldEntityMeshKind::Dynamic,
             firstIndex: 0,
@@ -21913,7 +22589,7 @@ mod tests {
         let mut second_input = empty_cached_dynamic_meshes_for_test();
         second_input.entityVertices = Arc::new(vec![test_vertex(1.0)]);
         second_input.entityIndices = Arc::new(vec![0]);
-        second_input.entityDrawRanges.push(WorldEntityDrawRange {
+        Arc::make_mut(&mut second_input.entityDrawRanges).push(WorldEntityDrawRange {
             pipeline: WorldEntityPipelineKind::BlockEntities,
             mesh: WorldEntityMeshKind::Dynamic,
             firstIndex: 0,
@@ -21922,7 +22598,7 @@ mod tests {
         let second = cache.store(second_input, Duration::ZERO);
 
         assert_eq!(second.entityMeshGeneration, first.entityMeshGeneration);
-        assert_eq!(second.entityDrawRanges, vec![WorldEntityDrawRange {
+        assert_eq!(second.entityDrawRanges.as_ref(), &vec![WorldEntityDrawRange {
             pipeline: WorldEntityPipelineKind::BlockEntities,
             mesh: WorldEntityMeshKind::Dynamic,
             firstIndex: 0,
@@ -22718,6 +23394,23 @@ mod tests {
     fn fire_alpha_tag_preserves_layer_and_source_alpha() {
         assert_eq!(encoded_fire_alpha(1.0, 0), -1.0);
         assert_eq!(encoded_fire_alpha(0.9, 1), -2.9);
+    }
+
+    #[test]
+    fn reconnect_upload_cancels_stale_gpu_removal_for_same_render_chunk_key() {
+        let stale = RenderChunkKey::new(2, 4, -3);
+        let unrelated = RenderChunkKey::new(9, 4, 8);
+        let mut pending = vec![stale, unrelated];
+        let mut pendingSet = [stale, unrelated].into_iter().collect::<HashSet<_>>();
+        let uploadedKeys = [stale].into_iter().collect::<FxHashSet<_>>();
+
+        assert_eq!(
+            cancel_superseded_gpu_removals(&mut pending, &mut pendingSet, &uploadedKeys),
+            1,
+        );
+        assert_eq!(pending, vec![unrelated]);
+        assert!(!pendingSet.contains(&stale));
+        assert!(pendingSet.contains(&unrelated));
     }
 
     #[test]

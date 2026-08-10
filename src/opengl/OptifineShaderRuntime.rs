@@ -422,10 +422,18 @@ impl ShaderTargets {
                     0,
                 );
             }
-            let drawBuffers = (0..self.usedColorBuffers)
-                .map(|index| gl::COLOR_ATTACHMENT0 + index as GLenum)
-                .collect::<Vec<_>>();
-            gl::DrawBuffers(drawBuffers.len() as GLsizei, drawBuffers.as_ptr());
+            let mut drawBuffers = [gl::NONE; COLOR_BUFFER_COUNT];
+            for (index, drawBuffer) in drawBuffers
+                .iter_mut()
+                .take(self.usedColorBuffers)
+                .enumerate()
+            {
+                *drawBuffer = gl::COLOR_ATTACHMENT0 + index as GLenum;
+            }
+            gl::DrawBuffers(
+                self.usedColorBuffers as GLsizei,
+                drawBuffers.as_ptr(),
+            );
             let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
             anyhow::ensure!(status == gl::FRAMEBUFFER_COMPLETE, "OptiFine framebuffer is incomplete: 0x{status:04X}");
@@ -529,10 +537,18 @@ impl ShaderTargets {
                     0,
                 );
             }
-            let drawBuffers = (0..self.usedColorBuffers)
-                .map(|index| gl::COLOR_ATTACHMENT0 + index as GLenum)
-                .collect::<Vec<_>>();
-            gl::DrawBuffers(drawBuffers.len() as GLsizei, drawBuffers.as_ptr());
+            let mut drawBuffers = [gl::NONE; COLOR_BUFFER_COUNT];
+            for (index, drawBuffer) in drawBuffers
+                .iter_mut()
+                .take(self.usedColorBuffers)
+                .enumerate()
+            {
+                *drawBuffer = gl::COLOR_ATTACHMENT0 + index as GLenum;
+            }
+            gl::DrawBuffers(
+                self.usedColorBuffers as GLsizei,
+                drawBuffers.as_ptr(),
+            );
         }
     }
 
@@ -653,15 +669,19 @@ impl ShaderTargets {
                     0,
                 );
             }
-            let mut attachments = Vec::with_capacity(drawBuffers.len().max(1));
+            let mut attachments = [gl::NONE; COLOR_BUFFER_COUNT];
+            let mut attachmentCount = 0_usize;
             for &index in drawBuffers {
                 if index >= self.usedColorBuffers { continue; }
-                attachments.push(gl::COLOR_ATTACHMENT0 + index as GLenum);
+                if attachmentCount == COLOR_BUFFER_COUNT { break; }
+                attachments[attachmentCount] = gl::COLOR_ATTACHMENT0 + index as GLenum;
+                attachmentCount += 1;
             }
-            if attachments.is_empty() {
-                attachments.push(gl::COLOR_ATTACHMENT0);
+            if attachmentCount == 0 {
+                attachments[0] = gl::COLOR_ATTACHMENT0;
+                attachmentCount = 1;
             }
-            gl::DrawBuffers(attachments.len() as GLsizei, attachments.as_ptr());
+            gl::DrawBuffers(attachmentCount as GLsizei, attachments.as_ptr());
         }
     }
 
@@ -887,10 +907,18 @@ impl ShadowTargets {
                 gl::DrawBuffer(gl::NONE);
                 gl::ReadBuffer(gl::NONE);
             } else {
-                let drawBuffers = (0..self.usedColorBuffers)
-                    .map(|index| gl::COLOR_ATTACHMENT0 + index as GLenum)
-                    .collect::<Vec<_>>();
-                gl::DrawBuffers(drawBuffers.len() as GLsizei, drawBuffers.as_ptr());
+                let mut drawBuffers = [gl::NONE; SHADOW_COLOR_BUFFER_COUNT];
+                for (index, drawBuffer) in drawBuffers
+                    .iter_mut()
+                    .take(self.usedColorBuffers)
+                    .enumerate()
+                {
+                    *drawBuffer = gl::COLOR_ATTACHMENT0 + index as GLenum;
+                }
+                gl::DrawBuffers(
+                    self.usedColorBuffers as GLsizei,
+                    drawBuffers.as_ptr(),
+                );
                 gl::ReadBuffer(gl::NONE);
             }
             gl::ClearColor(1.0, 1.0, 1.0, 1.0);
@@ -1212,17 +1240,27 @@ impl OptifineShaderRuntime {
                 gl::DrawBuffer(gl::COLOR_ATTACHMENT0);
                 gl::DepthMask(gl::FALSE);
             } else {
-                let attachments = program
-                    .drawBuffers
-                    .iter()
-                    .copied()
-                    .filter(|index| *index < COLOR_BUFFER_COUNT)
-                    .map(|index| gl::COLOR_ATTACHMENT0 + index as GLenum)
-                    .collect::<Vec<_>>();
-                if attachments.is_empty() {
+                // G-buffer attachment routing is a fixed-size OptiFine state
+                // (at most COLOR_BUFFER_COUNT entries). Building a temporary
+                // Vec here allocated on every program bind, which is directly
+                // on the shader-pack render hot path. Preserve the exact
+                // declared attachment order in stack storage instead.
+                let mut attachments = [gl::NONE; COLOR_BUFFER_COUNT];
+                let mut attachmentCount = 0_usize;
+                for index in program.drawBuffers.iter().copied() {
+                    if index >= COLOR_BUFFER_COUNT {
+                        continue;
+                    }
+                    if attachmentCount == COLOR_BUFFER_COUNT {
+                        break;
+                    }
+                    attachments[attachmentCount] = gl::COLOR_ATTACHMENT0 + index as GLenum;
+                    attachmentCount += 1;
+                }
+                if attachmentCount == 0 {
                     gl::DrawBuffer(gl::COLOR_ATTACHMENT0);
                 } else {
-                    gl::DrawBuffers(attachments.len() as GLsizei, attachments.as_ptr());
+                    gl::DrawBuffers(attachmentCount as GLsizei, attachments.as_ptr());
                 }
             }
         }
@@ -1420,10 +1458,18 @@ impl OptifineShaderRuntime {
             if self.shadowTargets.usedColorBuffers == 0 {
                 gl::DrawBuffer(gl::NONE);
             } else {
-                let attachments = (0..self.shadowTargets.usedColorBuffers)
-                    .map(|index| gl::COLOR_ATTACHMENT0 + index as GLenum)
-                    .collect::<Vec<_>>();
-                gl::DrawBuffers(attachments.len() as GLsizei, attachments.as_ptr());
+                let mut attachments = [gl::NONE; SHADOW_COLOR_BUFFER_COUNT];
+                for (index, attachment) in attachments
+                    .iter_mut()
+                    .take(self.shadowTargets.usedColorBuffers)
+                    .enumerate()
+                {
+                    *attachment = gl::COLOR_ATTACHMENT0 + index as GLenum;
+                }
+                gl::DrawBuffers(
+                    self.shadowTargets.usedColorBuffers as GLsizei,
+                    attachments.as_ptr(),
+                );
             }
         }
         bindNoiseTexture(noiseTexture);

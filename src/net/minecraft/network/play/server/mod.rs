@@ -33,6 +33,7 @@
 #[path = "SPacketWindowItems.rs"] pub mod SPacketWindowItems;
 #[path = "SPacketWindowProperty.rs"] pub mod SPacketWindowProperty;
 #[path = "SPacketSetSlot.rs"] pub mod SPacketSetSlot;
+#[path = "SPacketCooldown.rs"] pub mod SPacketCooldown;
 #[path = "SPacketEntityStatus.rs"] pub mod SPacketEntityStatus;
 #[path = "SPacketHeldItemChange.rs"] pub mod SPacketHeldItemChange;
 #[path = "SPacketEntityAttach.rs"] pub mod SPacketEntityAttach;
@@ -74,3 +75,4 @@
 #[path = "SPacketSoundEffect.rs"] pub mod SPacketSoundEffect;
 
 #[path = "SPacketEffect.rs"] pub mod SPacketEffect;
+#[path = "SPacketSpawnPosition.rs"] pub mod SPacketSpawnPosition;

@@ -3,3 +3,4 @@
 #[path = "InventoryPlayer.rs"] pub mod InventoryPlayer;
 
 #[path = "PlayerCapabilities.rs"] pub mod PlayerCapabilities;
+#[path = "EntityPlayerMP.rs"] pub mod EntityPlayerMP;

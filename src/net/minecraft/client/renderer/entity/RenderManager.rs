@@ -25,6 +25,9 @@ pub enum EntityRendererKind {
     Mooshroom,
     Creeper,
     Spider,
+    Enderman,
+    Squid,
+    EnderDragon,
     Slime,
     MagmaCube,
     Blaze,
@@ -108,6 +111,12 @@ impl RenderManager {
                     EntityRendererKind::Creeper
                 } else if crate::net::minecraft::client::renderer::entity::RenderSpider::RenderSpider::variant(*entityType).is_some() {
                     EntityRendererKind::Spider
+                } else if crate::net::minecraft::client::renderer::entity::RenderEnderman::RenderEnderman::supports(*entityType) {
+                    EntityRendererKind::Enderman
+                } else if crate::net::minecraft::client::renderer::entity::RenderSquid::RenderSquid::supports(*entityType) {
+                    EntityRendererKind::Squid
+                } else if crate::net::minecraft::client::renderer::entity::RenderDragon::RenderDragon::supports(*entityType) {
+                    EntityRendererKind::EnderDragon
                 } else if crate::net::minecraft::client::renderer::entity::RenderSlime::RenderSlime::supports(*entityType) {
                     EntityRendererKind::Slime
                 } else if crate::net::minecraft::client::renderer::entity::RenderMagmaCube::RenderMagmaCube::supports(*entityType) {
@@ -263,6 +272,20 @@ mod tests {
             (ObjectSpawnType::LeashKnot, EntityRendererKind::LeashKnot),
         ] {
             let kind = ClientEntityKind::Object { objectType, data: 0, spawnVelocity: [0.0; 3] };
+            assert_eq!(RenderManager::getEntityRenderObject(&kind), expected);
+        }
+    }
+
+    #[test]
+    fn enderman_squid_and_dragon_use_vanilla_renderers() {
+        for (id, expected) in [
+            (58, EntityRendererKind::Enderman),
+            (94, EntityRendererKind::Squid),
+            (63, EntityRendererKind::EnderDragon),
+        ] {
+            let kind = ClientEntityKind::Mob {
+                entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(id).unwrap(),
+            };
             assert_eq!(RenderManager::getEntityRenderObject(&kind), expected);
         }
     }

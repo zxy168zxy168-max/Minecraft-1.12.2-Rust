@@ -4,6 +4,8 @@
 #[path = "LayerMooshroomMushroom.rs"] pub mod LayerMooshroomMushroom;
 #[path = "LayerCreeperCharge.rs"] pub mod LayerCreeperCharge;
 #[path = "LayerSpiderEyes.rs"] pub mod LayerSpiderEyes;
+#[path = "LayerEndermanEyes.rs"] pub mod LayerEndermanEyes;
+#[path = "LayerHeldBlock.rs"] pub mod LayerHeldBlock;
 #[path = "LayerSlimeGel.rs"] pub mod LayerSlimeGel;
 #[path = "LayerWolfCollar.rs"] pub mod LayerWolfCollar;
 #[path = "LayerLlamaDecor.rs"] pub mod LayerLlamaDecor;

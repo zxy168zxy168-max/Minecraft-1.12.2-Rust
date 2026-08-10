@@ -18,6 +18,7 @@ impl IBlockState {
     pub const fn getMetadata(self) -> i32 { self.globalStateId & 15 }
     pub fn getBlock(self) -> Block { Block::getBlockById(self.getBlockId()) }
     pub const fn isAir(self) -> bool { self.globalStateId == 0 }
+    pub fn getLightOpacity(self) -> i32 { self.getBlock().getLightOpacity() }
 
     /// Direct MCP `IBlockState#isTopSolid` delegation.
     pub fn isTopSolid(self) -> bool { self.getBlock().isFullyOpaque(self) }

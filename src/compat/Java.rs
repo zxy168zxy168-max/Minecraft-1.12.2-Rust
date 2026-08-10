@@ -1,5 +1,8 @@
 //! Compatibility helpers for Java semantics used by Minecraft 1.12.2.
 
+use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
+
 /// Java `String.hashCode()` over UTF-16 code units.
 ///
 /// Rust strings are UTF-8, while Java hashes UTF-16 units. Using
@@ -30,6 +33,22 @@ pub struct JavaRandom {
     seed: u64,
     nextNextGaussian: f64,
     haveNextNextGaussian: bool,
+}
+
+/// Equivalent ownership semantics for `java.lang.Math.random()`: one
+/// process-global `java.util.Random` stream, distinct from `World#rand` and
+/// `Item#itemRand`. Minecraft 1.12.2 uses it for effects such as the eight
+/// Nether-water evaporation smoke positions.
+pub fn math_random_f64() -> f64 {
+    static MATH_RANDOM: OnceLock<Mutex<JavaRandom>> = OnceLock::new();
+    let random = MATH_RANDOM.get_or_init(|| {
+        let seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as i64;
+        Mutex::new(JavaRandom::new(seed))
+    });
+    random.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).next_f64()
 }
 
 impl JavaRandom {

@@ -22,7 +22,7 @@ use crate::net::minecraft::client::network::NetHandlerPlayClient::{
 use crate::net::minecraft::client::resources::Locale::Locale;
 use crate::net::minecraft::entity::player::EntityPlayer::EnumChatVisibility;
 use crate::net::minecraft::network::EnumConnectionState::ConnectionState;
-use crate::net::minecraft::network::NetworkManager::{NetworkManager, NetworkManagerError};
+use crate::net::minecraft::network::NetworkManager::{LocalEndpointAddress, NetworkManager, NetworkManagerError};
 use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::handshake::client::C00Handshake::C00Handshake;
 use crate::net::minecraft::network::login::client::CPacketLoginStart::CPacketLoginStart;
@@ -147,6 +147,26 @@ impl GuiConnecting {
             connectingText: String::new(),
             authorizingText: String::new(),
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn newLocal(
+        address: LocalEndpointAddress,
+        session: Session,
+        language: String,
+        renderDistanceChunks: i32,
+        chatVisibility: EnumChatVisibility,
+        chatColours: bool,
+        modelPartFlags: u8,
+        mainHand: EnumHandSide,
+    ) -> Self {
+        let (sender, receiver) = mpsc::channel();
+        let (playPacketSender, playPacketReceiver) = mpsc::channel();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let sharedPlayState = SharedPlayClientState::new();
+        let settings = ClientSettingsSnapshot { language, renderDistanceChunks, chatVisibility, chatColours, modelPartFlags, mainHand };
+        spawn_local_connector(address, session, settings, Arc::clone(&cancel), sender, sharedPlayState.clone(), playPacketReceiver);
+        Self { GuiScreen: GuiScreen::default(), cancel, receiver, pendingEvents: VecDeque::new(), sharedPlayState, playPacketSender, authorizing:false, terminal:false, connectingText:String::new(), authorizingText:String::new() }
     }
 
     pub fn initGui(&mut self, width: i32, height: i32, locale: &Locale) {
@@ -514,4 +534,56 @@ fn next_connector_name() -> String {
         "Server Connector #{}",
         CONNECTION_ID.fetch_add(1, Ordering::Relaxed) + 1
     )
+}
+
+fn spawn_local_connector(
+    address: LocalEndpointAddress,
+    session: Session,
+    settings: ClientSettingsSnapshot,
+    cancel: Arc<AtomicBool>,
+    sender: Sender<GuiConnectingEvent>,
+    sharedPlayState: SharedPlayClientState,
+    playPacketReceiver: Receiver<RawPacket>,
+) {
+    thread::Builder::new().name(next_connector_name()).spawn(move || {
+        let mut network = match NetworkManager::provideLocalClient(&address) {
+            Ok(network) => network,
+            Err(error) => { let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:error.to_string()}); return; }
+        };
+        if cancel.load(Ordering::Acquire) { network.closeChannel(); let _=sender.send(GuiConnectingEvent::Cancelled); return; }
+        let _=sender.send(GuiConnectingEvent::Authorizing);
+        let handshake=match C00Handshake::new(address.to_string(),0,ConnectionState::Login).writePacketData(){Ok(p)=>p,Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}};
+        if let Err(e)=network.sendPacket(&handshake){let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}
+        network.setConnectionState(ConnectionState::Login);
+        let login=match CPacketLoginStart::new(session.getProfile()).writePacketData(){Ok(p)=>p,Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}};
+        if let Err(e)=network.sendPacket(&login){let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}
+        let loginHandler=NetHandlerLoginClient::new(session,false);
+        let mut playHandler:Option<NetHandlerPlayClient>=None;
+        loop {
+            if cancel.load(Ordering::Acquire){network.closeChannel();let _=sender.send(GuiConnectingEvent::Cancelled);return;}
+            if playHandler.is_some(){while let Ok(outbound)=playPacketReceiver.try_recv(){if let Err(e)=network.sendPacket(&outbound){let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}}}
+            let packet=match network.readPacket(){Ok(p)=>p,Err(NetworkManagerError::Timeout)=>continue,Err(NetworkManagerError::Closed)=>{let _=sender.send(GuiConnectingEvent::Disconnected("Connection closed".to_owned()));return;},Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}};
+            if let Some(handler)=playHandler.as_mut(){
+                match handler.processPacket(&mut network,&packet){
+                    Ok(PlayHandlerEvent::None|PlayHandlerEvent::IgnoredPacket(_)|PlayHandlerEvent::ChunkLoaded{..}|PlayHandlerEvent::ChunkUnloaded{..}|PlayHandlerEvent::BlockChanged|PlayHandlerEvent::TimeUpdated{..}|PlayHandlerEvent::SignEditorOpened{..}|PlayHandlerEvent::MapUpdated{..}|PlayHandlerEvent::TileEntityUpdated{..})=>{},
+                    Ok(PlayHandlerEvent::JoinGame(v))=>{let _=sender.send(GuiConnectingEvent::JoinGame(v));},
+                    Ok(PlayHandlerEvent::Respawn{dimension,dimensionChanged})=>{let _=sender.send(GuiConnectingEvent::Respawn{dimension,dimensionChanged});},
+                    Ok(PlayHandlerEvent::TerrainReady)=>{let _=sender.send(GuiConnectingEvent::TerrainReady);},
+                    Ok(PlayHandlerEvent::PlayerDied{message})=>{let _=sender.send(GuiConnectingEvent::PlayerDied(message));},
+                    Ok(PlayHandlerEvent::Sound{sound,category,x,y,z,volume,pitch})=>{let _=sender.send(GuiConnectingEvent::Sound{sound,category,x,y,z,volume,pitch});},
+                    Ok(PlayHandlerEvent::WorldEffect{effectType,position,data,serverWide})=>{let _=sender.send(GuiConnectingEvent::WorldEffect{effectType,position,data,serverWide});},
+                    Ok(PlayHandlerEvent::Disconnected(reason))=>{let _=sender.send(GuiConnectingEvent::Disconnected(reason.getFormattedText().to_owned()));return;},
+                    Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}
+                }
+                continue;
+            }
+            match loginHandler.processPacket(&mut network,&packet){
+                Ok(LoginHandlerEvent::Authorizing)=>{let _=sender.send(GuiConnectingEvent::Authorizing);},
+                Ok(LoginHandlerEvent::CompressionEnabled(t))=>{let _=sender.send(GuiConnectingEvent::CompressionEnabled(t));},
+                Ok(LoginHandlerEvent::LoginSuccess(profile))=>{network.setConnectionState(ConnectionState::Play);sharedPlayState.withWrite(|state|state.networkEncrypted=network.isEncrypted());let _=network.setReadTimeout(Duration::from_millis(25));playHandler=Some(NetHandlerPlayClient::new(profile.clone(),settings.clone(),sharedPlayState.clone()));let _=sender.send(GuiConnectingEvent::LoginSuccess(profile));},
+                Ok(LoginHandlerEvent::Disconnected(reason))=>{let _=sender.send(GuiConnectingEvent::Disconnected(reason.getFormattedText().to_owned()));return;},
+                Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}
+            }
+        }
+    }).expect("failed spawning Local Server Connector thread");
 }

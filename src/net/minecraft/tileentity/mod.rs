@@ -1,3 +1,4 @@
+#[path = "TileEntity.rs"] pub mod TileEntity;
 #[path = "TileEntitySkull.rs"] pub mod TileEntitySkull;
 #[path = "TileEntityBed.rs"] pub mod TileEntityBed;
 #[path = "TileEntityChest.rs"] pub mod TileEntityChest;

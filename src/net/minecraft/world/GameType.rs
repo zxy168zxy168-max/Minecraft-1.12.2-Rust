@@ -8,6 +8,23 @@ impl GameType {
     pub const fn isCreative(self) -> bool { matches!(self, Self::Creative) }
     pub const fn isAdventure(self) -> bool { matches!(self, Self::Adventure | Self::Spectator) }
     pub const fn isSurvivalOrAdventure(self) -> bool { matches!(self, Self::Survival | Self::Adventure) }
+    pub const fn getName(self) -> &'static str {
+        match self {
+            Self::NotSet => "not_set",
+            Self::Survival => "survival",
+            Self::Creative => "creative",
+            Self::Adventure => "adventure",
+            Self::Spectator => "spectator",
+        }
+    }
+    pub fn getByName(name: &str) -> Self {
+        match name {
+            "creative" => Self::Creative,
+            "adventure" => Self::Adventure,
+            "spectator" => Self::Spectator,
+            _ => Self::Survival,
+        }
+    }
 
     /// MCP `GameType.configurePlayerCapabilities`.
     pub fn configurePlayerCapabilities(self, capabilities: &mut PlayerCapabilities) {

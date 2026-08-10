@@ -1,5 +1,5 @@
 use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::{read_i64_be, CodecError};
+use crate::net::minecraft::network::PacketBuffer::{read_i64_be, write_i64_be, CodecError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SPacketTimeUpdate {
@@ -8,6 +8,11 @@ pub struct SPacketTimeUpdate {
 }
 
 impl SPacketTimeUpdate {
+    pub fn new(totalWorldTimeIn: i64, worldTimeIn: i64, doDaylightCycle: bool) -> Self {
+        let worldTime = if doDaylightCycle { worldTimeIn } else { let value=-worldTimeIn; if value==0 {-1} else {value} };
+        Self { totalWorldTime: totalWorldTimeIn, worldTime }
+    }
+    pub fn writePacketData(&self) -> RawPacket { let mut payload=Vec::new(); write_i64_be(self.totalWorldTime,&mut payload); write_i64_be(self.worldTime,&mut payload); RawPacket::new(0x47,payload) }
     pub fn readPacketData(packet: &RawPacket) -> Result<Self, CodecError> {
         let mut input = packet.payload.as_slice();
         let totalWorldTime = read_i64_be(&mut input)?;

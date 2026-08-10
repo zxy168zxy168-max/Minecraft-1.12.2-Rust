@@ -1,6 +1,7 @@
 #version 450
 
 layout(set = 0, binding = 0) uniform sampler2D block_atlas;
+layout(set = 0, binding = 1) uniform sampler2D lightmap_texture;
 
 layout(location = 0) in vec2 vertex_uv;
 layout(location = 1) in vec4 vertex_color;
@@ -17,58 +18,12 @@ layout(push_constant) uniform WorldPushConstants {
 
 layout(location = 0) out vec4 fragment_color;
 
-float vanilla_brightness(float level, float dimension_id) {
-    float inverse = 1.0 - clamp(level, 0.0, 15.0) / 15.0;
-    float minimum = dimension_id < -0.5 ? 0.1 : 0.0;
-    return (1.0 - inverse) / (inverse * 3.0 + 1.0) * (1.0 - minimum) + minimum;
-}
-
-vec3 vanilla_lightmap_texel(float block_level, float sky_level) {
-    float sun = world.lightmap_parameters.x;
-    float torch_flicker = world.lightmap_parameters.y;
-    float gamma_setting = clamp(world.lightmap_parameters.z, 0.0, 1.0);
-    float dimension_id = world.lightmap_parameters.w;
-
-    float sky = vanilla_brightness(sky_level, dimension_id) * (sun * 0.95 + 0.05);
-    float block = vanilla_brightness(block_level, dimension_id) * (torch_flicker * 0.1 + 1.5);
-    float sky_red_green = sky * (sun * 0.65 + 0.35);
-    float block_green = block * ((block * 0.6 + 0.4) * 0.6 + 0.4);
-    float block_blue = block * (block * block * 0.6 + 0.4);
-
-    vec3 color = vec3(
-        sky_red_green + block,
-        sky_red_green + block_green,
-        sky + block_blue
-    );
-    color = color * 0.96 + 0.03;
-
-    if (dimension_id > 0.5 && dimension_id < 1.5) {
-        color = vec3(
-            0.22 + block * 0.75,
-            0.28 + block_green * 0.75,
-            0.25 + block_blue * 0.75
-        );
-    }
-
-    color = clamp(color, 0.0, 1.0);
-    vec3 gamma_color = vec3(1.0) - pow(vec3(1.0) - color, vec3(4.0));
-    color = mix(color, gamma_color, gamma_setting);
-    color = clamp(color * 0.96 + 0.03, 0.0, 1.0);
-
-    // DynamicTexture stores 8-bit channels before GL_LINEAR filtering.
-    return floor(color * 255.0) / 255.0;
-}
-
 vec3 sample_vanilla_lightmap(vec2 levels) {
-    vec2 clamped = clamp(levels, vec2(0.0), vec2(15.0));
-    vec2 low = floor(clamped);
-    vec2 high = min(low + vec2(1.0), vec2(15.0));
-    vec2 weight = fract(clamped);
-    vec3 c00 = vanilla_lightmap_texel(low.x, low.y);
-    vec3 c10 = vanilla_lightmap_texel(high.x, low.y);
-    vec3 c01 = vanilla_lightmap_texel(low.x, high.y);
-    vec3 c11 = vanilla_lightmap_texel(high.x, high.y);
-    return mix(mix(c00, c10, weight.x), mix(c01, c11, weight.x), weight.y);
+    // MCP EntityRenderer#updateLightmap writes a 16 x 16 DynamicTexture.
+    // Integer light levels address texel centres and the LINEAR sampler
+    // provides the same interpolation that vanilla's texture unit performs.
+    vec2 lightmap_uv = (clamp(levels, vec2(0.0), vec2(15.0)) + vec2(0.5)) / 16.0;
+    return texture(lightmap_texture, lightmap_uv).rgb;
 }
 
 void main() {

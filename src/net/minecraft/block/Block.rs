@@ -20,10 +20,21 @@ impl Block {
     }
     pub fn getBlockFromName(name: &str) -> Option<Block> {
         let location = ResourceLocation::parse(name);
-        if location.getNamespace() != "minecraft" { return None; }
-        BLOCK_NAMES.iter().enumerate().find_map(|(id, candidate)| {
-            candidate.filter(|candidate| *candidate == location.getPath()).map(|candidate| Block::new(id as u16, candidate))
-        })
+        if location.getNamespace() == "minecraft" {
+            if let Some(block) = BLOCK_NAMES.iter().enumerate().find_map(|(id, candidate)| {
+                candidate
+                    .filter(|candidate| *candidate == location.getPath())
+                    .map(|candidate| Block::new(id as u16, candidate))
+            }) {
+                return Some(block);
+            }
+        }
+        // MCP `Block#getBlockFromName`: after the registry-name lookup fails,
+        // legacy numeric strings are parsed as registry IDs. Adventure-mode
+        // CanDestroy/CanPlaceOn NBT still accepts this form in 1.12.2.
+        let id = name.parse::<usize>().ok()?;
+        let registryName = BLOCK_NAMES.get(id).and_then(|entry| *entry)?;
+        Some(Block::new(id as u16, registryName))
     }
     pub fn getStateById(id: i32) -> IBlockState { IBlockState::fromGlobalStateId(id) }
     pub const fn getStateId(state: IBlockState) -> i32 { state.getGlobalStateId() }
@@ -43,6 +54,13 @@ impl Block {
                 | 115 | 119 | 127 | 131 | 132 | 140..=144 | 149 | 150 | 157
                 | 171 | 175 | 198 | 207 | 209 | 217
         )
+    }
+
+    /// MCP `Material#blocksMovement` for the vanilla material identity behind
+    /// this registered block. `Material.WEB` is the one 1.12.2 material whose
+    /// default solidity does not imply movement blocking.
+    pub const fn materialBlocksMovement(self) -> bool {
+        self.materialIsSolid() && self.registryId != 30
     }
 
 
@@ -67,12 +85,43 @@ impl Block {
         )
     }
 
+    /// MCP `Block#getTickRandomly` for the vanilla 1.12.2 registry.
+    ///
+    /// The ids are derived from the concrete registered block classes whose
+    /// constructors (or inherited constructors such as `BlockBush`/`BlockLiquid`)
+    /// call `setTickRandomly(true)`.  This is used by
+    /// `ExtendedBlockStorage#removeInvalidBlocks` to rebuild `tickRefCount`
+    /// exactly like the Java client/server chunk container.
+    pub const fn getTickRandomly(self) -> bool {
+        matches!(
+            self.registryId as i32,
+            2 | 6 | 8..=11 | 18 | 28 | 31 | 32 | 37..=40 | 50 | 51 | 59 | 60
+                | 70 | 72..=81 | 83 | 86 | 90..=92 | 104..=106 | 110 | 111
+                | 115 | 127 | 131 | 132 | 141..=143 | 147 | 148 | 161 | 171
+                | 175 | 200 | 207 | 212 | 213
+        )
+    }
+
     /// Exact MCP 1.12.2 default-state `Block.blockHardness` for protocol IDs.
     pub const fn getBlockHardness(self) -> f32 { BLOCK_HARDNESS[self.registryId as usize] }
 
     /// Exact MCP `IBlockState.getMaterial().isToolNotRequired()` result used by
     /// `InventoryPlayer.canHarvestBlock`.
     pub const fn isToolNotRequired(self) -> bool { TOOL_NOT_REQUIRED[self.registryId as usize] }
+
+    /// MCP `Block#getLightOpacity(IBlockState)` default/vanilla constructor values.
+    /// The base constructor uses 255 for an opaque default cube and 0 otherwise;
+    /// the explicit 1.12.2 constructor/registerBlocks overrides are listed here.
+    pub const fn getLightOpacity(self) -> i32 {
+        match self.registryId as i32 {
+            8 | 9 | 79 | 212 => 3,                    // water, ice, frosted ice
+            18 | 30 | 161 => 1,                       // leaves/web/leaves2
+            78 | 116 | 145 | 171 => 0,                // snow layer, enchant table, anvil, carpet
+            43 | 44 | 53 | 60 | 67 | 108 | 109 | 114 | 125 | 126 | 128
+            | 134..=136 | 156 | 163 | 164 | 180..=182 | 203..=205 | 208 => 255,
+            _ => if self.isOpaqueCube() { 255 } else { 0 },
+        }
+    }
 
     /// Protocol-ID bridge for the vanilla default-state `isOpaqueCube` result.
     /// Dynamic actual-state exceptions remain with their concrete block ports.
@@ -581,12 +630,25 @@ mod tests {
         assert_eq!(Block::getBlockById(1).getRegistryPath(), "stone");
         assert_eq!(Block::getBlockById(255).getRegistryPath(), "structure_block");
         assert_eq!(Block::getBlockFromName("minecraft:grass").map(Block::getIdFromBlock), Some(2));
+        assert_eq!(Block::getBlockFromName("2").map(Block::getIdFromBlock), Some(2));
+        assert!(Block::getBlockFromName("999").is_none());
     }
     #[test] fn state_id_is_block_id_shifted_by_four_plus_meta() {
         let state = Block::getStateById((17 << 4) | 5);
         assert_eq!(state.getBlockId(), 17);
         assert_eq!(state.getMetadata(), 5);
         assert_eq!(Block::getStateId(state), (17 << 4) | 5);
+    }
+    #[test] fn random_tick_registry_matches_vanilla_registered_classes() {
+        let expected = [
+            2, 6, 8, 9, 10, 11, 18, 28, 31, 32, 37, 38, 39, 40, 50, 51, 59, 60,
+            70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 83, 86, 90, 91, 92, 104,
+            105, 106, 110, 111, 115, 127, 131, 132, 141, 142, 143, 147, 148, 161,
+            171, 175, 200, 207, 212, 213,
+        ];
+        for id in 0..=255 {
+            assert_eq!(Block::getBlockById(id).getTickRandomly(), expected.contains(&id), "block id {id}");
+        }
     }
     #[test] fn unconditional_client_activations_consume_itemblock_clicks() {
         for id in [23, 25, 26, 54, 64, 69, 77, 96, 107, 122, 130, 143, 149, 151, 219, 234] {

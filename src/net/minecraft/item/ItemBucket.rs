@@ -9,17 +9,10 @@ pub const BUCKET: i16 = 325;
 pub const WATER_BUCKET: i16 = 326;
 pub const LAVA_BUCKET: i16 = 327;
 
-/// Client-side fill prediction of MCP 1.12.2 `ItemBucket#onItemRightClick`
-/// for the empty bucket. World mutation and the resulting held item remain
-/// authoritative on the server (`fillBucket`/`setBlockState` run there);
-/// the client plays the fill sound and removes the source block locally.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BucketFill {
-    /// Filled bucket item id (`WATER_BUCKET` / `LAVA_BUCKET`).
     pub bucket: i16,
-    /// `SoundEvents.ITEM_BUCKET_FILL` / `ITEM_BUCKET_FILL_LAVA` name.
     pub sound: &'static str,
-    /// The liquid source the client removes (prediction, server overwrites).
     pub source: BlockPos,
 }
 
@@ -30,8 +23,6 @@ impl ItemBucket {
         matches!(stack.itemId, BUCKET | WATER_BUCKET | LAVA_BUCKET)
     }
 
-    /// `ItemBucket#onItemRightClick` fill branch: a level-0 water or lava
-    /// block under the ray trace fills the matching bucket.
     pub fn predictFill(target: Option<(BlockPos, IBlockState)>) -> Option<BucketFill> {
         let (pos, state) = target?;
         if state.getMetadata() & 15 != 0 {
@@ -52,12 +43,6 @@ impl ItemBucket {
         }
     }
 
-    /// `ItemBucket#tryPlaceContainedLiquid` client check: the destination
-    /// block (`pos.offset(side)` unless the target itself is replaceable and
-    /// the side is UP) must be air, a non-solid material, or a replaceable
-    /// block so the liquid can be placed. Returns the destination and the
-    /// empty sound the client plays there (vanilla plays it at `posIn` with
-    /// `SoundCategory.BLOCKS`, 1.0 / 1.0).
     pub fn predictEmpty(
         world: &WorldClient,
         pos: BlockPos,
@@ -65,25 +50,23 @@ impl ItemBucket {
         bucket: i16,
     ) -> Option<BucketEmpty> {
         let target = world.getBlockState(pos);
-        // MCP `onItemRightClick` flag1: the hit block's isReplaceable decides
-        // whether the destination is the hit block itself (side UP) or the
-        // neighbouring block.
-        let destination = if isReplaceable(target) && sideHit == EnumFacing::Up {
+        let destination = if isReplaceable(world, pos, target) && sideHit == EnumFacing::Up {
             pos
         } else {
             pos.offset(sideHit, 1)
         };
         let dest = world.getBlockState(destination);
-        // MCP `tryPlaceContainedLiquid`: `!isAirBlock && !flag && !flag1`
-        // fails, with flag = `!material.isSolid()` and flag1 = the
-        // destination block's isReplaceable.
         let placeable = dest.getBlockId() == 0
             || !dest.getBlock().materialIsSolid()
-            || isReplaceable(dest);
+            || isReplaceable(world, destination, dest);
         if placeable {
+            let vaporizesWater = bucket == WATER_BUCKET && world.getProvider().doesWaterVaporize();
             Some(BucketEmpty {
                 destination,
-                sound: if bucket == LAVA_BUCKET {
+                vaporizesWater,
+                sound: if vaporizesWater {
+                    "block.fire.extinguish"
+                } else if bucket == LAVA_BUCKET {
                     "item.bucket.empty_lava"
                 } else {
                     "item.bucket.empty"
@@ -95,26 +78,37 @@ impl ItemBucket {
     }
 }
 
-/// Client-side result of MCP `ItemBucket#onItemRightClick` full-bucket
-/// branch: where the liquid lands and the empty sound played there.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BucketEmpty {
-    /// Destination block (`blockpos1`) the liquid is placed at.
     pub destination: BlockPos,
-    /// `SoundEvents.ITEM_BUCKET_EMPTY` / `ITEM_BUCKET_EMPTY_LAVA` name.
+    /// MCP `WorldProvider#doesWaterVaporize` + FLOWING_WATER branch.
+    /// In the Nether the bucket succeeds but no water block is placed.
+    pub vaporizesWater: bool,
     pub sound: &'static str,
 }
 
-/// MCP 1.12.2 `Block#isReplaceable` overrides: BlockAir, BlockTallGrass,
-/// BlockDeadBush, BlockSnow, BlockVine and BlockDoublePlant return true.
-pub const fn isReplaceable(state: IBlockState) -> bool {
-    matches!(state.getBlockId(), 0 | 31 | 32 | 78 | 106 | 175)
+/// MCP 1.12.2 `Block#isReplaceable` overrides used by `ItemBucket`.
+/// `BlockSnow` is replaceable only at one layer; `BlockDoublePlant` only for
+/// GRASS/FERN and must resolve the lower half's VARIANT through actual state.
+pub fn isReplaceable(world: &WorldClient, pos: BlockPos, state: IBlockState) -> bool {
+    match state.getBlockId() {
+        0 | 31 | 32 | 106 => true,
+        78 => state.getMetadata() & 7 == 0,
+        175 => {
+            let lower = if state.getMetadata() & 8 != 0 {
+                world.getBlockState(pos.down(1))
+            } else {
+                state
+            };
+            lower.getBlockId() == 175 && matches!(lower.getMetadata() & 7, 2 | 3)
+        }
+        _ => false,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
     fn state(id: i32) -> IBlockState { IBlockState::fromGlobalStateId(id) }
 
@@ -139,7 +133,6 @@ mod tests {
     fn empty_bucket_refuses_flowing_liquid_and_solid_blocks() {
         let mut world = WorldClient::new(0);
         let flowing = BlockPos::new(0, 60, 0);
-        // Flowing water block id 8 with level 3 metadata.
         world.invalidateRegionAndSetBlock(flowing, IBlockState::fromGlobalStateId(8 << 4 | 3)).unwrap();
         assert!(ItemBucket::predictFill(Some((flowing, world.getBlockState(flowing)))).is_none());
         let stone = BlockPos::new(5, 60, 0);
@@ -152,7 +145,6 @@ mod tests {
         let mut world = WorldClient::new(0);
         let solid = BlockPos::new(0, 60, 0);
         world.invalidateRegionAndSetBlock(solid, state(1 << 4)).unwrap();
-        // Side hit on solid: destination = pos.up, which is air -> placeable.
         let empty = ItemBucket::predictEmpty(&world, solid, EnumFacing::Up, WATER_BUCKET)
             .expect("solid target with UP side places into the air above");
         assert_eq!(empty.destination, solid.up(1));
@@ -163,7 +155,6 @@ mod tests {
                 .sound,
             "item.bucket.empty_lava",
         );
-        // Target itself air + UP side: destination = the air block itself.
         let air = BlockPos::new(0, 61, 0);
         assert_eq!(
             ItemBucket::predictEmpty(&world, air, EnumFacing::Up, WATER_BUCKET)
@@ -171,8 +162,6 @@ mod tests {
                 .destination,
             air,
         );
-        // Destination occupied by a solid: air target with DOWN side hits the
-        // block below as destination -> not placeable.
         let below = BlockPos::new(0, 60, 0);
         world.invalidateRegionAndSetBlock(below, state(1 << 4)).unwrap();
         assert!(ItemBucket::predictEmpty(&world, air, EnumFacing::Down, WATER_BUCKET).is_none());
@@ -181,20 +170,14 @@ mod tests {
     #[test]
     fn empty_bucket_places_into_replaceable_target_and_non_solid_material() {
         let mut world = WorldClient::new(0);
-        // Tall grass (id 31) is replaceable: with UP side the destination is
-        // the grass cell itself, which is non-solid -> placeable.
         let grass = BlockPos::new(0, 60, 0);
         world.invalidateRegionAndSetBlock(grass, state(31 << 4)).unwrap();
         let empty = ItemBucket::predictEmpty(&world, grass, EnumFacing::Up, WATER_BUCKET)
             .expect("replaceable target with UP side places into itself");
         assert_eq!(empty.destination, grass);
-        // Grass under a solid: DOWN side hits the solid below -> not placeable.
         let below = BlockPos::new(0, 59, 0);
         world.invalidateRegionAndSetBlock(below, state(1 << 4)).unwrap();
         assert!(ItemBucket::predictEmpty(&world, grass, EnumFacing::Down, WATER_BUCKET).is_none());
-        // A non-solid destination material (e.g. torch, id 50, material
-        // CIRCUITS) is placeable even though it is neither air nor
-        // replaceable: solid target with UP side, torch occupying pos.up.
         let base = BlockPos::new(5, 60, 0);
         world.invalidateRegionAndSetBlock(base, state(1 << 4)).unwrap();
         let torch = base.up(1);
@@ -203,4 +186,41 @@ mod tests {
             .expect("non-solid destination material accepts the liquid");
         assert_eq!(empty.destination, torch);
     }
+    #[test]
+    fn nether_water_bucket_vaporizes_instead_of_placing_water() {
+        let world = WorldClient::new(-1);
+        let base = BlockPos::new(0, 60, 0);
+        let empty = ItemBucket::predictEmpty(&world, base, EnumFacing::Up, WATER_BUCKET)
+            .expect("air in the Nether accepts the bucket action");
+        assert!(empty.vaporizesWater);
+        assert_eq!(empty.sound, "block.fire.extinguish");
+
+        let overworld = WorldClient::new(0);
+        let normal = ItemBucket::predictEmpty(&overworld, base, EnumFacing::Up, WATER_BUCKET)
+            .expect("air in the Overworld accepts water");
+        assert!(!normal.vaporizesWater);
+        assert_eq!(normal.sound, "item.bucket.empty");
+    }
+
+    #[test]
+    fn replaceability_matches_snow_layers_and_double_plant_actual_variant() {
+        let mut world = WorldClient::new(0);
+        let snow = BlockPos::new(0, 60, 0);
+        world.invalidateRegionAndSetBlock(snow, IBlockState::fromGlobalStateId(78 << 4)).unwrap();
+        assert!(isReplaceable(&world, snow, world.getBlockState(snow)));
+        world.invalidateRegionAndSetBlock(snow, IBlockState::fromGlobalStateId((78 << 4) | 1)).unwrap();
+        assert!(!isReplaceable(&world, snow, world.getBlockState(snow)));
+
+        let lower = BlockPos::new(4, 60, 0);
+        let upper = lower.up(1);
+        world.invalidateRegionAndSetBlock(lower, IBlockState::fromGlobalStateId((175 << 4) | 2)).unwrap();
+        world.invalidateRegionAndSetBlock(upper, IBlockState::fromGlobalStateId((175 << 4) | 8)).unwrap();
+        assert!(isReplaceable(&world, lower, world.getBlockState(lower)));
+        assert!(isReplaceable(&world, upper, world.getBlockState(upper)));
+
+        world.invalidateRegionAndSetBlock(lower, IBlockState::fromGlobalStateId((175 << 4) | 0)).unwrap();
+        assert!(!isReplaceable(&world, lower, world.getBlockState(lower)));
+        assert!(!isReplaceable(&world, upper, world.getBlockState(upper)));
+    }
+
 }

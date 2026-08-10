@@ -2,7 +2,7 @@ use aes::Aes128;
 use cipher::{generic_array::GenericArray, BlockEncrypt, KeyInit};
 use num_bigint::BigInt;
 use rand::{rngs::OsRng, RngCore};
-use rsa::{pkcs8::DecodePublicKey, Pkcs1v15Encrypt, RsaPublicKey};
+use rsa::{pkcs8::DecodePublicKey, Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use sha1::{Digest, Sha1};
 use thiserror::Error;
 
@@ -14,6 +14,8 @@ pub enum CryptManagerError {
     Rsa(String),
     #[error("AES shared key must contain exactly 16 bytes")]
     InvalidSharedKey,
+    #[error("RSA key-pair generation failed: {0}")]
+    KeyPairGeneration(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,6 +24,26 @@ pub struct SecretKey([u8; 16]);
 impl SecretKey {
     pub const fn fromBytes(bytes: [u8; 16]) -> Self { Self(bytes) }
     pub const fn getEncoded(&self) -> &[u8; 16] { &self.0 }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct KeyPair {
+    privateKey: RsaPrivateKey,
+    publicKey: RsaPublicKey,
+}
+
+impl KeyPair {
+    pub fn getPrivate(&self) -> &RsaPrivateKey { &self.privateKey }
+    pub fn getPublic(&self) -> &RsaPublicKey { &self.publicKey }
+}
+
+/// MCP `CryptManager#generateKeyPair`: RSA, 1024-bit.
+pub fn generateKeyPair() -> Result<KeyPair, CryptManagerError> {
+    let privateKey = RsaPrivateKey::new(&mut OsRng, 1024)
+        .map_err(|error| CryptManagerError::KeyPairGeneration(error.to_string()))?;
+    let publicKey = RsaPublicKey::from(&privateKey);
+    Ok(KeyPair { privateKey, publicKey })
 }
 
 pub fn createNewSharedKey() -> SecretKey {
@@ -92,6 +114,14 @@ mod tests {
     use super::*;
 
     fn hex(bytes: &[u8]) -> String { bytes.iter().map(|value| format!("{value:02x}")).collect() }
+
+    #[test]
+    fn generated_keypair_is_1024_bit_rsa() {
+        use rsa::traits::PublicKeyParts;
+        let pair = generateKeyPair().unwrap();
+        assert_eq!(pair.getPublic().n().bits(), 1024);
+        assert_eq!(&pair.getPrivate().to_public_key(), pair.getPublic());
+    }
 
     #[test]
     fn cfb8_encrypt_decrypt_roundtrip_is_stateful() {

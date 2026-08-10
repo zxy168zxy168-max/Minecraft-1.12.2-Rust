@@ -1,3 +1,10 @@
+use std::sync::Arc;
+use crate::net::minecraft::nbt::NBTBase::{NBTBase, TAG_COMPOUND, TAG_LIST};
+use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
+use crate::net::minecraft::util::datafix::DataFixer::DataFixer;
+use crate::net::minecraft::util::datafix::FixTypes::FixTypes;
+use crate::net::minecraft::util::datafix::IDataFixer::IDataFixer;
+use crate::net::minecraft::util::datafix::IDataWalker::IDataWalker;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::MathHelper::{cos as minecraft_cos, sin as minecraft_sin};
@@ -94,7 +101,27 @@ impl Default for Entity {
     }
 }
 
+struct EntityPassengersDataWalker;
+impl IDataWalker for EntityPassengersDataWalker {
+    fn process(&self, fixer: &dyn IDataFixer, mut compound: NBTTagCompound, versionIn: i32) -> NBTTagCompound {
+        if compound.hasKeyWithType("Passengers", TAG_LIST) {
+            let mut passengers = compound.getTagList("Passengers", TAG_COMPOUND);
+            for index in 0..passengers.tagCount() {
+                let fixed = fixer.processVersioned(FixTypes::Entity, passengers.getCompoundTagAt(index), versionIn);
+                passengers.set(index, NBTBase::Compound(fixed));
+            }
+            compound.setTagList("Passengers", passengers);
+        }
+        compound
+    }
+}
+
 impl Entity {
+    /// MCP `Entity#func_190533_a`: passenger entities are recursively passed
+    /// through the ENTITY fixer chain before their parent is constructed.
+    pub fn registerFixes(fixer: &mut DataFixer) {
+        fixer.registerWalker(FixTypes::Entity, Arc::new(EntityPassengersDataWalker));
+    }
     /// Client-world port of MCP `Entity#setSize`. Shrinking recentres the
     /// box on `posX/posZ`; growing preserves the current minimum corner. The
     /// server-only growth nudge is intentionally absent because every entity

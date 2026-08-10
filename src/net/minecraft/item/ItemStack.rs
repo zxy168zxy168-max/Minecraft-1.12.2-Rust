@@ -1,6 +1,13 @@
+use std::sync::Arc;
+use crate::net::minecraft::util::datafix::DataFixer::DataFixer;
+use crate::net::minecraft::util::datafix::FixTypes::FixTypes;
+use crate::net::minecraft::util::datafix::walkers::BlockEntityTag::BlockEntityTag;
+use crate::net::minecraft::util::datafix::walkers::EntityTag::EntityTag;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::Block::Block;
 use crate::net::minecraft::item::Item::Item;
-use crate::net::minecraft::nbt::NBTBase::TAG_COMPOUND;
+use crate::net::minecraft::item::ItemRegistryData::{definition as itemDefinition, itemIdByNameOrId};
+use crate::net::minecraft::nbt::NBTBase::{TAG_COMPOUND, TAG_STRING};
 use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 use crate::net::minecraft::item::EnumAction::EnumAction;
 use crate::net::minecraft::network::PacketBuffer::{read_i16_be, read_nbt_compound, read_u8, write_i16_be, CodecError};
@@ -17,7 +24,35 @@ pub struct ItemStack {
 }
 
 impl ItemStack {
+    /// MCP 1.12.2 `ItemStack#registerFixes`.
+    pub fn registerFixes(fixer: &mut DataFixer) {
+        fixer.registerWalker(FixTypes::ItemInstance, Arc::new(BlockEntityTag));
+        fixer.registerWalker(FixTypes::ItemInstance, Arc::new(EntityTag));
+    }
+
     pub const EMPTY: Self = Self { itemId: -1, count: 0, itemDamage: 0, tagCompound: None };
+
+    /// MCP `ItemStack(NBTTagCompound)`: registry-name ID, signed Count byte,
+    /// non-negative Damage and an optional compound `tag`. Unknown IDs become
+    /// EMPTY instead of fabricating an item.
+    pub fn fromNBT(nbt: &NBTTagCompound) -> Self {
+        let Some(itemId) = itemIdByNameOrId(&nbt.getString("id")) else { return Self::EMPTY; };
+        if itemId == 0 { return Self::EMPTY; }
+        let count = nbt.getByte("Count");
+        if count <= 0 { return Self::EMPTY; }
+        let itemDamage = nbt.getShort("Damage").max(0);
+        let tagCompound = nbt.hasKeyWithType("tag", TAG_COMPOUND).then(|| nbt.getCompoundTag("tag"));
+        Self { itemId, count: count as u8, itemDamage, tagCompound }
+    }
+
+    /// MCP `ItemStack#writeToNBT`.
+    pub fn writeToNBT(&self, nbt: &mut NBTTagCompound) {
+        let registry = if self.isEmpty() { "minecraft:air" } else { itemDefinition(self.itemId).registryName };
+        nbt.setString("id", registry);
+        nbt.setByte("Count", self.count as i8);
+        nbt.setShort("Damage", self.itemDamage);
+        if let Some(tag) = &self.tagCompound { nbt.setCompoundTag("tag", tag.clone()); }
+    }
 
     pub fn readFromBuffer(input: &mut &[u8]) -> Result<Self, CodecError> {
         let itemId = read_i16_be(input)?;
@@ -128,6 +163,28 @@ impl ItemStack {
         !self.isEmpty() && Item::canHarvestBlock(self.itemId, state.getBlockId())
     }
 
+    /// MCP `ItemStack#canPlaceOn`. Java caches the last block lookup; the
+    /// cache is an implementation detail and does not affect observable
+    /// semantics, so Rust performs the tiny NBT-list scan directly.
+    pub fn canPlaceOn(&self, block: Block) -> bool {
+        let Some(tag) = &self.tagCompound else { return false; };
+        if !tag.hasKeyWithType("CanPlaceOn", crate::net::minecraft::nbt::NBTBase::TAG_LIST) {
+            return false;
+        }
+        let list = tag.getTagList("CanPlaceOn", TAG_STRING);
+        for index in 0..list.tagCount() {
+            if Block::getBlockFromName(&list.getStringTagAt(index)).is_some_and(|candidate| candidate == block) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// MCP `ItemStack#canEditBlocks` -> `Item#canItemEditBlocks`. None of the
+    /// vanilla 1.12.2 Item subclasses override that base method, so the
+    /// registered vanilla result is always false.
+    pub const fn canEditBlocks(&self) -> bool { false }
+
     /// MCP `ItemStack.isItemStackDamageable`: the registered item must have
     /// positive max damage and an `Unbreakable` byte tag disables durability.
     pub fn isItemStackDamageable(&self) -> bool {
@@ -158,6 +215,39 @@ impl ItemStack {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn nbt_round_trip_uses_registry_name_count_damage_and_tag() {
+        let mut custom=NBTTagCompound::new(); custom.setString("display-test","yes");
+        let original=ItemStack{itemId:57,count:23,itemDamage:2,tagCompound:Some(custom)};
+        let mut nbt=NBTTagCompound::new(); original.writeToNBT(&mut nbt);
+        assert_eq!(nbt.getString("id"),"minecraft:diamond_block");
+        assert_eq!(nbt.getByte("Count"),23); assert_eq!(nbt.getShort("Damage"),2);
+        assert_eq!(ItemStack::fromNBT(&nbt),original);
+    }
+
+    #[test]
+    fn can_place_on_reads_vanilla_adventure_tag() {
+        let mut tag = NBTTagCompound::new();
+        let mut list = crate::net::minecraft::nbt::NBTTagList::NBTTagList::new();
+        list.appendTag(crate::net::minecraft::nbt::NBTBase::NBTBase::String("minecraft:grass".to_owned()));
+        tag.setTagList("CanPlaceOn", list);
+        let stack = ItemStack { itemId: 290, count: 1, itemDamage: 0, tagCompound: Some(tag) };
+        assert!(stack.canPlaceOn(Block::getBlockById(2)));
+        assert!(!stack.canPlaceOn(Block::getBlockById(1)));
+        assert!(!stack.canEditBlocks());
+    }
+
+    #[test]
+    fn can_place_on_accepts_legacy_numeric_block_names_like_mcp() {
+        let mut tag = NBTTagCompound::new();
+        let mut list = crate::net::minecraft::nbt::NBTTagList::NBTTagList::new();
+        list.appendTag(crate::net::minecraft::nbt::NBTBase::NBTBase::String("2".to_owned()));
+        tag.setTagList("CanPlaceOn", list);
+        let stack = ItemStack { itemId: 294, count: 1, itemDamage: 0, tagCompound: Some(tag) };
+        assert!(stack.canPlaceOn(Block::getBlockById(2)));
+        assert!(!stack.canPlaceOn(Block::getBlockById(1)));
+    }
 
     #[test]
     fn damageability_uses_the_full_registry_and_unbreakable_tag() {

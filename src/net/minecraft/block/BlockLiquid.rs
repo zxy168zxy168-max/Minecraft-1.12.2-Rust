@@ -60,7 +60,7 @@ pub fn getRenderedDepth(state: IBlockState, material: LiquidMaterial) -> i32 {
 /// also does not block movement, with `Material.WEB` as the one vanilla
 /// anonymous-material exception.
 pub fn materialBlocksMovement(state: IBlockState) -> bool {
-    state.getBlock().materialIsSolid() && state.getBlockId() != 30
+    state.getBlock().materialBlocksMovement()
 }
 
 fn isBlockSolid<A: IBlockAccess>(

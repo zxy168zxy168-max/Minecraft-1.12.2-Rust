@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::compat::Java::JavaRandom;
 
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::block::BlockLiquid::{self, LiquidMaterial};
@@ -44,6 +47,7 @@ use crate::net::minecraft::tileentity::TileEntityShulkerBox::TileEntityShulkerBo
 use crate::net::minecraft::tileentity::TileEntitySign::TileEntitySign;
 use crate::net::minecraft::tileentity::TileEntitySkull::TileEntitySkull;
 use crate::net::minecraft::world::EnumDifficulty::EnumDifficulty;
+use crate::net::minecraft::world::GameRules::GameRules;
 use crate::net::minecraft::world::EnumSkyBlock::EnumSkyBlock;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 use crate::net::minecraft::world::biome::BiomeColorHelper::BiomeAccess;
@@ -80,15 +84,26 @@ pub struct WorldClient {
     shulkerBoxTileEntities: HashMap<BlockPos, TileEntityShulkerBox>,
     signTileEntities: HashMap<BlockPos, TileEntitySign>,
     lastLightningBolt: i32,
-    /// WorldInfo difficulty from `NetHandlerPlayClient#handleServerDifficulty`.
+    /// MCP `WorldInfo#difficulty`, updated by SPacketServerDifficulty.
     difficulty: EnumDifficulty,
+    /// MCP `World#gameRules`; remote clients retain constructor defaults because
+    /// protocol 340 does not synchronize the complete rule table.
+    gameRules: GameRules,
+    prevRainingStrength: f32,
+    rainingStrength: f32,
+    prevThunderingStrength: f32,
+    thunderingStrength: f32,
     totalWorldTime: i64,
     worldTime: i64,
     doDaylightCycle: bool,
+    spawnPoint: BlockPos,
     revision: u64,
     pendingParticles: Vec<ParticleSpawnRequest>,
     pendingSounds: Vec<LocalSoundEvent>,
     particleEmitters: Vec<ParticleEmitter>,
+    /// MCP `World#rand`: Java's world-owned Random, used by client-visible
+    /// source branches such as Nether water-bucket vaporization.
+    random: JavaRandom,
 }
 
 impl WorldClient {
@@ -112,15 +127,30 @@ impl WorldClient {
             signTileEntities: HashMap::new(),
             lastLightningBolt: 0,
             difficulty: EnumDifficulty::Normal,
+            gameRules: GameRules::new(),
+            prevRainingStrength: 0.0,
+            rainingStrength: 0.0,
+            prevThunderingStrength: 0.0,
+            thunderingStrength: 0.0,
             totalWorldTime: 0,
             worldTime: 0,
             doDaylightCycle: true,
+            spawnPoint: BlockPos::ORIGIN,
             revision: 0,
             pendingParticles: Vec::new(),
             pendingSounds: Vec::new(),
             particleEmitters: Vec::new(),
+            random: JavaRandom::new(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos() as i64,
+            ),
         }
     }
+
+    pub const fn getSpawnPoint(&self) -> BlockPos { self.spawnPoint }
+    pub fn setSpawnPoint(&mut self, pos: BlockPos) { self.spawnPoint = pos; self.revision = self.revision.wrapping_add(1); }
 
     pub const fn providerHasSkyLight(&self) -> bool {
         self.provider.hasSkyLight()
@@ -184,6 +214,8 @@ impl WorldClient {
         localPlayerEntityId: Option<i32>,
         localPlayerState: Option<([f64; 3], f32)>,
     ) {
+        self.prevRainingStrength = self.rainingStrength;
+        self.prevThunderingStrength = self.thunderingStrength;
         self.totalWorldTime = self.totalWorldTime.wrapping_add(1);
         if self.doDaylightCycle {
             self.worldTime = self.worldTime.wrapping_add(1);
@@ -982,16 +1014,81 @@ impl WorldClient {
         &self.provider
     }
 
+    /// MCP `World#rand` primitive used by source-equivalent client effects.
+    pub fn nextWorldRandomF32(&mut self) -> f32 { self.random.next_f32() }
+
     pub fn getCelestialAngle(&self, partialTicks: f32) -> f32 {
         self.provider
             .calculateCelestialAngle(self.worldTime, partialTicks)
     }
 
+    /// MCP `World#getRainStrength`.
+    pub fn getRainStrength(&self, partialTicks: f32) -> f32 {
+        self.prevRainingStrength
+            + (self.rainingStrength - self.prevRainingStrength) * partialTicks.clamp(0.0, 1.0)
+    }
+
+    /// MCP `World#setRainStrength`: packet updates set both interpolation ends.
+    pub fn setRainStrength(&mut self, strength: f32) {
+        let strength = strength.clamp(0.0, 1.0);
+        self.prevRainingStrength = strength;
+        self.rainingStrength = strength;
+    }
+
+    /// MCP `World#getThunderStrength`, including the rain-strength multiplier.
+    pub fn getThunderStrength(&self, partialTicks: f32) -> f32 {
+        let thunder = self.prevThunderingStrength
+            + (self.thunderingStrength - self.prevThunderingStrength)
+                * partialTicks.clamp(0.0, 1.0);
+        thunder * self.getRainStrength(partialTicks)
+    }
+
+    /// MCP `World#setThunderStrength`.
+    pub fn setThunderStrength(&mut self, strength: f32) {
+        let strength = strength.clamp(0.0, 1.0);
+        self.prevThunderingStrength = strength;
+        self.thunderingStrength = strength;
+    }
+
+    /// MCP 1.12.2 `World#getCloudColour`, including day/night, rain and
+    /// thunder modulation. The renderer consumes this value unchanged.
+    pub fn getCloudColour(&self, partialTicks: f32) -> [f32; 3] {
+        let angle = self.getCelestialAngle(partialTicks);
+        let daylight = ((angle * std::f32::consts::TAU).cos() * 2.0 + 0.5)
+            .clamp(0.0, 1.0);
+        let mut red = 1.0;
+        let mut green = 1.0;
+        let mut blue = 1.0;
+        let rain = self.getRainStrength(partialTicks);
+        if rain > 0.0 {
+            let grey = (red * 0.3 + green * 0.59 + blue * 0.11) * 0.6;
+            let retained = 1.0 - rain * 0.95;
+            red = red * retained + grey * (1.0 - retained);
+            green = green * retained + grey * (1.0 - retained);
+            blue = blue * retained + grey * (1.0 - retained);
+        }
+        red *= daylight * 0.9 + 0.1;
+        green *= daylight * 0.9 + 0.1;
+        blue *= daylight * 0.85 + 0.15;
+        let thunder = self.getThunderStrength(partialTicks);
+        if thunder > 0.0 {
+            let grey = (red * 0.3 + green * 0.59 + blue * 0.11) * 0.2;
+            let retained = 1.0 - thunder * 0.95;
+            red = red * retained + grey * (1.0 - retained);
+            green = green * retained + grey * (1.0 - retained);
+            blue = blue * retained + grey * (1.0 - retained);
+        }
+        [red, green, blue]
+    }
+
     pub fn doPreChunk(&mut self, x: i32, z: i32, loadChunk: bool) {
         if loadChunk {
-            self.chunks
-                .entry((x, z))
-                .or_insert_with(|| Chunk::new(x, z));
+            // MCP 1.12.2 `ChunkProviderClient#loadChunk` always allocates a
+            // fresh Chunk and overwrites an existing mapping. Reusing the old
+            // object here leaves stale section/lighting/render state behind
+            // when a server re-streams a full chunk (common after reconnects
+            // and teleports), which diverges from vanilla.
+            self.chunks.insert((x, z), Chunk::new(x, z));
         } else {
             self.chunks.remove(&(x, z));
             self.skullTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
@@ -999,6 +1096,9 @@ impl WorldClient {
             self.chestTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
             self.enderChestTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
             self.enchantmentTableTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.beaconTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.endPortalTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.flowerPotTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
             self.pistonTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
             self.shulkerBoxTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
             self.signTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
@@ -1093,13 +1193,17 @@ impl WorldClient {
         self.endPortalTileEntities.values()
     }
 
-    /// `WorldInfo#setDifficulty` from `NetHandlerPlayClient#handleServerDifficulty`.
+    /// MCP `WorldInfo#setDifficulty` from `NetHandlerPlayClient#handleServerDifficulty`.
     pub fn setDifficulty(&mut self, difficulty: EnumDifficulty) {
         self.difficulty = difficulty;
     }
 
-    pub fn getDifficulty(&self) -> EnumDifficulty { self.difficulty }
+    pub const fn getDifficulty(&self) -> EnumDifficulty { self.difficulty }
 
+    /// MCP `World#getGameRules`.
+    pub fn getGameRules(&self) -> &GameRules { &self.gameRules }
+
+    pub fn getGameRulesMut(&mut self) -> &mut GameRules { &mut self.gameRules }
 
     pub fn flowerPotTileEntities(&self) -> impl Iterator<Item = &TileEntityFlowerPot> {
         self.flowerPotTileEntities.values()
@@ -2228,6 +2332,26 @@ mod tests {
     }
 
     #[test]
+    fn full_pre_chunk_load_replaces_existing_chunk_like_chunk_provider_client() {
+        let mut world = WorldClient::new(0);
+        world.invalidateRegionAndSetBlock(
+            BlockPos::new(1, 32, 1),
+            IBlockState::fromGlobalStateId(16),
+        ).unwrap();
+        let old_revision = world
+            .getChunkFromChunkCoords(0, 0)
+            .unwrap()
+            .sectionRevision(2);
+        assert_eq!(world.getBlockState(BlockPos::new(1, 32, 1)).getGlobalStateId(), 16);
+
+        world.doPreChunk(0, 0, true);
+
+        let replacement = world.getChunkFromChunkCoords(0, 0).unwrap();
+        assert_eq!(replacement.getGlobalStateId(1, 32, 1), 0);
+        assert_ne!(replacement.sectionRevision(2), old_revision);
+    }
+
+    #[test]
     fn full_chunk_load_decodes_palette_light_and_biomes() {
         let mut section=Vec::new();
         section.push(4); write_var_i32(1,&mut section); write_var_i32(5,&mut section); write_var_i32(256,&mut section);
@@ -2322,6 +2446,31 @@ mod tests {
         assert_eq!(world.getTotalWorldTime(), 101);
         assert_eq!(world.getWorldTime(), 6000);
         assert!(!world.isDaylightCycleEnabled());
+    }
+
+    #[test]
+    fn cloud_colour_matches_day_night_and_weather_modulation() {
+        let mut world = WorldClient::new(0);
+        world.setWorldTime(6_000);
+        let day = world.getCloudColour(0.0);
+        world.setWorldTime(18_000);
+        let night = world.getCloudColour(0.0);
+        assert!(day[0] > night[0]);
+        assert!(day[1] > night[1]);
+        assert!(day[2] > night[2]);
+
+        world.setWorldTime(6_000);
+        world.setRainStrength(1.0);
+        let rain = world.getCloudColour(0.0);
+        assert!(rain[0] < day[0]);
+        assert!(rain[1] < day[1]);
+        assert!(rain[2] < day[2]);
+
+        world.setThunderStrength(1.0);
+        let thunder = world.getCloudColour(0.0);
+        assert!(thunder[0] < rain[0]);
+        assert!(thunder[1] < rain[1]);
+        assert!(thunder[2] < rain[2]);
     }
 
     #[test]

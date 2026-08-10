@@ -1,5 +1,6 @@
 use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::{read_f32_be, read_u8, CodecError};
+use crate::net::minecraft::network::PacketBuffer::{read_f32_be, read_u8, write_f32_be, CodecError};
+use crate::net::minecraft::entity::player::PlayerCapabilities::PlayerCapabilities;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SPacketPlayerAbilities {
@@ -12,6 +13,8 @@ pub struct SPacketPlayerAbilities {
 }
 
 impl SPacketPlayerAbilities {
+    pub fn new(capabilities: &PlayerCapabilities) -> Self { Self { invulnerable: capabilities.disableDamage, flying: capabilities.isFlying, allowFlying: capabilities.allowFlying, creativeMode: capabilities.isCreativeMode, flySpeed: capabilities.getFlySpeed(), walkSpeed: capabilities.getWalkSpeed() } }
+    pub fn writePacketData(&self) -> RawPacket { let mut flags=0u8; if self.invulnerable{flags|=1;} if self.flying{flags|=2;} if self.allowFlying{flags|=4;} if self.creativeMode{flags|=8;} let mut payload=vec![flags]; write_f32_be(self.flySpeed,&mut payload); write_f32_be(self.walkSpeed,&mut payload); RawPacket::new(0x2C,payload) }
     pub fn readPacketData(packet: &RawPacket) -> Result<Self, CodecError> {
         let mut input = packet.payload.as_slice();
         let flags = read_u8(&mut input)?;

@@ -434,3 +434,18 @@ pub const fn definition(itemId: i16) -> ItemDefinition {
         _ => ItemDefinition::MISSING,
     }
 }
+
+/// Runtime counterpart of MCP `Item#getByNameOrId`. The generated table is
+/// authoritative protocol-340 registry data; gaps remain null exactly as in
+/// the Java registry rather than being collapsed to `air`.
+pub fn itemIdByNameOrId(name: &str) -> Option<i16> {
+    for item_id in 0_i16..=2267_i16 {
+        let entry = definition(item_id);
+        if (item_id == 0 || entry.registryName != "minecraft:air") && entry.registryName == name {
+            return Some(item_id);
+        }
+    }
+    let parsed = name.parse::<i16>().ok()?;
+    let entry = definition(parsed);
+    ((parsed == 0 || entry.registryName != "minecraft:air")).then_some(parsed)
+}

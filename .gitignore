@@ -3,8 +3,13 @@
 
 # Runtime-generated game data and imported copyrighted assets
 /runtime/
+/assets-imported/
 
-# Local game configuration/state
+# Local Minecraft state / worlds
+/saves/
+/crash-reports/
+/logs/
+/screenshots/
 /options.txt
 /optionsshaders.txt
 /servers.dat
@@ -13,24 +18,26 @@
 *.dmp
 main-menu-preview.png
 
-# User-installed packs (keep the folders, not their contents)
+# User-installed packs (keep folders, not contents)
 /resourcepacks/*
 !/resourcepacks/.gitkeep
 /shaderpacks/*
 !/shaderpacks/.gitkeep
+
+# Account Manager credentials and local configuration
+/config/
 
 # Local reference trees and extracted archives
 /MCP-1.12.2-main/
 /MCP_1.12.2-main/
 /RustCraft-Public-main/
 /reference/
+/third_party/
 /dist/
 
 # Editors and OS files
 /.idea/
 /.vscode/
-/docs
-/third_party
 .DS_Store
 Thumbs.db
 
@@ -41,10 +48,3 @@ Thumbs.db
 # Python cache
 __pycache__/
 *.py[cod]
-
-# Nested tool crates
-/tools/*/target/
-
-# Account Manager credentials and local user state
-/config/
-/screenshots/

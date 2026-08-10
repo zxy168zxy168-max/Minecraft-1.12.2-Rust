@@ -53,6 +53,33 @@ impl NBTTagList {
         }
     }
 
+    /// MCP `NBTTagList#getDoubleAt`. Numeric list access returns zero for a
+    /// missing/wrong-type element instead of failing the whole entity load.
+    pub fn getDoubleAt(&self, index: usize) -> f64 {
+        match self.tagList.get(index) {
+            Some(NBTBase::Double(value)) => *value,
+            Some(NBTBase::Float(value)) => *value as f64,
+            Some(NBTBase::Long(value)) => *value as f64,
+            Some(NBTBase::Int(value)) => *value as f64,
+            Some(NBTBase::Short(value)) => *value as f64,
+            Some(NBTBase::Byte(value)) => *value as f64,
+            _ => 0.0,
+        }
+    }
+
+    /// MCP `NBTTagList#getFloatAt`.
+    pub fn getFloatAt(&self, index: usize) -> f32 {
+        match self.tagList.get(index) {
+            Some(NBTBase::Float(value)) => *value,
+            Some(NBTBase::Double(value)) => *value as f32,
+            Some(NBTBase::Long(value)) => *value as f32,
+            Some(NBTBase::Int(value)) => *value as f32,
+            Some(NBTBase::Short(value)) => *value as f32,
+            Some(NBTBase::Byte(value)) => *value as f32,
+            _ => 0.0,
+        }
+    }
+
     pub(crate) fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
         let tagType = self.tagList.first().map(NBTBase::getId).unwrap_or(TAG_END);
         output.write_u8(tagType)?;

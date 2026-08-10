@@ -1,4 +1,8 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::BlockButton;
+use crate::net::minecraft::util::EnumFacing::{Axis,EnumFacing};
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 
 /// Metadata-backed port of MCP 1.12.2 `BlockLever.EnumOrientation`.
@@ -15,6 +19,24 @@ pub enum EnumOrientation {
 }
 
 pub const fn isBlockLever(state: IBlockState) -> bool { state.getBlockId() == 69 }
+impl EnumOrientation {
+    pub const fn metadata(self)->i32{match self{Self::DownX=>0,Self::East=>1,Self::West=>2,Self::South=>3,Self::North=>4,Self::UpZ=>5,Self::UpX=>6,Self::DownZ=>7}}
+    pub fn forFacings(clicked:EnumFacing,entityFacing:EnumFacing)->Self{match clicked{
+        EnumFacing::Down=>if entityFacing.axis()==Axis::X{Self::DownX}else{Self::DownZ},
+        EnumFacing::Up=>if entityFacing.axis()==Axis::X{Self::UpX}else{Self::UpZ},
+        EnumFacing::North=>Self::North,EnumFacing::South=>Self::South,EnumFacing::West=>Self::West,EnumFacing::East=>Self::East}}
+}
+
+/// MCP `BlockLever#onBlockPlaced`, including its horizontal fallback order.
+pub fn onBlockPlacedState<A:IBlockAccess>(world:&A,pos:BlockPos,facingIn:EnumFacing,placerYaw:f32)->IBlockState{
+    let entityFacing=EnumFacing::fromAngle(placerYaw as f64);
+    let chosen=if BlockButton::canPlaceBlock(world,pos,facingIn){Some(facingIn)}else{
+        [EnumFacing::North,EnumFacing::East,EnumFacing::South,EnumFacing::West].into_iter().find(|f|*f!=facingIn&&BlockButton::canPlaceBlock(world,pos,*f))
+    };
+    let orientation=if let Some(face)=chosen{EnumOrientation::forFacings(face,entityFacing)}else if world.getBlockState(pos.down(1)).isTopSolid(){EnumOrientation::forFacings(EnumFacing::Up,entityFacing)}else{EnumOrientation::North};
+    IBlockState::fromGlobalStateId((69<<4)|orientation.metadata())
+}
+
 
 pub const fn orientation(state: IBlockState) -> EnumOrientation {
     match state.getMetadata() & 7 {

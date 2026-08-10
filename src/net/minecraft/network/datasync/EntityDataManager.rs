@@ -78,6 +78,13 @@ impl EntityDataManager {
         }
     }
 
+    pub fn optionalBlockState(&self, id: u8) -> Option<i32> {
+        match self.entries.get(&id) {
+            Some(DataValue::OptionalBlockState(value)) => *value,
+            _ => None,
+        }
+    }
+
     pub fn itemStack(&self, id: u8) -> Option<&ItemStack> {
         match self.entries.get(&id) { Some(DataValue::ItemStack(value)) => Some(value), _ => None }
     }

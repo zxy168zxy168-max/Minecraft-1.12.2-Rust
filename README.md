@@ -5,7 +5,7 @@
 
 > 使用 Rust 对 Minecraft Java Edition 1.12.2 客户端进行语义级移植，并提供 Vulkan 与 OpenGL 双渲染后端。
 
-当前公开基线：**0.112.1**<br>
+当前公开基线：**0.127.0**<br>
 当前重点平台：**Windows 10/11 x64**<br>
 协议目标：**Minecraft Java Edition 1.12.2 / Protocol 340**
 
@@ -17,7 +17,7 @@
 
 原版 Minecraft 1.12.2 与对应 MCP 代码结构是行为基准。Rust 与 Java 的语言机制不同，因此资源所有权、并发、内存管理和图形 API 提交方式采用 Rust 等价实现，但可观察行为应尽量保持与 1.12.2 一致。
 
-项目当前以远程多人客户端路径为主。渲染核心已经形成可公开使用的 Vulkan/OpenGL 基线，但这不等于整个 Minecraft 1.12.2 客户端的所有功能、所有实体、单人集成服务器或任意第三方光影包都已经达到完全兼容。
+项目当前已经同时具备远程多人客户端与正在迁移中的单人 IntegratedServer 路径。v0.127.0 已实现 Flat 世界的真实 LocalChannel/IntegratedServer 进入链、服务器权威区块修改与 Anvil/playerdata 持久化，并已把 Default/Default 1.1/Large Biomes/Amplified/Customized 的主世界生成推进到 MCP 派生的 GenLayer、BiomeProvider、Noise、Biome surface、洞穴和峡谷主干。这仍不等于整个 Minecraft 1.12.2 已无差异完成：结构生成、population/decorator、Nether/End、完整 Entity/TileEntity 生命周期以及部分复杂交互仍在继续迁移。
 
 ## 核心原则
 
@@ -26,6 +26,14 @@
 - **增量移植**：在现有实现上补齐差异，不用占位代码、静态截图、假数据或统一模型冒充真实功能。
 - **双后端同语义**：Vulkan 与 OpenGL 使用同一套 MCP 派生的世界、实体和 GUI 状态，后端只负责原生资源和提交。
 - **优化不改变行为**：缓存、常驻显存、批处理和并行构建不得改变可见性、透明顺序、实体顺序、动画或 OptiFine 程序边界。
+
+## v0.127.0 当前进展
+
+- Flat 单人世界通过真实 `IntegratedServer -> LocalChannel -> Login/Play -> WorldClient` 链进入，不使用客户端静态地形替代服务器。
+- 方块修改开始由 `PlayerInteractionManager / WorldServer / Chunk` 权威处理，并进入 Anvil 异步保存；玩家位置、背包、当前槽位等写入 `playerdata/<UUID>.dat`。
+- Default、Default 1.1、Large Biomes、Amplified、Customized 已接入真实 `IntCache / GenLayer / BiomeProvider / NoiseGenerator / ChunkGeneratorOverworld` 基础地形，并包含 biome surface、洞穴和峡谷。
+- Vulkan/OpenGL 继续共享 MCP 派生场景状态；OpenGL 已包含 resident-span 局部 `BufferSubData` 更新等性能路径。
+- 尚未完成的主项包括 Overworld structures 与 population/decorator、Nether/End generator、完整 TileEntity/复杂多方块放置、完整服务端实体生命周期与更多单人服务器行为。
 
 ## 主要特色
 
@@ -544,16 +552,17 @@ cargo run --release
 
 ## 当前边界
 
-公开基线已经包含完整的双后端渲染核心结构，但仍应注意：
+公开基线 v0.127.0 已经超出早期“仅远程多人客户端”阶段，但仍是持续迁移中的语义移植工程：
 
-- 项目不是 Mojang 官方客户端；
-- 主要运行路径是远程多人客户端；
-- 单人集成服务器不属于当前公开基线；
+- 项目不是 Mojang 官方客户端，也不是 Minecraft 1.12.2 的完成版替代品；
+- Flat IntegratedServer 已能真实创建/进入；方块和玩家状态的服务端权威保存链已开始闭合，但复杂 TileEntity、多方块、红石依赖交互仍需继续补齐；
+- Default / Default 1.1 / Large Biomes / Amplified / Customized 已有真实 MCP 派生基础地形、biome surface、洞穴和峡谷；村庄、矿井、要塞、神殿、海底神殿、林地府邸以及湖泊、地牢、矿物、树木、花草等 population/decorator 仍在迁移；
+- Nether、End 与 Debug generator 尚未达到完整 1.12.2 行为；
 - 部分少见实体、TileEntity、交互或视觉边缘情况仍可能与原版存在差异；
 - 任意第三方 OptiFine 光影包的普遍兼容性未作保证；
 - 内置 Microsoft 登录依赖 Microsoft/Xbox/Minecraft 在线认证服务，服务端策略、二次验证或账号状态可能导致登录失败；
 - `config/account.json` 保存明文令牌，只能保留在可信本地环境中；
-- 不捆绑原版资产，因此首次运行前必须导入资源。
+- 仓库不捆绑原版资产，因此首次运行前必须从合法本地来源导入资源。
 
 发现差异时，应提供：
 
@@ -561,7 +570,7 @@ cargo run --release
 2. 本项目表现；
 3. 可复现步骤；
 4. Vulkan 或 OpenGL 后端；
-5. 使用的资源包/光影包；
+5. 使用的世界类型、资源包/光影包；
 6. 完整日志；
 7. 对应 MCP 类或方法（如可确定）。
 
@@ -588,3 +597,9 @@ RustCraft-Public 仅作为经过真实运行验证的渲染工程参考，用于
 - 账号管理器的交互与行为参考 Exhibition-Reborn；仓库不包含其原始 Java 二进制、专有资源或品牌资产。
 - 使用者必须自行拥有合法的 Minecraft 资源来源并遵守相关许可和服务条款。
 - 仓库代码的使用权限以根目录 `LICENSE` 为准。
+
+<img width="1920" height="1020" alt="QQ20260810-113451" src="https://github.com/user-attachments/assets/8fae411f-57e8-4885-ac72-a2be00c98538" />
+<img width="1920" height="1020" alt="QQ20260810-113523" src="https://github.com/user-attachments/assets/c7bb67a2-85ec-452d-bce5-7aa01278c748" />
+<img width="1920" height="1020" alt="QQ20260810-113639" src="https://github.com/user-attachments/assets/e1209daa-c777-40be-b244-2df2ed6ee1ff" />
+<img width="1920" height="1020" alt="QQ20260810-113851" src="https://github.com/user-attachments/assets/07e50b4b-2a7b-4798-8877-77558c29da0b" />
+随便传几张照片展示下效果罢了

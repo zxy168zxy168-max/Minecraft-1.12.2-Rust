@@ -16,6 +16,7 @@ pub mod text;
 #[path = "EnumHand.rs"] pub mod EnumHand;
 #[path = "EnumActionResult.rs"] pub mod EnumActionResult;
 #[path = "FoodStats.rs"] pub mod FoodStats;
+#[path = "CooldownTracker.rs"] pub mod CooldownTracker;
 
 #[path = "EnumParticleTypes.rs"] pub mod EnumParticleTypes;
 
@@ -24,3 +25,5 @@ pub mod text;
 #[path = "SoundEvent.rs"] pub mod SoundEvent;
 
 #[path = "ReportedException.rs"] pub mod ReportedException;
+
+pub mod datafix;

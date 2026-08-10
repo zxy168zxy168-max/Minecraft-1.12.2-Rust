@@ -80,6 +80,8 @@ impl ParticleManager {
         let particle=match request.particleType {
             EnumParticleTypes::WaterBubble => Some(ManagedParticle::Bubble(ParticleBubble::new(x,y,z,xs,ys,zs,&mut self.random))),
             EnumParticleTypes::SmokeNormal => Some(ManagedParticle::Smoke(ParticleSmokeNormal::new(x,y,z,xs,ys,zs,1.0,&mut self.random))),
+            // MCP ParticleSmokeLarge.Factory -> ParticleSmokeNormal(..., 2.5F).
+            EnumParticleTypes::SmokeLarge => Some(ManagedParticle::Smoke(ParticleSmokeNormal::new(x,y,z,xs,ys,zs,2.5,&mut self.random))),
             EnumParticleTypes::DragonBreath => Some(ManagedParticle::DragonBreath(ParticleDragonBreath::new(x,y,z,xs,ys,zs,&mut self.random))),
             EnumParticleTypes::EndRod => Some(ManagedParticle::EndRod(ParticleEndRod::new(x,y,z,xs,ys,zs,&mut self.random))),
             EnumParticleTypes::Spell | EnumParticleTypes::SpellInstant | EnumParticleTypes::SpellMob

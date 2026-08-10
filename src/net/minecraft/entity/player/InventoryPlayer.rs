@@ -2,6 +2,8 @@ use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::inventory::ContainerPlayer::ContainerPlayer;
 use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::network::PacketBuffer::CodecError;
+use crate::net::minecraft::nbt::NBTBase::NBTBase;
+use crate::net::minecraft::nbt::NBTTagList::NBTTagList;
 
 /// Gameplay-bearing inventory layout from MCP 1.12.2 `InventoryPlayer`.
 #[derive(Debug, Clone, PartialEq)]
@@ -28,6 +30,41 @@ impl Default for InventoryPlayer {
 }
 
 impl InventoryPlayer {
+    /// MCP `InventoryPlayer#writeToNBT`: main slots 0..35, armor 100..103
+    /// and offhand 150.
+    pub fn writeToNBT(&self, mut list: NBTTagList) -> NBTTagList {
+        for (index, stack) in self.mainInventory.iter().enumerate() {
+            if stack.isEmpty() { continue; }
+            let mut tag=crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
+            tag.setByte("Slot", index as i8); stack.writeToNBT(&mut tag); list.appendTag(NBTBase::Compound(tag));
+        }
+        for (index, stack) in self.armorInventory.iter().enumerate() {
+            if stack.isEmpty() { continue; }
+            let mut tag=crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
+            tag.setByte("Slot", (index+100) as i8); stack.writeToNBT(&mut tag); list.appendTag(NBTBase::Compound(tag));
+        }
+        for (index, stack) in self.offHandInventory.iter().enumerate() {
+            if stack.isEmpty() { continue; }
+            let mut tag=crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
+            tag.setByte("Slot", (index+150) as i8); stack.writeToNBT(&mut tag); list.appendTag(NBTBase::Compound(tag));
+        }
+        list
+    }
+
+    /// MCP `InventoryPlayer#readFromNBT`. Fixed-size NonNullLists are reset to
+    /// EMPTY and only valid vanilla slot ranges are accepted.
+    pub fn readFromNBT(&mut self, list: &NBTTagList) {
+        self.mainInventory.fill(ItemStack::EMPTY); self.armorInventory.fill(ItemStack::EMPTY); self.offHandInventory.fill(ItemStack::EMPTY);
+        for index in 0..list.tagCount() {
+            let tag=list.getCompoundTagAt(index);
+            let slot=(tag.getByte("Slot") as u8) as usize;
+            let stack=ItemStack::fromNBT(&tag); if stack.isEmpty(){continue;}
+            if slot < self.mainInventory.len(){self.mainInventory[slot]=stack;}
+            else if (100..100+self.armorInventory.len()).contains(&slot){self.armorInventory[slot-100]=stack;}
+            else if (150..150+self.offHandInventory.len()).contains(&slot){self.offHandInventory[slot-150]=stack;}
+        }
+    }
+
     pub const fn getHotbarSize() -> usize { 9 }
 
     pub const fn isHotbar(index: i32) -> bool { index >= 0 && index < 9 }

@@ -1,3 +1,4 @@
+#[path = "EntityList.rs"] pub mod EntityList;
 #[path = "Entity.rs"] pub mod Entity;
 pub mod player;
 pub mod effect;

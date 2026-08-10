@@ -105,6 +105,14 @@ pub fn read_string(input: &mut &[u8], maximum_characters: usize) -> Result<Strin
 
 
 
+pub fn write_nbt_compound(value: Option<&crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound>, output: &mut Vec<u8>) -> Result<(), CodecError> {
+    match value {
+        None => output.push(0),
+        Some(compound) => crate::net::minecraft::nbt::CompressedStreamTools::writeRoot(compound, output)?,
+    }
+    Ok(())
+}
+
 pub fn read_nbt_compound(input: &mut &[u8]) -> Result<Option<crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound>, CodecError> {
     if input.first().copied().ok_or(CodecError::UnexpectedEof)? == 0 {
         *input = &input[1..];

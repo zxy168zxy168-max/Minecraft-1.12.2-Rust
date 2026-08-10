@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::ffi::{CStr, CString};
 use std::num::NonZeroU32;
 use std::os::raw::c_void;
@@ -20,6 +21,7 @@ use raw_window_handle::HasWindowHandle;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes};
 
+use crate::net::minecraft::client::renderer::EntityRenderer::EntityRenderer;
 use crate::net::minecraft::client::renderer::chunk::RenderChunk::RenderChunkKey;
 use crate::net::minecraft::client::settings::GameSettings::GameSettings;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
@@ -39,8 +41,8 @@ use crate::vulkan::PanoramaRenderer::{PanoramaCompositeVertex, PanoramaPassPlan}
 use crate::vulkan::TextureSource::TextureSource;
 use crate::vulkan::VulkanWorldRenderer::{
     ChunkLayerRange, EntityOverlayPipelineKind, FirstPersonPipelineKind, HudPipelineKind,
-    WorldEntityMeshKind, WorldEntityPipelineKind, WorldPushConstants, WorldRenderFrame,
-    WorldVertex,
+    WorldEntityDrawRange, WorldEntityMeshKind, WorldEntityPipelineKind, WorldPushConstants,
+    WorldRenderFrame, WorldVertex,
 };
 
 const WORLD_VERTEX_SHADER: &str = r#"#version 330 compatibility
@@ -76,6 +78,7 @@ void main() {
 
 const WORLD_FRAGMENT_SHADER: &str = r#"#version 330 compatibility
 uniform sampler2D block_atlas;
+uniform sampler2D lightmap_texture;
 uniform vec4 camera_position;
 uniform vec4 fog_color;
 uniform vec4 fog_parameters;
@@ -87,43 +90,12 @@ in float vertex_fog_distance;
 in vec2 vertex_lightmap;
 out vec4 fragment_color;
 
-float vanilla_brightness(float level, float dimension_id) {
-    float inverse = 1.0 - clamp(level, 0.0, 15.0) / 15.0;
-    float minimum = dimension_id < -0.5 ? 0.1 : 0.0;
-    return (1.0 - inverse) / (inverse * 3.0 + 1.0) * (1.0 - minimum) + minimum;
-}
-
-vec3 vanilla_lightmap_texel(float block_level, float sky_level) {
-    float sun = lightmap_parameters.x;
-    float torch_flicker = lightmap_parameters.y;
-    float gamma_setting = clamp(lightmap_parameters.z, 0.0, 1.0);
-    float dimension_id = lightmap_parameters.w;
-    float sky = vanilla_brightness(sky_level, dimension_id) * (sun * 0.95 + 0.05);
-    float block = vanilla_brightness(block_level, dimension_id) * (torch_flicker * 0.1 + 1.5);
-    float sky_red_green = sky * (sun * 0.65 + 0.35);
-    float block_green = block * ((block * 0.6 + 0.4) * 0.6 + 0.4);
-    float block_blue = block * (block * block * 0.6 + 0.4);
-    vec3 color = vec3(sky_red_green + block, sky_red_green + block_green, sky + block_blue);
-    color = color * 0.96 + 0.03;
-    if (dimension_id > 0.5 && dimension_id < 1.5) {
-        color = vec3(0.22 + block * 0.75, 0.28 + block_green * 0.75, 0.25 + block_blue * 0.75);
-    }
-    color = clamp(color, 0.0, 1.0);
-    vec3 gamma_color = vec3(1.0) - pow(vec3(1.0) - color, vec3(4.0));
-    color = mix(color, gamma_color, gamma_setting);
-    return floor(clamp(color * 0.96 + 0.03, 0.0, 1.0) * 255.0) / 255.0;
-}
-
 vec3 sample_vanilla_lightmap(vec2 levels) {
-    vec2 clamped = clamp(levels, vec2(0.0), vec2(15.0));
-    vec2 low = floor(clamped);
-    vec2 high = min(low + vec2(1.0), vec2(15.0));
-    vec2 weight = fract(clamped);
-    vec3 c00 = vanilla_lightmap_texel(low.x, low.y);
-    vec3 c10 = vanilla_lightmap_texel(high.x, low.y);
-    vec3 c01 = vanilla_lightmap_texel(low.x, high.y);
-    vec3 c11 = vanilla_lightmap_texel(high.x, high.y);
-    return mix(mix(c00, c10, weight.x), mix(c01, c11, weight.x), weight.y);
+    // MCP EntityRenderer updates a 16 x 16 DynamicTexture and samples it
+    // linearly. Integer light levels therefore address texel centres while
+    // fractional values retain the exact bilinear interpolation semantics.
+    vec2 lightmap_uv = (clamp(levels, vec2(0.0), vec2(15.0)) + vec2(0.5)) / 16.0;
+    return texture(lightmap_texture, lightmap_uv).rgb;
 }
 
 void main() {
@@ -386,6 +358,12 @@ struct ShaderVertexAccum {
     contributions: u32,
 }
 
+#[derive(Default)]
+struct GlShaderBuildScratch {
+    accumulators: Vec<ShaderVertexAccum>,
+    vertices: Vec<GlShaderVertex>,
+}
+
 struct GlMesh {
     vao: GLuint,
     vertexBuffer: GLuint,
@@ -538,6 +516,7 @@ impl GlMesh {
         shaderAttributes: bool,
         contentGeneration: Option<u64>,
         cacheUnchanged: bool,
+        shaderScratch: &mut GlShaderBuildScratch,
     ) {
         if vertices.is_empty() || indices.is_empty() {
             // Keep allocated storage for reuse, but never submit stale data from
@@ -569,11 +548,11 @@ impl GlMesh {
             gl::BindVertexArray(self.vao);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vertexBuffer);
             if shaderAttributes {
-                let expanded = buildShaderVertices(vertices, indices, topology);
+                buildShaderVerticesInto(vertices, indices, topology, shaderScratch);
                 upload_gl_buffer(
                     gl::ARRAY_BUFFER,
-                    expanded.as_ptr().cast(),
-                    std::mem::size_of_val(expanded.as_slice()),
+                    shaderScratch.vertices.as_ptr().cast(),
+                    std::mem::size_of_val(shaderScratch.vertices.as_slice()),
                     usage,
                     &mut self.vertexCapacity,
                 );
@@ -598,6 +577,106 @@ impl GlMesh {
         }
         self.contentHash = contentHash;
         self.contentGeneration = contentGeneration;
+    }
+
+    fn uploadExpandedShaderVertices(
+        &mut self,
+        vertices: &[GlShaderVertex],
+        indices: &[u32],
+        usage: GLenum,
+        contentGeneration: u64,
+    ) {
+        if vertices.is_empty() || indices.is_empty() {
+            self.indexCount = 0;
+            self.contentHash = None;
+            self.contentGeneration = None;
+            return;
+        }
+        self.indexCount = indices.len() as u32;
+        if self.shaderAttributes && self.contentGeneration == Some(contentGeneration) {
+            return;
+        }
+        if !self.shaderAttributes {
+            self.configureVertexFormat(true);
+            self.shaderAttributes = true;
+            self.contentHash = None;
+            self.contentGeneration = None;
+        }
+        unsafe {
+            gl::BindVertexArray(self.vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.vertexBuffer);
+            upload_gl_buffer(
+                gl::ARRAY_BUFFER,
+                vertices.as_ptr().cast(),
+                std::mem::size_of_val(vertices),
+                usage,
+                &mut self.vertexCapacity,
+            );
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.indexBuffer);
+            upload_gl_buffer(
+                gl::ELEMENT_ARRAY_BUFFER,
+                indices.as_ptr().cast(),
+                std::mem::size_of_val(indices),
+                usage,
+                &mut self.indexCapacity,
+            );
+            gl::BindVertexArray(0);
+        }
+        self.contentHash = None;
+        self.contentGeneration = Some(contentGeneration);
+    }
+
+    /// Update one resident `RenderChunk` vertex span without repacking its
+    /// complete 4x4x4 OpenGL RenderRegion. This is valid only while the chunk
+    /// keeps the same vertex count, so every neighbouring chunk retains the
+    /// exact vertex base assigned by `rebuildRegion`.
+    fn updateWorldVertexRange(&mut self, firstVertex: u32, vertices: &[WorldVertex]) {
+        if vertices.is_empty() {
+            return;
+        }
+        debug_assert!(!self.shaderAttributes);
+        let byteOffset = firstVertex as usize * std::mem::size_of::<WorldVertex>();
+        let byteLength = std::mem::size_of_val(vertices);
+        debug_assert!(byteOffset.saturating_add(byteLength) <= self.vertexCapacity);
+        unsafe {
+            gl::BindVertexArray(self.vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.vertexBuffer);
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                byteOffset as isize,
+                byteLength as GLsizeiptr,
+                vertices.as_ptr().cast(),
+            );
+            gl::BindVertexArray(0);
+        }
+        self.contentHash = None;
+        self.contentGeneration = None;
+    }
+
+    /// OptiFine/SVertexBuilder form of `updateWorldVertexRange`. The resident
+    /// VBO uses `GlShaderVertex` while shader attributes are enabled, but the
+    /// region slot/base contract is identical.
+    fn updateShaderVertexRange(&mut self, firstVertex: u32, vertices: &[GlShaderVertex]) {
+        if vertices.is_empty() {
+            return;
+        }
+        debug_assert!(self.shaderAttributes);
+        let byteOffset = firstVertex as usize * std::mem::size_of::<GlShaderVertex>();
+        let byteLength = std::mem::size_of_val(vertices);
+        debug_assert!(byteOffset.saturating_add(byteLength) <= self.vertexCapacity);
+        unsafe {
+            gl::BindVertexArray(self.vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.vertexBuffer);
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                byteOffset as isize,
+                byteLength as GLsizeiptr,
+                vertices.as_ptr().cast(),
+            );
+            gl::BindVertexArray(0);
+        }
+        self.contentHash = None;
+        self.contentGeneration = None;
     }
 
     /// `RenderChunk#resortTransparency` changes only six-index quad groups.
@@ -672,6 +751,53 @@ impl GlMesh {
         drawCount
     }
 
+    /// Submit one source-order run of entity ranges from the same mesh/pipeline.
+    /// Runs are formed only across consecutive `RenderManager` / TESR entries,
+    /// so this reduces OpenGL driver calls without regrouping or reordering any
+    /// Minecraft draw boundary.
+    fn drawEntityRangeRun(&self, topology: GLenum, ranges: &[WorldEntityDrawRange]) -> (u64, u64) {
+        const MAX_MULTI_DRAW_RANGES: usize = 256;
+        if ranges.is_empty() || self.indexCount == 0 {
+            return (0, 0);
+        }
+        let mut submitCalls = 0usize;
+        let mut logicalRanges = 0usize;
+        let mut cursor = 0usize;
+        unsafe { gl::BindVertexArray(self.vao); }
+        while cursor < ranges.len() {
+            let end = (cursor + MAX_MULTI_DRAW_RANGES).min(ranges.len());
+            let mut counts = [0 as GLsizei; MAX_MULTI_DRAW_RANGES];
+            let mut offsets = [std::ptr::null::<c_void>(); MAX_MULTI_DRAW_RANGES];
+            let mut drawCount = 0usize;
+            for range in &ranges[cursor..end] {
+                if range.indexCount == 0
+                    || range.firstIndex.saturating_add(range.indexCount) > self.indexCount
+                {
+                    continue;
+                }
+                counts[drawCount] = range.indexCount as GLsizei;
+                offsets[drawCount] =
+                    (range.firstIndex as usize * std::mem::size_of::<u32>()) as *const c_void;
+                drawCount += 1;
+            }
+            if drawCount > 0 {
+                unsafe {
+                    gl::MultiDrawElements(
+                        topology,
+                        counts.as_ptr(),
+                        gl::UNSIGNED_INT,
+                        offsets.as_ptr(),
+                        drawCount as GLsizei,
+                    );
+                }
+                submitCalls += 1;
+                logicalRanges += drawCount;
+            }
+            cursor = end;
+        }
+        (submitCalls as u64, logicalRanges as u64)
+    }
+
     fn destroy(&mut self) {
         unsafe {
             if self.indexBuffer != 0 { gl::DeleteBuffers(1, &self.indexBuffer); }
@@ -689,10 +815,24 @@ fn buildShaderVertices(
     indices: &[u32],
     topology: GLenum,
 ) -> Vec<GlShaderVertex> {
-    // One accumulator allocation replaces the previous five parallel vectors.
-    // This path runs every frame for entities/particles/hand geometry when a
-    // G-buffer pack is active, so allocation count is part of frame-prepare cost.
-    let mut accumulators = vec![ShaderVertexAccum::default(); vertices.len()];
+    let mut scratch = GlShaderBuildScratch::default();
+    buildShaderVerticesInto(vertices, indices, topology, &mut scratch);
+    scratch.vertices
+}
+
+fn buildShaderVerticesInto(
+    vertices: &[WorldVertex],
+    indices: &[u32],
+    topology: GLenum,
+    scratch: &mut GlShaderBuildScratch,
+) {
+    // OptiFine SVertexBuilder expansion is allocation-sensitive for animated
+    // entity/particle/hand streams. Keep both the accumulator and expanded
+    // vertex capacities renderer-owned and overwrite them in place.
+    scratch.accumulators.clear();
+    scratch
+        .accumulators
+        .resize(vertices.len(), ShaderVertexAccum::default());
 
     if topology == gl::TRIANGLES {
         let mut groups = indices.chunks_exact(6);
@@ -717,22 +857,28 @@ fn buildShaderVertices(
                 } else {
                     unique
                 };
-                accumulateShaderFace(vertices, &face, &mut accumulators);
+                accumulateShaderFace(vertices, &face, &mut scratch.accumulators);
             } else {
                 for triangle in group.chunks_exact(3) {
                     let face = [triangle[0] as usize, triangle[1] as usize, triangle[2] as usize];
-                    accumulateShaderFace(vertices, &face, &mut accumulators);
+                    accumulateShaderFace(vertices, &face, &mut scratch.accumulators);
                 }
             }
         }
         for triangle in groups.remainder().chunks_exact(3) {
             let face = [triangle[0] as usize, triangle[1] as usize, triangle[2] as usize];
-            accumulateShaderFace(vertices, &face, &mut accumulators);
+            accumulateShaderFace(vertices, &face, &mut scratch.accumulators);
         }
     }
 
-    let mut output = Vec::with_capacity(vertices.len());
-    for (vertex, accumulator) in vertices.iter().zip(accumulators) {
+    scratch.vertices.clear();
+    if scratch.vertices.capacity() < vertices.len() {
+        scratch.vertices.reserve(vertices.len() - scratch.vertices.capacity());
+    }
+    for (vertex, accumulator) in vertices
+        .iter()
+        .zip(scratch.accumulators.iter().copied())
+    {
         let normal = normalize3(accumulator.normal).unwrap_or([0.0, 1.0, 0.0]);
         let projectedTangent = sub3(
             accumulator.tangent,
@@ -757,7 +903,7 @@ fn buildShaderVertices(
         } else {
             vertex.uv
         };
-        output.push(GlShaderVertex {
+        scratch.vertices.push(GlShaderVertex {
             position: vertex.position,
             uv: vertex.uv,
             color: vertex.color,
@@ -774,7 +920,6 @@ fn buildShaderVertices(
             ],
         });
     }
-    output
 }
 
 fn accumulateShaderFace(
@@ -915,16 +1060,36 @@ struct GlChunk {
     meshRevision: u64,
     vertices: Arc<Vec<WorldVertex>>,
     indices: Arc<Vec<u32>>,
+    /// OptiFine SVertexBuilder expansion belongs to this immutable chunk
+    /// topology. Cache it across RenderRegion repacks so one neighbouring
+    /// section update does not recalculate normals/tangents for all 64 slots.
+    shaderVertices: Option<Arc<Vec<GlShaderVertex>>>,
     region: GlRenderRegionKey,
+}
+
+/// One order-preserving translucent submission run. Vanilla's translucent
+/// layer must remain globally far-to-near, so unlike opaque terrain we may not
+/// regroup arbitrary chunks by RenderRegion. Consecutive chunks which already
+/// belong to the same region can however be submitted with one
+/// `glMultiDrawElements` call without changing their draw order.
+#[derive(Debug)]
+struct GlOrderedRegionRun {
+    region: GlRenderRegionKey,
+    ranges: Vec<ChunkLayerRange>,
 }
 
 struct GlRegion {
     mesh: GlMesh,
+    /// Monotonic upload generation. `rebuildRegion` is entered only after the
+    /// region was marked dirty, so hashing the complete repacked vertex/index
+    /// payload a second time is redundant CPU/memory-bandwidth work.
+    uploadGeneration: u64,
     chunkKeys: BTreeSet<RenderChunkKey>,
-    chunkLayerRanges: HashMap<RenderChunkKey, [ChunkLayerRange; 4]>,
-    chunkVertexBases: HashMap<RenderChunkKey, u32>,
-    chunkIndexBases: HashMap<RenderChunkKey, u32>,
+    chunkLayerRanges: FxHashMap<RenderChunkKey, [ChunkLayerRange; 4]>,
+    chunkVertexBases: FxHashMap<RenderChunkKey, u32>,
+    chunkIndexBases: FxHashMap<RenderChunkKey, u32>,
     stagingVertices: Vec<WorldVertex>,
+    stagingShaderVertices: Vec<GlShaderVertex>,
     stagingIndices: Vec<u32>,
 }
 
@@ -1439,9 +1604,37 @@ struct OpenGlWorldPipeline {
     atlasRevision: u64,
     lightmapParameters: [f32; 4],
     shaderAttributes: bool,
-    chunks: HashMap<RenderChunkKey, GlChunk>,
-    regions: HashMap<GlRenderRegionKey, GlRegion>,
-    batchScratch: BTreeMap<GlRenderRegionKey, Vec<ChunkLayerRange>>,
+    chunks: FxHashMap<RenderChunkKey, GlChunk>,
+    regions: FxHashMap<GlRenderRegionKey, GlRegion>,
+    /// Reused dirty-region set/order storage. Chunk streaming used to allocate
+    /// a fresh HashSet and Vec every frame that touched terrain; keeping these
+    /// renderer-owned mirrors the persistent scratch discipline used by the
+    /// Vulkan upload path without changing RenderChunk invalidation semantics.
+    dirtyRegionsScratch: FxHashSet<GlRenderRegionKey>,
+    dirtyRegionOrderScratch: Vec<GlRenderRegionKey>,
+    /// Shadow camera opaque/cutout plan. One frustum traversal populates all
+    /// three Minecraft opaque/cutout layers instead of rescanning the same
+    /// shadow-visible RenderChunks once per layer.
+    shadowBatchPlan: BTreeMap<GlRenderRegionKey, [Vec<ChunkLayerRange>; 3]>,
+    /// Reused OptiFine shadow-camera visibility/order storage. Shader packs
+    /// can render a second full world traversal every frame; retaining this
+    /// Vec avoids allocating a render-distance-sized key list for that pass.
+    shadowVisibleChunksScratch: Vec<RenderChunkKey>,
+    /// Cached ordinary-camera RenderRegion ranges for SOLID, CUTOUT_MIPPED and
+    /// CUTOUT. One visibility scan populates all three layers.
+    terrainBatchPlan: BTreeMap<GlRenderRegionKey, [Vec<ChunkLayerRange>; 3]>,
+    /// Exact far-to-near TRANSLUCENT order from RenderGlobal, compressed only
+    /// across consecutive chunks which already share one RenderRegion.
+    terrainTranslucentPlan: Vec<GlOrderedRegionRun>,
+    /// Frontend-computed exact RenderGlobal visible-order signature. Together
+    /// with the RenderRegion topology revision this makes steady-state terrain
+    /// plan reuse a constant-time decision.
+    cachedTerrainVisibleSignature: Option<u64>,
+    terrainTopologyRevision: u64,
+    cachedTerrainTopologyRevision: u64,
+    performanceTerrainPlanRebuilds: u64,
+    performanceTerrainPlanReuses: u64,
+    shaderBuildScratch: GlShaderBuildScratch,
     entityMesh: GlMesh,
     blockEntityMesh: GlMesh,
     staticEntityMesh: GlMesh,
@@ -1459,6 +1652,8 @@ struct OpenGlWorldPipeline {
     performanceRanges: u64,
     performanceRegionRebuilds: u64,
     performanceRegionRebuildNanos: u128,
+    performanceResidentSpanUpdates: u64,
+    performanceResidentSpanBytes: u64,
     performanceDynamicUploadNanos: u128,
     loggedFirstDraw: bool,
 }
@@ -1513,6 +1708,7 @@ impl OpenGlWorldPipeline {
             gl::ActiveTexture(gl::TEXTURE0);
             gl::UseProgram(program);
             gl::Uniform1i(uniformLocation(program, "block_atlas"), 0);
+            gl::Uniform1i(uniformLocation(program, "lightmap_texture"), 1);
         }
         Ok(Self {
             program,
@@ -1524,9 +1720,20 @@ impl OpenGlWorldPipeline {
             atlasRevision: u64::MAX,
             lightmapParameters: [f32::NAN; 4],
             shaderAttributes: false,
-            chunks: HashMap::new(),
-            regions: HashMap::new(),
-            batchScratch: BTreeMap::new(),
+            chunks: FxHashMap::default(),
+            regions: FxHashMap::default(),
+            dirtyRegionsScratch: FxHashSet::default(),
+            dirtyRegionOrderScratch: Vec::new(),
+            shadowBatchPlan: BTreeMap::new(),
+            shadowVisibleChunksScratch: Vec::new(),
+            terrainBatchPlan: BTreeMap::new(),
+            terrainTranslucentPlan: Vec::new(),
+            cachedTerrainVisibleSignature: None,
+            terrainTopologyRevision: 1,
+            cachedTerrainTopologyRevision: 0,
+            performanceTerrainPlanRebuilds: 0,
+            performanceTerrainPlanReuses: 0,
+            shaderBuildScratch: GlShaderBuildScratch::default(),
             entityMesh: GlMesh::new()?,
             blockEntityMesh: GlMesh::new()?,
             staticEntityMesh: GlMesh::new()?,
@@ -1544,6 +1751,8 @@ impl OpenGlWorldPipeline {
             performanceRanges: 0,
             performanceRegionRebuilds: 0,
             performanceRegionRebuildNanos: 0,
+            performanceResidentSpanUpdates: 0,
+            performanceResidentSpanBytes: 0,
             performanceDynamicUploadNanos: 0,
             loggedFirstDraw: false,
         })
@@ -1552,11 +1761,13 @@ impl OpenGlWorldPipeline {
     fn newRegion() -> anyhow::Result<GlRegion> {
         Ok(GlRegion {
             mesh: GlMesh::new()?,
+            uploadGeneration: 0,
             chunkKeys: BTreeSet::new(),
-            chunkLayerRanges: HashMap::new(),
-            chunkVertexBases: HashMap::new(),
-            chunkIndexBases: HashMap::new(),
+            chunkLayerRanges: FxHashMap::default(),
+            chunkVertexBases: FxHashMap::default(),
+            chunkIndexBases: FxHashMap::default(),
             stagingVertices: Vec::new(),
+            stagingShaderVertices: Vec::new(),
             stagingIndices: Vec::new(),
         })
     }
@@ -1595,8 +1806,15 @@ impl OpenGlWorldPipeline {
         anyhow::ensure!(indexCount <= u32::MAX as usize, "OpenGL render region exceeds u32 index addressing");
 
         region.stagingVertices.clear();
+        region.stagingShaderVertices.clear();
         region.stagingIndices.clear();
-        if region.stagingVertices.capacity() < vertexCount {
+        if self.shaderAttributes {
+            if region.stagingShaderVertices.capacity() < vertexCount {
+                region.stagingShaderVertices.reserve(
+                    vertexCount - region.stagingShaderVertices.capacity(),
+                );
+            }
+        } else if region.stagingVertices.capacity() < vertexCount {
             region.stagingVertices.reserve(vertexCount - region.stagingVertices.capacity());
         }
         if region.stagingIndices.capacity() < indexCount {
@@ -1614,11 +1832,27 @@ impl OpenGlWorldPipeline {
                 .chunks
                 .get(&key)
                 .expect("render-region membership references a resident chunk");
-            let vertexBase = region.stagingVertices.len() as u32;
+            let vertexBase = if self.shaderAttributes {
+                region.stagingShaderVertices.len() as u32
+            } else {
+                region.stagingVertices.len() as u32
+            };
             let indexBase = region.stagingIndices.len() as u32;
             region.chunkVertexBases.insert(key, vertexBase);
             region.chunkIndexBases.insert(key, indexBase);
-            region.stagingVertices.extend_from_slice(chunk.vertices.as_slice());
+            if self.shaderAttributes {
+                let expanded = chunk.shaderVertices.as_ref().context(
+                    "OpenGL shader vertex cache missing during RenderRegion rebuild",
+                )?;
+                anyhow::ensure!(
+                    expanded.len() == chunk.vertices.len(),
+                    "OpenGL shader vertex cache length diverged for {:?}",
+                    key,
+                );
+                region.stagingShaderVertices.extend_from_slice(expanded.as_slice());
+            } else {
+                region.stagingVertices.extend_from_slice(chunk.vertices.as_slice());
+            }
             for &index in chunk.indices.iter() {
                 anyhow::ensure!(
                     index < chunk.vertices.len() as u32,
@@ -1643,52 +1877,68 @@ impl OpenGlWorldPipeline {
             region.chunkLayerRanges.insert(key, adjusted);
         }
 
-        region.mesh.upload(
-            region.stagingVertices.as_slice(),
-            region.stagingIndices.as_slice(),
-            gl::STATIC_DRAW,
-            gl::TRIANGLES,
-            self.shaderAttributes,
-            None,
-            true,
-        );
+        region.uploadGeneration = region.uploadGeneration.wrapping_add(1);
+        if self.shaderAttributes {
+            region.mesh.uploadExpandedShaderVertices(
+                region.stagingShaderVertices.as_slice(),
+                region.stagingIndices.as_slice(),
+                gl::STATIC_DRAW,
+                region.uploadGeneration,
+            );
+        } else {
+            region.mesh.upload(
+                region.stagingVertices.as_slice(),
+                region.stagingIndices.as_slice(),
+                gl::STATIC_DRAW,
+                gl::TRIANGLES,
+                false,
+                Some(region.uploadGeneration),
+                false,
+                &mut self.shaderBuildScratch,
+            );
+        }
         self.regions.insert(regionKey, region);
         Ok(())
     }
 
-    fn drawChunkLayerBatched<I>(&mut self, keys: I, layer: usize) -> (u64, u64)
-    where
-        I: IntoIterator<Item = RenderChunkKey>,
-    {
-        // Keep the per-region range vectors alive across frames. The previous
-        // implementation rebuilt a BTreeMap and allocated dozens of Vecs for
-        // every terrain layer, even when the visible RenderChunk set was
-        // unchanged. Retaining this scratch storage is the OpenGL MultiDraw
-        // equivalent of a persistent indirect-command list.
+    fn prepareShadowOpaquePlan(&mut self, keys: &[RenderChunkKey]) {
         let regions = &self.regions;
-        self.batchScratch
+        self.shadowBatchPlan
             .retain(|regionKey, _| regions.contains_key(regionKey));
-        for ranges in self.batchScratch.values_mut() {
-            ranges.clear();
+        for layers in self.shadowBatchPlan.values_mut() {
+            for ranges in layers {
+                ranges.clear();
+            }
         }
-        for key in keys {
+        for key in keys.iter().copied() {
             let Some(chunk) = self.chunks.get(&key) else { continue; };
             let Some(region) = self.regions.get(&chunk.region) else { continue; };
             let Some(ranges) = region.chunkLayerRanges.get(&key) else { continue; };
-            let range = ranges[layer];
-            if range.indexCount == 0 { continue; }
-            self.batchScratch.entry(chunk.region).or_default().push(range);
+            let layerPlan = self
+                .shadowBatchPlan
+                .entry(chunk.region)
+                .or_insert_with(|| std::array::from_fn(|_| Vec::new()));
+            for layer in 0..3 {
+                let range = ranges[layer];
+                if range.indexCount > 0 {
+                    layerPlan[layer].push(range);
+                }
+            }
         }
+    }
 
+    fn drawShadowOpaqueLayer(&self, layer: usize) -> (u64, u64) {
+        debug_assert!(layer < 3);
         let mut submitCalls = 0_u64;
         let mut logicalRanges = 0_u64;
-        for (regionKey, ranges) in &self.batchScratch {
+        for (regionKey, layers) in &self.shadowBatchPlan {
+            let ranges = &layers[layer];
             if ranges.is_empty() { continue; }
             let Some(region) = self.regions.get(regionKey) else { continue; };
             let drawn = region.mesh.drawRanges(gl::TRIANGLES, ranges.as_slice());
             if drawn > 0 {
-                submitCalls += 1;
-                logicalRanges += drawn as u64;
+                submitCalls = submitCalls.saturating_add(1);
+                logicalRanges = logicalRanges.saturating_add(drawn as u64);
             }
         }
         (submitCalls, logicalRanges)
@@ -1700,15 +1950,142 @@ impl OpenGlWorldPipeline {
     {
         let mut submitCalls = 0_u64;
         let mut logicalRanges = 0_u64;
+        let mut currentRegion = None::<GlRenderRegionKey>;
+        let mut ranges = [ChunkLayerRange::default(); GlRenderRegionKey::MAX_CHUNKS];
+        let mut rangeCount = 0_usize;
+
+        let flush = |regionKey: Option<GlRenderRegionKey>,
+                     ranges: &[ChunkLayerRange],
+                     submitCalls: &mut u64,
+                     logicalRanges: &mut u64| {
+            let Some(regionKey) = regionKey else { return; };
+            let Some(region) = self.regions.get(&regionKey) else { return; };
+            let drawn = region.mesh.drawRanges(gl::TRIANGLES, ranges);
+            if drawn > 0 {
+                *submitCalls = (*submitCalls).saturating_add(1);
+                *logicalRanges = (*logicalRanges).saturating_add(drawn as u64);
+            }
+        };
+
         for key in keys {
             let Some(chunk) = self.chunks.get(&key) else { continue; };
             let Some(region) = self.regions.get(&chunk.region) else { continue; };
-            let Some(ranges) = region.chunkLayerRanges.get(&key) else { continue; };
-            let range = ranges[layer];
+            let Some(chunkRanges) = region.chunkLayerRanges.get(&key) else { continue; };
+            let range = chunkRanges[layer];
             if range.indexCount == 0 { continue; }
-            region.mesh.draw(gl::TRIANGLES, range.firstIndex, range.indexCount);
-            submitCalls += 1;
-            logicalRanges += 1;
+
+            if currentRegion != Some(chunk.region) || rangeCount == GlRenderRegionKey::MAX_CHUNKS {
+                flush(
+                    currentRegion,
+                    &ranges[..rangeCount],
+                    &mut submitCalls,
+                    &mut logicalRanges,
+                );
+                currentRegion = Some(chunk.region);
+                rangeCount = 0;
+            }
+            ranges[rangeCount] = range;
+            rangeCount += 1;
+        }
+        flush(
+            currentRegion,
+            &ranges[..rangeCount],
+            &mut submitCalls,
+            &mut logicalRanges,
+        );
+        (submitCalls, logicalRanges)
+    }
+
+    fn ensureTerrainDrawPlan(&mut self, frame: &WorldRenderFrame) {
+        if self.cachedTerrainVisibleSignature == Some(frame.visibleChunkOrderSignature)
+            && self.cachedTerrainTopologyRevision == self.terrainTopologyRevision
+        {
+            self.performanceTerrainPlanReuses = self.performanceTerrainPlanReuses.saturating_add(1);
+            return;
+        }
+        self.performanceTerrainPlanRebuilds = self.performanceTerrainPlanRebuilds.saturating_add(1);
+
+        let regions = &self.regions;
+        self.terrainBatchPlan
+            .retain(|regionKey, _| regions.contains_key(regionKey));
+        for layers in self.terrainBatchPlan.values_mut() {
+            for ranges in layers {
+                ranges.clear();
+            }
+        }
+        self.terrainTranslucentPlan.clear();
+
+        // One exact RenderGlobal visible-chunk scan feeds all four layers. The
+        // three opaque/cutout layers keep RenderRegion/MultiDraw batching; the
+        // translucent list is reversed afterwards to preserve vanilla order.
+        for visible in &frame.visibleChunks {
+            let key = visible.key;
+            let Some(chunk) = self.chunks.get(&key) else { continue; };
+            let Some(region) = self.regions.get(&chunk.region) else { continue; };
+            let Some(ranges) = region.chunkLayerRanges.get(&key) else { continue; };
+            let layerPlan = self
+                .terrainBatchPlan
+                .entry(chunk.region)
+                .or_insert_with(|| std::array::from_fn(|_| Vec::new()));
+            for layer in 0..3 {
+                let range = ranges[layer];
+                if range.indexCount > 0 {
+                    layerPlan[layer].push(range);
+                }
+            }
+            let translucent = ranges[3];
+            if translucent.indexCount > 0 {
+                if let Some(run) = self.terrainTranslucentPlan.last_mut()
+                    .filter(|run| run.region == chunk.region)
+                {
+                    run.ranges.push(translucent);
+                } else {
+                    self.terrainTranslucentPlan.push(GlOrderedRegionRun {
+                        region: chunk.region,
+                        ranges: vec![translucent],
+                    });
+                }
+            }
+        }
+        // The scan above follows RenderGlobal's prepared front-to-back list.
+        // Vanilla draws TRANSLUCENT in the exact reverse order. Reversing both
+        // the run list and each run's internal ranges is exactly equivalent to
+        // reversing the original flat list; no region is moved across another.
+        self.terrainTranslucentPlan.reverse();
+        for run in &mut self.terrainTranslucentPlan {
+            run.ranges.reverse();
+        }
+        self.cachedTerrainVisibleSignature = Some(frame.visibleChunkOrderSignature);
+        self.cachedTerrainTopologyRevision = self.terrainTopologyRevision;
+    }
+
+    fn drawCachedTerrainLayer(&self, layer: usize) -> (u64, u64) {
+        debug_assert!(layer < 3);
+        let mut submitCalls = 0_u64;
+        let mut logicalRanges = 0_u64;
+        for (regionKey, layers) in &self.terrainBatchPlan {
+            let ranges = &layers[layer];
+            if ranges.is_empty() { continue; }
+            let Some(region) = self.regions.get(regionKey) else { continue; };
+            let drawn = region.mesh.drawRanges(gl::TRIANGLES, ranges.as_slice());
+            if drawn > 0 {
+                submitCalls = submitCalls.saturating_add(1);
+                logicalRanges = logicalRanges.saturating_add(drawn as u64);
+            }
+        }
+        (submitCalls, logicalRanges)
+    }
+
+    fn drawCachedTranslucentLayer(&self) -> (u64, u64) {
+        let mut submitCalls = 0_u64;
+        let mut logicalRanges = 0_u64;
+        for run in &self.terrainTranslucentPlan {
+            let Some(region) = self.regions.get(&run.region) else { continue; };
+            let drawn = region.mesh.drawRanges(gl::TRIANGLES, run.ranges.as_slice());
+            if drawn > 0 {
+                submitCalls = submitCalls.saturating_add(1);
+                logicalRanges = logicalRanges.saturating_add(drawn as u64);
+            }
         }
         (submitCalls, logicalRanges)
     }
@@ -1733,10 +2110,25 @@ impl OpenGlWorldPipeline {
         }
         self.updateLightmap(frame.pushConstants.lightmapParameters);
 
-        let mut dirtyRegions = HashSet::<GlRenderRegionKey>::new();
+        self.dirtyRegionsScratch.clear();
         if self.shaderAttributes != shaderAttributes {
-            dirtyRegions.extend(self.regions.keys().copied());
+            self.dirtyRegionsScratch.extend(self.regions.keys().copied());
             self.shaderAttributes = shaderAttributes;
+            if shaderAttributes {
+                for chunk in self.chunks.values_mut() {
+                    if chunk.shaderVertices.is_none() {
+                        chunk.shaderVertices = Some(Arc::new(buildShaderVertices(
+                            chunk.vertices.as_slice(),
+                            chunk.indices.as_slice(),
+                            gl::TRIANGLES,
+                        )));
+                    }
+                }
+            } else {
+                for chunk in self.chunks.values_mut() {
+                    chunk.shaderVertices = None;
+                }
+            }
             log::info!(
                 "OpenGL world vertex format switched: optifine_attributes={}, resident_chunks={}, render_regions={}",
                 shaderAttributes,
@@ -1750,7 +2142,7 @@ impl OpenGlWorldPipeline {
                 if let Some(region) = self.regions.get_mut(&old.region) {
                     region.chunkKeys.remove(key);
                 }
-                dirtyRegions.insert(old.region);
+                self.dirtyRegionsScratch.insert(old.region);
             }
         }
         for upload in &frame.chunkUploads {
@@ -1765,7 +2157,7 @@ impl OpenGlWorldPipeline {
             }
 
             let canUpdateIndicesOnly = upload.verticesUnchanged
-                && !dirtyRegions.contains(&regionKey)
+                && !self.dirtyRegionsScratch.contains(&regionKey)
                 && self.chunks.get(&upload.key).is_some_and(|chunk| {
                     chunk.region == regionKey
                         && chunk.layerRanges == upload.layerRanges
@@ -1783,9 +2175,8 @@ impl OpenGlWorldPipeline {
                         ))
                     })
                     .context("OpenGL render-region offsets missing for translucent resort")?;
-                let mut adjusted = Vec::with_capacity(upload.indices.len());
-                adjusted.extend(upload.indices.iter().map(|index| *index + vertexBase));
-                let end = indexBase as usize + adjusted.len();
+                let start = indexBase as usize;
+                let end = start + upload.indices.len();
                 let region = self
                     .regions
                     .get_mut(&regionKey)
@@ -1794,9 +2185,21 @@ impl OpenGlWorldPipeline {
                     end <= region.stagingIndices.len(),
                     "OpenGL translucent index range exceeds resident region storage"
                 );
-                region.stagingIndices[indexBase as usize..end]
-                    .copy_from_slice(adjusted.as_slice());
-                region.mesh.updateIndexRange(indexBase, adjusted.as_slice());
+                // RenderChunk#resortTransparency changes only the translucent
+                // quad order. Rewrite the exact resident RenderRegion span in
+                // place instead of allocating an adjusted-index Vec and then
+                // copying it back into the same staging storage. Visibility,
+                // stable far-to-near order and OptiFine pass boundaries are
+                // unchanged; this removes one heap allocation/copy from the
+                // OpenGL transparency hot path.
+                for (destination, source) in region.stagingIndices[start..end]
+                    .iter_mut()
+                    .zip(upload.indices.iter())
+                {
+                    *destination = *source + vertexBase;
+                }
+                let (mesh, stagingIndices) = (&mut region.mesh, &region.stagingIndices);
+                mesh.updateIndexRange(indexBase, &stagingIndices[start..end]);
                 if let Some(chunk) = self.chunks.get_mut(&upload.key) {
                     chunk.meshRevision = upload.meshRevision;
                     chunk.indices = Arc::clone(&upload.indices);
@@ -1804,18 +2207,146 @@ impl OpenGlWorldPipeline {
                 continue;
             }
 
+            // OptiFine's VboRegion keeps long-lived region buffers and updates
+            // changed ranges instead of rebuilding unrelated RenderChunks. Our
+            // region packing has the same stable-offset opportunity whenever a
+            // replacement mesh keeps both its vertex and index counts. In that
+            // case all neighbour bases remain valid, so update only this chunk's
+            // VBO/EBO spans with BufferSubData. If either count changes we fall
+            // back to `rebuildRegion`, which preserves the existing conservative
+            // allocation/topology path. This is a backend-only optimisation: MCP
+            // RenderChunk contents, layer boundaries and draw ordering are not
+            // changed.
+            let canUpdateChunkInPlace = !self.dirtyRegionsScratch.contains(&regionKey)
+                && self.chunks.get(&upload.key).is_some_and(|chunk| {
+                    chunk.region == regionKey
+                        && chunk.vertices.len() == upload.vertices.len()
+                        && chunk.indices.len() == upload.indices.len()
+                })
+                && self.regions.get(&regionKey).is_some_and(|region| {
+                    region.chunkVertexBases.contains_key(&upload.key)
+                        && region.chunkIndexBases.contains_key(&upload.key)
+                        && region.chunkLayerRanges.contains_key(&upload.key)
+                });
+            if canUpdateChunkInPlace {
+                let (vertexBase, indexBase) = {
+                    let region = self.regions.get(&regionKey)
+                        .context("OpenGL render region disappeared during resident chunk update")?;
+                    (
+                        *region.chunkVertexBases.get(&upload.key)
+                            .context("OpenGL resident chunk vertex base missing")?,
+                        *region.chunkIndexBases.get(&upload.key)
+                            .context("OpenGL resident chunk index base missing")?,
+                    )
+                };
+                let vertexStart = vertexBase as usize;
+                let vertexEnd = vertexStart + upload.vertices.len();
+                let indexStart = indexBase as usize;
+                let indexEnd = indexStart + upload.indices.len();
+
+                let shaderVertices = self.shaderAttributes.then(|| {
+                    Arc::new(buildShaderVertices(
+                        upload.vertices.as_slice(),
+                        upload.indices.as_slice(),
+                        gl::TRIANGLES,
+                    ))
+                });
+
+                let region = self.regions.get_mut(&regionKey)
+                    .context("OpenGL render region disappeared during resident span update")?;
+                anyhow::ensure!(
+                    indexEnd <= region.stagingIndices.len(),
+                    "OpenGL resident chunk index span exceeds render-region storage"
+                );
+                if self.shaderAttributes {
+                    let expanded = shaderVertices.as_ref()
+                        .context("OpenGL shader vertex expansion missing for resident span update")?;
+                    anyhow::ensure!(
+                        vertexEnd <= region.stagingShaderVertices.len()
+                            && expanded.len() == upload.vertices.len(),
+                        "OpenGL resident shader vertex span exceeds render-region storage"
+                    );
+                    let (mesh, stagingShaderVertices) =
+                        (&mut region.mesh, &mut region.stagingShaderVertices);
+                    stagingShaderVertices[vertexStart..vertexEnd]
+                        .copy_from_slice(expanded.as_slice());
+                    mesh.updateShaderVertexRange(vertexBase, expanded.as_slice());
+                } else {
+                    anyhow::ensure!(
+                        vertexEnd <= region.stagingVertices.len(),
+                        "OpenGL resident vertex span exceeds render-region storage"
+                    );
+                    let (mesh, stagingVertices) =
+                        (&mut region.mesh, &mut region.stagingVertices);
+                    stagingVertices[vertexStart..vertexEnd]
+                        .copy_from_slice(upload.vertices.as_slice());
+                    mesh.updateWorldVertexRange(vertexBase, upload.vertices.as_slice());
+                }
+
+                for (destination, source) in region.stagingIndices[indexStart..indexEnd]
+                    .iter_mut()
+                    .zip(upload.indices.iter().copied())
+                {
+                    anyhow::ensure!(
+                        source < upload.vertices.len() as u32,
+                        "OpenGL resident chunk index {} exceeds replacement vertex count {} for {:?}",
+                        source, upload.vertices.len(), upload.key,
+                    );
+                    *destination = source + vertexBase;
+                }
+                let (mesh, stagingIndices) = (&mut region.mesh, &region.stagingIndices);
+                mesh.updateIndexRange(indexBase, &stagingIndices[indexStart..indexEnd]);
+
+                let mut adjusted = [ChunkLayerRange::default(); 4];
+                for (layer, range) in upload.layerRanges.iter().copied().enumerate() {
+                    adjusted[layer] = ChunkLayerRange {
+                        firstIndex: range.firstIndex.checked_add(indexBase)
+                            .context("OpenGL resident chunk layer offset overflow")?,
+                        indexCount: range.indexCount,
+                    };
+                }
+                region.chunkLayerRanges.insert(upload.key, adjusted);
+
+                if let Some(chunk) = self.chunks.get_mut(&upload.key) {
+                    chunk.meshRevision = upload.meshRevision;
+                    chunk.layerRanges = upload.layerRanges;
+                    chunk.vertices = Arc::clone(&upload.vertices);
+                    chunk.indices = Arc::clone(&upload.indices);
+                    chunk.shaderVertices = shaderVertices;
+                }
+                self.performanceResidentSpanUpdates =
+                    self.performanceResidentSpanUpdates.saturating_add(1);
+                let vertexBytes = if self.shaderAttributes {
+                    upload.vertices.len().saturating_mul(std::mem::size_of::<GlShaderVertex>())
+                } else {
+                    upload.vertices.len().saturating_mul(std::mem::size_of::<WorldVertex>())
+                };
+                let indexBytes = upload.indices.len().saturating_mul(std::mem::size_of::<u32>());
+                self.performanceResidentSpanBytes = self.performanceResidentSpanBytes
+                    .saturating_add(vertexBytes.saturating_add(indexBytes) as u64);
+                continue;
+            }
+
+            let shaderVertices = self.shaderAttributes.then(|| {
+                Arc::new(buildShaderVertices(
+                    upload.vertices.as_slice(),
+                    upload.indices.as_slice(),
+                    gl::TRIANGLES,
+                ))
+            });
             if let Some(old) = self.chunks.insert(upload.key, GlChunk {
                 layerRanges: upload.layerRanges,
                 meshRevision: upload.meshRevision,
                 vertices: Arc::clone(&upload.vertices),
                 indices: Arc::clone(&upload.indices),
+                shaderVertices,
                 region: regionKey,
             }) {
                 if old.region != regionKey {
                     if let Some(region) = self.regions.get_mut(&old.region) {
                         region.chunkKeys.remove(&upload.key);
                     }
-                    dirtyRegions.insert(old.region);
+                    self.dirtyRegionsScratch.insert(old.region);
                 }
             }
             self.regions
@@ -1823,14 +2354,18 @@ impl OpenGlWorldPipeline {
                 .expect("OpenGL render region was created before membership update")
                 .chunkKeys
                 .insert(upload.key);
-            dirtyRegions.insert(regionKey);
+            self.dirtyRegionsScratch.insert(regionKey);
         }
-        let mut dirtyRegions = dirtyRegions.into_iter().collect::<Vec<_>>();
-        dirtyRegions.sort_unstable();
-        let regionRebuildCount = dirtyRegions.len() as u64;
+        self.dirtyRegionOrderScratch.clear();
+        self.dirtyRegionOrderScratch
+            .extend(self.dirtyRegionsScratch.drain());
+        self.dirtyRegionOrderScratch.sort_unstable();
+        let regionRebuildCount = self.dirtyRegionOrderScratch.len() as u64;
         let regionRebuildStarted = Instant::now();
-        for region in dirtyRegions {
+        for index in 0..self.dirtyRegionOrderScratch.len() {
+            let region = self.dirtyRegionOrderScratch[index];
             self.rebuildRegion(region)?;
+            self.terrainTopologyRevision = self.terrainTopologyRevision.wrapping_add(1);
         }
         self.performanceRegionRebuilds = self
             .performanceRegionRebuilds
@@ -1843,50 +2378,61 @@ impl OpenGlWorldPipeline {
         self.entityMesh.upload(
             frame.entityVertices.as_slice(), frame.entityIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.entityMeshGeneration), false,
+            &mut self.shaderBuildScratch,
         );
         self.blockEntityMesh.upload(
             frame.blockEntityVertices.as_slice(), frame.blockEntityIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes,
             Some(frame.blockEntityMeshGeneration), false,
+            &mut self.shaderBuildScratch,
         );
         self.staticEntityMesh.upload(
             frame.staticEntityVertices.as_slice(), frame.staticEntityIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes,
             Some(frame.staticEntityMeshGeneration), false,
+            &mut self.shaderBuildScratch,
         );
         self.entityDepthMesh.upload(
             frame.entityDepthVertices.as_slice(), frame.entityDepthIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.entityDepthMeshGeneration), false,
+            &mut self.shaderBuildScratch,
         );
         self.overlayMesh.upload(
             frame.entityOverlayVertices.as_slice(), frame.entityOverlayIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.entityOverlayMeshGeneration), false,
+            &mut self.shaderBuildScratch,
         );
         self.particleMesh.upload(
             frame.particleVertices.as_slice(), frame.particleIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.particleMeshGeneration), false,
+            &mut self.shaderBuildScratch,
         );
         self.transparentParticleMesh.upload(
             frame.transparentParticleVertices.as_slice(), frame.transparentParticleIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.transparentParticleMeshGeneration), false,
+            &mut self.shaderBuildScratch,
         );
         self.damageMesh.upload(
             frame.damageVertices.as_slice(), frame.damageIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.damageMeshGeneration), true,
+            &mut self.shaderBuildScratch,
         );
         self.selectionMesh.upload(
             frame.selectionVertices.as_slice(), frame.selectionIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::LINE_STRIP, shaderAttributes, Some(frame.selectionMeshGeneration), true,
+            &mut self.shaderBuildScratch,
         );
         self.firstPersonMesh.upload(
             frame.firstPersonVertices.as_slice(), frame.firstPersonIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.firstPersonMeshGeneration), false,
+            &mut self.shaderBuildScratch,
         );
         // GuiIngame is outside Shaders.endRender and never consumes the
         // extended SVertexBuilder attributes.
         self.hudMesh.upload(
             frame.hudVertices.as_slice(), frame.hudIndices.as_slice(),
             gl::DYNAMIC_DRAW, gl::TRIANGLES, false, Some(frame.hudMeshGeneration), true,
+            &mut self.shaderBuildScratch,
         );
         self.performanceDynamicUploadNanos = self
             .performanceDynamicUploadNanos
@@ -1898,7 +2444,7 @@ impl OpenGlWorldPipeline {
         if self.lightmapParameters == parameters {
             return;
         }
-        let lightmap = buildVanillaLightmap(parameters);
+        let lightmap = EntityRenderer::buildLightmapRgbaFromArray(parameters);
         unsafe {
             gl::ActiveTexture(gl::TEXTURE1);
             gl::BindTexture(gl::TEXTURE_2D, self.lightmapTexture);
@@ -1938,7 +2484,12 @@ impl OpenGlWorldPipeline {
         blockEntityId: i32,
         entityColor: [f32; 4],
     ) {
-        self.bindWorldTextures();
+        // Vanilla drawScene binds all four world textures once. OptiFine may
+        // mutate active texture units/program samplers between passes, so only
+        // the shader-pack path conservatively reasserts the bindings here.
+        if shaderRuntime.is_some() {
+            self.bindWorldTextures();
+        }
         if let Some(runtime) = shaderRuntime.as_deref_mut() {
             let mut draw = GbufferDrawState::new(
                 program,
@@ -1984,25 +2535,23 @@ impl OpenGlWorldPipeline {
 
         let clipping = shaderRuntime.shadowCullingHelper(&frame.shaderState);
         let camera = frame.shaderState.cameraPosition;
-        let mut shadowChunks = self
-            .chunks
-            .keys()
-            .copied()
-            .filter(|key| {
-                let min = key.minBlock();
-                let max = key.maxBlock();
-                clipping.isBoxInFrustum(
-                    min[0] as f64,
-                    min[1] as f64,
-                    min[2] as f64,
-                    max[0] as f64,
-                    max[1] as f64,
-                    max[2] as f64,
-                    camera,
-                )
-            })
-            .collect::<Vec<_>>();
+        let mut shadowChunks = std::mem::take(&mut self.shadowVisibleChunksScratch);
+        shadowChunks.clear();
+        shadowChunks.extend(self.chunks.keys().copied().filter(|key| {
+            let min = key.minBlock();
+            let max = key.maxBlock();
+            clipping.isBoxInFrustum(
+                min[0] as f64,
+                min[1] as f64,
+                min[2] as f64,
+                max[0] as f64,
+                max[1] as f64,
+                max[2] as f64,
+                camera,
+            )
+        }));
         shadowChunks.sort_unstable();
+        self.prepareShadowOpaquePlan(shadowChunks.as_slice());
 
         let bindShadow = |runtime: &mut OptifineShaderRuntime,
                           constants: &WorldPushConstants,
@@ -2028,7 +2577,7 @@ impl OpenGlWorldPipeline {
         let mut constants = frame.pushConstants;
         constants.fogParameters[3] = -1.0;
         if bindShadow(shaderRuntime, &constants, -1, -1, [0.0; 4]) {
-            self.drawChunkLayerBatched(shadowChunks.iter().copied(), 0);
+            self.drawShadowOpaqueLayer(0);
         }
 
         // CUTOUT_MIPPED and CUTOUT: alpha threshold 0.1. The source switches
@@ -2040,7 +2589,7 @@ impl OpenGlWorldPipeline {
             if !bindShadow(shaderRuntime, &constants, -1, -1, [0.0; 4]) {
                 break;
             }
-            self.drawChunkLayerBatched(shadowChunks.iter().copied(), layer);
+            self.drawShadowOpaqueLayer(layer);
         }
 
         // RenderGlobal#renderEntities followed by renderMultipass. OptiFine
@@ -2050,7 +2599,7 @@ impl OpenGlWorldPipeline {
             && bindShadow(shaderRuntime, &constants, -1, -1, [0.0; 4])
         {
             setDrawState(Alpha, true, true, gl::LEQUAL, false, true, None);
-            for range in &frame.entityDrawRanges {
+            for range in frame.entityDrawRanges.iter() {
                 let mesh = self.entityStreamMesh(range.mesh);
                 if range.indexCount > 0
                     && range.firstIndex.saturating_add(range.indexCount) <= mesh.indexCount
@@ -2100,7 +2649,48 @@ impl OpenGlWorldPipeline {
             gl::UseProgram(0);
             gl::Flush();
         }
+        shadowChunks.clear();
+        self.shadowVisibleChunksScratch = shadowChunks;
         Ok(())
+    }
+
+    /// MCP `EntityRenderer#renderCloudsCheck` plus
+    /// `RenderGlobal#renderCloudsFancy`'s depth-only first pass.
+    fn drawCloudPass(
+        &self,
+        frame: &WorldRenderFrame,
+        extent: RendererExtent,
+        shaderRuntime: &mut Option<&mut OptifineShaderRuntime>,
+    ) -> u64 {
+        if frame.cloudIndexCount == 0 || self.overlayMesh.indexCount == 0 {
+            return 0;
+        }
+        let firstIndex = frame.skyAlphaIndexCount + frame.skyCelestialIndexCount;
+        if firstIndex.saturating_add(frame.cloudIndexCount) > self.overlayMesh.indexCount {
+            return 0;
+        }
+        self.bindPassProgram(
+            shaderRuntime,
+            frame,
+            extent,
+            GbufferProgram::Clouds,
+            &frame.cloudPushConstants,
+            -3,
+            -1,
+            [0.0; 4],
+        );
+        let mut draws = 0;
+        if frame.cloudFancy {
+            setDrawState(Alpha, true, true, gl::LEQUAL, false, false, None);
+            self.overlayMesh
+                .draw(gl::TRIANGLES, firstIndex, frame.cloudIndexCount);
+            draws += 1;
+        }
+        setDrawState(Alpha, true, true, gl::LEQUAL, false, true, None);
+        self.overlayMesh
+            .draw(gl::TRIANGLES, firstIndex, frame.cloudIndexCount);
+        unsafe { gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE); }
+        draws + 1
     }
 
     fn drawScene(
@@ -2112,6 +2702,7 @@ impl OpenGlWorldPipeline {
         let shaderActive = shaderRuntime.is_some();
         let mut drawCount = 0_u64;
         let mut batchedRangeExpansion = 0_u64;
+        self.ensureTerrainDrawPlan(frame);
         unsafe {
             gl::Viewport(0, 0, extent.width as GLsizei, extent.height as GLsizei);
             gl::DepthMask(gl::TRUE);
@@ -2171,6 +2762,12 @@ impl OpenGlWorldPipeline {
             }
         }
 
+        // EntityRenderer draws the cloud layer before terrain while the eye is
+        // below the provider cloud height.
+        if !frame.cloudsAboveCamera {
+            drawCount += self.drawCloudPass(frame, extent, &mut shaderRuntime);
+        }
+
         // ShadersRender.beginTerrainSolid/CutoutMipped/Cutout all select
         // program 7 (`gbuffers_terrain`) in OptiFine 1.12.2. The three layer
         // names remain loadable for pack compatibility, but are not invented
@@ -2189,24 +2786,30 @@ impl OpenGlWorldPipeline {
                 -1,
                 [0.0; 4],
             );
-            let (submitCalls, logicalRanges) = self.drawChunkLayerBatched(
-                frame.visibleChunks.iter().map(|visible| visible.key),
-                layer,
-            );
+            let (submitCalls, logicalRanges) = self.drawCachedTerrainLayer(layer);
             drawCount += submitCalls;
             batchedRangeExpansion += logicalRanges.saturating_sub(submitCalls);
         }
 
         if !frame.entityDrawRanges.is_empty() {
             let mut constants = frame.pushConstants;
-            // The stream selector preserves the original
-            // beginEntities/beginBlockEntities program boundary while allowing
-            // unchanged TESR and hanging geometry to stay resident. Nameplate
-            // variants retain `gbuffers_entities` and reproduce both the
-            // depth-mask transitions and texture2D enable/disable boundary.
-            for range in &frame.entityDrawRanges {
+            // Preserve exact source order, but collapse only consecutive ranges
+            // which already share the same pipeline and resident mesh. This is
+            // equivalent to issuing the same DrawElements calls in sequence,
+            // while allowing the OpenGL driver to consume them as one MultiDraw.
+            let ranges = frame.entityDrawRanges.as_slice();
+            let mut runStart = 0usize;
+            while runStart < ranges.len() {
+                let first = ranges[runStart];
+                let mut runEnd = runStart + 1;
+                while runEnd < ranges.len()
+                    && ranges[runEnd].pipeline == first.pipeline
+                    && ranges[runEnd].mesh == first.mesh
+                {
+                    runEnd += 1;
+                }
                 let (program, depthTest, depthWrite, depthFunction, textureSentinel) =
-                    match range.pipeline {
+                    match first.pipeline {
                         WorldEntityPipelineKind::Entities => {
                             (GbufferProgram::Entities, true, true, gl::LEQUAL, 0.1)
                         }
@@ -2246,18 +2849,17 @@ impl OpenGlWorldPipeline {
                     -1,
                     [0.0; 4],
                 );
-                let mesh = self.entityStreamMesh(range.mesh);
-                if range.indexCount > 0
-                    && range.firstIndex.saturating_add(range.indexCount) <= mesh.indexCount
-                {
-                    mesh.draw(gl::TRIANGLES, range.firstIndex, range.indexCount);
-                    drawCount += 1;
-                }
+                let mesh = self.entityStreamMesh(first.mesh);
+                let (submitCalls, logicalRanges) =
+                    mesh.drawEntityRangeRun(gl::TRIANGLES, &ranges[runStart..runEnd]);
+                drawCount += submitCalls;
+                batchedRangeExpansion += logicalRanges.saturating_sub(submitCalls);
+                runStart = runEnd;
             }
         }
 
         if self.overlayMesh.indexCount > 0 {
-            for range in &frame.entityOverlayDrawRanges {
+            for range in frame.entityOverlayDrawRanges.iter() {
                 let (
                     blend,
                     depthWrite,
@@ -2487,11 +3089,14 @@ impl OpenGlWorldPipeline {
             -1,
             [0.0; 4],
         );
-        let (translucentCalls, _) = self.drawChunkLayerOrdered(
-            frame.visibleChunks.iter().rev().map(|visible| visible.key),
-            3,
-        );
+        let (translucentCalls, _) = self.drawCachedTranslucentLayer();
         drawCount += translucentCalls;
+
+        // At or above the cloud layer MCP delays clouds until translucent
+        // terrain has completed and before weather/hand rendering.
+        if frame.cloudsAboveCamera {
+            drawCount += self.drawCloudPass(frame, extent, &mut shaderRuntime);
+        }
 
         // Shaders.beginWeather copies the completed scene depth to depthtex2.
         // There is no separate weather mesh in the shared frame yet, so this
@@ -2508,7 +3113,7 @@ impl OpenGlWorldPipeline {
                 gl::DepthMask(gl::TRUE);
                 gl::Clear(gl::DEPTH_BUFFER_BIT);
             }
-            for range in &frame.firstPersonDrawRanges {
+            for range in frame.firstPersonDrawRanges.iter() {
                 let program = match range.pipeline {
                     FirstPersonPipelineKind::Alpha => {
                         setDrawState(Alpha, true, true, gl::LEQUAL, true, true, None);
@@ -2556,14 +3161,20 @@ impl OpenGlWorldPipeline {
         if elapsed >= Duration::from_secs(5) {
             let seconds = elapsed.as_secs_f64().max(0.001);
             log::info!(
-                "OpenGL world workload: {:.1} fps, visible_chunks={}, submit_calls/frame={:.1}, logical_ranges/frame={:.1}, region_rebuilds/frame={:.2}, region_rebuild={:.3} ms, dynamic_upload={:.3} ms, resident_chunks={}, render_regions={}",
+                "OpenGL world workload: {:.1} fps, visible_chunks={}, submit_calls/frame={:.1}, logical_ranges/frame={:.1}, region_rebuilds/frame={:.2}, region_rebuild={:.3} ms, resident_span_updates/frame={:.2}, resident_span_kib/frame={:.1}, dynamic_upload={:.3} ms, terrain_plan_reuse={:.1}% ({}/{}), resident_chunks={}, render_regions={}",
                 self.performanceFrames as f64 / seconds,
                 frame.visibleChunks.len(),
                 self.performanceDraws as f64 / self.performanceFrames.max(1) as f64,
                 self.performanceRanges as f64 / self.performanceFrames.max(1) as f64,
                 self.performanceRegionRebuilds as f64 / self.performanceFrames.max(1) as f64,
                 self.performanceRegionRebuildNanos as f64 / self.performanceFrames.max(1) as f64 / 1_000_000.0,
+                self.performanceResidentSpanUpdates as f64 / self.performanceFrames.max(1) as f64,
+                self.performanceResidentSpanBytes as f64 / self.performanceFrames.max(1) as f64 / 1024.0,
                 self.performanceDynamicUploadNanos as f64 / self.performanceFrames.max(1) as f64 / 1_000_000.0,
+                self.performanceTerrainPlanReuses as f64 * 100.0
+                    / (self.performanceTerrainPlanReuses + self.performanceTerrainPlanRebuilds).max(1) as f64,
+                self.performanceTerrainPlanReuses,
+                self.performanceTerrainPlanReuses + self.performanceTerrainPlanRebuilds,
                 self.chunks.len(),
                 self.regions.len(),
             );
@@ -2573,7 +3184,11 @@ impl OpenGlWorldPipeline {
             self.performanceRanges = 0;
             self.performanceRegionRebuilds = 0;
             self.performanceRegionRebuildNanos = 0;
+            self.performanceResidentSpanUpdates = 0;
+            self.performanceResidentSpanBytes = 0;
             self.performanceDynamicUploadNanos = 0;
+            self.performanceTerrainPlanRebuilds = 0;
+            self.performanceTerrainPlanReuses = 0;
         }
         Ok(())
     }
@@ -2587,7 +3202,7 @@ impl OpenGlWorldPipeline {
             gl::BindTexture(gl::TEXTURE_2D, self.atlasTexture);
         }
         self.uploadConstants(&frame.hudPushConstants);
-        for range in &frame.hudDrawRanges {
+        for range in frame.hudDrawRanges.iter() {
             let blend = match range.pipeline {
                 HudPipelineKind::Alpha => Alpha,
                 HudPipelineKind::Crosshair => InvertCrosshair,
@@ -2656,6 +3271,15 @@ pub struct OpenGlWindow {
     nativeGuiPipeline: OpenGlNativeGuiPipeline,
     worldPipeline: OpenGlWorldPipeline,
     shaderRuntime: OptifineShaderRuntime,
+    worldPerformanceStarted: Instant,
+    worldPerformanceFrames: u64,
+    worldShaderPrepareNanos: u128,
+    worldResourceUpdateNanos: u128,
+    worldShadowNanos: u128,
+    worldSceneNanos: u128,
+    worldCompositeNanos: u128,
+    worldHudNanos: u128,
+    worldSwapNanos: u128,
 }
 
 impl OpenGlWindow {
@@ -2714,6 +3338,15 @@ impl OpenGlWindow {
             nativeGuiPipeline: OpenGlNativeGuiPipeline::new()?,
             worldPipeline: OpenGlWorldPipeline::new()?,
             shaderRuntime: OptifineShaderRuntime::new(gameDir)?,
+            worldPerformanceStarted: Instant::now(),
+            worldPerformanceFrames: 0,
+            worldShaderPrepareNanos: 0,
+            worldResourceUpdateNanos: 0,
+            worldShadowNanos: 0,
+            worldSceneNanos: 0,
+            worldCompositeNanos: 0,
+            worldHudNanos: 0,
+            worldSwapNanos: 0,
         };
         output.applySwapInterval()?;
         Ok((window, output))
@@ -2736,6 +3369,7 @@ impl OpenGlWindow {
 
     pub fn drawWorldFrame(&mut self, _window: &Window, frame: &WorldRenderFrame) -> anyhow::Result<()> {
         if self.extent.width == 0 || self.extent.height == 0 { return Ok(()); }
+        let shaderPrepareStarted = Instant::now();
         let shaderActive = match self.shaderRuntime.prepareScene(&frame.shaderState, self.extent) {
             Ok(active) => active,
             Err(error) => {
@@ -2743,10 +3377,18 @@ impl OpenGlWindow {
                 false
             }
         };
+        self.worldShaderPrepareNanos = self
+            .worldShaderPrepareNanos
+            .saturating_add(shaderPrepareStarted.elapsed().as_nanos());
         let shaderAttributes = shaderActive
             && self.shaderRuntime.requiresExtendedVertexAttributes();
+        let resourceUpdateStarted = Instant::now();
         self.worldPipeline.updateFrameResources(frame, shaderAttributes)?;
+        self.worldResourceUpdateNanos = self
+            .worldResourceUpdateNanos
+            .saturating_add(resourceUpdateStarted.elapsed().as_nanos());
         if shaderActive {
+            let shadowStarted = Instant::now();
             if self.shaderRuntime.beginShadowPass() {
                 let shadowResult = self.worldPipeline.drawShadowScene(
                     frame,
@@ -2759,20 +3401,72 @@ impl OpenGlWindow {
                 self.shaderRuntime.finishShadowPass(self.extent);
                 shadowResult?;
             }
+            self.worldShadowNanos = self
+                .worldShadowNanos
+                .saturating_add(shadowStarted.elapsed().as_nanos());
+            let sceneStarted = Instant::now();
             self.worldPipeline.drawScene(
                 frame,
                 self.extent,
                 Some(&mut self.shaderRuntime),
             )?;
+            self.worldSceneNanos = self
+                .worldSceneNanos
+                .saturating_add(sceneStarted.elapsed().as_nanos());
+            let compositeStarted = Instant::now();
             self.shaderRuntime.finishScene(&frame.shaderState, self.extent)?;
+            self.worldCompositeNanos = self
+                .worldCompositeNanos
+                .saturating_add(compositeStarted.elapsed().as_nanos());
         } else {
+            let sceneStarted = Instant::now();
             self.worldPipeline.drawScene(frame, self.extent, None)?;
             unsafe { gl::BindFramebuffer(gl::FRAMEBUFFER, 0); }
+            self.worldSceneNanos = self
+                .worldSceneNanos
+                .saturating_add(sceneStarted.elapsed().as_nanos());
         }
         // In 1.12.2 GuiIngame is rendered after Shaders.endRender(), so HUD
         // pixels are not fed through composite/final programs.
+        let hudStarted = Instant::now();
         self.worldPipeline.drawHud(frame, self.extent);
-        self.surface.swap_buffers(&self.context).context("failed swapping OpenGL world buffers")
+        self.worldHudNanos = self
+            .worldHudNanos
+            .saturating_add(hudStarted.elapsed().as_nanos());
+        let swapStarted = Instant::now();
+        self.surface
+            .swap_buffers(&self.context)
+            .context("failed swapping OpenGL world buffers")?;
+        self.worldSwapNanos = self
+            .worldSwapNanos
+            .saturating_add(swapStarted.elapsed().as_nanos());
+
+        self.worldPerformanceFrames = self.worldPerformanceFrames.saturating_add(1);
+        let elapsed = self.worldPerformanceStarted.elapsed();
+        if elapsed >= Duration::from_secs(2) {
+            let frames = self.worldPerformanceFrames.max(1) as f64;
+            log::info!(
+                "OpenGL frame pacing: {:.1} fps, shader_prepare={:.3} ms, resources={:.3} ms, shadow={:.3} ms, scene={:.3} ms, composite={:.3} ms, hud={:.3} ms, swap={:.3} ms",
+                self.worldPerformanceFrames as f64 / elapsed.as_secs_f64().max(0.001),
+                self.worldShaderPrepareNanos as f64 / frames / 1_000_000.0,
+                self.worldResourceUpdateNanos as f64 / frames / 1_000_000.0,
+                self.worldShadowNanos as f64 / frames / 1_000_000.0,
+                self.worldSceneNanos as f64 / frames / 1_000_000.0,
+                self.worldCompositeNanos as f64 / frames / 1_000_000.0,
+                self.worldHudNanos as f64 / frames / 1_000_000.0,
+                self.worldSwapNanos as f64 / frames / 1_000_000.0,
+            );
+            self.worldPerformanceStarted = Instant::now();
+            self.worldPerformanceFrames = 0;
+            self.worldShaderPrepareNanos = 0;
+            self.worldResourceUpdateNanos = 0;
+            self.worldShadowNanos = 0;
+            self.worldSceneNanos = 0;
+            self.worldCompositeNanos = 0;
+            self.worldHudNanos = 0;
+            self.worldSwapNanos = 0;
+        }
+        Ok(())
     }
 
     pub fn reloadShaderPack(&mut self) {
@@ -2823,53 +3517,6 @@ fn configureWorldTexture(filter: GLint, wrap: GLint) {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, wrap);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, wrap);
     }
-}
-
-fn buildVanillaLightmap(parameters: [f32; 4]) -> Vec<u8> {
-    let [sun, torchFlicker, gammaSetting, dimensionId] = parameters;
-    let gammaSetting = gammaSetting.clamp(0.0, 1.0);
-    let mut rgba = vec![0_u8; 16 * 16 * 4];
-    for skyLevel in 0..16 {
-        for blockLevel in 0..16 {
-            let sky = vanillaLightBrightness(skyLevel as f32, dimensionId) * (sun * 0.95 + 0.05);
-            let block = vanillaLightBrightness(blockLevel as f32, dimensionId)
-                * (torchFlicker * 0.1 + 1.5);
-            let skyRedGreen = sky * (sun * 0.65 + 0.35);
-            let blockGreen = block * ((block * 0.6 + 0.4) * 0.6 + 0.4);
-            let blockBlue = block * (block * block * 0.6 + 0.4);
-            let mut color = [
-                skyRedGreen + block,
-                skyRedGreen + blockGreen,
-                sky + blockBlue,
-            ];
-            for component in &mut color { *component = *component * 0.96 + 0.03; }
-            if dimensionId > 0.5 && dimensionId < 1.5 {
-                color = [
-                    0.22 + block * 0.75,
-                    0.28 + blockGreen * 0.75,
-                    0.25 + blockBlue * 0.75,
-                ];
-            }
-            for component in &mut color {
-                *component = (*component).clamp(0.0, 1.0);
-                let gammaColor = 1.0 - (1.0 - *component).powi(4);
-                *component += (gammaColor - *component) * gammaSetting;
-                *component = (*component * 0.96 + 0.03).clamp(0.0, 1.0);
-            }
-            let offset = (skyLevel * 16 + blockLevel) * 4;
-            rgba[offset] = (color[0] * 255.0).floor() as u8;
-            rgba[offset + 1] = (color[1] * 255.0).floor() as u8;
-            rgba[offset + 2] = (color[2] * 255.0).floor() as u8;
-            rgba[offset + 3] = 255;
-        }
-    }
-    rgba
-}
-
-fn vanillaLightBrightness(level: f32, dimensionId: f32) -> f32 {
-    let inverse = 1.0 - level.clamp(0.0, 15.0) / 15.0;
-    let minimum = if dimensionId < -0.5 { 0.1 } else { 0.0 };
-    (1.0 - inverse) / (inverse * 3.0 + 1.0) * (1.0 - minimum) + minimum
 }
 
 fn chooseConfig(configs: Box<dyn Iterator<Item = Config> + '_>) -> Config {

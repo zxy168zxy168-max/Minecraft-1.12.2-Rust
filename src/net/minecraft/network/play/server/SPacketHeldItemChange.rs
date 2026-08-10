@@ -5,6 +5,8 @@ use crate::net::minecraft::network::PacketBuffer::{read_i8, CodecError};
 pub struct SPacketHeldItemChange { heldItemHotbarIndex: i8 }
 
 impl SPacketHeldItemChange {
+    pub fn new(hotbarIndexIn: i32) -> Self { Self { heldItemHotbarIndex: hotbarIndexIn as i8 } }
+    pub fn writePacketData(&self) -> RawPacket { RawPacket::new(0x3A, vec![self.heldItemHotbarIndex as u8]) }
     pub fn readPacketData(packet: &RawPacket) -> Result<Self, CodecError> {
         let mut input = packet.payload.as_slice();
         let result = Self { heldItemHotbarIndex: read_i8(&mut input)? };

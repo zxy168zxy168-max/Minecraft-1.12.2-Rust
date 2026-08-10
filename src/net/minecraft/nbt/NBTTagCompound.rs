@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::io::{self, Read, Write};
 
 use byteorder::{ReadBytesExt, WriteBytesExt};
+use uuid::Uuid;
 
 use crate::net::minecraft::nbt::NBTBase::{emptyCompoundMap, readJavaUtf, writeJavaUtf, NBTBase, TAG_COMPOUND, TAG_END};
 use crate::net::minecraft::nbt::NBTTagList::NBTTagList;
@@ -21,6 +22,12 @@ impl NBTTagCompound {
     pub fn setShort(&mut self, key: impl Into<String>, value: i16) { self.setTag(key, NBTBase::Short(value)); }
     pub fn setInteger(&mut self, key: impl Into<String>, value: i32) { self.setTag(key, NBTBase::Int(value)); }
     pub fn setLong(&mut self, key: impl Into<String>, value: i64) { self.setTag(key, NBTBase::Long(value)); }
+    /// MCP `NBTTagCompound#setUniqueId`: UUID is stored as signed Most/Least longs.
+    pub fn setUniqueId(&mut self, key: &str, value: Uuid) {
+        let raw = value.as_u128();
+        self.setLong(format!("{key}Most"), (raw >> 64) as u64 as i64);
+        self.setLong(format!("{key}Least"), raw as u64 as i64);
+    }
     pub fn setFloat(&mut self, key: impl Into<String>, value: f32) { self.setTag(key, NBTBase::Float(value)); }
     pub fn setDouble(&mut self, key: impl Into<String>, value: f64) { self.setTag(key, NBTBase::Double(value)); }
     pub fn setString(&mut self, key: impl Into<String>, value: impl Into<String>) { self.setTag(key, NBTBase::String(value.into())); }
@@ -38,20 +45,80 @@ impl NBTTagCompound {
         actual == tagType || (tagType == 99 && matches!(actual, 1..=6))
     }
 
-    pub fn getByte(&self, key: &str) -> i8 { match self.getTag(key) { Some(NBTBase::Byte(v)) => *v, _ => 0 } }
-    pub fn getShort(&self, key: &str) -> i16 { match self.getTag(key) { Some(NBTBase::Short(v)) => *v, Some(NBTBase::Byte(v)) => *v as i16, _ => 0 } }
+    pub fn getByte(&self, key: &str) -> i8 {
+        match self.getTag(key) {
+            Some(NBTBase::Byte(v)) => *v, Some(NBTBase::Short(v)) => *v as i8,
+            Some(NBTBase::Int(v)) => *v as i8, Some(NBTBase::Long(v)) => *v as i8,
+            Some(NBTBase::Float(v)) => *v as i8, Some(NBTBase::Double(v)) => *v as i8,
+            _ => 0,
+        }
+    }
+    pub fn getShort(&self, key: &str) -> i16 {
+        match self.getTag(key) {
+            Some(NBTBase::Byte(v)) => *v as i16, Some(NBTBase::Short(v)) => *v,
+            Some(NBTBase::Int(v)) => *v as i16, Some(NBTBase::Long(v)) => *v as i16,
+            Some(NBTBase::Float(v)) => *v as i16, Some(NBTBase::Double(v)) => *v as i16,
+            _ => 0,
+        }
+    }
     pub fn getBoolean(&self, key: &str) -> bool { self.getByte(key) != 0 }
-    pub fn getInteger(&self, key: &str) -> i32 { match self.getTag(key) { Some(NBTBase::Int(v)) => *v, Some(NBTBase::Byte(v)) => *v as i32, Some(NBTBase::Short(v)) => *v as i32, _ => 0 } }
-    pub fn getLong(&self, key: &str) -> i64 { match self.getTag(key) { Some(NBTBase::Long(v)) => *v, Some(NBTBase::Int(v)) => *v as i64, _ => 0 } }
+    pub fn getInteger(&self, key: &str) -> i32 {
+        match self.getTag(key) {
+            Some(NBTBase::Byte(v)) => *v as i32, Some(NBTBase::Short(v)) => *v as i32,
+            Some(NBTBase::Int(v)) => *v, Some(NBTBase::Long(v)) => *v as i32,
+            Some(NBTBase::Float(v)) => *v as i32, Some(NBTBase::Double(v)) => *v as i32,
+            _ => 0,
+        }
+    }
+    pub fn getLong(&self, key: &str) -> i64 {
+        match self.getTag(key) {
+            Some(NBTBase::Byte(v)) => *v as i64, Some(NBTBase::Short(v)) => *v as i64,
+            Some(NBTBase::Int(v)) => *v as i64, Some(NBTBase::Long(v)) => *v,
+            Some(NBTBase::Float(v)) => *v as i64, Some(NBTBase::Double(v)) => *v as i64,
+            _ => 0,
+        }
+    }
+    /// MCP `NBTTagCompound#getUniqueId`.
+    pub fn getUniqueId(&self, key: &str) -> Uuid {
+        let most = self.getLong(&format!("{key}Most")) as u64 as u128;
+        let least = self.getLong(&format!("{key}Least")) as u64 as u128;
+        Uuid::from_u128((most << 64) | least)
+    }
+    pub fn hasUniqueId(&self, key: &str) -> bool {
+        self.hasKeyWithType(&format!("{key}Most"), 99) && self.hasKeyWithType(&format!("{key}Least"), 99)
+    }
     pub fn getFloat(&self, key: &str) -> f32 {
         match self.getTag(key) {
-            Some(NBTBase::Float(v)) => *v,
-            Some(NBTBase::Double(v)) => *v as f32,
-            Some(NBTBase::Long(v)) => *v as f32,
-            Some(NBTBase::Int(v)) => *v as f32,
-            Some(NBTBase::Short(v)) => *v as f32,
-            Some(NBTBase::Byte(v)) => *v as f32,
+            Some(NBTBase::Byte(v)) => *v as f32, Some(NBTBase::Short(v)) => *v as f32,
+            Some(NBTBase::Int(v)) => *v as f32, Some(NBTBase::Long(v)) => *v as f32,
+            Some(NBTBase::Float(v)) => *v, Some(NBTBase::Double(v)) => *v as f32,
             _ => 0.0,
+        }
+    }
+    pub fn getDouble(&self, key: &str) -> f64 {
+        match self.getTag(key) {
+            Some(NBTBase::Byte(v)) => *v as f64, Some(NBTBase::Short(v)) => *v as f64,
+            Some(NBTBase::Int(v)) => *v as f64, Some(NBTBase::Long(v)) => *v as f64,
+            Some(NBTBase::Float(v)) => *v as f64, Some(NBTBase::Double(v)) => *v,
+            _ => 0.0,
+        }
+    }
+    pub fn getByteArray(&self, key: &str) -> Vec<u8> {
+        match self.getTag(key) {
+            Some(NBTBase::ByteArray(value)) => value.clone(),
+            _ => Vec::new(),
+        }
+    }
+    pub fn getIntArray(&self, key: &str) -> Vec<i32> {
+        match self.getTag(key) {
+            Some(NBTBase::IntArray(value)) => value.clone(),
+            _ => Vec::new(),
+        }
+    }
+    pub fn getLongArray(&self, key: &str) -> Vec<i64> {
+        match self.getTag(key) {
+            Some(NBTBase::LongArray(value)) => value.clone(),
+            _ => Vec::new(),
         }
     }
     pub fn getString(&self, key: &str) -> String { match self.getTag(key) { Some(NBTBase::String(v)) => v.clone(), _ => String::new() } }

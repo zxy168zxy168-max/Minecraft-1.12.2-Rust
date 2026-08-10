@@ -28,8 +28,7 @@ impl ArmorMaterial {
         if matches!(self, Self::Leather) { 0xA06540 } else { 0xFFFFFF }
     }
 
-    /// `ArmorMaterial#getDamageReductionAmount`, indexed by slot. The MCP
-    /// array is ordered [FEET, LEGS, CHEST, HEAD] (`EntityEquipmentSlot#getIndex`).
+    /// MCP `ArmorMaterial#getDamageReductionAmount`.
     pub const fn damageReduction(self, slot: EntityEquipmentSlot) -> i32 {
         let values: [i32; 4] = match self {
             Self::Leather => [1, 2, 3, 1],
@@ -153,7 +152,6 @@ mod tests {
 
     #[test]
     fn damage_reduction_matches_armor_material_tables() {
-        // [feet, legs, chest, head].
         assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Feet), 1);
         assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Legs), 2);
         assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Chest), 3);

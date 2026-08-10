@@ -1,4 +1,4 @@
-use crate::net::minecraft::network::PacketBuffer::{read_i64_be, read_u8, read_var_i32, CodecError};
+use crate::net::minecraft::network::PacketBuffer::{read_i64_be, read_u8, read_var_i32, write_i64_be, write_var_i32, CodecError};
 use crate::net::minecraft::util::BitArray::BitArray;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,6 +117,82 @@ impl BlockStateContainer {
         }
     }
 
+    /// MCP `BlockStateContainer#getDataForNBT`.  Anvil 1.12.2 stores the
+    /// global state id as block-id low byte (`Blocks`), metadata (`Data`) and
+    /// an optional high block-id nibble (`Add`).
+    pub fn getDataForNBT(&self, blocks: &mut [u8; 4096], data: &mut crate::net::minecraft::world::chunk::NibbleArray::NibbleArray) -> Option<crate::net::minecraft::world::chunk::NibbleArray::NibbleArray> {
+        let mut add: Option<crate::net::minecraft::world::chunk::NibbleArray::NibbleArray> = None;
+        for index in 0..4096 {
+            let state_id = self.getGlobalStateIdAt(index).max(0);
+            let x = index & 15;
+            let y = (index >> 8) & 15;
+            let z = (index >> 4) & 15;
+            let high = ((state_id >> 12) & 15) as u8;
+            if high != 0 {
+                let add_array = add.get_or_insert_with(crate::net::minecraft::world::chunk::NibbleArray::NibbleArray::new);
+                add_array.set(x, y, z, high);
+            }
+            blocks[index] = ((state_id >> 4) & 255) as u8;
+            data.set(x, y, z, (state_id & 15) as u8);
+        }
+        add
+    }
+
+    /// MCP `BlockStateContainer#setDataFromNBT`.
+    pub fn setDataFromNBT(
+        &mut self,
+        blocks: &[u8],
+        data: &crate::net::minecraft::world::chunk::NibbleArray::NibbleArray,
+        add: Option<&crate::net::minecraft::world::chunk::NibbleArray::NibbleArray>,
+    ) -> Result<(), String> {
+        if blocks.len() != 4096 {
+            return Err(format!("BlockStateContainer Blocks should be 4096 bytes not: {}", blocks.len()));
+        }
+        // Start from the vanilla minimum local palette just like a freshly
+        // constructed container, then let `setGlobalStateIdAt` grow it using
+        // the same palette transition rules as network/block updates.
+        *self = Self::new();
+        for index in 0..4096 {
+            let x = index & 15;
+            let y = (index >> 8) & 15;
+            let z = (index >> 4) & 15;
+            let high = add.map(|array| array.get(x, y, z) as i32).unwrap_or(0);
+            let state_id = (high << 12) | ((blocks[index] as i32) << 4) | data.get(x, y, z) as i32;
+            self.setGlobalStateIdAt(index, state_id)?;
+        }
+        Ok(())
+    }
+
+    /// MCP 1.12.2 `BlockStateContainer#write`.  The local palette is
+    /// serialized before the BitArray; the registry palette deliberately has
+    /// no palette payload.
+    pub fn write(&self, output: &mut Vec<u8>) {
+        output.push(self.bits as u8);
+        match &self.palette {
+            Palette::Local(entries) => {
+                write_var_i32(entries.len() as i32, output);
+                for entry in entries { write_var_i32(*entry, output); }
+            }
+            Palette::Registry => {}
+        }
+        write_var_i32(self.storage.getBackingLongArray().len() as i32, output);
+        for value in self.storage.getBackingLongArray() { write_i64_be(*value as i64, output); }
+    }
+
+    /// MCP `BlockStateContainer#getSerializedSize`.
+    pub fn getSerializedSize(&self) -> usize {
+        let palette_size = match &self.palette {
+            Palette::Local(entries) => {
+                crate::net::minecraft::network::PacketBuffer::var_i32_size(entries.len() as i32)
+                    + entries.iter().map(|entry| crate::net::minecraft::network::PacketBuffer::var_i32_size(*entry)).sum::<usize>()
+            }
+            Palette::Registry => 0,
+        };
+        1 + palette_size
+            + crate::net::minecraft::network::PacketBuffer::var_i32_size(self.storage.getBackingLongArray().len() as i32)
+            + self.storage.getBackingLongArray().len() * 8
+    }
+
     pub fn bits(&self) -> usize { self.bits }
     pub fn palette(&self) -> &Palette { &self.palette }
 }
@@ -144,4 +220,39 @@ mod tests {
         assert!(matches!(container.palette(), Palette::Registry));
         assert_eq!(container.getGlobalStateIdAt(299), 300);
     }
+    #[test]
+    fn anvil_nbt_arrays_roundtrip_global_state_ids() {
+        let mut container = BlockStateContainer::new();
+        for (index, state) in [(0, 1 << 4), (1, (2 << 4) | 3), (257, (255 << 4) | 15)] {
+            container.setGlobalStateIdAt(index, state).unwrap();
+        }
+        let mut blocks = [0_u8; 4096];
+        let mut data = crate::net::minecraft::world::chunk::NibbleArray::NibbleArray::new();
+        let add = container.getDataForNBT(&mut blocks, &mut data);
+        assert!(add.is_none());
+        let mut decoded = BlockStateContainer::new();
+        decoded.setDataFromNBT(&blocks, &data, None).unwrap();
+        for index in [0, 1, 257, 4095] {
+            assert_eq!(decoded.getGlobalStateIdAt(index), container.getGlobalStateIdAt(index));
+        }
+    }
+
+    #[test]
+    fn anvil_add_nibble_is_emitted_for_high_block_id_bits() {
+        let mut container = BlockStateContainer::new();
+        container.setGlobalStateIdAt(42, 0x1234).unwrap();
+        let mut blocks = [0_u8; 4096];
+        let mut data = crate::net::minecraft::world::chunk::NibbleArray::NibbleArray::new();
+        let add = container.getDataForNBT(&mut blocks, &mut data).expect("high block id needs Add nibble");
+        let x = 42 & 15;
+        let y = (42 >> 8) & 15;
+        let z = (42 >> 4) & 15;
+        assert_eq!(blocks[42], 0x23);
+        assert_eq!(data.get(x, y, z), 0x4);
+        assert_eq!(add.get(x, y, z), 0x1);
+        let mut decoded = BlockStateContainer::new();
+        decoded.setDataFromNBT(&blocks, &data, Some(&add)).unwrap();
+        assert_eq!(decoded.getGlobalStateIdAt(42), 0x1234);
+    }
+
 }

@@ -11,6 +11,7 @@ use crate::net::minecraft::block::BlockRedstoneRepeater;
 use crate::net::minecraft::block::BlockTrapDoor;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::block::SoundType::SoundType;
+use crate::net::minecraft::item::Item::Item;
 use crate::net::minecraft::item::ItemBlock::{ItemBlock, ItemBlockPlacement};
 use crate::net::minecraft::item::ItemBucket::ItemBucket;
 use crate::net::minecraft::item::ItemDoor::ItemDoor;
@@ -46,10 +47,9 @@ use crate::net::minecraft::world::GameType::GameType;
 pub struct BlockRightClickResult {
     pub packet: Option<RawPacket>,
     pub result: EnumActionResult,
-    /// True when the held item's `onItemUse` SUCCESS also changes the
-    /// client-side held-stack count — MCP `rightClickMouse`'s
-    /// `itemstack.getCount() != i` equipped-progress reset condition.
-    /// ItemBlock-family items decrement locally; the hoe and buckets do not.
+    /// True when SUCCESS came from the held item's `onItemUse` branch rather
+    /// than the clicked block's `onBlockActivated` branch. The historical field
+    /// name is retained to avoid changing the established caller contract.
     pub usedItemBlock: bool,
     /// Exact local `Block#onBlockPlaced` result for source-backed ItemBlocks.
     /// The caller may apply this prediction; later server block packets remain
@@ -60,8 +60,9 @@ pub struct BlockRightClickResult {
     /// The expected-state snapshot prevents a late local prediction from
     /// overwriting a newer authoritative server block packet.
     pub predictedBlockState: Option<BlockStatePrediction>,
-    /// Local sound from the held item's `onItemUse` prediction (e.g. the
-    /// ITEM_HOE_TILL till sound), played by the caller on SUCCESS.
+    /// Local sound emitted by an item `onItemUse` prediction, such as
+    /// `ItemHoe#onItemUse`. The caller plays it after the source-equivalent
+    /// result is known.
     pub sound: Option<(&'static str, f32, f32)>,
 }
 
@@ -76,6 +77,7 @@ impl BlockRightClickResult {
             sound: None,
         }
     }
+
 
     fn withSound(mut self, sound: Option<(&'static str, f32, f32)>) -> Self {
         self.sound = sound;
@@ -98,6 +100,32 @@ pub struct BlockStatePrediction {
     pub pos: BlockPos,
     pub expectedState: IBlockState,
     pub state: IBlockState,
+}
+
+/// Source-equivalent result of `PlayerControllerMP#processRightClick` after
+/// the held item's `onItemRightClick` client-side branch has been evaluated.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AirRightClickResult {
+    /// MCP spectator branch returns before sync/send; normal use carries the
+    /// CPacketPlayerTryUseItem packet here.
+    pub packet: Option<RawPacket>,
+    pub result: EnumActionResult,
+    pub fillBucket: Option<crate::net::minecraft::item::ItemBucket::BucketFill>,
+    pub emptyBucket: Option<crate::net::minecraft::item::ItemBucket::BucketEmpty>,
+    pub thrown: Option<Thrown>,
+}
+
+impl AirRightClickResult {
+    pub fn new(packet: Option<RawPacket>, result: EnumActionResult) -> Self {
+        Self { packet, result, fillBucket: None, emptyBucket: None, thrown: None }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Thrown {
+    pub sound: &'static str,
+    pub category: SoundCategory,
+    pub pitch: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -129,46 +157,6 @@ impl Default for PlayerControllerMP {
             pendingHitSound: None,
         }
     }
-}
-
-/// Client-side result of MCP `PlayerControllerMP#processRightClick`
-/// after the held item's `onItemRightClick` prediction ran.
-#[derive(Debug, Clone, PartialEq)]
-pub struct AirRightClickResult {
-    pub packet: RawPacket,
-    pub result: EnumActionResult,
-    /// Empty bucket filled: swap the held stack to the filled bucket and
-    /// remove the source liquid locally (prediction, server overwrites).
-    pub fillBucket: Option<crate::net::minecraft::item::ItemBucket::BucketFill>,
-    /// Full bucket emptied: swap the held stack back to the empty bucket and
-    /// play the empty sound at the destination (prediction, server
-    /// overwrites).
-    pub emptyBucket: Option<crate::net::minecraft::item::ItemBucket::BucketEmpty>,
-    /// Throwable consumed: local sound name, category and pitch, plus the
-    /// shrink.
-    pub thrown: Option<Thrown>,
-}
-
-impl AirRightClickResult {
-    pub fn new(packet: RawPacket, result: EnumActionResult) -> Self {
-        Self {
-            packet,
-            result,
-            fillBucket: None,
-            emptyBucket: None,
-            thrown: None,
-        }
-    }
-}
-
-/// Throwable item (`ItemSnowball`/`ItemEgg`/`ItemEnderPearl#onItemRightClick`)
-/// client branch data: the throw sound and its vanilla category.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Thrown {
-    pub sound: &'static str,
-    /// Snowball and ender pearl use NEUTRAL; egg uses PLAYERS.
-    pub category: SoundCategory,
-    pub pitch: f32,
 }
 
 impl PlayerControllerMP {
@@ -431,6 +419,12 @@ impl PlayerControllerMP {
         if stack.isEmpty() {
             return BlockRightClickResult::new(Some(packet), EnumActionResult::Pass, false);
         }
+        // MCP `PlayerControllerMP#processRightClickBlock`: the packet has
+        // already been sent at this point, but item use is skipped while the
+        // held item is on the player's CooldownTracker.
+        if player.getCooldownTracker().hasCooldown(stack.itemId) {
+            return BlockRightClickResult::new(Some(packet), EnumActionResult::Pass, false);
+        }
 
         if ItemBlock::isItemBlock(stack) {
             // Player permission levels are not synchronized yet. Preserve the
@@ -486,109 +480,112 @@ impl PlayerControllerMP {
             );
         }
 
-        // `ItemHoe#onItemUse` client branch: till check plus the local
-        // ITEM_HOE_TILL sound (played by the caller); world mutation is
-        // server-side. The client-side stack count never changes (durability
-        // is consumed on the server only), so vanilla `rightClickMouse` does
-        // not reset the equipped progress for a till.
+        // MCP `ItemHoe#onItemUse`: the remote client performs the target
+        // checks and plays the till sound; durability and authoritative world
+        // mutation stay server-side.
         if ItemHoe::isItemHoe(stack) {
+            // MCP ItemHoe#onItemUse checks canPlayerEdit(pos.offset(side), side, stack)
+            // before testing the tillable block.
+            if !player.canPlayerEdit(world, pos.offset(hit.sideHit, 1), hit.sideHit, stack) {
+                return BlockRightClickResult::new(Some(packet), EnumActionResult::Fail, false);
+            }
             let (result, sound) = ItemHoe::predictOnItemUse(world, pos, hit.sideHit, stack);
-            return BlockRightClickResult::new(
-                Some(packet),
-                result,
-                false,
-            ).withSound(sound);
+            return BlockRightClickResult::new(Some(packet), result, false).withSound(sound);
         }
 
         // Concrete special-item onItemUse ports remain separate. PASS is
         // essential here: Minecraft may continue to the air-use branch and
-        // then the off hand instead of consuming the click. Buckets have no
-        // onItemUse override in MCP: both the fill (empty bucket) and the
-        // empty (full bucket) run in `processRightClick` through
-        // `ItemBucket#onItemRightClick`, which re-traces with `Item#rayTrace`.
+        // then the off hand instead of consuming the click. Buckets do not
+        // override onItemUse in 1.12.2; their logic runs through
+        // ItemBucket#onItemRightClick below.
         BlockRightClickResult::new(Some(packet), EnumActionResult::Pass, false)
     }
 
-    /// MCP `PlayerControllerMP#processRightClick`: sends the hand packet,
-    /// then evaluates `Item#onItemRightClick` for the ported items. Bucket
-    /// fill and empty both re-trace with `Item#rayTrace` semantics
-    /// (stopOnLiquid for the empty bucket, ignore-non-bounding-box for the
-    /// full one) instead of reusing the mouse-over hit, so e.g. a water
-    /// source with solid ground behind it is still filled; snowball/egg/
-    /// ender pearl shrink and play their throw sound.
+    /// MCP `PlayerControllerMP#processRightClick`: sends the hand packet and
+    /// evaluates the source-backed client branch of `Item#onItemRightClick`.
     pub fn processRightClick(
         &self,
         world: &WorldClient,
         player: &mut EntityPlayerSP,
         hand: EnumHand,
     ) -> AirRightClickResult {
+        // MCP PlayerControllerMP#processRightClick returns PASS immediately in
+        // spectator mode, before syncCurrentPlayItem/CPacketPlayerTryUseItem.
+        if self.currentGameType == GameType::Spectator {
+            return AirRightClickResult::new(None, EnumActionResult::Pass);
+        }
         let packet = CPacketPlayerTryUseItem::new(hand).writePacketData();
-        let stack = player.getHeldItem(hand);
+        let stack = player.getHeldItem(hand).clone();
+        // MCP sends CPacketPlayerTryUseItem first, then checks the item
+        // cooldown before invoking Item#onItemRightClick.
+        if !stack.isEmpty() && player.getCooldownTracker().hasCooldown(stack.itemId) {
+            return AirRightClickResult::new(Some(packet), EnumActionResult::Pass);
+        }
         match stack.itemId {
             crate::net::minecraft::item::ItemBucket::BUCKET => {
                 match itemRayTrace(world, player, true) {
-                    None => AirRightClickResult::new(packet, EnumActionResult::Pass),
+                    None => AirRightClickResult::new(Some(packet), EnumActionResult::Pass),
                     Some(hit) => {
-                        let target = (hit.getBlockPos(), world.getBlockState(hit.getBlockPos()));
+                        let blockPos = hit.getBlockPos();
+                        // MCP ItemBucket empty-bucket branch checks editing the
+                        // adjacent side before consuming a liquid source.
+                        if !player.canPlayerEdit(world, blockPos.offset(hit.sideHit, 1), hit.sideHit, &stack) {
+                            return AirRightClickResult::new(Some(packet), EnumActionResult::Fail);
+                        }
+                        let target = (blockPos, world.getBlockState(blockPos));
                         match ItemBucket::predictFill(Some(target)) {
                             Some(fill) => AirRightClickResult {
-                                packet,
-                                result: EnumActionResult::Success,
-                                fillBucket: Some(fill),
-                                emptyBucket: None,
-                                thrown: None,
+                                packet: Some(packet), result: EnumActionResult::Success,
+                                fillBucket: Some(fill), emptyBucket: None, thrown: None,
                             },
-                            // A solid (non-liquid) target fails.
-                            None => AirRightClickResult::new(packet, EnumActionResult::Fail),
+                            None => AirRightClickResult::new(Some(packet), EnumActionResult::Fail),
                         }
                     }
                 }
             }
-            // Full buckets: MCP `ItemBucket#onItemRightClick` empty branch,
-            // reached through the air-use `useItemRightClick` after the
-            // on-block use returned PASS (ItemBucket does not override
-            // onItemUse). The ray trace ignores liquids and non-bounding-box
-            // blocks (plants, torches) so e.g. pouring onto a grass block
-            // targets the ground behind it.
             crate::net::minecraft::item::ItemBucket::WATER_BUCKET
             | crate::net::minecraft::item::ItemBucket::LAVA_BUCKET => {
                 match itemRayTrace(world, player, false) {
-                    None => AirRightClickResult::new(packet, EnumActionResult::Pass),
+                    None => AirRightClickResult::new(Some(packet), EnumActionResult::Pass),
                     Some(hit) => match ItemBucket::predictEmpty(
-                        world,
-                        hit.getBlockPos(),
-                        hit.sideHit,
-                        stack.itemId,
+                        world, hit.getBlockPos(), hit.sideHit, stack.itemId,
                     ) {
-                        Some(empty) => AirRightClickResult {
-                            packet,
-                            result: EnumActionResult::Success,
-                            fillBucket: None,
-                            emptyBucket: Some(empty),
-                            thrown: None,
-                        },
-                        None => AirRightClickResult::new(packet, EnumActionResult::Fail),
+                        Some(empty) => {
+                            // MCP full-bucket branch checks the actual liquid
+                            // destination, not merely the originally hit block.
+                            if !player.canPlayerEdit(world, empty.destination, hit.sideHit, &stack) {
+                                AirRightClickResult::new(Some(packet), EnumActionResult::Fail)
+                            } else {
+                                AirRightClickResult {
+                                    packet: Some(packet), result: EnumActionResult::Success,
+                                    fillBucket: None, emptyBucket: Some(empty), thrown: None,
+                                }
+                            }
+                        }
+                        None => AirRightClickResult::new(Some(packet), EnumActionResult::Fail),
                     },
                 }
             }
-            // Throwables: `ItemSnowball/ItemEgg/ItemEnderPearl#onItemRightClick`
-            // client branch — play the throw sound and shrink locally.
+            // ItemSnowball / ItemEgg / ItemEnderPearl.
             332 | 344 | 368 => {
                 let (sound, category) = match stack.itemId {
                     332 => ("entity.snowball.throw", SoundCategory::Neutral),
                     344 => ("entity.egg.throw", SoundCategory::Players),
                     _ => ("entity.enderpearl.throw", SoundCategory::Neutral),
                 };
-                let pitch = player.throwSoundPitch();
+                let pitch = 0.4 / (Item::nextItemRandomF32() * 0.4 + 0.8);
+                // MCP `ItemEnderPearl#onItemRightClick`: client and server
+                // both place the pearl item on a 20-tick cooldown immediately.
+                if stack.itemId == 368 {
+                    player.getCooldownTrackerMut().setCooldown(368, 20);
+                }
                 AirRightClickResult {
-                    packet,
-                    result: EnumActionResult::Success,
-                    fillBucket: None,
-                    emptyBucket: None,
+                    packet: Some(packet), result: EnumActionResult::Success,
+                    fillBucket: None, emptyBucket: None,
                     thrown: Some(Thrown { sound, category, pitch }),
                 }
             }
-            _ => AirRightClickResult::new(packet, EnumActionResult::Pass),
+            _ => AirRightClickResult::new(Some(packet), EnumActionResult::Pass),
         }
     }
 
@@ -693,10 +690,7 @@ fn predictedActivationState(
     None
 }
 
-/// MCP `Item#rayTrace`: a fresh 5.0-block trace from the player's eyes in
-/// the current look direction. The bucket items call it with `useLiquids`
-/// true (stop on the liquid surface) for filling and false (skip liquids and
-/// non-bounding-box blocks) for emptying.
+/// MCP `Item#rayTrace`: a fresh 5-block trace from the player's eyes.
 fn itemRayTrace(
     world: &WorldClient,
     player: &EntityPlayerSP,
@@ -706,11 +700,7 @@ fn itemRayTrace(
     let look = player.getLook(1.0);
     world.rayTraceBlocks(
         eyes,
-        Vec3d::new(
-            eyes.x + look.x * 5.0,
-            eyes.y + look.y * 5.0,
-            eyes.z + look.z * 5.0,
-        ),
+        Vec3d::new(eyes.x + look.x * 5.0, eyes.y + look.y * 5.0, eyes.z + look.z * 5.0),
         useLiquids,
         !useLiquids,
         false,

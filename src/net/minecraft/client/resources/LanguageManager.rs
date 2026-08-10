@@ -28,7 +28,8 @@ impl LanguageManager {
     /// `{"language": {"<code>": {"region": ..., "name": ..., "bidirectional": ...}}}`
     /// where `region` and `name` are required strings and `bidirectional`
     /// defaults to false. Vanilla treats a malformed section as an IOException
-    /// and skips that pack; this port warns and skips the offending entry.
+    /// and skips that pack's entire language section; this port validates into
+    /// a temporary collection before committing for the same all-or-nothing result.
     pub fn parseLanguageMetadata(&mut self, metadataSections: &[Vec<u8>]) {
         self.languageMap.clear();
         for section in metadataSections {
@@ -39,29 +40,43 @@ impl LanguageManager {
             let Some(languages) = value.get("language").and_then(serde_json::Value::as_object) else {
                 continue;
             };
+
+            // MCP LanguageMetadataSectionSerializer throws for any malformed
+            // language in a section; LanguageManager then skips that entire
+            // resource pack's language metadata. Validate into a temporary
+            // collection before mutating languageMap to preserve that behavior.
+            let mut parsed = Vec::with_capacity(languages.len());
+            let mut valid = true;
             for (code, entry) in languages {
-                if self.languageMap.contains_key(code) {
-                    continue;
-                }
-                let Some(entry) = entry.as_object() else { continue; };
-                let Some(region) = entry.get("region").and_then(serde_json::Value::as_str) else {
-                    log::warn!("language {code} metadata is missing region; skipping");
-                    continue;
-                };
-                let Some(name) = entry.get("name").and_then(serde_json::Value::as_str) else {
-                    log::warn!("language {code} metadata is missing name; skipping");
-                    continue;
-                };
+                if code.len() > 16 { valid = false; break; }
+                let Some(entry) = entry.as_object() else { valid = false; break; };
+                let Some(region) = entry.get("region").and_then(serde_json::Value::as_str) else { valid = false; break; };
+                let Some(name) = entry.get("name").and_then(serde_json::Value::as_str) else { valid = false; break; };
+                if region.is_empty() || name.is_empty() { valid = false; break; }
                 let bidirectional = entry
                     .get("bidirectional")
                     .and_then(serde_json::Value::as_bool)
                     .unwrap_or(false);
-                self.languageMap.insert(
-                    code.clone(),
-                    Language::new(code.clone(), region, name, bidirectional),
-                );
+                parsed.push(Language::new(code.clone(), region, name, bidirectional));
+            }
+            if !valid {
+                log::warn!("unable to parse language metadata section of resource pack");
+                continue;
+            }
+            for language in parsed {
+                // MCP LanguageManager: first pack declaring a code wins.
+                self.languageMap.entry(language.getLanguageCode().to_owned()).or_insert(language);
             }
         }
+
+        // The Java DefaultResourcePack always contributes the canonical en_us
+        // entry through its root pack.mcmeta. The current Rust runtime asset
+        // source exposes only the namespace assets root, so retain that
+        // source-backed invariant explicitly until default-pack root resources
+        // are materialized by the asset pipeline.
+        self.languageMap.entry("en_us".to_owned()).or_insert_with(||
+            Language::new("en_us", "US", "English", false)
+        );
     }
 
     /// MCP `setCurrentLanguage`.
@@ -106,7 +121,6 @@ mod tests {
         assert_eq!(manager.getCurrentLanguage().getLanguageCode(), "zh_cn");
         assert!(!manager.isCurrentLanguageBidirectional());
         assert_eq!(manager.getLanguages().len(), 2);
-        // TreeSet ordering is by language code.
         assert_eq!(manager.getLanguages()[0].getLanguageCode(), "en_us");
         assert_eq!(manager.getLanguages()[1].getLanguageCode(), "zh_cn");
         assert_eq!(manager.getLanguages()[1].to_string(), "简体中文 (中国)");
@@ -126,7 +140,10 @@ mod tests {
             r#"{"language":{"zh_cn":{"region":"中国","name":"简体中文"}}}"#.as_bytes().to_vec(),
             r#"{"language":{"zh_cn":{"region":"TW","name":"繁體中文"}}}"#.as_bytes().to_vec(),
         ]);
-        assert_eq!(manager.getLanguages()[0].to_string(), "简体中文 (中国)");
+        assert_eq!(
+            manager.getLanguages().iter().find(|language| language.getLanguageCode() == "zh_cn").unwrap().to_string(),
+            "简体中文 (中国)"
+        );
     }
 
     #[test]

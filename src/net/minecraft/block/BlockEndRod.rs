@@ -17,6 +17,14 @@ pub const fn facing(state: IBlockState) -> EnumFacing {
     }
 }
 
+/// MCP `BlockEndRod#onBlockPlaced`: normally faces the clicked face; if the
+/// supporting end rod already faces that same direction, the new rod reverses.
+pub fn onBlockPlacedState<A: crate::net::minecraft::world::IBlockAccess::IBlockAccess>(world:&A,pos:crate::net::minecraft::util::math::BlockPos::BlockPos,clickedFace:EnumFacing)->IBlockState{
+    let support=world.getBlockState(pos.offset(clickedFace.opposite(),1));
+    let resolved=if isBlockEndRod(support)&&facing(support)==clickedFace{clickedFace.opposite()}else{clickedFace};
+    IBlockState::fromGlobalStateId((198<<4)|(resolved.index()&7))
+}
+
 /// Exact local-space result of `BlockEndRod#getBoundingBox`.
 pub fn getBoundingBox(state: IBlockState) -> AxisAlignedBB {
     match facing(state).axis() {

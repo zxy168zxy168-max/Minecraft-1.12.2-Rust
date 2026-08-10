@@ -1,7 +1,9 @@
+#[path = "NetworkSystem.rs"] pub mod NetworkSystem;
 #[path = "NetworkManager.rs"] pub mod NetworkManager;
 #[path = "PacketBuffer.rs"] pub mod PacketBuffer;
 #[path = "EnumConnectionState.rs"] pub mod EnumConnectionState;
 #[path = "Packet.rs"] pub mod Packet;
+#[path = "NetHandlerPlayServer.rs"] pub mod NetHandlerPlayServer;
 
 pub mod handshake;
 

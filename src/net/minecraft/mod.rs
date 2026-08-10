@@ -2,6 +2,7 @@ pub mod block;
 pub mod crash;
 pub mod init;
 pub mod client;
+pub mod server;
 pub mod entity;
 pub mod enchantment;
 pub mod potion;

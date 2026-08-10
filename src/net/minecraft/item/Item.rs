@@ -1,3 +1,7 @@
+use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::compat::Java::JavaRandom;
 use crate::net::minecraft::item::EnumAction::EnumAction;
 use crate::net::minecraft::item::ItemRegistryData::{definition, ItemDefinition};
 /// Protocol-340 item mining behavior extracted by executing the compiled
@@ -7,7 +11,25 @@ use crate::net::minecraft::item::ItemRegistryData::{definition, ItemDefinition};
 
 pub struct Item;
 
+/// MCP `Item#itemRand`: one process-global java.util.Random shared by all
+/// item subclasses. Keeping this on Item rather than the player preserves the
+/// source ownership for snowball/egg/ender-pearl pitch and future item effects.
+fn itemRand() -> &'static Mutex<JavaRandom> {
+    static ITEM_RAND: OnceLock<Mutex<JavaRandom>> = OnceLock::new();
+    ITEM_RAND.get_or_init(|| {
+        let seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as i64;
+        Mutex::new(JavaRandom::new(seed))
+    })
+}
+
 impl Item {
+    pub fn nextItemRandomF32() -> f32 {
+        itemRand().lock().unwrap_or_else(|poisoned| poisoned.into_inner()).next_f32()
+    }
+
     pub fn getDestroySpeed(itemId: i16, blockId: i32) -> f32 {
         match itemId {
             256 => { // minecraft:iron_shovel (ItemSpade)

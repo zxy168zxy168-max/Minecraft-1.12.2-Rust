@@ -1,0 +1,137 @@
+use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
+use crate::net::minecraft::util::datafix::IFixableData::IFixableData;
+
+pub struct PotionItems;
+impl PotionItems {
+    fn potionId(index: usize) -> Option<&'static str> {
+        match index {
+            0 => Some("minecraft:water"),
+            1 => Some("minecraft:regeneration"),
+            2 => Some("minecraft:swiftness"),
+            3 => Some("minecraft:fire_resistance"),
+            4 => Some("minecraft:poison"),
+            5 => Some("minecraft:healing"),
+            6 => Some("minecraft:night_vision"),
+            8 => Some("minecraft:weakness"),
+            9 => Some("minecraft:strength"),
+            10 => Some("minecraft:slowness"),
+            11 => Some("minecraft:leaping"),
+            12 => Some("minecraft:harming"),
+            13 => Some("minecraft:water_breathing"),
+            14 => Some("minecraft:invisibility"),
+            16 => Some("minecraft:awkward"),
+            17 => Some("minecraft:regeneration"),
+            18 => Some("minecraft:swiftness"),
+            19 => Some("minecraft:fire_resistance"),
+            20 => Some("minecraft:poison"),
+            21 => Some("minecraft:healing"),
+            22 => Some("minecraft:night_vision"),
+            24 => Some("minecraft:weakness"),
+            25 => Some("minecraft:strength"),
+            26 => Some("minecraft:slowness"),
+            27 => Some("minecraft:leaping"),
+            28 => Some("minecraft:harming"),
+            29 => Some("minecraft:water_breathing"),
+            30 => Some("minecraft:invisibility"),
+            32 => Some("minecraft:thick"),
+            33 => Some("minecraft:strong_regeneration"),
+            34 => Some("minecraft:strong_swiftness"),
+            35 => Some("minecraft:fire_resistance"),
+            36 => Some("minecraft:strong_poison"),
+            37 => Some("minecraft:strong_healing"),
+            38 => Some("minecraft:night_vision"),
+            40 => Some("minecraft:weakness"),
+            41 => Some("minecraft:strong_strength"),
+            42 => Some("minecraft:slowness"),
+            43 => Some("minecraft:strong_leaping"),
+            44 => Some("minecraft:strong_harming"),
+            45 => Some("minecraft:water_breathing"),
+            46 => Some("minecraft:invisibility"),
+            49 => Some("minecraft:strong_regeneration"),
+            50 => Some("minecraft:strong_swiftness"),
+            51 => Some("minecraft:fire_resistance"),
+            52 => Some("minecraft:strong_poison"),
+            53 => Some("minecraft:strong_healing"),
+            54 => Some("minecraft:night_vision"),
+            56 => Some("minecraft:weakness"),
+            57 => Some("minecraft:strong_strength"),
+            58 => Some("minecraft:slowness"),
+            59 => Some("minecraft:strong_leaping"),
+            60 => Some("minecraft:strong_harming"),
+            61 => Some("minecraft:water_breathing"),
+            62 => Some("minecraft:invisibility"),
+            64 => Some("minecraft:mundane"),
+            65 => Some("minecraft:long_regeneration"),
+            66 => Some("minecraft:long_swiftness"),
+            67 => Some("minecraft:long_fire_resistance"),
+            68 => Some("minecraft:long_poison"),
+            69 => Some("minecraft:healing"),
+            70 => Some("minecraft:long_night_vision"),
+            72 => Some("minecraft:long_weakness"),
+            73 => Some("minecraft:long_strength"),
+            74 => Some("minecraft:long_slowness"),
+            75 => Some("minecraft:long_leaping"),
+            76 => Some("minecraft:harming"),
+            77 => Some("minecraft:long_water_breathing"),
+            78 => Some("minecraft:long_invisibility"),
+            80 => Some("minecraft:awkward"),
+            81 => Some("minecraft:long_regeneration"),
+            82 => Some("minecraft:long_swiftness"),
+            83 => Some("minecraft:long_fire_resistance"),
+            84 => Some("minecraft:long_poison"),
+            85 => Some("minecraft:healing"),
+            86 => Some("minecraft:long_night_vision"),
+            88 => Some("minecraft:long_weakness"),
+            89 => Some("minecraft:long_strength"),
+            90 => Some("minecraft:long_slowness"),
+            91 => Some("minecraft:long_leaping"),
+            92 => Some("minecraft:harming"),
+            93 => Some("minecraft:long_water_breathing"),
+            94 => Some("minecraft:long_invisibility"),
+            96 => Some("minecraft:thick"),
+            97 => Some("minecraft:regeneration"),
+            98 => Some("minecraft:swiftness"),
+            99 => Some("minecraft:long_fire_resistance"),
+            100 => Some("minecraft:poison"),
+            101 => Some("minecraft:strong_healing"),
+            102 => Some("minecraft:long_night_vision"),
+            104 => Some("minecraft:long_weakness"),
+            105 => Some("minecraft:strength"),
+            106 => Some("minecraft:long_slowness"),
+            107 => Some("minecraft:leaping"),
+            108 => Some("minecraft:strong_harming"),
+            109 => Some("minecraft:long_water_breathing"),
+            110 => Some("minecraft:long_invisibility"),
+            113 => Some("minecraft:regeneration"),
+            114 => Some("minecraft:swiftness"),
+            115 => Some("minecraft:long_fire_resistance"),
+            116 => Some("minecraft:poison"),
+            117 => Some("minecraft:strong_healing"),
+            118 => Some("minecraft:long_night_vision"),
+            120 => Some("minecraft:long_weakness"),
+            121 => Some("minecraft:strength"),
+            122 => Some("minecraft:long_slowness"),
+            123 => Some("minecraft:leaping"),
+            124 => Some("minecraft:strong_harming"),
+            125 => Some("minecraft:long_water_breathing"),
+            126 => Some("minecraft:long_invisibility"),
+            _ => None,
+        }
+    }
+}
+impl IFixableData for PotionItems {
+    fn getFixVersion(&self) -> i32 { 102 }
+    fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
+        if compound.getString("id") == "minecraft:potion" {
+            let mut tag = compound.getCompoundTag("tag");
+            let damage = compound.getShort("Damage");
+            if !tag.hasKeyWithType("Potion", 8) {
+                tag.setString("Potion", Self::potionId((damage as i32 & 127) as usize).unwrap_or("minecraft:water"));
+                compound.setCompoundTag("tag", tag);
+                if (damage as i32 & 16384) == 16384 { compound.setString("id", "minecraft:splash_potion"); }
+            }
+            if damage != 0 { compound.setShort("Damage", 0); }
+        }
+        compound
+    }
+}

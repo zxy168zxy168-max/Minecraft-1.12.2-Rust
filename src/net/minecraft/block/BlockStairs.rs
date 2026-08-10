@@ -54,6 +54,16 @@ pub const fn isTop(state: IBlockState) -> bool {
     state.getMetadata() & 4 != 0
 }
 
+/// MCP `BlockStairs#onBlockPlaced`: FACING follows the placer; HALF is top
+/// only for a DOWN click or a horizontal click above 0.5. SHAPE is an
+/// unpersisted actual/property state and starts STRAIGHT.
+pub fn onBlockPlacedState(blockId:i32, clickedFace:EnumFacing, hitY:f32, placerYaw:f32)->IBlockState {
+    let facing=EnumFacing::fromAngle(placerYaw as f64);
+    let facingBits=match facing{EnumFacing::East=>0,EnumFacing::West=>1,EnumFacing::South=>2,_=>3};
+    let top=clickedFace==EnumFacing::Down || (clickedFace!=EnumFacing::Up && (hitY as f64)>0.5);
+    IBlockState::fromGlobalStateId((blockId<<4)|facingBits|if top{4}else{0})
+}
+
 /// Port of `BlockStairs.func_193383_a` / `getBlockFaceShape`, including
 /// neighbour-derived `SHAPE` through `getActualState`.
 pub fn getBlockFaceShape<A: IBlockAccess>(

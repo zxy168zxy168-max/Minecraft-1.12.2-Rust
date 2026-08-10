@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
+use rustc_hash::FxHashSet;
 
 use crate::net::minecraft::client::renderer::chunk::CompiledChunk::CompiledChunk;
 use crate::net::minecraft::client::renderer::chunk::RenderChunk::RenderChunkKey;
@@ -68,6 +69,29 @@ impl ContainerLocalRenderInformation {
     }
 }
 
+/// Reusable storage for the allocation-sensitive `RenderGlobal.setupTerrain`
+/// breadth-first traversal. Keeping ownership here preserves the exact vanilla
+/// queue/visited algorithm while allowing native renderers to retain capacity
+/// across frames instead of rebuilding three large containers every frame.
+#[derive(Debug, Default)]
+pub struct TerrainTraversalScratch {
+    result: Vec<RenderChunkKey>,
+    visited: FxHashSet<RenderChunkKey>,
+    queue: VecDeque<ContainerLocalRenderInformation>,
+}
+
+impl TerrainTraversalScratch {
+    pub fn clear(&mut self) {
+        self.result.clear();
+        self.visited.clear();
+        self.queue.clear();
+    }
+
+    pub fn result(&self) -> &[RenderChunkKey] {
+        &self.result
+    }
+}
+
 /// Visibility traversal corresponding to MCP 1.12.2
 /// `RenderGlobal.setupTerrain` and `ContainerLocalRenderInformation`.
 ///
@@ -111,28 +135,52 @@ where
 pub fn setupTerrainWithLookup<G, F>(
     start: RenderChunkKey,
     renderDistanceChunks: i32,
-    mut compiledChunk: G,
-    mut isInFrustum: F,
+    compiledChunk: G,
+    isInFrustum: F,
 ) -> Vec<RenderChunkKey>
 where
     G: FnMut(RenderChunkKey) -> Option<CompiledChunk>,
     F: FnMut(RenderChunkKey) -> bool,
 {
+    let mut scratch = TerrainTraversalScratch::default();
+    setupTerrainWithLookupScratch(
+        start,
+        renderDistanceChunks,
+        compiledChunk,
+        isInFrustum,
+        &mut scratch,
+    );
+    std::mem::take(&mut scratch.result)
+}
+
+/// Capacity-reusing variant for render backends that execute setupTerrain on
+/// every frame. The traversal itself is deliberately identical to the public
+/// Vec-returning helper above and to MCP's `RenderGlobal#setupTerrain`.
+pub fn setupTerrainWithLookupScratch<G, F>(
+    start: RenderChunkKey,
+    renderDistanceChunks: i32,
+    mut compiledChunk: G,
+    mut isInFrustum: F,
+    scratch: &mut TerrainTraversalScratch,
+) where
+    G: FnMut(RenderChunkKey) -> Option<CompiledChunk>,
+    F: FnMut(RenderChunkKey) -> bool,
+{
+    scratch.clear();
     if compiledChunk(start).is_none() {
-        return Vec::new();
+        return;
     }
 
-    let mut result = Vec::new();
-    let mut visited = HashSet::new();
-    let mut queue = VecDeque::new();
-    visited.insert(start);
-    queue.push_back(ContainerLocalRenderInformation::new(start, None, 0));
+    scratch.visited.insert(start);
+    scratch
+        .queue
+        .push_back(ContainerLocalRenderInformation::new(start, None, 0));
 
-    while let Some(info) = queue.pop_front() {
+    while let Some(info) = scratch.queue.pop_front() {
         let Some(compiled) = compiledChunk(info.renderChunk) else {
             continue;
         };
-        result.push(info.renderChunk);
+        scratch.result.push(info.renderChunk);
 
         for facing in EnumFacing::VALUES {
             if info.hasDirection(facing.opposite()) {
@@ -146,23 +194,21 @@ where
 
             let neighbour = info.renderChunk.offset(facing);
             if !containsRenderChunk(start, neighbour, renderDistanceChunks)
-                || visited.contains(&neighbour)
+                || scratch.visited.contains(&neighbour)
                 || compiledChunk(neighbour).is_none()
                 || !isInFrustum(neighbour)
             {
                 continue;
             }
 
-            visited.insert(neighbour);
-            queue.push_back(ContainerLocalRenderInformation::new(
+            scratch.visited.insert(neighbour);
+            scratch.queue.push_back(ContainerLocalRenderInformation::new(
                 neighbour,
                 Some(facing),
                 info.setFacing | (1_u8 << facing.index()),
             ));
         }
     }
-
-    result
 }
 
 #[cfg(test)]

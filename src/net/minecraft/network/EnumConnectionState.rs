@@ -6,3 +6,15 @@ pub enum ConnectionState {
     Status = 1,
     Login = 2,
 }
+
+impl ConnectionState {
+    pub fn fromProtocolId(id: i32) -> Option<Self> {
+        match id {
+            -1 => Some(Self::Handshaking),
+            0 => Some(Self::Play),
+            1 => Some(Self::Status),
+            2 => Some(Self::Login),
+            _ => None,
+        }
+    }
+}

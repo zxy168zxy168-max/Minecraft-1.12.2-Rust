@@ -40,3 +40,9 @@ pub mod material;
 #[path = "BlockFlowerPot.rs"] pub mod BlockFlowerPot;
 
 #[path = "SoundType.rs"] pub mod SoundType;
+#[path = "BlockLog.rs"] pub mod BlockLog;
+#[path = "BlockPumpkin.rs"] pub mod BlockPumpkin;
+#[path = "BlockGlazedTerracotta.rs"] pub mod BlockGlazedTerracotta;
+#[path = "BlockRotatedPillar.rs"] pub mod BlockRotatedPillar;
+#[path = "BlockQuartz.rs"] pub mod BlockQuartz;
+#[path = "BlockAnvil.rs"] pub mod BlockAnvil;

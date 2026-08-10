@@ -7,6 +7,8 @@
 #[path = "GuiButtonLanguage.rs"] pub mod GuiButtonLanguage;
 #[path = "ScaledResolution.rs"] pub mod ScaledResolution;
 #[path = "GuiOptions.rs"] pub mod GuiOptions;
+#[path = "GuiControls.rs"] pub mod GuiControls;
+#[path = "GuiKeyBindingList.rs"] pub mod GuiKeyBindingList;
 #[path = "GuiVideoSettings.rs"] pub mod GuiVideoSettings;
 #[path = "GuiMultiplayer.rs"] pub mod GuiMultiplayer;
 #[path = "GuiWorldSelection.rs"] pub mod GuiWorldSelection;
@@ -57,3 +59,4 @@ pub mod GuiOverlayDebug;
 #[path = "GuiMicrosoftAuth.rs"] pub mod GuiMicrosoftAuth;
 #[path = "GuiSessionLogin.rs"] pub mod GuiSessionLogin;
 #[path = "GuiAltCracked.rs"] pub mod GuiAltCracked;
+#[path = "GuiCreateWorld.rs"] pub mod GuiCreateWorld;

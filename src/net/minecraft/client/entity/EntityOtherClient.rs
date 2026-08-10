@@ -322,6 +322,26 @@ pub struct EntityOtherClient {
     pub guardianAttackTime: i32,
     pub guardianTouchedGround: bool,
     guardianRandom: JavaRandom,
+    /// MCP `EntitySquid` client animation state. Motion remains server-authoritative;
+    /// these fields reproduce the local pitch/yaw/tentacle interpolation.
+    pub squidPitch: f32,
+    pub squidPrevPitch: f32,
+    pub squidYaw: f32,
+    pub squidPrevYaw: f32,
+    pub squidRotation: f32,
+    pub squidPrevRotation: f32,
+    pub squidTentacleAngle: f32,
+    pub squidLastTentacleAngle: f32,
+    squidRandomMotionSpeed: f32,
+    squidRotationVelocity: f32,
+    squidRotateSpeed: f32,
+    /// MCP `EntityDragon` client-side animation history used by ModelDragon.
+    pub dragonRingBuffer: [[f64; 3]; 64],
+    pub dragonRingBufferIndex: i32,
+    pub dragonPrevAnimTime: f32,
+    pub dragonAnimTime: f32,
+    pub dragonSlowed: bool,
+    pub dragonDeathTicks: i32,
     /// `EntityShulker` client-only peek and attachment interpolation state.
     pub shulkerPrevPeekAmount: f32,
     pub shulkerPeekAmount: f32,
@@ -472,7 +492,11 @@ impl EntityOtherClient {
             entity.prevRotationYaw = 180.0;
             entity.rotationYaw = 180.0;
         }
-        if matches!(&kind, ClientEntityKind::Object { objectType: ObjectSpawnType::ShulkerBullet | ObjectSpawnType::AreaEffectCloud, .. }) {
+        if matches!(&kind, ClientEntityKind::Object { objectType: ObjectSpawnType::ShulkerBullet | ObjectSpawnType::AreaEffectCloud, .. })
+            || matches!(&kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "ender_dragon")
+        {
+            // EntityDragon constructor sets noClip=true; ShulkerBullet and
+            // AreaEffectCloud likewise own no-clip movement in vanilla.
             entity.noClip = true;
         }
         let fireballAcceleration = match &kind {
@@ -529,6 +553,15 @@ impl EntityOtherClient {
                 // EntityEnderCrystal#entityInit: optional beam target is absent
                 // until metadata arrives; SHOW_BOTTOM defaults to true.
                 dataManager.setBoolean(EntityEnderCrystal::SHOW_BOTTOM_DATA_INDEX, true);
+            }
+            ClientEntityKind::Mob { entityType } if entityType.registryName == "enderman" => {
+                // EntityEnderman entityInit: CARRIED_BLOCK index 12, SCREAMING index 13.
+                dataManager.setEntryValues([(12, DataValue::OptionalBlockState(None))]);
+                dataManager.setBoolean(13, false);
+            }
+            ClientEntityKind::Mob { entityType } if entityType.registryName == "ender_dragon" => {
+                // EntityDragon#entityInit. PhaseList.HOVER is id 10.
+                dataManager.setVarInt(12, 10);
             }
             _ => {}
         }
@@ -600,6 +633,22 @@ impl EntityOtherClient {
         } else {
             0
         };
+        // EntitySquid ctor: rotationVelocity = 1 / (rand.nextFloat()+1) * 0.2.
+        // Vanilla reseeds Entity.rand with 1 + its constructor-time entity id; the
+        // client packet later replaces that id. `fresh_random` preserves the same
+        // per-instance random distribution without inventing a fixed animation.
+        let squidRotationVelocity = if matches!(
+            &kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "squid"
+        ) {
+            let mut random = fresh_random(entityId ^ 0x5351_5549);
+            1.0 / (random.next_f32() + 1.0) * 0.2
+        } else { 0.0 };
+        let initialHealth = match &kind {
+            ClientEntityKind::Mob { entityType } if entityType.registryName == "enderman" => 40.0,
+            ClientEntityKind::Mob { entityType } if entityType.registryName == "squid" => 10.0,
+            ClientEntityKind::Mob { entityType } if entityType.registryName == "ender_dragon" => 200.0,
+            _ => 20.0,
+        };
         Self {
             entity,
             entityId,
@@ -618,7 +667,7 @@ impl EntityOtherClient {
             dataManager,
             attributeMap,
             equipment: EntityEquipment::default(),
-            health: 20.0,
+            health: initialHealth,
             hurtTime: 0,
             maxHurtTime: 0,
             deathTime: 0,
@@ -663,6 +712,23 @@ impl EntityOtherClient {
             guardianAttackTime: 0,
             guardianTouchedGround: false,
             guardianRandom,
+            squidPitch: 0.0,
+            squidPrevPitch: 0.0,
+            squidYaw: 0.0,
+            squidPrevYaw: 0.0,
+            squidRotation: 0.0,
+            squidPrevRotation: 0.0,
+            squidTentacleAngle: 0.0,
+            squidLastTentacleAngle: 0.0,
+            squidRandomMotionSpeed: 0.0,
+            squidRotationVelocity,
+            squidRotateSpeed: 0.0,
+            dragonRingBuffer: [[0.0; 3]; 64],
+            dragonRingBufferIndex: -1,
+            dragonPrevAnimTime: 0.0,
+            dragonAnimTime: 0.0,
+            dragonSlowed: false,
+            dragonDeathTicks: 0,
             shulkerPrevPeekAmount: 0.0,
             shulkerPeekAmount: 0.0,
             shulkerCurrentAttachmentPosition: None,
@@ -920,6 +986,38 @@ impl EntityOtherClient {
     pub fn creeperIgnited(&self) -> bool { self.dataManager.boolean(14, false) }
     pub fn slimeSize(&self) -> i32 { self.dataManager.varInt(12, 1).max(1) }
 
+    /// EntityEnderman metadata keys created after EntityLiving.AI_FLAGS.
+    pub fn endermanHeldBlockStateId(&self) -> Option<i32> {
+        self.dataManager.optionalBlockState(12)
+    }
+    pub fn endermanScreaming(&self) -> bool { self.dataManager.boolean(13, false) }
+
+    /// EntityDragon PHASE metadata (PhaseList id).
+    pub fn dragonPhaseId(&self) -> i32 { self.dataManager.varInt(12, 10) }
+    pub fn dragonPhaseStationary(&self) -> bool {
+        matches!(self.dragonPhaseId(), 5 | 6 | 7 | 10)
+    }
+
+    /// MCP `EntityDragon#getMovementOffsets`.
+    pub fn dragonMovementOffsets(&self, offset: i32, partialTicks: f32) -> [f64; 3] {
+        if self.dragonRingBufferIndex < 0 {
+            return [self.entity.rotationYaw as f64, self.entity.posY, 0.0];
+        }
+        let mut partial = if self.health <= 0.0 { 0.0 } else { partialTicks.clamp(0.0, 1.0) };
+        partial = 1.0 - partial;
+        let i = ((self.dragonRingBufferIndex - offset) & 63) as usize;
+        let j = ((self.dragonRingBufferIndex - offset - 1) & 63) as usize;
+        let yaw0 = self.dragonRingBuffer[i][0];
+        let yawDelta = wrap_degrees_f64(self.dragonRingBuffer[j][0] - yaw0);
+        [
+            yaw0 + yawDelta * partial as f64,
+            self.dragonRingBuffer[i][1]
+                + (self.dragonRingBuffer[j][1] - self.dragonRingBuffer[i][1]) * partial as f64,
+            self.dragonRingBuffer[i][2]
+                + (self.dragonRingBuffer[j][2] - self.dragonRingBuffer[i][2]) * partial as f64,
+        ]
+    }
+
     /// MCP `EntityGuardian` metadata indices inherited after `EntityLivingBase`.
     pub fn guardianMoving(&self) -> bool { self.dataManager.boolean(12, false) }
     pub fn guardianTargetEntityId(&self) -> i32 { self.dataManager.varInt(13, 0) }
@@ -967,8 +1065,12 @@ impl EntityOtherClient {
 
     pub fn eyeHeight(&self) -> f32 {
         match &self.kind {
+            // MCP 1.12.2 `EntityEnderman#getEyeHeight` is a fixed 2.55F rather than
+            // the generic living-entity height fraction. Keep the exact source value
+            // because it feeds ray/perspective-dependent client behavior.
+            ClientEntityKind::Mob { entityType } if entityType.registryName == "enderman" => 2.55,
             ClientEntityKind::Mob { entityType }
-                if matches!(entityType.registryName, "guardian" | "elder_guardian") => self.entity.height * 0.5,
+                if matches!(entityType.registryName, "guardian" | "elder_guardian" | "squid") => self.entity.height * 0.5,
             ClientEntityKind::Mob { entityType } if entityType.registryName == "shulker" => 0.5,
             ClientEntityKind::Object { objectType: ObjectSpawnType::LeashKnot, .. } => EntityLeashKnot::EYE_HEIGHT,
             _ => self.entity.height * 0.85,
@@ -1388,6 +1490,12 @@ impl EntityOtherClient {
                 "witch" | "vindication_illager" | "evocation_illager" | "illusion_illager" => (0.6, 1.95),
                 "spider" => (1.4, 0.9),
                 "cave_spider" => (0.7, 0.5),
+                // Exact constructor sizes from MCP 1.12.2 EntityEnderman,
+                // EntitySquid and EntityDragon. These feed Entity#getEntityBoundingBox
+                // and therefore Render#shouldRender as well as interaction/collision.
+                "enderman" => (0.6, 2.9),
+                "squid" => (0.8, 0.8),
+                "ender_dragon" => (16.0, 8.0),
                 "creeper" => (0.6, 1.7),
                 "slime" | "magma_cube" => {
                     let size = self.slimeSize() as f32;
@@ -1456,6 +1564,12 @@ impl EntityOtherClient {
     pub fn handleStatusUpdate(&mut self, opcode: i8) {
         self.lastStatusOpcode = Some(opcode);
         match opcode {
+            19 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "squid") => {
+                // EntitySquid#handleStatusUpdate(19). The authoritative server
+                // resets each completed rotation cycle; the remote client clamps
+                // at 2PI while it waits for this status byte.
+                self.squidRotation = 0.0;
+            }
             8 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "wolf") => {
                 self.wolfIsShaking = true;
                 self.timeWolfIsShaking = 0.0;
@@ -1567,7 +1681,12 @@ impl EntityOtherClient {
         let localCanSteerHorse = self.horseCanPassengerSteer() && localPlayerIsControllingPassenger;
         let localControlsHorse = localCanSteerHorse && self.horseSaddled();
 
-        if self.newPosRotationIncrements > 0 && !localControlsBoat && !localCanSteerHorse {
+        let isDragon = matches!(
+            &self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "ender_dragon"
+        );
+        // EntityDragon performs the remote interpolation inside its own
+        // onLivingUpdate *after* recording the current pose into ringBuffer.
+        if self.newPosRotationIncrements > 0 && !localControlsBoat && !localCanSteerHorse && !isDragon {
             let increments = self.newPosRotationIncrements as f64;
             let x = self.entity.posX + (self.interpTargetX - self.entity.posX) / increments;
             let y = self.entity.posY + (self.interpTargetY - self.entity.posY) / increments;
@@ -1634,8 +1753,22 @@ impl EntityOtherClient {
         if self.hurtTime > 0 { self.hurtTime -= 1; }
         if self.hurtResistantTime > 0 { self.hurtResistantTime -= 1; }
         if self.health <= 0.0 && self.isLivingBase() {
-            self.deathTime = self.deathTime.saturating_add(1);
-            if self.deathTime >= 20 { self.entity.isDead = true; }
+            if isDragon {
+                // EntityDragon overrides EntityLivingBase#onDeathUpdate. Its
+                // 200-tick death sequence is server-authoritative; the remote
+                // client keeps rendering until SPacketDestroyEntities arrives.
+                self.dragonDeathTicks = self.dragonDeathTicks.saturating_add(1);
+                self.entity.setPosition(
+                    self.entity.posX,
+                    self.entity.posY + 0.10000000149011612,
+                    self.entity.posZ,
+                );
+                self.entity.rotationYaw += 20.0;
+                self.renderYawOffset = self.entity.rotationYaw;
+            } else {
+                self.deathTime = self.deathTime.saturating_add(1);
+                if self.deathTime >= 20 { self.entity.isDead = true; }
+            }
         }
         self.entity.firstUpdate = false;
     }
@@ -2071,6 +2204,113 @@ impl EntityOtherClient {
         }
     }
 
+    fn updateSquidAnimationState(&mut self, world: &WorldClient) {
+        // Direct remote-side subset of MCP EntitySquid#onLivingUpdate. The
+        // server owns randomMotionVec and therefore motion packets; the client
+        // owns only the visible interpolation/orientation state below.
+        self.entity.handleWaterMovement(world);
+        self.squidPrevPitch = self.squidPitch;
+        self.squidPrevYaw = self.squidYaw;
+        self.squidPrevRotation = self.squidRotation;
+        self.squidLastTentacleAngle = self.squidTentacleAngle;
+        self.squidRotation += self.squidRotationVelocity;
+
+        if self.squidRotation as f64 > std::f64::consts::TAU {
+            // world.isRemote branch: wait for server status opcode 19.
+            self.squidRotation = std::f32::consts::TAU;
+        }
+
+        if self.entity.inWater {
+            if self.squidRotation < std::f32::consts::PI {
+                let f = self.squidRotation / std::f32::consts::PI;
+                self.squidTentacleAngle = (f * f * std::f32::consts::PI).sin()
+                    * std::f32::consts::PI * 0.25;
+                if f as f64 > 0.75 {
+                    self.squidRandomMotionSpeed = 1.0;
+                    self.squidRotateSpeed = 1.0;
+                } else {
+                    self.squidRotateSpeed *= 0.8;
+                }
+            } else {
+                self.squidTentacleAngle = 0.0;
+                self.squidRandomMotionSpeed *= 0.9;
+                self.squidRotateSpeed *= 0.99;
+            }
+            let horizontal = (self.entity.motionX * self.entity.motionX
+                + self.entity.motionZ * self.entity.motionZ).sqrt() as f32;
+            self.renderYawOffset += (
+                -(self.entity.motionX.atan2(self.entity.motionZ) as f32).to_degrees()
+                    - self.renderYawOffset
+            ) * 0.1;
+            self.entity.rotationYaw = self.renderYawOffset;
+            self.squidYaw += std::f32::consts::PI * self.squidRotateSpeed * 1.5;
+            self.squidPitch += (
+                -(horizontal as f64).atan2(self.entity.motionY) as f32 * (180.0 / std::f32::consts::PI)
+                    - self.squidPitch
+            ) * 0.1;
+        } else {
+            self.squidTentacleAngle = self.squidRotation.sin().abs() * std::f32::consts::PI * 0.25;
+            self.squidPitch += (-90.0 - self.squidPitch) * 0.02;
+        }
+    }
+
+    fn updateDragonAnimationState(&mut self) {
+        // Direct client branch of EntityDragon#onLivingUpdate, excluding phase
+        // particle/sound side effects. It preserves the animation clock,
+        // ring-buffer write order and remote interpolation used by ModelDragon.
+        self.dragonPrevAnimTime = self.dragonAnimTime;
+        // MCP EntityDragon#onLivingUpdate places yaw wrapping, AI/ring-buffer
+        // maintenance and remote interpolation inside the health>0 branch.
+        // Once dead, only the death particle/onDeathUpdate path remains active.
+        if self.health <= 0.0 {
+            return;
+        }
+        let horizontal = (self.entity.motionX * self.entity.motionX
+            + self.entity.motionZ * self.entity.motionZ).sqrt() as f32;
+        let mut increment = 0.2 / (horizontal * 10.0 + 1.0);
+        increment *= (2.0_f64.powf(self.entity.motionY)) as f32;
+        if self.dragonPhaseStationary() {
+            self.dragonAnimTime += 0.1;
+        } else if self.dragonSlowed {
+            self.dragonAnimTime += increment * 0.5;
+        } else {
+            self.dragonAnimTime += increment;
+        }
+
+        self.entity.rotationYaw = wrap_degrees_f64(self.entity.rotationYaw as f64) as f32;
+        let aiDisabled = (self.dataManager.byte(11, 0) & 0x01) != 0;
+        if aiDisabled {
+            self.dragonAnimTime = 0.5;
+            return;
+        }
+
+        if self.dragonRingBufferIndex < 0 {
+            for entry in &mut self.dragonRingBuffer {
+                entry[0] = self.entity.rotationYaw as f64;
+                entry[1] = self.entity.posY;
+            }
+        }
+        self.dragonRingBufferIndex += 1;
+        if self.dragonRingBufferIndex == 64 { self.dragonRingBufferIndex = 0; }
+        let index = self.dragonRingBufferIndex as usize;
+        self.dragonRingBuffer[index][0] = self.entity.rotationYaw as f64;
+        self.dragonRingBuffer[index][1] = self.entity.posY;
+
+        if self.newPosRotationIncrements > 0 {
+            let increments = self.newPosRotationIncrements as f64;
+            let x = self.entity.posX + (self.interpTargetX - self.entity.posX) / increments;
+            let y = self.entity.posY + (self.interpTargetY - self.entity.posY) / increments;
+            let z = self.entity.posZ + (self.interpTargetZ - self.entity.posZ) / increments;
+            let yawDelta = wrap_degrees_f64(self.interpTargetYaw - self.entity.rotationYaw as f64);
+            self.entity.rotationYaw = (self.entity.rotationYaw as f64 + yawDelta / increments) as f32;
+            self.entity.rotationPitch = (self.entity.rotationPitch as f64
+                + (self.interpTargetPitch - self.entity.rotationPitch as f64) / increments) as f32;
+            self.newPosRotationIncrements -= 1;
+            self.entity.setPosition(x, y, z);
+        }
+        self.renderYawOffset = self.entity.rotationYaw;
+    }
+
     fn updatePassiveAnimationState(&mut self, world: &WorldClient) {
         let registryName = match &self.kind {
             ClientEntityKind::Mob { entityType } => entityType.registryName,
@@ -2081,6 +2321,12 @@ impl EntityOtherClient {
         }
         if matches!(registryName, "guardian" | "elder_guardian") {
             self.updateGuardianAnimationState(world);
+        }
+        if registryName == "squid" {
+            self.updateSquidAnimationState(world);
+        }
+        if registryName == "ender_dragon" {
+            self.updateDragonAnimationState();
         }
         if registryName == "shulker" {
             self.updateShulkerAnimationState();
@@ -2983,6 +3229,9 @@ fn entity_size(kind: &ClientEntityKind) -> (f32, f32) {
             "llama" => (0.9, 1.87),
             "spider" => (1.4, 0.9),
             "cave_spider" => (0.7, 0.5),
+            "enderman" => (0.6, 2.9),
+            "squid" => (0.8, 0.8),
+            "ender_dragon" => (16.0, 8.0),
             "creeper" => (0.6, 1.7),
             "ghast" => (4.0, 4.0),
             "guardian" => (0.85, 0.85),
@@ -3059,6 +3308,41 @@ mod tests {
     fn object_values_match_handle_spawn_object() {
         assert_eq!(ObjectSpawnType::fromPacketType(78), ObjectSpawnType::ArmorStand);
         assert_eq!(ObjectSpawnType::fromPacketType(90), ObjectSpawnType::FishHook);
+    }
+
+    #[test]
+    fn enderman_squid_and_dragon_use_exact_source_dimensions() {
+        for (id, expected) in [
+            (58, (0.6, 2.9)),
+            (94, (0.8, 0.8)),
+            (63, (16.0, 8.0)),
+        ] {
+            let kind = ClientEntityKind::Mob { entityType: MobEntityType::fromId(id).unwrap() };
+            assert_eq!(entity_size(&kind), expected);
+            let entity = EntityOtherClient::new(id, None, kind, 0.0, 64.0, 0.0, 0.0, 0.0);
+            assert_eq!((entity.entity.width, entity.entity.height), expected);
+            if id == 58 {
+                assert!((entity.eyeHeight() - 2.55).abs() < f32::EPSILON);
+            } else if id == 94 {
+                assert!((entity.eyeHeight() - 0.4).abs() < f32::EPSILON);
+            }
+        }
+    }
+
+    #[test]
+    fn dead_dragon_stops_living_ring_buffer_but_runs_source_death_motion() {
+        let world = WorldClient::new(1);
+        let kind = ClientEntityKind::Mob { entityType: MobEntityType::fromId(63).unwrap() };
+        let mut dragon = EntityOtherClient::new(63, None, kind, 4.0, 70.0, -3.0, 25.0, 0.0);
+        dragon.dragonRingBufferIndex = 7;
+        dragon.health = 0.0;
+        let old_y = dragon.entity.posY;
+        let old_yaw = dragon.entity.rotationYaw;
+        dragon.onUpdate(&world, None);
+        assert_eq!(dragon.dragonRingBufferIndex, 7);
+        assert_eq!(dragon.dragonDeathTicks, 1);
+        assert!((dragon.entity.posY - (old_y + 0.10000000149011612)).abs() < 1.0e-12);
+        assert!((dragon.entity.rotationYaw - (old_yaw + 20.0)).abs() < 1.0e-5);
     }
 
     #[test]

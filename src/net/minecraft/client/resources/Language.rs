@@ -51,6 +51,13 @@ impl PartialEq for Language {
 
 impl Eq for Language {}
 
+/// MCP `Language#hashCode`: language code only, matching `equals`.
+impl std::hash::Hash for Language {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.languageCode.hash(state);
+    }
+}
+
 /// MCP `Language#compareTo`: language code ordering (the TreeSet the
 /// LanguageManager exposes sorts by it).
 impl PartialOrd for Language {

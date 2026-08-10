@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 use std::ffi::{CStr, CString};
 use std::ptr::NonNull;
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, Context};
 use ash::{khr, vk, Device, Entry, Instance};
@@ -15,7 +16,8 @@ use crate::vulkan::SwapchainPolicy::choose_swapchain;
 use crate::vulkan::VulkanWorldRenderer::WorldRenderFrame;
 use crate::vulkan::WorldGpuPipeline::WorldGpuPipeline;
 
-const MAX_FRAMES_IN_FLIGHT: usize = 2;
+const DEFAULT_FRAMES_IN_FLIGHT: usize = 2;
+const PERFORMANCE_FRAMES_IN_FLIGHT: usize = 3;
 
 struct QueueFamilies {
     graphics: u32,
@@ -62,11 +64,22 @@ pub struct VulkanWindow {
     synchronization: Vec<FrameSynchronization>,
     imagesInFlight: Vec<vk::Fence>,
     currentFrame: usize,
+    framesInFlight: usize,
     enableVsync: bool,
     worldPipeline: Option<WorldGpuPipeline>,
     guiPipeline: Option<VulkanGuiPipeline>,
     wideLinesEnabled: bool,
     multiDrawIndirectEnabled: bool,
+    /// RustCraft-style native frame timing. These counters are diagnostics,
+    /// not an alternate scheduler: they expose whether low FPS is dominated by
+    /// fence waits, swapchain acquisition, CPU command recording, or present.
+    worldPerformanceStarted: Instant,
+    worldPerformanceFrames: u64,
+    worldFenceWaitNanos: u128,
+    worldAcquireNanos: u128,
+    worldRecordNanos: u128,
+    worldSubmitNanos: u128,
+    worldPresentNanos: u128,
 }
 
 impl VulkanWindow {
@@ -182,13 +195,31 @@ impl VulkanWindow {
             synchronization: Vec::new(),
             imagesInFlight: Vec::new(),
             currentFrame: 0,
+            framesInFlight: DEFAULT_FRAMES_IN_FLIGHT,
             enableVsync: gameSettings.enableVsync,
             worldPipeline: None,
             guiPipeline: None,
             wideLinesEnabled,
             multiDrawIndirectEnabled,
+            worldPerformanceStarted: Instant::now(),
+            worldPerformanceFrames: 0,
+            worldFenceWaitNanos: 0,
+            worldAcquireNanos: 0,
+            worldRecordNanos: 0,
+            worldSubmitNanos: 0,
+            worldPresentNanos: 0,
         };
         renderer.createSwapchainObjects(window)?;
+        renderer.framesInFlight = choose_frames_in_flight(
+            renderer.enableVsync,
+            renderer.swapchainImages.len(),
+        );
+        log::info!(
+            "Vulkan frame slots: {} (vsync={}, swapchain_images={})",
+            renderer.framesInFlight,
+            renderer.enableVsync,
+            renderer.swapchainImages.len(),
+        );
         renderer.ensureWorldPipeline()?;
         renderer.ensureGuiPipeline()?;
         renderer.createSynchronizationObjects()?;
@@ -251,7 +282,7 @@ impl VulkanWindow {
         };
 
         let imageFence = self.imagesInFlight[imageIndex as usize];
-        if imageFence != vk::Fence::null() {
+        if imageFence != vk::Fence::null() && imageFence != inFlightFence {
             unsafe {
                 self.device
                     .wait_for_fences(&[imageFence], true, u64::MAX)
@@ -353,7 +384,7 @@ impl VulkanWindow {
         };
 
         let imageFence = self.imagesInFlight[imageIndex as usize];
-        if imageFence != vk::Fence::null() {
+        if imageFence != vk::Fence::null() && imageFence != inFlightFence {
             unsafe {
                 self.device
                     .wait_for_fences(&[imageFence], true, u64::MAX)
@@ -444,12 +475,17 @@ impl VulkanWindow {
                 synchronization.inFlightFence,
             )
         };
+        let fenceWaitStarted = Instant::now();
         unsafe {
             self.device
                 .wait_for_fences(&[inFlightFence], true, u64::MAX)
                 .context("failed waiting for Vulkan world frame fence")?;
         }
+        self.worldFenceWaitNanos = self
+            .worldFenceWaitNanos
+            .saturating_add(fenceWaitStarted.elapsed().as_nanos());
 
+        let acquireStarted = Instant::now();
         let acquired = unsafe {
             self.swapchainLoader.acquire_next_image(
                 self.swapchain,
@@ -470,17 +506,25 @@ impl VulkanWindow {
                 ));
             }
         };
+        self.worldAcquireNanos = self
+            .worldAcquireNanos
+            .saturating_add(acquireStarted.elapsed().as_nanos());
 
         let imageFence = self.imagesInFlight[imageIndex as usize];
-        if imageFence != vk::Fence::null() {
+        if imageFence != vk::Fence::null() && imageFence != inFlightFence {
+            let imageFenceStarted = Instant::now();
             unsafe {
                 self.device
                     .wait_for_fences(&[imageFence], true, u64::MAX)
                     .context("failed waiting for world swapchain-image fence")?;
             }
+            self.worldFenceWaitNanos = self
+                .worldFenceWaitNanos
+                .saturating_add(imageFenceStarted.elapsed().as_nanos());
         }
         self.imagesInFlight[imageIndex as usize] = inFlightFence;
 
+        let recordStarted = Instant::now();
         {
             let worldPipeline = self
                 .worldPipeline
@@ -508,8 +552,12 @@ impl VulkanWindow {
                 self.swapchainExtent,
                 frame,
             )?;
+        self.worldRecordNanos = self
+            .worldRecordNanos
+            .saturating_add(recordStarted.elapsed().as_nanos());
         self.imageInitialized[imageIndex as usize] = true;
 
+        let submitStarted = Instant::now();
         unsafe {
             self.device
                 .reset_fences(&[inFlightFence])
@@ -529,6 +577,9 @@ impl VulkanWindow {
                 .queue_submit(self.graphicsQueue, &[submitInfo], inFlightFence)
                 .context("failed submitting Vulkan world draw")?;
         }
+        self.worldSubmitNanos = self
+            .worldSubmitNanos
+            .saturating_add(submitStarted.elapsed().as_nanos());
 
         let swapchains = [self.swapchain];
         let imageIndices = [imageIndex];
@@ -536,6 +587,7 @@ impl VulkanWindow {
             .wait_semaphores(&signalSemaphores)
             .swapchains(&swapchains)
             .image_indices(&imageIndices);
+        let presentStarted = Instant::now();
         let presentSuboptimal = match unsafe {
             self.swapchainLoader
                 .queue_present(self.presentQueue, &presentInfo)
@@ -548,6 +600,32 @@ impl VulkanWindow {
                 ));
             }
         };
+        self.worldPresentNanos = self
+            .worldPresentNanos
+            .saturating_add(presentStarted.elapsed().as_nanos());
+        self.worldPerformanceFrames = self.worldPerformanceFrames.saturating_add(1);
+        let performanceElapsed = self.worldPerformanceStarted.elapsed();
+        if performanceElapsed >= Duration::from_secs(2) {
+            let frames = self.worldPerformanceFrames.max(1) as f64;
+            log::info!(
+                "Vulkan frame pacing: {:.1} fps, frame_slots={}, fence_wait={:.3} ms, acquire={:.3} ms, upload+record={:.3} ms, submit={:.3} ms, present={:.3} ms",
+                self.worldPerformanceFrames as f64
+                    / performanceElapsed.as_secs_f64().max(0.001),
+                self.framesInFlight,
+                self.worldFenceWaitNanos as f64 / frames / 1_000_000.0,
+                self.worldAcquireNanos as f64 / frames / 1_000_000.0,
+                self.worldRecordNanos as f64 / frames / 1_000_000.0,
+                self.worldSubmitNanos as f64 / frames / 1_000_000.0,
+                self.worldPresentNanos as f64 / frames / 1_000_000.0,
+            );
+            self.worldPerformanceStarted = Instant::now();
+            self.worldPerformanceFrames = 0;
+            self.worldFenceWaitNanos = 0;
+            self.worldAcquireNanos = 0;
+            self.worldRecordNanos = 0;
+            self.worldSubmitNanos = 0;
+            self.worldPresentNanos = 0;
+        }
 
         self.currentFrame = (self.currentFrame + 1) % self.synchronization.len();
         if acquireSuboptimal || presentSuboptimal {
@@ -838,7 +916,7 @@ impl VulkanWindow {
     fn createSynchronizationObjects(&mut self) -> anyhow::Result<()> {
         let semaphoreInfo = vk::SemaphoreCreateInfo::default();
         let fenceInfo = vk::FenceCreateInfo::default().flags(vk::FenceCreateFlags::SIGNALED);
-        for _ in 0..MAX_FRAMES_IN_FLIGHT {
+        for _ in 0..self.framesInFlight {
             let imageAvailableSemaphore = unsafe {
                 self.device.create_semaphore(&semaphoreInfo, None)
             }
@@ -858,6 +936,26 @@ impl VulkanWindow {
         Ok(())
     }
 
+    fn reconfigureSynchronizationObjects(&mut self, framesInFlight: usize) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            (1..=PERFORMANCE_FRAMES_IN_FLIGHT).contains(&framesInFlight),
+            "invalid Vulkan frame-slot count {framesInFlight}",
+        );
+        if self.framesInFlight == framesInFlight && self.synchronization.len() == framesInFlight {
+            return Ok(());
+        }
+        unsafe {
+            for synchronization in self.synchronization.drain(..) {
+                self.device.destroy_semaphore(synchronization.imageAvailableSemaphore, None);
+                self.device.destroy_semaphore(synchronization.renderFinishedSemaphore, None);
+                self.device.destroy_fence(synchronization.inFlightFence, None);
+            }
+        }
+        self.framesInFlight = framesInFlight;
+        self.currentFrame = 0;
+        self.createSynchronizationObjects()
+    }
+
     fn ensureGuiPipeline(&mut self) -> anyhow::Result<()> {
         if self.guiPipeline.is_some() || self.swapchain == vk::SwapchainKHR::null() {
             return Ok(());
@@ -868,7 +966,7 @@ impl VulkanWindow {
             &self.swapchainImages,
             self.swapchainFormat,
             self.swapchainExtent,
-            MAX_FRAMES_IN_FLIGHT,
+            PERFORMANCE_FRAMES_IN_FLIGHT,
         )?);
         Ok(())
     }
@@ -885,7 +983,7 @@ impl VulkanWindow {
             &self.swapchainImages,
             self.swapchainFormat,
             self.swapchainExtent,
-            MAX_FRAMES_IN_FLIGHT,
+            PERFORMANCE_FRAMES_IN_FLIGHT,
             self.wideLinesEnabled,
             self.multiDrawIndirectEnabled,
         )?);
@@ -910,6 +1008,19 @@ impl VulkanWindow {
         }
         self.destroySwapchainObjects();
         self.createSwapchainObjects(window)?;
+        let desiredFramesInFlight = choose_frames_in_flight(
+            self.enableVsync,
+            self.swapchainImages.len(),
+        );
+        if desiredFramesInFlight != self.framesInFlight {
+            self.reconfigureSynchronizationObjects(desiredFramesInFlight)?;
+            log::info!(
+                "Vulkan active frame slots changed to {} (vsync={}, swapchain_images={})",
+                self.framesInFlight,
+                self.enableVsync,
+                self.swapchainImages.len(),
+            );
+        }
         if let Some(worldPipeline) = self.worldPipeline.as_mut() {
             worldPipeline.recreate_swapchain_resources(
                 &self.device,
@@ -1004,6 +1115,18 @@ fn findMemoryType(
     })
 }
 
+fn choose_frames_in_flight(enableVsync: bool, swapchainImageCount: usize) -> usize {
+    // Minecraft's render/tick semantics stay entirely on the CPU front end.
+    // This only controls how many native submissions may remain in flight.
+    // Keep the latency-oriented two-slot path with VSync, but allow one extra
+    // slot for unlocked rendering when the swapchain can actually back it.
+    if !enableVsync && swapchainImageCount >= PERFORMANCE_FRAMES_IN_FLIGHT {
+        PERFORMANCE_FRAMES_IN_FLIGHT
+    } else {
+        DEFAULT_FRAMES_IN_FLIGHT.min(swapchainImageCount.max(1))
+    }
+}
+
 unsafe fn selectPhysicalDevice(
     instance: &Instance,
     surfaceLoader: &khr::surface::Instance,
@@ -1052,6 +1175,14 @@ unsafe fn selectPhysicalDevice(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn frame_slot_policy_uses_two_for_vsync_and_three_for_unlocked_triple_buffering() {
+        assert_eq!(choose_frames_in_flight(true, 3), 2);
+        assert_eq!(choose_frames_in_flight(false, 3), 3);
+        assert_eq!(choose_frames_in_flight(false, 2), 2);
+        assert_eq!(choose_frames_in_flight(true, 1), 1);
+    }
 
     #[test]
     fn memory_type_filter_requires_all_requested_flags() {

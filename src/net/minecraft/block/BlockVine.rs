@@ -10,6 +10,23 @@ pub const fn south(state: IBlockState) -> bool { state.getMetadata() & 1 != 0 }
 pub const fn west(state: IBlockState) -> bool { state.getMetadata() & 2 != 0 }
 pub const fn north(state: IBlockState) -> bool { state.getMetadata() & 4 != 0 }
 pub const fn east(state: IBlockState) -> bool { state.getMetadata() & 8 != 0 }
+fn prohibitedSupport(id:i32)->bool{matches!(id,219..=234|138|118|20|95|29|33|34|96|167)}
+fn canAttach<A:IBlockAccess>(world:&A,pos:BlockPos,direction:EnumFacing)->bool{
+    let state=world.getBlockState(pos);
+    state.getBlockFaceShape(world,pos,direction)==BlockFaceShape::SOLID&&!prohibitedSupport(state.getBlockId())
+}
+/// MCP `BlockVine#canPlaceBlockOnSide`/`func_193395_a`.
+pub fn canPlaceBlockOnSide<A:IBlockAccess>(world:&A,pos:BlockPos,side:EnumFacing)->bool{
+    if matches!(side,EnumFacing::Down|EnumFacing::Up){return false;}
+    let above=world.getBlockState(pos.up(1));
+    canAttach(world,pos.offset(side.opposite(),1),side)&&(above.isAir()||above.getBlockId()==106||canAttach(world,pos.up(1),EnumFacing::Up))
+}
+/// MCP `BlockVine#onBlockPlaced` metadata form.
+pub fn onBlockPlacedState(side:EnumFacing)->IBlockState{
+    let meta=match side{EnumFacing::North=>1,EnumFacing::South=>4,EnumFacing::West=>8,EnumFacing::East=>2,_=>0};
+    IBlockState::fromGlobalStateId((106<<4)|meta)
+}
+
 
 /// MCP `BlockVine#getActualState`: UP is derived from the lower face of the
 /// block above and is not serialized in legacy metadata.

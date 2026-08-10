@@ -1,5 +1,5 @@
 use crate::net::minecraft::block::Block::Block;
-use crate::net::minecraft::block::{BlockEndPortalFrame, BlockLadder, BlockRailBase, BlockTorch, BlockTrapDoor};
+use crate::net::minecraft::block::{BlockAnvil, BlockButton, BlockEndPortalFrame, BlockGlazedTerracotta, BlockLadder, BlockLever, BlockLog, BlockPumpkin, BlockQuartz, BlockRailBase, BlockRotatedPillar, BlockStairs, BlockTorch, BlockTrapDoor, BlockEndRod, BlockVine};
 use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
@@ -8,6 +8,7 @@ use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::util::EnumActionResult::EnumActionResult;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 /// Source-owned Minecraft 1.12.2 `ItemBlock` client interaction path. The
 /// preview is intentionally limited to block families whose placement state is
@@ -138,6 +139,82 @@ impl ItemBlock {
         })
     }
 
+
+    /// Server-authoritative counterpart of the source-backed placement preview.
+    /// This uses only placement rules already ported from MCP; unsupported
+    /// concrete onBlockPlaced/onBlockPlacedBy families return None rather than
+    /// fabricating a state.
+    pub fn serverPlacementState<A: IBlockAccess>(
+        world: &A,
+        pos: BlockPos,
+        mut side: EnumFacing,
+        hitY: f32,
+        stack: &ItemStack,
+        placerYaw: f32,
+        poweredAtTarget: Option<bool>,
+    ) -> Option<ItemBlockPlacement> {
+        let block = Self::getBlock(stack)?;
+        let clicked = world.getBlockState(pos);
+        let target = if clicked.getBlockId() == 78 {
+            side = EnumFacing::Up;
+            pos
+        } else if isReplaceableState(clicked) {
+            pos
+        } else {
+            pos.offset(side, 1)
+        };
+        let blockId = Block::getIdFromBlock(block);
+        let base = IBlockState::fromGlobalStateId(blockId << 4);
+        let state = if BlockTorch::isBlockTorch(base) {
+            if !BlockTorch::canPlaceBlockAt(world, target) { return None; }
+            BlockTorch::onBlockPlacedState(blockId, world, target, side)
+        } else if BlockLadder::isBlockLadder(base) {
+            if !BlockLadder::canPlaceBlockOnSide(world, target, side) { return None; }
+            BlockLadder::onBlockPlacedState(world, target, side)
+        } else if BlockRailBase::isRailBlock(base) {
+            if !BlockRailBase::canPlaceBlockAt(world, target) { return None; }
+            BlockRailBase::onBlockPlacedState(blockId, stack.itemDamage as i32)
+        } else if BlockStairs::isBlockStairs(base) {
+            BlockStairs::onBlockPlacedState(blockId, side, hitY, placerYaw)
+        } else if BlockLog::isBlockLog(base) {
+            BlockLog::onBlockPlacedState(blockId, itemBlockMetadata(stack, blockId), side)
+        } else if BlockEndRod::isBlockEndRod(base) {
+            BlockEndRod::onBlockPlacedState(world, target, side)
+        } else if BlockPumpkin::isBlockPumpkin(base) {
+            BlockPumpkin::onBlockPlacedState(blockId, placerYaw)
+        } else if BlockGlazedTerracotta::isBlockGlazedTerracotta(base) {
+            BlockGlazedTerracotta::onBlockPlacedState(blockId, placerYaw)
+        } else if BlockRotatedPillar::isSimpleRotatedPillar(base) {
+            BlockRotatedPillar::onBlockPlacedState(blockId, side)
+        } else if BlockQuartz::isBlockQuartz(base) {
+            BlockQuartz::onBlockPlacedState(side, itemBlockMetadata(stack, blockId))
+        } else if BlockAnvil::isBlockAnvil(base) {
+            BlockAnvil::onBlockPlacedState(placerYaw, stack.itemDamage)
+        } else if BlockButton::isBlockButton(base) {
+            if !BlockButton::canPlaceBlock(world,target,side) { return None; }
+            BlockButton::onBlockPlacedState(blockId,world,target,side)
+        } else if BlockLever::isBlockLever(base) {
+            if !EnumFacing::VALUES.into_iter().any(|f|BlockButton::canPlaceBlock(world,target,f)){return None;}
+            BlockLever::onBlockPlacedState(world,target,side,placerYaw)
+        } else if BlockVine::isBlockVine(base) {
+            if !BlockVine::canPlaceBlockOnSide(world,target,side){return None;}
+            BlockVine::onBlockPlacedState(side)
+        } else if BlockEndPortalFrame::BlockEndPortalFrame::isBlockEndPortalFrame(base) {
+            let facing = EnumFacing::fromAngle(placerYaw as f64).opposite();
+            let meta = facing.horizontalIndex().unwrap_or(2) as i32;
+            IBlockState::fromGlobalStateId((blockId << 4) | meta)
+        } else if BlockTrapDoor::isBlockTrapDoor(base) {
+            let powered = poweredAtTarget?;
+            let horizontal = EnumFacing::fromAngle(placerYaw as f64);
+            BlockTrapDoor::onBlockPlacedState(blockId, side, hitY, horizontal, powered)
+        } else if usesDefaultPlacementState(blockId) {
+            IBlockState::fromGlobalStateId((blockId << 4) | itemBlockMetadata(stack, blockId))
+        } else {
+            return None;
+        };
+        Some(ItemBlockPlacement { pos: target, state, sourceItemId: stack.itemId, sourceItemDamage: stack.itemDamage })
+    }
+
     /// `ItemBlock#onItemUse` returns SUCCESS after all edit/may-place checks,
     /// even if the subsequent client-side setBlockState does not change the
     /// server-authoritative world. This function deliberately predicts only
@@ -160,10 +237,21 @@ impl ItemBlock {
     }
 }
 
+
+/// MCP `Block#isReplaceable` for the source-confirmed vanilla overrides used
+/// by ItemBlock placement. Shared by client prediction and server authority.
+pub const fn isReplaceableState(state: IBlockState) -> bool {
+    match state.getBlockId() {
+        0 | 31 | 32 | 106 => true,
+        78 => state.getMetadata() & 7 == 0,
+        _ => false,
+    }
+}
+
 /// Exact `Item#getMetadata` behavior needed by the default-placement subset.
 /// ItemLeaves is the one included subclass that adds a persistent bit; ordinary
 /// subtype ItemBlocks pass item damage through and base ItemBlock returns zero.
-fn itemBlockMetadata(stack: &ItemStack, blockId: i32) -> i32 {
+pub(crate) fn itemBlockMetadata(stack: &ItemStack, blockId: i32) -> i32 {
     let damage = stack.itemDamage.max(0) as i32;
     match blockId {
         18 | 161 => (damage | 4) & 15, // ItemLeaves#getMetadata
@@ -176,7 +264,7 @@ fn itemBlockMetadata(stack: &ItemStack, blockId: i32) -> i32 {
 /// concrete class's `onBlockPlaced`/`onBlockPlacedBy`, and Item.java's
 /// registerItemBlock calls. Directional, powered, layered, slab and multi-block
 /// families remain in their concrete ports rather than receiving guessed meta.
-const fn usesDefaultPlacementState(blockId: i32) -> bool {
+pub(crate) const fn usesDefaultPlacementState(blockId: i32) -> bool {
     matches!(
         blockId,
         1..=5

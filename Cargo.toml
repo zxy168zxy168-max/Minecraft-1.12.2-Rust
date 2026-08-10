@@ -1,9 +1,9 @@
 [package]
 name = "minecraft-1-12-2-rust-vulkan"
-version = "0.112.1"
+version = "0.127.0"
 edition = "2021"
 rust-version = "1.77"
-license-file = "LICENSE"
+license = "Proprietary"
 default-run = "mc112-client"
 
 [lib]
@@ -25,6 +25,7 @@ cipher = "0.4"
 num-bigint = "0.4"
 rand = "0.8"
 rayon = "1.10"
+rustc-hash = "2.1"
 rsa = "0.9"
 ureq = { version = "2.12", features = ["json", "cookies"] }
 url = "2.5"

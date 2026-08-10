@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::launcher::OptionsFile::{OptionsFile, OptionsFileError};
 use crate::launcher::RenderBackend::RenderBackend;
+use crate::net::minecraft::client::settings::KeyBinding::{vanilla_key_bindings, KeyBinding, KeyBindingId};
 
 use crate::net::minecraft::entity::player::EntityPlayer::EnumChatVisibility;
 use crate::net::minecraft::entity::player::EnumPlayerModelParts::EnumPlayerModelParts;
@@ -48,6 +49,12 @@ pub struct GameSettings {
     pub entityShadows: bool,
     pub attackIndicator: i32,
     pub autoJump: bool,
+    #[serde(default)]
+    pub touchscreen: bool,
+    /// MCP/OptiFine 1.12.2 key binding table. Codes remain in LWJGL 2
+    /// `options.txt` integer space so existing vanilla configurations load unchanged.
+    #[serde(default = "vanilla_key_bindings")]
+    pub keyBindings: Vec<KeyBinding>,
     pub showSubtitles: bool,
     /// MCP transient debug overlay switches. Vanilla does not serialize these three fields.
     pub showDebugInfo: bool,
@@ -189,6 +196,11 @@ impl GameSettings {
         )
         .clamp(0, 2);
         settings.autoJump = read_bool(&options, "autoJump", settings.autoJump);
+        settings.touchscreen = read_bool(&options, "touchscreen", settings.touchscreen);
+        for binding in &mut settings.keyBindings {
+            let optionKey = format!("key_{}", binding.keyDescription);
+            binding.keyCode = read_i32(&options, &optionKey, binding.keyCode);
+        }
         settings.showSubtitles = read_bool(&options, "showSubtitles", settings.showSubtitles);
         settings.reducedDebugInfo = read_bool(&options, "reducedDebugInfo", settings.reducedDebugInfo);
         settings.advancedItemTooltips = read_bool(&options, "advancedItemTooltips", settings.advancedItemTooltips);
@@ -294,6 +306,10 @@ impl GameSettings {
         options.set("entityShadows", self.entityShadows.to_string());
         options.set("attackIndicator", self.attackIndicator.to_string());
         options.set("autoJump", self.autoJump.to_string());
+        options.set("touchscreen", self.touchscreen.to_string());
+        for binding in &self.keyBindings {
+            options.set(format!("key_{}", binding.keyDescription), binding.keyCode.to_string());
+        }
         options.set("showSubtitles", self.showSubtitles.to_string());
         options.set("reducedDebugInfo", self.reducedDebugInfo.to_string());
         options.set("advancedItemTooltips", self.advancedItemTooltips.to_string());
@@ -355,6 +371,35 @@ impl GameSettings {
         fs::write(&temporary, options.render())?;
         if path.exists() { fs::remove_file(&path)?; }
         fs::rename(temporary, path)
+    }
+
+    pub fn keyBinding(&self, id: KeyBindingId) -> &KeyBinding {
+        &self.keyBindings[id.index()]
+    }
+
+    pub fn keyBindingMut(&mut self, id: KeyBindingId) -> &mut KeyBinding {
+        &mut self.keyBindings[id.index()]
+    }
+
+    pub fn setOptionKeyBinding(&mut self, id: KeyBindingId, keyCode: i32) {
+        self.keyBindingMut(id).setKeyCode(keyCode);
+    }
+
+    /// Resolve a physical LWJGL key code through the current binding table.
+    /// Later entries win on conflicts, matching the overwrite behavior of
+    /// Minecraft 1.12.2 `KeyBinding.HASH#addKey` during registration.
+    pub fn keyBindingIdForCode(&self, keyCode: i32) -> Option<KeyBindingId> {
+        if keyCode == 0 { return None; }
+        KeyBindingId::ALL.iter().rev().copied().find(|id| {
+            self.keyBinding(*id).keyCode == keyCode
+        })
+    }
+
+    pub fn resetAllKeyBindings(&mut self) {
+        for binding in &mut self.keyBindings {
+            binding.keyCode = binding.keyCodeDefault;
+            binding.unpressKey();
+        }
     }
 
     pub fn getSoundLevel(&self, category: SoundCategory) -> f32 {
@@ -473,6 +518,8 @@ impl Default for GameSettings {
             entityShadows: true,
             attackIndicator: 1,
             autoJump: true,
+            touchscreen: false,
+            keyBindings: vanilla_key_bindings(),
             showSubtitles: false,
             showDebugInfo: false,
             showDebugProfilerChart: false,
@@ -597,6 +644,9 @@ mod tests {
                 "entityShadows:false\n",
                 "attackIndicator:2\n",
                 "autoJump:false\n",
+                "touchscreen:true\n",
+                "key_key.forward:44\n",
+                "key_key.attack:-98\n",
                 "forceSprint:true\n",
                 "guiScale:3\n",
                 "lang:zh_cn\n",
@@ -637,6 +687,9 @@ mod tests {
         assert!(!settings.entityShadows);
         assert_eq!(settings.attackIndicator, 2);
         assert!(!settings.autoJump);
+        assert!(settings.touchscreen);
+        assert_eq!(settings.keyBinding(KeyBindingId::Forward).keyCode, 44);
+        assert_eq!(settings.keyBinding(KeyBindingId::Attack).keyCode, -98);
         assert!(settings.forceSprint);
         assert_eq!(settings.guiScale, 3);
         assert_eq!(settings.language, "zh_cn");
@@ -661,6 +714,18 @@ mod tests {
         assert_eq!(settings.renderBackend, RenderBackend::OpenGl);
 
         fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn key_binding_resolution_matches_registration_overwrite_semantics() {
+        let mut settings = GameSettings::default();
+        // OptiFine 1.12.2 appends Zoom (C/46) after vanilla Save Toolbar,
+        // so initial KeyBinding.HASH registration resolves C to Zoom.
+        assert_eq!(settings.keyBindingIdForCode(46), Some(KeyBindingId::OptifineZoom));
+        settings.setOptionKeyBinding(KeyBindingId::Forward, 44);
+        assert_eq!(settings.keyBindingIdForCode(44), Some(KeyBindingId::Forward));
+        settings.setOptionKeyBinding(KeyBindingId::Forward, 0);
+        assert_eq!(settings.keyBindingIdForCode(0), None);
     }
 
     #[test]
@@ -719,6 +784,9 @@ mod tests {
         assert!(saved.contains("unknownModOption:keep-me\n"));
         assert!(saved.contains("lastServer:localhost:25565\n"));
         assert!(saved.contains("forceSprint:true\n"));
+        assert!(saved.contains("key_key.forward:17\n"));
+        assert!(saved.contains("key_key.attack:-100\n"));
+        assert!(saved.contains("touchscreen:false\n"));
         assert!(saved.contains("version:1343\n"));
         assert!(saved.contains("renderClouds:true\n"));
         assert!(saved.contains("resourcePacks:[\"Vanilla Test.zip\",\"Folder Pack\"]\n"));

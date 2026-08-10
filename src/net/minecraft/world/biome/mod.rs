@@ -1,2 +1,11 @@
 #[path = "Biome.rs"] pub mod Biome;
 #[path = "BiomeColorHelper.rs"] pub mod BiomeColorHelper;
+#[path = "BiomeProviderSingle.rs"] pub mod BiomeProviderSingle;
+#[path = "BiomeCache.rs"] pub mod BiomeCache;
+#[path = "BiomeProviderKind.rs"] pub mod BiomeProviderKind;
+#[path = "BiomeProvider.rs"] pub mod BiomeProvider;
+pub mod BiomeHills;
+pub mod BiomeTaiga;
+pub mod BiomeSwamp;
+pub mod BiomeSavannaMutated;
+pub mod BiomeMesa;
