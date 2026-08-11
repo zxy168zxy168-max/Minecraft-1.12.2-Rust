@@ -27,6 +27,7 @@
 #[path = "GuiIngame.rs"] pub mod GuiIngame;
 #[path = "GuiIngameMenu.rs"] pub mod GuiIngameMenu;
 #[path = "GuiGameOver.rs"] pub mod GuiGameOver;
+#[path = "GuiWinGame.rs"] pub mod GuiWinGame;
 
 #[path = "GuiRepair.rs"] pub mod GuiRepair;
 #[path = "GuiEnchantment.rs"] pub mod GuiEnchantment;

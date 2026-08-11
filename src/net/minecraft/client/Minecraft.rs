@@ -58,6 +58,7 @@ use crate::net::minecraft::client::gui::GuiTextField::{GuiTextField, GuiTextFiel
 use crate::net::minecraft::client::gui::GuiChat::GuiChat;
 use crate::net::minecraft::client::gui::GuiIngameMenu::{GuiIngameMenu, GuiIngameMenuAction};
 use crate::net::minecraft::client::gui::GuiGameOver::{GuiGameOver, GuiGameOverAction};
+use crate::net::minecraft::client::gui::GuiWinGame::GuiWinGame;
 use crate::net::minecraft::client::gui::GuiNewChat::GuiNewChat;
 use crate::net::minecraft::client::gui::GuiYesNo::GuiYesNo;
 use crate::net::minecraft::client::multiplayer::GuiConnecting::{GuiConnecting, GuiConnectingAction, GuiConnectingEvent};
@@ -409,6 +410,8 @@ enum WorldGuiScreen {
         parent: Box<GuiGameOver>,
         screen: GuiYesNo,
     },
+    /// MCP `GuiWinGame`: the end-credits scroll after conquering the End.
+    WinGame(GuiWinGame),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -490,6 +493,10 @@ enum RuntimeGuiAction {
     FinishSignEditor,
     OpenGameOver(crate::net::minecraft::util::text::ITextComponent::ITextComponent),
     RespawnPlayer,
+    /// `SPacketChangeGameState(4, 1)`: open the end-credits `GuiWinGame`.
+    OpenWinGame,
+    /// `SPacketChangeGameState(4, 0)`: respawn immediately (credits seen).
+    AutoRespawn,
     OpenDeathQuitConfirm,
     ConfirmDeathQuit(bool),
     LeaveWorldToMainMenu,
@@ -936,6 +943,10 @@ impl MainMenuRuntime {
             Some(WorldGuiScreen::GameOverConfirm { screen, .. }) => {
                 screen.initGui(width, height, &self.fontRendererObj);
             }
+            Some(WorldGuiScreen::WinGame(screen)) => {
+                screen.initGui(width, height, &minecraft.resourceManager,
+                    minecraft.session.getProfile().getName(), &mut self.fontRendererObj);
+            }
             None => {}
         }
     }
@@ -1123,6 +1134,23 @@ impl MainMenuRuntime {
         connection.sendPlayPackets(vec![packet])?;
         self.pendingWorldMouseFocus = Some(true);
         Ok(())
+    }
+
+    /// `Minecraft#displayGuiScreen(new GuiWinGame(true, ...))` from
+    /// `NetHandlerPlayClient#handleChangeGameState` game state 4 value 1.
+    fn openWinGame(&mut self, minecraft: &Minecraft) {
+        if !self.isWorld() { return; }
+        let mut screen = GuiWinGame::new(true);
+        screen.initGui(
+            self.scaledResolution.scaled_width(),
+            self.scaledResolution.scaled_height(),
+            &minecraft.resourceManager,
+            minecraft.session.getProfile().getName(),
+            &mut self.fontRendererObj,
+        );
+        self.worldGuiScreen = Some(WorldGuiScreen::WinGame(screen));
+        self.clearMovementKeys();
+        self.pendingWorldMouseFocus = Some(false);
     }
 
     fn openGameOver(&mut self, message: crate::net::minecraft::util::text::ITextComponent::ITextComponent) {
@@ -4092,6 +4120,10 @@ impl MainMenuRuntime {
         framebufferWidth: u32,
         framebufferHeight: u32,
         partialTicks: f32,
+        // MCP `Timer` frame-interval fraction (frameInterval / tickLength)
+        // used by animation time accumulation such as `GuiWinGame#time`; the
+        // render interpolation uses `partialTicks` (tick residual) instead.
+        frameIntervalTicks: f32,
         debugFps: i32,
         graphicsDevice: &str,
         renderBackend: crate::launcher::RenderBackend::RenderBackend,
@@ -4229,6 +4261,10 @@ impl MainMenuRuntime {
                     ),
                     WorldGuiScreen::GameOverConfirm { screen, .. } => screen.drawScreenInWorld(
                         &mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks,
+                    ),
+                    WorldGuiScreen::WinGame(screen) => screen.drawScreen(
+                        &mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks,
+                        frameIntervalTicks,
                     ),
                 }
                 drawList
@@ -4574,7 +4610,9 @@ impl MainMenuRuntime {
                         | GuiConnectingEvent::LoginSuccess(_)
                         | GuiConnectingEvent::TerrainReady
                         | GuiConnectingEvent::Respawn { .. }
-                        | GuiConnectingEvent::PlayerDied(_) => {}
+                        | GuiConnectingEvent::PlayerDied(_)
+                        | GuiConnectingEvent::WinGame
+                        | GuiConnectingEvent::AutoRespawn => {}
                         GuiConnectingEvent::WorldEffect { effectType, position, data, serverWide } => {
                             pendingWorldEffects.push((effectType, position, data, serverWide));
                         }
@@ -4620,6 +4658,14 @@ impl MainMenuRuntime {
                             action = Some(RuntimeGuiAction::OpenGameOver(message));
                             break;
                         }
+                        GuiConnectingEvent::WinGame => {
+                            action = Some(RuntimeGuiAction::OpenWinGame);
+                            break;
+                        }
+                        GuiConnectingEvent::AutoRespawn => {
+                            action = Some(RuntimeGuiAction::AutoRespawn);
+                            break;
+                        }
                         GuiConnectingEvent::Sound { sound, category, x, y, z, volume, pitch } => {
                             pendingNetworkSounds.push((sound, category, x, y, z, volume, pitch));
                         }
@@ -4637,6 +4683,13 @@ impl MainMenuRuntime {
                         Some(WorldGuiScreen::EditSign(screen)) => screen.updateScreen(),
                         Some(WorldGuiScreen::GameOver(screen)) => screen.updateScreen(),
                         Some(WorldGuiScreen::GameOverConfirm { screen, .. }) => screen.updateScreen(),
+                        // `GuiWinGame#updateScreen` finishes the credits
+                        // scroll: its Runnable sends PERFORM_RESPAWN.
+                        Some(WorldGuiScreen::WinGame(screen)) => {
+                            if screen.updateScreen() {
+                                action = Some(RuntimeGuiAction::RespawnPlayer);
+                            }
+                        }
                         _ => {}
                     }
                     // Keep the edited text mirrored into the live tile entity after
@@ -5039,6 +5092,9 @@ impl MainMenuRuntime {
                         playGuiSound(soundHandler, Some(&interaction.sound));
                         RuntimeGuiAction::ConfirmDeathQuit(interaction.result)
                     }),
+                // `GuiWinGame` has no buttons; the credits finish by the
+                // scroll (`updateScreen`) or Escape.
+                Some(WorldGuiScreen::WinGame(_)) => None,
                 None => None,
             };
         }
@@ -5786,6 +5842,10 @@ struct MinecraftApplication {
     timerAccumulator: f32,
     /// MCP `Timer#lastSyncSysClock`: time of the last `updateTimer`.
     lastTimerSync: Instant,
+    /// Time of the last rendered frame; animation time accumulation
+    /// (`GuiWinGame#time`) uses the frame interval in ticks (MCP `Timer`
+    /// frame-interval semantics) so it stays at 20 TPS at any frame rate.
+    lastRenderFrame: Instant,
     pendingResizeSince: Option<Instant>,
     keyboardModifiers: ModifiersState,
     worldMouseGrabbed: bool,
@@ -5810,7 +5870,7 @@ impl MinecraftApplication {
         Self {
             minecraft: Some(minecraft), renderer: None, window: None, mainMenu: None, fatalError: None,
             redrawPending: false, nextFrameDeadline: Instant::now(), timerAccumulator: 0.0,
-            lastTimerSync: Instant::now(),
+            lastTimerSync: Instant::now(), lastRenderFrame: Instant::now(),
             pendingResizeSince: None, keyboardModifiers: ModifiersState::empty(), worldMouseGrabbed: false,
             windowFocused: true,
             debugFps: 0,
@@ -6703,6 +6763,18 @@ impl MinecraftApplication {
                 }
                 self.setWorldMouseGrabbed(true);
             }
+            RuntimeGuiAction::OpenWinGame => {
+                let minecraft = self.minecraft.as_ref().expect("Minecraft state");
+                self.mainMenu.as_mut().expect("GUI runtime").openWinGame(minecraft);
+                self.setWorldMouseGrabbed(false);
+            }
+            RuntimeGuiAction::AutoRespawn => {
+                let result = self.mainMenu.as_mut().expect("GUI runtime").respawnPlayer();
+                if let Err(message) = result {
+                    log::error!("failed sending CPacketClientStatus(PERFORM_RESPAWN): {message}");
+                }
+                self.setWorldMouseGrabbed(true);
+            }
             RuntimeGuiAction::OpenDeathQuitConfirm => {
                 self.mainMenu.as_mut().expect("GUI runtime").openDeathQuitConfirm();
                 self.setWorldMouseGrabbed(false);
@@ -6874,6 +6946,7 @@ impl ApplicationHandler for MinecraftApplication {
         self.nextFrameDeadline = now;
         self.timerAccumulator = 0.0;
         self.lastTimerSync = now;
+        self.lastRenderFrame = now;
         self.requestRedraw();
     }
 
@@ -7560,7 +7633,10 @@ impl ApplicationHandler for MinecraftApplication {
                             }
                             Some(WorldGuiScreen::EditSign(_)) => RuntimeGuiAction::FinishSignEditor,
                             Some(WorldGuiScreen::GameOver(_))
-                            | Some(WorldGuiScreen::GameOverConfirm { .. }) => RuntimeGuiAction::None,
+                            | Some(WorldGuiScreen::GameOverConfirm { .. })
+                            // `GuiWinGame#keyTyped(1)`: Escape sends
+                            // PERFORM_RESPAWN immediately.
+                            | Some(WorldGuiScreen::WinGame(_)) => RuntimeGuiAction::RespawnPlayer,
                             None => RuntimeGuiAction::OpenIngameMenu,
                         };
                         handled = true;
@@ -7632,10 +7708,17 @@ impl ApplicationHandler for MinecraftApplication {
                                 extent.width,
                                 extent.height,
                                 partialTicks,
+                                // MCP `Timer`: animation time accumulates the
+                                // frame interval in ticks, independent of the
+                                // interpolation residual, so it stays at the
+                                // fixed 20 TPS on any frame rate.
+                                (frameStarted.duration_since(self.lastRenderFrame).as_secs_f32() * 20.0)
+                                    .min(1.0),
                                 self.debugFps,
                                 &graphicsDevice,
                                 renderer.backend(),
                             );
+                            self.lastRenderFrame = frameStarted;
                             let prepareElapsed = prepareStarted.elapsed();
                             let renderStarted = Instant::now();
                             let mut worldFrame = false;
