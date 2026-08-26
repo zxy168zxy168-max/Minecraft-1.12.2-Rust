@@ -59,6 +59,10 @@ pub enum GuiConnectingEvent {
         data: i32,
         serverWide: bool,
     },
+    /// `SPacketChangeGameState(4, 1)`: open the end-credits `GuiWinGame`.
+    WinGame,
+    /// `SPacketChangeGameState(4, 0)`: respawn immediately (credits seen).
+    AutoRespawn,
     Disconnected(String),
     Failed { reasonKey: &'static str, message: String },
     Cancelled,
@@ -208,7 +212,9 @@ impl GuiConnecting {
                 GuiConnectingEvent::Respawn { .. }
                 | GuiConnectingEvent::PlayerDied(_)
                 | GuiConnectingEvent::Sound { .. }
-                | GuiConnectingEvent::WorldEffect { .. } => {},
+                | GuiConnectingEvent::WorldEffect { .. }
+                | GuiConnectingEvent::WinGame
+                | GuiConnectingEvent::AutoRespawn => {},
                 GuiConnectingEvent::JoinGame(_)
                 | GuiConnectingEvent::Disconnected(_)
                 | GuiConnectingEvent::Failed { .. }
@@ -456,6 +462,12 @@ fn spawn_connector(
                         Ok(PlayHandlerEvent::PlayerDied { message }) => {
                             let _ = sender.send(GuiConnectingEvent::PlayerDied(message));
                         }
+                        Ok(PlayHandlerEvent::WinGame) => {
+                            let _ = sender.send(GuiConnectingEvent::WinGame);
+                        }
+                        Ok(PlayHandlerEvent::AutoRespawn) => {
+                            let _ = sender.send(GuiConnectingEvent::AutoRespawn);
+                        }
                         Ok(PlayHandlerEvent::Sound { sound, category, x, y, z, volume, pitch }) => {
                             let _ = sender.send(GuiConnectingEvent::Sound {
                                 sound, category, x, y, z, volume, pitch,
@@ -570,6 +582,8 @@ fn spawn_local_connector(
                     Ok(PlayHandlerEvent::Respawn{dimension,dimensionChanged})=>{let _=sender.send(GuiConnectingEvent::Respawn{dimension,dimensionChanged});},
                     Ok(PlayHandlerEvent::TerrainReady)=>{let _=sender.send(GuiConnectingEvent::TerrainReady);},
                     Ok(PlayHandlerEvent::PlayerDied{message})=>{let _=sender.send(GuiConnectingEvent::PlayerDied(message));},
+                    Ok(PlayHandlerEvent::WinGame)=>{let _=sender.send(GuiConnectingEvent::WinGame);},
+                    Ok(PlayHandlerEvent::AutoRespawn)=>{let _=sender.send(GuiConnectingEvent::AutoRespawn);},
                     Ok(PlayHandlerEvent::Sound{sound,category,x,y,z,volume,pitch})=>{let _=sender.send(GuiConnectingEvent::Sound{sound,category,x,y,z,volume,pitch});},
                     Ok(PlayHandlerEvent::WorldEffect{effectType,position,data,serverWide})=>{let _=sender.send(GuiConnectingEvent::WorldEffect{effectType,position,data,serverWide});},
                     Ok(PlayHandlerEvent::Disconnected(reason))=>{let _=sender.send(GuiConnectingEvent::Disconnected(reason.getFormattedText().to_owned()));return;},

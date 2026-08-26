@@ -1276,7 +1276,9 @@ impl WorldClient {
                     true
                 } else { false }
             }
-            "minecraft:end_portal" | "Airportal" if blockId == 119 => {
+            "minecraft:end_portal" | "Airportal" | "minecraft:end_gateway"
+                if matches!(blockId, 119 | 209) =>
+            {
                 if let Some(tile) = TileEntityEndPortal::fromNbt(tag) {
                     self.endPortalTileEntities.insert(pos, tile);
                     true
@@ -1498,10 +1500,14 @@ impl WorldClient {
         } else {
             self.enchantmentTableTileEntities.remove(&pos);
         }
-        if block_id == 119 {
+        if matches!(block_id, 119 | 209) {
             self.endPortalTileEntities
                 .entry(pos)
-                .or_insert_with(|| TileEntityEndPortal::new(pos));
+                .or_insert_with(|| if block_id == 209 {
+                    TileEntityEndPortal::new_gateway(pos)
+                } else {
+                    TileEntityEndPortal::new(pos)
+                });
         } else {
             self.endPortalTileEntities.remove(&pos);
         }

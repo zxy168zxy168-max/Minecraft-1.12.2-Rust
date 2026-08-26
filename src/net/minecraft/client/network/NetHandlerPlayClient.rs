@@ -1234,6 +1234,11 @@ pub enum PlayHandlerEvent {
     TimeUpdated { totalWorldTime: i64, worldTime: i64 },
     SignEditorOpened { position: BlockPos },
     TileEntityUpdated { position: BlockPos, action: u8, applied: bool },
+    /// `SPacketChangeGameState(4, 1)`: the end-credits `GuiWinGame` opens and
+    /// sends `CPacketClientStatus(PERFORM_RESPAWN)` when it finishes.
+    WinGame,
+    /// `SPacketChangeGameState(4, 0)`: credits already seen, respawn directly.
+    AutoRespawn,
     Disconnected(ITextComponent),
     IgnoredPacket(i32),
 }
@@ -3053,6 +3058,17 @@ impl NetHandlerPlayClient {
                     if let Some(player) = state.thePlayer.as_mut() {
                         gameType.configurePlayerCapabilities(&mut player.capabilities);
                     }
+                });
+            }
+            4 => {
+                // MCP `NetHandlerPlayClient#handleChangeGameState` game state 4:
+                // `EntityPlayerMP` announces the end-credits on leaving the End.
+                // Value 0 (credits already seen) respawns immediately, value 1
+                // opens `GuiWinGame`, whose Runnable sends PERFORM_RESPAWN.
+                return Ok(if (packet.getValue() + 0.5).floor() as i32 == 0 {
+                    PlayHandlerEvent::AutoRespawn
+                } else {
+                    PlayHandlerEvent::WinGame
                 });
             }
             7 => self.sharedState.update(|state| {
