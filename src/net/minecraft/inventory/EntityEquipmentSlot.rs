@@ -101,7 +101,10 @@ mod tests {
     fn ordinals_match_mcp_declaration_order() {
         for (ordinal, slot) in EntityEquipmentSlot::ALL.into_iter().enumerate() {
             assert_eq!(slot.networkOrdinal(), ordinal as i32);
-            assert_eq!(EntityEquipmentSlot::fromNetworkOrdinal(ordinal as i32).unwrap(), slot);
+            assert_eq!(
+                EntityEquipmentSlot::fromNetworkOrdinal(ordinal as i32).unwrap(),
+                slot
+            );
         }
     }
 }

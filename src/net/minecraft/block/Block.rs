@@ -1,7 +1,7 @@
-use crate::net::minecraft::block::BlockMiningData::{BLOCK_HARDNESS, TOOL_NOT_REQUIRED};
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
+use crate::net::minecraft::block::BlockMiningData::{BLOCK_HARDNESS, TOOL_NOT_REQUIRED};
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
+use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 
 /// Registry identity used by protocol 340. MCP `Block.registerBlocks` stores
 /// block states as `(block registry id << 4) | metadata`.
@@ -12,11 +12,21 @@ pub struct Block {
 }
 
 impl Block {
-    pub const fn new(registryId: u16, registryName: &'static str) -> Self { Self { registryId, registryName } }
-    pub const fn getIdFromBlock(block: Block) -> i32 { block.registryId as i32 }
+    pub const fn new(registryId: u16, registryName: &'static str) -> Self {
+        Self {
+            registryId,
+            registryName,
+        }
+    }
+    pub const fn getIdFromBlock(block: Block) -> i32 {
+        block.registryId as i32
+    }
     pub fn getBlockById(id: i32) -> Block {
         let id = id.clamp(0, 255) as usize;
-        match BLOCK_NAMES[id] { Some(name) => Block::new(id as u16, name), None => AIR }
+        match BLOCK_NAMES[id] {
+            Some(name) => Block::new(id as u16, name),
+            None => AIR,
+        }
     }
     pub fn getBlockFromName(name: &str) -> Option<Block> {
         let location = ResourceLocation::parse(name);
@@ -36,11 +46,21 @@ impl Block {
         let registryName = BLOCK_NAMES.get(id).and_then(|entry| *entry)?;
         Some(Block::new(id as u16, registryName))
     }
-    pub fn getStateById(id: i32) -> IBlockState { IBlockState::fromGlobalStateId(id) }
-    pub const fn getStateId(state: IBlockState) -> i32 { state.getGlobalStateId() }
-    pub fn getRegistryName(self) -> ResourceLocation { ResourceLocation::new("minecraft", self.registryName) }
-    pub const fn getRegistryPath(self) -> &'static str { self.registryName }
-    pub const fn isAir(self) -> bool { self.registryId == 0 }
+    pub fn getStateById(id: i32) -> IBlockState {
+        IBlockState::fromGlobalStateId(id)
+    }
+    pub const fn getStateId(state: IBlockState) -> i32 {
+        state.getGlobalStateId()
+    }
+    pub fn getRegistryName(self) -> ResourceLocation {
+        ResourceLocation::new("minecraft", self.registryName)
+    }
+    pub const fn getRegistryPath(self) -> &'static str {
+        self.registryName
+    }
+    pub const fn isAir(self) -> bool {
+        self.registryId == 0
+    }
 
     /// Registry bridge for MCP `IBlockState#getMaterial().isSolid()`.  The
     /// default Material implementation is solid; only blocks constructed from
@@ -62,7 +82,6 @@ impl Block {
     pub const fn materialBlocksMovement(self) -> bool {
         self.materialIsSolid() && self.registryId != 30
     }
-
 
     /// Source-owned client prediction for 1.12.2 blocks whose
     /// `onBlockActivated` returns true on the remote client without requiring
@@ -103,23 +122,49 @@ impl Block {
     }
 
     /// Exact MCP 1.12.2 default-state `Block.blockHardness` for protocol IDs.
-    pub const fn getBlockHardness(self) -> f32 { BLOCK_HARDNESS[self.registryId as usize] }
+    pub const fn getBlockHardness(self) -> f32 {
+        BLOCK_HARDNESS[self.registryId as usize]
+    }
 
     /// Exact MCP `IBlockState.getMaterial().isToolNotRequired()` result used by
     /// `InventoryPlayer.canHarvestBlock`.
-    pub const fn isToolNotRequired(self) -> bool { TOOL_NOT_REQUIRED[self.registryId as usize] }
+    pub const fn isToolNotRequired(self) -> bool {
+        TOOL_NOT_REQUIRED[self.registryId as usize]
+    }
 
     /// MCP `Block#getLightOpacity(IBlockState)` default/vanilla constructor values.
     /// The base constructor uses 255 for an opaque default cube and 0 otherwise;
     /// the explicit 1.12.2 constructor/registerBlocks overrides are listed here.
     pub const fn getLightOpacity(self) -> i32 {
         match self.registryId as i32 {
-            8 | 9 | 79 | 212 => 3,                    // water, ice, frosted ice
-            18 | 30 | 161 => 1,                       // leaves/web/leaves2
-            78 | 116 | 145 | 171 => 0,                // snow layer, enchant table, anvil, carpet
-            43 | 44 | 53 | 60 | 67 | 108 | 109 | 114 | 125 | 126 | 128
-            | 134..=136 | 156 | 163 | 164 | 180..=182 | 203..=205 | 208 => 255,
-            _ => if self.isOpaqueCube() { 255 } else { 0 },
+            8 | 9 | 79 | 212 => 3,     // water, ice, frosted ice
+            18 | 30 | 161 => 1,        // leaves/web/leaves2
+            78 | 116 | 145 | 171 => 0, // snow layer, enchant table, anvil, carpet
+            43
+            | 44
+            | 53
+            | 60
+            | 67
+            | 108
+            | 109
+            | 114
+            | 125
+            | 126
+            | 128
+            | 134..=136
+            | 156
+            | 163
+            | 164
+            | 180..=182
+            | 203..=205
+            | 208 => 255,
+            _ => {
+                if self.isOpaqueCube() {
+                    255
+                } else {
+                    0
+                }
+            }
         }
     }
 
@@ -147,23 +192,25 @@ impl Block {
             self.isSlab()
                 || matches!(
                     self.registryId as i32,
-                    53 | 60 | 67 | 108 | 109 | 114 | 128 | 134..=136 | 156 | 163 | 164
-                        | 180 | 203 | 208
+                    53 | 60 | 67 | 108 | 109 | 114 | 128 | 134
+                        ..=136 | 156 | 163 | 164 | 180 | 203 | 208
                 )
                 || !self.isOpaqueCube()
         }
     }
 
     pub const fn isSlab(self) -> bool {
-        matches!(self.registryId as i32, 43 | 44 | 125 | 126 | 181 | 182 | 204 | 205)
+        matches!(
+            self.registryId as i32,
+            43 | 44 | 125 | 126 | 181 | 182 | 204 | 205
+        )
     }
 
     /// Exact block-family exclusion in MCP `Block.func_193384_b`.
     pub const fn func_193384_b(self) -> bool {
         matches!(
             self.registryId as i32,
-            18 | 79 | 89 | 95 | 96 | 118 | 138 | 161 | 167 | 169 | 219..=234
-                | 20
+            18 | 79 | 89 | 95 | 96 | 118 | 138 | 161 | 167 | 169 | 219..=234 | 20
         )
     }
 
@@ -176,8 +223,7 @@ impl Block {
     pub const fn canProvidePower(self) -> bool {
         matches!(
             self.registryId as i32,
-            28 | 55 | 69 | 70 | 72 | 75 | 76 | 77 | 93 | 94 | 131 | 143
-                | 146..=152 | 178 | 218
+            28 | 55 | 69 | 70 | 72 | 75 | 76 | 77 | 93 | 94 | 131 | 143 | 146..=152 | 178 | 218
         )
     }
 
@@ -191,10 +237,11 @@ impl Block {
             34 => meta & 7 == 1,                       // BlockPistonExtension
             43 | 125 | 181 | 204 => true,              // double slabs
             44 | 126 | 182 | 205 => meta & 8 != 0,     // top single slabs
-            53 | 67 | 108 | 109 | 114 | 128 | 134..=136 | 156 | 163 | 164
-            | 180 | 203 => meta & 4 != 0,               // top stairs
-            78 => meta & 7 == 7,                        // eight snow layers
-            154 => true,                                // hopper override
+            53 | 67 | 108 | 109 | 114 | 128 | 134..=136 | 156 | 163 | 164 | 180 | 203 => {
+                meta & 4 != 0
+            } // top stairs
+            78 => meta & 7 == 7,                       // eight snow layers
+            154 => true,                               // hopper override
             _ => self.isOpaqueCube(),
         }
     }
@@ -214,10 +261,37 @@ impl Block {
 
         match id {
             // MCP classes returning NULL_AABB for entity collision.
-            0 | 6 | 8..=11 | 27 | 28 | 30..=32 | 36..=40 | 50 | 51 | 55 | 59
-            | 63 | 66 | 68 | 69 | 75..=77 | 83 | 90 | 104..=106 | 115 | 119
-            | 127 | 131 | 132 | 141..=143 | 157 | 175..=177 | 193..=197 | 207
-            | 209 | 217 => Vec::new(),
+            0
+            | 6
+            | 8..=11
+            | 27
+            | 28
+            | 30..=32
+            | 36..=40
+            | 50
+            | 51
+            | 55
+            | 59
+            | 63
+            | 66
+            | 68
+            | 69
+            | 75..=77
+            | 83
+            | 90
+            | 104..=106
+            | 115
+            | 119
+            | 127
+            | 131
+            | 132
+            | 141..=143
+            | 157
+            | 175..=177
+            | 193..=197
+            | 207
+            | 209
+            | 217 => Vec::new(),
 
             26 => one(0.0, 0.0, 0.0, 1.0, 0.5625, 1.0), // BlockBed
 
@@ -232,8 +306,7 @@ impl Block {
 
             // Base straight stair shape from BlockStairs. The neighbour-driven
             // inner/outer quarter and eighth boxes are not yet applied.
-            53 | 67 | 108 | 109 | 114 | 128 | 134..=136 | 156 | 163 | 164
-            | 180 | 203 => {
+            53 | 67 | 108 | 109 | 114 | 128 | 134..=136 | 156 | 163 | 164 | 180 | 203 => {
                 let top = meta & 4 != 0;
                 let mut boxes = if top {
                     vec![AxisAlignedBB::new(0.0, 0.5, 0.0, 1.0, 1.0, 1.0)]
@@ -253,14 +326,16 @@ impl Block {
             54 | 130 | 146 => one(0.0625, 0.0, 0.0625, 0.9375, 0.875, 0.9375),
             60 | 208 => one(0.0, 0.0, 0.0, 1.0, 0.9375, 1.0),
 
-            65 => match meta { // BlockLadder#getStateFromMeta
+            65 => match meta {
+                // BlockLadder#getStateFromMeta
                 0..=2 => one(0.0, 0.0, 0.8125, 1.0, 1.0, 1.0),
                 3 => one(0.0, 0.0, 0.0, 1.0, 1.0, 0.1875),
                 4 => one(0.8125, 0.0, 0.0, 1.0, 1.0, 1.0),
                 _ => one(0.0, 0.0, 0.0, 0.1875, 1.0, 1.0),
             },
 
-            70 | 72 => { // BlockPressurePlate
+            70 | 72 => {
+                // BlockPressurePlate
                 let height = if meta == 0 { 0.0625 } else { 0.03125 };
                 one(0.0625, 0.0, 0.0625, 0.9375, height, 0.9375)
             }
@@ -273,7 +348,8 @@ impl Block {
             }
             93 | 94 | 149 | 150 => one(0.0, 0.0, 0.0, 1.0, 0.125, 1.0),
 
-            96 | 167 => { // BlockTrapDoor legacy metadata
+            96 | 167 => {
+                // BlockTrapDoor legacy metadata
                 if meta & 4 != 0 {
                     match meta & 3 {
                         0 => one(0.0, 0.0, 0.8125, 1.0, 1.0, 1.0),
@@ -322,15 +398,29 @@ impl Block {
                 AxisAlignedBB::new(0.0, 0.0, 0.875, 1.0, 1.0, 1.0),
             ],
             171 => one(0.0, 0.0, 0.0, 1.0, 0.0625, 1.0),
-            198 => match (meta & 7) % 6 { // BlockEndRod / EnumFacing.getFront
+            198 => match (meta & 7) % 6 {
+                // BlockEndRod / EnumFacing.getFront
                 2 | 3 => one(0.375, 0.375, 0.0, 0.625, 0.625, 1.0),
                 4 | 5 => one(0.0, 0.375, 0.375, 1.0, 0.625, 0.625),
                 _ => one(0.375, 0.0, 0.375, 0.625, 1.0, 0.625),
             },
 
             // Actual-state / tile-entity dependent shapes are not guessed.
-            34 | 64 | 71 | 85 | 101 | 102 | 107 | 113 | 120 | 122 | 139
-            | 144 | 160 | 183..=192 | 199..=200 => Vec::new(),
+            34
+            | 64
+            | 71
+            | 85
+            | 101
+            | 102
+            | 107
+            | 113
+            | 120
+            | 122
+            | 139
+            | 144
+            | 160
+            | 183..=192
+            | 199..=200 => Vec::new(),
 
             _ => full(),
         }
@@ -359,7 +449,6 @@ impl Block {
             _ => 0.6,
         }
     }
-
 }
 
 pub const AIR: Block = Block::new(0, "air");
@@ -620,42 +709,66 @@ pub static BLOCK_NAMES: [Option<&'static str>; 256] = [
     Some("concrete_powder"),
     None,
     None,
-    Some("structure_block")
+    Some("structure_block"),
 ];
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test] fn registry_ids_match_mcp_registration() {
+    #[test]
+    fn registry_ids_match_mcp_registration() {
         assert_eq!(Block::getBlockById(1).getRegistryPath(), "stone");
-        assert_eq!(Block::getBlockById(255).getRegistryPath(), "structure_block");
-        assert_eq!(Block::getBlockFromName("minecraft:grass").map(Block::getIdFromBlock), Some(2));
-        assert_eq!(Block::getBlockFromName("2").map(Block::getIdFromBlock), Some(2));
+        assert_eq!(
+            Block::getBlockById(255).getRegistryPath(),
+            "structure_block"
+        );
+        assert_eq!(
+            Block::getBlockFromName("minecraft:grass").map(Block::getIdFromBlock),
+            Some(2)
+        );
+        assert_eq!(
+            Block::getBlockFromName("2").map(Block::getIdFromBlock),
+            Some(2)
+        );
         assert!(Block::getBlockFromName("999").is_none());
     }
-    #[test] fn state_id_is_block_id_shifted_by_four_plus_meta() {
+    #[test]
+    fn state_id_is_block_id_shifted_by_four_plus_meta() {
         let state = Block::getStateById((17 << 4) | 5);
         assert_eq!(state.getBlockId(), 17);
         assert_eq!(state.getMetadata(), 5);
         assert_eq!(Block::getStateId(state), (17 << 4) | 5);
     }
-    #[test] fn random_tick_registry_matches_vanilla_registered_classes() {
+    #[test]
+    fn random_tick_registry_matches_vanilla_registered_classes() {
         let expected = [
-            2, 6, 8, 9, 10, 11, 18, 28, 31, 32, 37, 38, 39, 40, 50, 51, 59, 60,
-            70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 83, 86, 90, 91, 92, 104,
-            105, 106, 110, 111, 115, 127, 131, 132, 141, 142, 143, 147, 148, 161,
-            171, 175, 200, 207, 212, 213,
+            2, 6, 8, 9, 10, 11, 18, 28, 31, 32, 37, 38, 39, 40, 50, 51, 59, 60, 70, 72, 73, 74, 75,
+            76, 77, 78, 79, 80, 81, 83, 86, 90, 91, 92, 104, 105, 106, 110, 111, 115, 127, 131,
+            132, 141, 142, 143, 147, 148, 161, 171, 175, 200, 207, 212, 213,
         ];
         for id in 0..=255 {
-            assert_eq!(Block::getBlockById(id).getTickRandomly(), expected.contains(&id), "block id {id}");
+            assert_eq!(
+                Block::getBlockById(id).getTickRandomly(),
+                expected.contains(&id),
+                "block id {id}"
+            );
         }
     }
-    #[test] fn unconditional_client_activations_consume_itemblock_clicks() {
-        for id in [23, 25, 26, 54, 64, 69, 77, 96, 107, 122, 130, 143, 149, 151, 219, 234] {
-            assert!(Block::getBlockById(id).predictsActivationSuccess(), "block id {id}");
+    #[test]
+    fn unconditional_client_activations_consume_itemblock_clicks() {
+        for id in [
+            23, 25, 26, 54, 64, 69, 77, 96, 107, 122, 130, 143, 149, 151, 219, 234,
+        ] {
+            assert!(
+                Block::getBlockById(id).predictsActivationSuccess(),
+                "block id {id}"
+            );
         }
         for id in [1, 46, 84, 92, 118, 140, 255] {
-            assert!(!Block::getBlockById(id).predictsActivationSuccess(), "conditional/non-activating id {id}");
+            assert!(
+                !Block::getBlockById(id).predictsActivationSuccess(),
+                "conditional/non-activating id {id}"
+            );
         }
     }
 }

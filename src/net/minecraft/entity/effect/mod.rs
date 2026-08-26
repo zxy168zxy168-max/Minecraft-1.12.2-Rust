@@ -1,1 +1,2 @@
-#[path = "EntityLightningBolt.rs"] pub mod EntityLightningBolt;
+#[path = "EntityLightningBolt.rs"]
+pub mod EntityLightningBolt;

@@ -43,9 +43,13 @@ impl TileEntitySign {
         Some(sign)
     }
 
-    pub const fn getIsEditable(&self) -> bool { self.isEditable }
+    pub const fn getIsEditable(&self) -> bool {
+        self.isEditable
+    }
 
-    pub fn setEditable(&mut self, editable: bool) { self.isEditable = editable; }
+    pub fn setEditable(&mut self, editable: bool) {
+        self.isEditable = editable;
+    }
 }
 
 #[cfg(test)]

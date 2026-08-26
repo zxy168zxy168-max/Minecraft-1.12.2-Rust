@@ -1,8 +1,13 @@
-use crate::net::minecraft::network::PacketBuffer::{read_i64_be, read_u8, read_var_i32, write_i64_be, write_var_i32, CodecError};
+use crate::net::minecraft::network::PacketBuffer::{
+    read_i64_be, read_u8, read_var_i32, write_i64_be, write_var_i32, CodecError,
+};
 use crate::net::minecraft::util::BitArray::BitArray;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Palette { Local(Vec<i32>), Registry }
+pub enum Palette {
+    Local(Vec<i32>),
+    Registry,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockStateContainer {
@@ -12,7 +17,9 @@ pub struct BlockStateContainer {
 }
 
 impl Default for BlockStateContainer {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl BlockStateContainer {
@@ -29,21 +36,36 @@ impl BlockStateContainer {
         let bits = if packetBits <= 4 { 4 } else { packetBits };
         let palette = if bits <= 8 {
             let count = read_var_i32(buf)?;
-            if count < 0 { return Err(CodecError::NegativeLength(count)); }
+            if count < 0 {
+                return Err(CodecError::NegativeLength(count));
+            }
             let mut entries = Vec::with_capacity(count as usize);
-            for _ in 0..count { entries.push(read_var_i32(buf)?); }
+            for _ in 0..count {
+                entries.push(read_var_i32(buf)?);
+            }
             Palette::Local(entries)
-        } else { Palette::Registry };
+        } else {
+            Palette::Registry
+        };
         let longCount = read_var_i32(buf)?;
-        if longCount < 0 { return Err(CodecError::NegativeLength(longCount)); }
+        if longCount < 0 {
+            return Err(CodecError::NegativeLength(longCount));
+        }
         let mut longs = Vec::with_capacity(longCount as usize);
-        for _ in 0..longCount { longs.push(read_i64_be(buf)? as u64); }
-        let storage = BitArray::fromBacking(bits, 4096, longs)
-            .map_err(CodecError::InvalidData)?;
-        Ok(Self { storage, palette, bits })
+        for _ in 0..longCount {
+            longs.push(read_i64_be(buf)? as u64);
+        }
+        let storage = BitArray::fromBacking(bits, 4096, longs).map_err(CodecError::InvalidData)?;
+        Ok(Self {
+            storage,
+            palette,
+            bits,
+        })
     }
 
-    const fn getIndex(x: usize, y: usize, z: usize) -> usize { y << 8 | z << 4 | x }
+    const fn getIndex(x: usize, y: usize, z: usize) -> usize {
+        y << 8 | z << 4 | x
+    }
 
     pub fn getGlobalStateId(&self, x: usize, y: usize, z: usize) -> i32 {
         self.getGlobalStateIdAt(Self::getIndex(x, y, z))
@@ -59,12 +81,20 @@ impl BlockStateContainer {
 
     /// Mutable equivalent of MCP `BlockStateContainer.set`. Palette growth and
     /// the transition to the global registry preserve the Java container rules.
-    pub fn setGlobalStateId(&mut self, x: usize, y: usize, z: usize, stateId: i32) -> Result<i32, String> {
+    pub fn setGlobalStateId(
+        &mut self,
+        x: usize,
+        y: usize,
+        z: usize,
+        stateId: i32,
+    ) -> Result<i32, String> {
         self.setGlobalStateIdAt(Self::getIndex(x, y, z), stateId)
     }
 
     pub fn setGlobalStateIdAt(&mut self, index: usize, stateId: i32) -> Result<i32, String> {
-        if index >= 4096 { return Err(format!("index out of bounds: {index}")); }
+        if index >= 4096 {
+            return Err(format!("index out of bounds: {index}"));
+        }
         let stateId = stateId.max(0);
         let old = self.getGlobalStateIdAt(index);
         let paletteIndex = match &mut self.palette {
@@ -90,7 +120,9 @@ impl BlockStateContainer {
     }
 
     fn resizeForState(&mut self, stateId: i32) -> Result<u32, String> {
-        let oldValues = (0..4096).map(|index| self.getGlobalStateIdAt(index)).collect::<Vec<_>>();
+        let oldValues = (0..4096)
+            .map(|index| self.getGlobalStateIdAt(index))
+            .collect::<Vec<_>>();
         if self.bits < 8 {
             let mut entries = match &self.palette {
                 Palette::Local(entries) => entries.clone(),
@@ -101,12 +133,20 @@ impl BlockStateContainer {
             self.palette = Palette::Local(entries.clone());
             self.storage = BitArray::new(self.bits, 4096)?;
             for (index, value) in oldValues.into_iter().enumerate() {
-                let paletteIndex = entries.iter().position(|entry| *entry == value).unwrap_or(0) as u32;
+                let paletteIndex = entries
+                    .iter()
+                    .position(|entry| *entry == value)
+                    .unwrap_or(0) as u32;
                 self.storage.setAt(index, paletteIndex)?;
             }
             Ok((entries.len() - 1) as u32)
         } else {
-            let maximum = oldValues.iter().copied().chain(std::iter::once(stateId)).max().unwrap_or(0) as u32;
+            let maximum = oldValues
+                .iter()
+                .copied()
+                .chain(std::iter::once(stateId))
+                .max()
+                .unwrap_or(0) as u32;
             self.bits = (32 - maximum.leading_zeros()).max(9) as usize;
             self.palette = Palette::Registry;
             self.storage = BitArray::new(self.bits, 4096)?;
@@ -120,7 +160,11 @@ impl BlockStateContainer {
     /// MCP `BlockStateContainer#getDataForNBT`.  Anvil 1.12.2 stores the
     /// global state id as block-id low byte (`Blocks`), metadata (`Data`) and
     /// an optional high block-id nibble (`Add`).
-    pub fn getDataForNBT(&self, blocks: &mut [u8; 4096], data: &mut crate::net::minecraft::world::chunk::NibbleArray::NibbleArray) -> Option<crate::net::minecraft::world::chunk::NibbleArray::NibbleArray> {
+    pub fn getDataForNBT(
+        &self,
+        blocks: &mut [u8; 4096],
+        data: &mut crate::net::minecraft::world::chunk::NibbleArray::NibbleArray,
+    ) -> Option<crate::net::minecraft::world::chunk::NibbleArray::NibbleArray> {
         let mut add: Option<crate::net::minecraft::world::chunk::NibbleArray::NibbleArray> = None;
         for index in 0..4096 {
             let state_id = self.getGlobalStateIdAt(index).max(0);
@@ -129,7 +173,9 @@ impl BlockStateContainer {
             let z = (index >> 4) & 15;
             let high = ((state_id >> 12) & 15) as u8;
             if high != 0 {
-                let add_array = add.get_or_insert_with(crate::net::minecraft::world::chunk::NibbleArray::NibbleArray::new);
+                let add_array = add.get_or_insert_with(
+                    crate::net::minecraft::world::chunk::NibbleArray::NibbleArray::new,
+                );
                 add_array.set(x, y, z, high);
             }
             blocks[index] = ((state_id >> 4) & 255) as u8;
@@ -146,7 +192,10 @@ impl BlockStateContainer {
         add: Option<&crate::net::minecraft::world::chunk::NibbleArray::NibbleArray>,
     ) -> Result<(), String> {
         if blocks.len() != 4096 {
-            return Err(format!("BlockStateContainer Blocks should be 4096 bytes not: {}", blocks.len()));
+            return Err(format!(
+                "BlockStateContainer Blocks should be 4096 bytes not: {}",
+                blocks.len()
+            ));
         }
         // Start from the vanilla minimum local palette just like a freshly
         // constructed container, then let `setGlobalStateIdAt` grow it using
@@ -171,12 +220,16 @@ impl BlockStateContainer {
         match &self.palette {
             Palette::Local(entries) => {
                 write_var_i32(entries.len() as i32, output);
-                for entry in entries { write_var_i32(*entry, output); }
+                for entry in entries {
+                    write_var_i32(*entry, output);
+                }
             }
             Palette::Registry => {}
         }
         write_var_i32(self.storage.getBackingLongArray().len() as i32, output);
-        for value in self.storage.getBackingLongArray() { write_i64_be(*value as i64, output); }
+        for value in self.storage.getBackingLongArray() {
+            write_i64_be(*value as i64, output);
+        }
     }
 
     /// MCP `BlockStateContainer#getSerializedSize`.
@@ -184,17 +237,28 @@ impl BlockStateContainer {
         let palette_size = match &self.palette {
             Palette::Local(entries) => {
                 crate::net::minecraft::network::PacketBuffer::var_i32_size(entries.len() as i32)
-                    + entries.iter().map(|entry| crate::net::minecraft::network::PacketBuffer::var_i32_size(*entry)).sum::<usize>()
+                    + entries
+                        .iter()
+                        .map(|entry| {
+                            crate::net::minecraft::network::PacketBuffer::var_i32_size(*entry)
+                        })
+                        .sum::<usize>()
             }
             Palette::Registry => 0,
         };
         1 + palette_size
-            + crate::net::minecraft::network::PacketBuffer::var_i32_size(self.storage.getBackingLongArray().len() as i32)
+            + crate::net::minecraft::network::PacketBuffer::var_i32_size(
+                self.storage.getBackingLongArray().len() as i32,
+            )
             + self.storage.getBackingLongArray().len() * 8
     }
 
-    pub fn bits(&self) -> usize { self.bits }
-    pub fn palette(&self) -> &Palette { &self.palette }
+    pub fn bits(&self) -> usize {
+        self.bits
+    }
+    pub fn palette(&self) -> &Palette {
+        &self.palette
+    }
 }
 
 #[cfg(test)]
@@ -205,17 +269,23 @@ mod tests {
     fn local_palette_grows_and_preserves_existing_states() {
         let mut container = BlockStateContainer::new();
         for index in 0..20 {
-            container.setGlobalStateIdAt(index, index as i32 + 1).unwrap();
+            container
+                .setGlobalStateIdAt(index, index as i32 + 1)
+                .unwrap();
         }
         assert!(container.bits() >= 5);
-        for index in 0..20 { assert_eq!(container.getGlobalStateIdAt(index), index as i32 + 1); }
+        for index in 0..20 {
+            assert_eq!(container.getGlobalStateIdAt(index), index as i32 + 1);
+        }
     }
 
     #[test]
     fn palette_switches_to_registry_after_eight_bits() {
         let mut container = BlockStateContainer::new();
         for index in 0..300 {
-            container.setGlobalStateIdAt(index, index as i32 + 1).unwrap();
+            container
+                .setGlobalStateIdAt(index, index as i32 + 1)
+                .unwrap();
         }
         assert!(matches!(container.palette(), Palette::Registry));
         assert_eq!(container.getGlobalStateIdAt(299), 300);
@@ -233,7 +303,10 @@ mod tests {
         let mut decoded = BlockStateContainer::new();
         decoded.setDataFromNBT(&blocks, &data, None).unwrap();
         for index in [0, 1, 257, 4095] {
-            assert_eq!(decoded.getGlobalStateIdAt(index), container.getGlobalStateIdAt(index));
+            assert_eq!(
+                decoded.getGlobalStateIdAt(index),
+                container.getGlobalStateIdAt(index)
+            );
         }
     }
 
@@ -243,7 +316,9 @@ mod tests {
         container.setGlobalStateIdAt(42, 0x1234).unwrap();
         let mut blocks = [0_u8; 4096];
         let mut data = crate::net::minecraft::world::chunk::NibbleArray::NibbleArray::new();
-        let add = container.getDataForNBT(&mut blocks, &mut data).expect("high block id needs Add nibble");
+        let add = container
+            .getDataForNBT(&mut blocks, &mut data)
+            .expect("high block id needs Add nibble");
         let x = 42 & 15;
         let y = (42 >> 8) & 15;
         let z = (42 >> 4) & 15;
@@ -254,5 +329,4 @@ mod tests {
         decoded.setDataFromNBT(&blocks, &data, Some(&add)).unwrap();
         assert_eq!(decoded.getGlobalStateIdAt(42), 0x1234);
     }
-
 }

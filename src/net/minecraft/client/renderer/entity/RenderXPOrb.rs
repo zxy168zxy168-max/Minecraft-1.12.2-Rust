@@ -11,17 +11,29 @@ impl RenderXPOrb {
     }
 
     pub const fn getTextureByXP(xpValue: i16) -> i32 {
-        if xpValue >= 2477 { 10 }
-        else if xpValue >= 1237 { 9 }
-        else if xpValue >= 617 { 8 }
-        else if xpValue >= 307 { 7 }
-        else if xpValue >= 149 { 6 }
-        else if xpValue >= 73 { 5 }
-        else if xpValue >= 37 { 4 }
-        else if xpValue >= 17 { 3 }
-        else if xpValue >= 7 { 2 }
-        else if xpValue >= 3 { 1 }
-        else { 0 }
+        if xpValue >= 2477 {
+            10
+        } else if xpValue >= 1237 {
+            9
+        } else if xpValue >= 617 {
+            8
+        } else if xpValue >= 307 {
+            7
+        } else if xpValue >= 149 {
+            6
+        } else if xpValue >= 73 {
+            5
+        } else if xpValue >= 37 {
+            4
+        } else if xpValue >= 17 {
+            3
+        } else if xpValue >= 7 {
+            2
+        } else if xpValue >= 3 {
+            1
+        } else {
+            0
+        }
     }
 
     pub fn textureCoordinates(xpValue: i16) -> [f32; 4] {

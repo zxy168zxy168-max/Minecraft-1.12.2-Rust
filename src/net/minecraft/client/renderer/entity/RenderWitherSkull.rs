@@ -6,7 +6,10 @@ pub struct RenderWitherSkull;
 impl RenderWitherSkull {
     pub fn texture(invulnerable: bool) -> ResourceLocation {
         if invulnerable {
-            ResourceLocation::new("minecraft", "textures/entity/wither/wither_invulnerable.png")
+            ResourceLocation::new(
+                "minecraft",
+                "textures/entity/wither/wither_invulnerable.png",
+            )
         } else {
             ResourceLocation::new("minecraft", "textures/entity/wither/wither.png")
         }
@@ -18,8 +21,12 @@ impl RenderWitherSkull {
 
     pub fn getRenderYaw(previous: f32, current: f32, partialTicks: f32) -> f32 {
         let mut delta = current - previous;
-        while delta < -180.0 { delta += 360.0; }
-        while delta >= 180.0 { delta -= 360.0; }
+        while delta < -180.0 {
+            delta += 360.0;
+        }
+        while delta >= 180.0 {
+            delta -= 360.0;
+        }
         previous + partialTicks * delta
     }
 }

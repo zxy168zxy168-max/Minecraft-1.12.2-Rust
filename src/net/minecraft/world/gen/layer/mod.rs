@@ -1,21 +1,42 @@
-#[path="IntCache.rs"] pub mod IntCache;
-#[path="GenLayer.rs"] pub mod GenLayer;
-#[path="GenLayerIsland.rs"] pub mod GenLayerIsland;
-#[path="GenLayerFuzzyZoom.rs"] pub mod GenLayerFuzzyZoom;
-#[path="GenLayerAddIsland.rs"] pub mod GenLayerAddIsland;
-#[path="GenLayerRemoveTooMuchOcean.rs"] pub mod GenLayerRemoveTooMuchOcean;
-#[path="GenLayerAddSnow.rs"] pub mod GenLayerAddSnow;
-#[path="GenLayerEdge.rs"] pub mod GenLayerEdge;
-#[path="GenLayerZoom.rs"] pub mod GenLayerZoom;
-#[path="GenLayerAddMushroomIsland.rs"] pub mod GenLayerAddMushroomIsland;
-#[path="GenLayerDeepOcean.rs"] pub mod GenLayerDeepOcean;
-#[path="GenLayerRiverInit.rs"] pub mod GenLayerRiverInit;
-#[path="GenLayerBiome.rs"] pub mod GenLayerBiome;
-#[path="GenLayerBiomeEdge.rs"] pub mod GenLayerBiomeEdge;
-#[path="GenLayerHills.rs"] pub mod GenLayerHills;
-#[path="GenLayerRiver.rs"] pub mod GenLayerRiver;
-#[path="GenLayerSmooth.rs"] pub mod GenLayerSmooth;
-#[path="GenLayerRareBiome.rs"] pub mod GenLayerRareBiome;
-#[path="GenLayerShore.rs"] pub mod GenLayerShore;
-#[path="GenLayerRiverMix.rs"] pub mod GenLayerRiverMix;
-#[path="GenLayerVoronoiZoom.rs"] pub mod GenLayerVoronoiZoom;
+#[path = "GenLayer.rs"]
+pub mod GenLayer;
+#[path = "GenLayerAddIsland.rs"]
+pub mod GenLayerAddIsland;
+#[path = "GenLayerAddMushroomIsland.rs"]
+pub mod GenLayerAddMushroomIsland;
+#[path = "GenLayerAddSnow.rs"]
+pub mod GenLayerAddSnow;
+#[path = "GenLayerBiome.rs"]
+pub mod GenLayerBiome;
+#[path = "GenLayerBiomeEdge.rs"]
+pub mod GenLayerBiomeEdge;
+#[path = "GenLayerDeepOcean.rs"]
+pub mod GenLayerDeepOcean;
+#[path = "GenLayerEdge.rs"]
+pub mod GenLayerEdge;
+#[path = "GenLayerFuzzyZoom.rs"]
+pub mod GenLayerFuzzyZoom;
+#[path = "GenLayerHills.rs"]
+pub mod GenLayerHills;
+#[path = "GenLayerIsland.rs"]
+pub mod GenLayerIsland;
+#[path = "GenLayerRareBiome.rs"]
+pub mod GenLayerRareBiome;
+#[path = "GenLayerRemoveTooMuchOcean.rs"]
+pub mod GenLayerRemoveTooMuchOcean;
+#[path = "GenLayerRiver.rs"]
+pub mod GenLayerRiver;
+#[path = "GenLayerRiverInit.rs"]
+pub mod GenLayerRiverInit;
+#[path = "GenLayerRiverMix.rs"]
+pub mod GenLayerRiverMix;
+#[path = "GenLayerShore.rs"]
+pub mod GenLayerShore;
+#[path = "GenLayerSmooth.rs"]
+pub mod GenLayerSmooth;
+#[path = "GenLayerVoronoiZoom.rs"]
+pub mod GenLayerVoronoiZoom;
+#[path = "GenLayerZoom.rs"]
+pub mod GenLayerZoom;
+#[path = "IntCache.rs"]
+pub mod IntCache;

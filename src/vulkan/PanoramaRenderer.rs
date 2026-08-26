@@ -118,16 +118,40 @@ impl PanoramaPassPlan {
             .collect();
 
         let max_dimension = command.screen_width.max(command.screen_height) as f32;
-        let scale = if max_dimension == 0.0 { 0.0 } else { 120.0 / max_dimension };
+        let scale = if max_dimension == 0.0 {
+            0.0
+        } else {
+            120.0 / max_dimension
+        };
         let vertical_extent = command.screen_height as f32 * scale / 256.0;
         let horizontal_extent = command.screen_width as f32 * scale / 256.0;
         let width = command.screen_width as f32;
         let height = command.screen_height as f32;
         let composite = [
-            PanoramaCompositeVertex { x: 0.0, y: height, u: 0.5 - vertical_extent, v: 0.5 + horizontal_extent },
-            PanoramaCompositeVertex { x: width, y: height, u: 0.5 - vertical_extent, v: 0.5 - horizontal_extent },
-            PanoramaCompositeVertex { x: width, y: 0.0, u: 0.5 + vertical_extent, v: 0.5 - horizontal_extent },
-            PanoramaCompositeVertex { x: 0.0, y: 0.0, u: 0.5 + vertical_extent, v: 0.5 + horizontal_extent },
+            PanoramaCompositeVertex {
+                x: 0.0,
+                y: height,
+                u: 0.5 - vertical_extent,
+                v: 0.5 + horizontal_extent,
+            },
+            PanoramaCompositeVertex {
+                x: width,
+                y: height,
+                u: 0.5 - vertical_extent,
+                v: 0.5 - horizontal_extent,
+            },
+            PanoramaCompositeVertex {
+                x: width,
+                y: 0.0,
+                u: 0.5 + vertical_extent,
+                v: 0.5 - horizontal_extent,
+            },
+            PanoramaCompositeVertex {
+                x: 0.0,
+                y: 0.0,
+                u: 0.5 + vertical_extent,
+                v: 0.5 + horizontal_extent,
+            },
         ];
 
         Self {
@@ -139,7 +163,11 @@ impl PanoramaPassPlan {
                 near_plane: 0.05,
                 far_plane: 10.0,
             },
-            base_rotation: EulerRotation { x_degrees: 180.0, y_degrees: 0.0, z_degrees: 90.0 },
+            base_rotation: EulerRotation {
+                x_degrees: 180.0,
+                y_degrees: 0.0,
+                z_degrees: 90.0,
+            },
             depth_write: false,
             culling: false,
             alpha_test: false,
@@ -152,12 +180,36 @@ impl PanoramaPassPlan {
 
 fn face_orientation(face: usize) -> EulerRotation {
     match face {
-        0 => EulerRotation { x_degrees: 0.0, y_degrees: 0.0, z_degrees: 0.0 },
-        1 => EulerRotation { x_degrees: 0.0, y_degrees: 90.0, z_degrees: 0.0 },
-        2 => EulerRotation { x_degrees: 0.0, y_degrees: 180.0, z_degrees: 0.0 },
-        3 => EulerRotation { x_degrees: 0.0, y_degrees: -90.0, z_degrees: 0.0 },
-        4 => EulerRotation { x_degrees: 90.0, y_degrees: 0.0, z_degrees: 0.0 },
-        5 => EulerRotation { x_degrees: -90.0, y_degrees: 0.0, z_degrees: 0.0 },
+        0 => EulerRotation {
+            x_degrees: 0.0,
+            y_degrees: 0.0,
+            z_degrees: 0.0,
+        },
+        1 => EulerRotation {
+            x_degrees: 0.0,
+            y_degrees: 90.0,
+            z_degrees: 0.0,
+        },
+        2 => EulerRotation {
+            x_degrees: 0.0,
+            y_degrees: 180.0,
+            z_degrees: 0.0,
+        },
+        3 => EulerRotation {
+            x_degrees: 0.0,
+            y_degrees: -90.0,
+            z_degrees: 0.0,
+        },
+        4 => EulerRotation {
+            x_degrees: 90.0,
+            y_degrees: 0.0,
+            z_degrees: 0.0,
+        },
+        5 => EulerRotation {
+            x_degrees: -90.0,
+            y_degrees: 0.0,
+            z_degrees: 0.0,
+        },
         _ => panic!("Minecraft panorama has exactly six faces"),
     }
 }
@@ -168,9 +220,9 @@ mod tests {
 
     fn command() -> PanoramaCommand {
         PanoramaCommand {
-            textures: std::array::from_fn(|i| ResourceLocation::parse(format!(
-                "textures/gui/title/background/panorama_{i}.png"
-            ))),
+            textures: std::array::from_fn(|i| {
+                ResourceLocation::parse(format!("textures/gui/title/background/panorama_{i}.png"))
+            }),
             panorama_timer: 80.0,
             first_blur_passes: 64,
             second_blur_passes: 3,
@@ -186,7 +238,10 @@ mod tests {
         assert_eq!(plan.samples.len(), 64);
         assert_eq!(plan.samples[0].faces.len(), 6);
         assert_eq!(plan.blur_invocations.len(), 7); // initial + 3 pairs
-        assert!(plan.blur_invocations.iter().all(|pass| pass.layers.len() == 3));
+        assert!(plan
+            .blur_invocations
+            .iter()
+            .all(|pass| pass.layers.len() == 3));
     }
 
     #[test]

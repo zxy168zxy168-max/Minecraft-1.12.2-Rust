@@ -50,13 +50,20 @@ impl CompiledGuiFrame {
         for command in draw_list.commands() {
             match command {
                 GuiDrawCommand::Panorama(command) => {
-                    frame.steps.push(CompiledGuiStep::Panorama(
-                        PanoramaPassPlan::from_command(command),
-                    ));
+                    frame
+                        .steps
+                        .push(CompiledGuiStep::Panorama(PanoramaPassPlan::from_command(
+                            command,
+                        )));
                 }
-                GuiDrawCommand::Quad { texture, topology, vertices } => {
+                GuiDrawCommand::Quad {
+                    texture,
+                    topology,
+                    vertices,
+                } => {
                     if let Some(CompiledGuiStep::Draw(batch)) = frame.steps.last_mut() {
-                        if batch.texture.as_ref() == texture.as_ref() && batch.topology == *topology {
+                        if batch.texture.as_ref() == texture.as_ref() && batch.topology == *topology
+                        {
                             append_quad(batch, *vertices);
                             continue;
                         }
@@ -82,11 +89,20 @@ fn append_quad(batch: &mut GuiBatch, vertices: [GuiVertex; 4]) {
     match batch.topology {
         GuiTopology::Quads => {
             // Equivalent decomposition of GL_QUADS vertex order.
-            batch.indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
+            batch
+                .indices
+                .extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
         }
         GuiTopology::TriangleStrip => {
             // GL_TRIANGLE_STRIP: (0,1,2), then winding-corrected (2,1,3).
-            batch.indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 1, base + 3]);
+            batch.indices.extend_from_slice(&[
+                base,
+                base + 1,
+                base + 2,
+                base + 2,
+                base + 1,
+                base + 3,
+            ]);
         }
     }
 }
@@ -108,7 +124,10 @@ mod tests {
 
     #[test]
     fn argb_conversion_preserves_channel_order() {
-        assert_eq!(argb_to_rgba(0x8040_20FF), [64.0 / 255.0, 32.0 / 255.0, 1.0, 128.0 / 255.0]);
+        assert_eq!(
+            argb_to_rgba(0x8040_20FF),
+            [64.0 / 255.0, 32.0 / 255.0, 1.0, 128.0 / 255.0]
+        );
     }
 
     #[test]
@@ -120,7 +139,9 @@ mod tests {
         list.draw_rect(0, 20, 10, 30, -1);
         let frame = CompiledGuiFrame::compile(&list);
         assert_eq!(frame.steps.len(), 2);
-        let CompiledGuiStep::Draw(first) = &frame.steps[0] else { panic!("draw") };
+        let CompiledGuiStep::Draw(first) = &frame.steps[0] else {
+            panic!("draw")
+        };
         assert_eq!(first.vertices.len(), 8);
         assert_eq!(first.indices.len(), 12);
     }
@@ -139,7 +160,9 @@ mod tests {
             ],
         );
         let frame = CompiledGuiFrame::compile(&list);
-        let CompiledGuiStep::Draw(batch) = &frame.steps[0] else { panic!("draw") };
+        let CompiledGuiStep::Draw(batch) = &frame.steps[0] else {
+            panic!("draw")
+        };
         assert_eq!(batch.indices, [0, 1, 2, 2, 1, 3]);
     }
 }

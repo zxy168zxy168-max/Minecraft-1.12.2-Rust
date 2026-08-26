@@ -14,15 +14,31 @@ impl GuiFurnace {
 
     pub fn new() -> Self {
         let mut slots = vec![
-            GuiSlot { slotNumber: 0, xPos: 56, yPos: 17 },
-            GuiSlot { slotNumber: 1, xPos: 56, yPos: 53 },
-            GuiSlot { slotNumber: 2, xPos: 116, yPos: 35 },
+            GuiSlot {
+                slotNumber: 0,
+                xPos: 56,
+                yPos: 17,
+            },
+            GuiSlot {
+                slotNumber: 1,
+                xPos: 56,
+                yPos: 53,
+            },
+            GuiSlot {
+                slotNumber: 2,
+                xPos: 116,
+                yPos: 35,
+            },
         ];
         append_player_slots(&mut slots, 3);
-        Self { container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots) }
+        Self {
+            container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots),
+        }
     }
 
-    pub fn initGui(&mut self, width: i32, height: i32) { self.container.initGui(width, height); }
+    pub fn initGui(&mut self, width: i32, height: i32) {
+        self.container.initGui(width, height);
+    }
 
     pub fn furnaceBackground() -> ResourceLocation {
         ResourceLocation::parse("textures/gui/container/furnace.png")
@@ -31,13 +47,19 @@ impl GuiFurnace {
     pub fn cookProgressScaled(properties: &[i32], pixels: i32) -> i32 {
         let cook = properties.get(2).copied().unwrap_or(0);
         let total = properties.get(3).copied().unwrap_or(0);
-        if total != 0 && cook != 0 { cook * pixels / total } else { 0 }
+        if total != 0 && cook != 0 {
+            cook * pixels / total
+        } else {
+            0
+        }
     }
 
     pub fn burnLeftScaled(properties: &[i32], pixels: i32) -> i32 {
         let burn = properties.first().copied().unwrap_or(0);
         let mut current = properties.get(1).copied().unwrap_or(0);
-        if current == 0 { current = 200; }
+        if current == 0 {
+            current = 200;
+        }
         burn * pixels / current
     }
 
@@ -47,7 +69,9 @@ impl GuiFurnace {
 }
 
 impl Default for GuiFurnace {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

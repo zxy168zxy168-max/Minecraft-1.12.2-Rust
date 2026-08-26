@@ -13,14 +13,23 @@ impl ColorizerGrass {
     pub fn load(manager: &ResourceManager) -> Self {
         let location = ResourceLocation::new("minecraft", "textures/colormap/grass.png");
         let buffer = TextureSource::load(manager, &location)
-            .map(|source| source.image.rgba().chunks_exact(4).map(|pixel| {
-                ((pixel[0] as i32) << 16) | ((pixel[1] as i32) << 8) | pixel[2] as i32
-            }).collect())
+            .map(|source| {
+                source
+                    .image
+                    .rgba()
+                    .chunks_exact(4)
+                    .map(|pixel| {
+                        ((pixel[0] as i32) << 16) | ((pixel[1] as i32) << 8) | pixel[2] as i32
+                    })
+                    .collect()
+            })
             .unwrap_or_else(|error| {
                 log::warn!("failed loading vanilla grass colorizer: {error}");
                 vec![0x91BD59; 65_536]
             });
-        Self { grassBuffer: buffer }
+        Self {
+            grassBuffer: buffer,
+        }
     }
 
     pub fn getGrassColor(&self, temperature: f64, humidity: f64) -> i32 {

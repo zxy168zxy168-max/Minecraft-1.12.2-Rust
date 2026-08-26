@@ -1,23 +1,43 @@
-#[path = "Container.rs"] pub mod Container;
-#[path = "EntityEquipmentSlot.rs"] pub mod EntityEquipmentSlot;
-#[path = "ContainerPlayer.rs"] pub mod ContainerPlayer;
-#[path = "EntityEquipment.rs"] pub mod EntityEquipment;
+#[path = "Container.rs"]
+pub mod Container;
+#[path = "ContainerPlayer.rs"]
+pub mod ContainerPlayer;
+#[path = "EntityEquipment.rs"]
+pub mod EntityEquipment;
+#[path = "EntityEquipmentSlot.rs"]
+pub mod EntityEquipmentSlot;
 
-#[path = "ClickType.rs"] pub mod ClickType;
-#[path = "ContainerChest.rs"] pub mod ContainerChest;
+#[path = "ClickType.rs"]
+pub mod ClickType;
+#[path = "ContainerChest.rs"]
+pub mod ContainerChest;
 
-#[path = "ContainerShulkerBox.rs"] pub mod ContainerShulkerBox;
-#[path = "ContainerWindow.rs"] pub mod ContainerWindow;
-#[path = "ContainerWorkbench.rs"] pub mod ContainerWorkbench;
-#[path = "ContainerFurnace.rs"] pub mod ContainerFurnace;
-#[path = "ContainerRepair.rs"] pub mod ContainerRepair;
-#[path = "ContainerEnchantment.rs"] pub mod ContainerEnchantment;
-#[path = "ContainerHopper.rs"] pub mod ContainerHopper;
-#[path = "ContainerBrewingStand.rs"] pub mod ContainerBrewingStand;
-#[path = "ContainerDispenser.rs"] pub mod ContainerDispenser;
-#[path = "ContainerBeacon.rs"] pub mod ContainerBeacon;
-#[path = "InventoryMerchant.rs"] pub mod InventoryMerchant;
-#[path = "ContainerMerchant.rs"] pub mod ContainerMerchant;
-#[path = "OpenContainer.rs"] pub mod OpenContainer;
+#[path = "ContainerBeacon.rs"]
+pub mod ContainerBeacon;
+#[path = "ContainerBrewingStand.rs"]
+pub mod ContainerBrewingStand;
+#[path = "ContainerDispenser.rs"]
+pub mod ContainerDispenser;
+#[path = "ContainerEnchantment.rs"]
+pub mod ContainerEnchantment;
+#[path = "ContainerFurnace.rs"]
+pub mod ContainerFurnace;
+#[path = "ContainerHopper.rs"]
+pub mod ContainerHopper;
+#[path = "ContainerHorseInventory.rs"]
+pub mod ContainerHorseInventory;
+#[path = "ContainerMerchant.rs"]
+pub mod ContainerMerchant;
+#[path = "ContainerRepair.rs"]
+pub mod ContainerRepair;
+#[path = "ContainerShulkerBox.rs"]
+pub mod ContainerShulkerBox;
+#[path = "ContainerWindow.rs"]
+pub mod ContainerWindow;
+#[path = "ContainerWorkbench.rs"]
+pub mod ContainerWorkbench;
+#[path = "InventoryMerchant.rs"]
+pub mod InventoryMerchant;
+#[path = "OpenContainer.rs"]
+pub mod OpenContainer;
 pub mod SlotShulkerBox;
-#[path = "ContainerHorseInventory.rs"] pub mod ContainerHorseInventory;

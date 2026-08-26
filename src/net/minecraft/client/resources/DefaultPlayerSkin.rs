@@ -19,7 +19,11 @@ impl DefaultPlayerSkin {
     }
 
     pub fn getSkinType(playerUuid: Uuid) -> &'static str {
-        if Self::isSlimSkin(playerUuid) { "slim" } else { "default" }
+        if Self::isSlimSkin(playerUuid) {
+            "slim"
+        } else {
+            "default"
+        }
     }
 
     pub fn isSlimSkin(playerUuid: Uuid) -> bool {

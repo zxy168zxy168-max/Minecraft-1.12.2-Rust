@@ -157,7 +157,8 @@ impl GuiContainer {
             return false;
         }
         let slotStack = &slots[slotId as usize];
-        if (cursor.getCount() > self.dragSplittingSlots.len() as i32 || self.dragSplittingLimit == 2)
+        if (cursor.getCount() > self.dragSplittingSlots.len() as i32
+            || self.dragSplittingLimit == 2)
             && Container::canAddItemToSlot(slotStack, cursor, true)
             && slotAccepts(slotId, cursor)
         {
@@ -187,8 +188,7 @@ impl GuiContainer {
         slots: &[ItemStack],
         slotAccepts: A,
         slotLimit: L,
-    )
-    where
+    ) where
         A: Fn(i32, &ItemStack) -> bool,
         L: Fn(i32, &ItemStack) -> i32,
     {
@@ -206,11 +206,17 @@ impl GuiContainer {
             return;
         }
         for &slotId in &self.dragSplittingSlots {
-            let Some(existing) = slots.get(slotId as usize) else { continue; };
+            let Some(existing) = slots.get(slotId as usize) else {
+                continue;
+            };
             if !slotAccepts(slotId, cursor) {
                 continue;
             }
-            let oldCount = if existing.isEmpty() { 0 } else { existing.getCount() };
+            let oldCount = if existing.isEmpty() {
+                0
+            } else {
+                existing.getCount()
+            };
             let mut preview = cursor.clone();
             Container::computeStackSize(
                 selectedCount,
@@ -253,18 +259,22 @@ impl GuiContainer {
         A: Fn(i32, &ItemStack) -> bool,
         L: Fn(i32, &ItemStack) -> i32,
     {
-        if !self.dragSplitting || self.dragSplittingSlots.len() <= 1
-            || !self.dragSplittingSlots.contains(&slotId) || cursor.isEmpty()
+        if !self.dragSplitting
+            || self.dragSplittingSlots.len() <= 1
+            || !self.dragSplittingSlots.contains(&slotId)
+            || cursor.isEmpty()
         {
             return None;
         }
         let existing = slots.get(slotId as usize)?;
-        if !Container::canAddItemToSlot(existing, cursor, true)
-            || !slotAccepts(slotId, cursor)
-        {
+        if !Container::canAddItemToSlot(existing, cursor, true) || !slotAccepts(slotId, cursor) {
             return None;
         }
-        let oldCount = if existing.isEmpty() { 0 } else { existing.getCount() };
+        let oldCount = if existing.isEmpty() {
+            0
+        } else {
+            existing.getCount()
+        };
         let mut preview = cursor.clone();
         Container::computeStackSize(
             self.dragSplittingSlots.len(),
@@ -299,7 +309,15 @@ mod tests {
 
     #[test]
     fn blank_space_inside_gui_is_not_outside_slot() {
-        let mut gui = GuiContainer::new(176, 166, vec![GuiSlot { slotNumber: 0, xPos: 8, yPos: 8 }]);
+        let mut gui = GuiContainer::new(
+            176,
+            166,
+            vec![GuiSlot {
+                slotNumber: 0,
+                xPos: 8,
+                yPos: 8,
+            }],
+        );
         gui.initGui(320, 240);
         assert_eq!(gui.protocolSlotAt(gui.guiLeft + 50, gui.guiTop + 50), -1);
         assert_eq!(gui.protocolSlotAt(gui.guiLeft - 1, gui.guiTop + 50), -999);

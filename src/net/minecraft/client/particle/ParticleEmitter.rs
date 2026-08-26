@@ -33,8 +33,12 @@ impl ParticleEmitter {
         }
     }
 
-    pub const fn attachedEntityId(&self) -> i32 { self.attachedEntityId }
-    pub const fn isExpired(&self) -> bool { self.age >= self.lifetime }
+    pub const fn attachedEntityId(&self) -> i32 {
+        self.attachedEntityId
+    }
+    pub const fn isExpired(&self) -> bool {
+        self.age >= self.lifetime
+    }
 
     pub fn onUpdate(&mut self, entity: &Entity) -> Vec<ParticleSpawnRequest> {
         let mut requests = Vec::with_capacity(16);

@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::launcher::OptionsFile::{OptionsFile, OptionsFileError};
 use crate::launcher::RenderBackend::RenderBackend;
-use crate::net::minecraft::client::settings::KeyBinding::{vanilla_key_bindings, KeyBinding, KeyBindingId};
+use crate::net::minecraft::client::settings::KeyBinding::{
+    vanilla_key_bindings, KeyBinding, KeyBindingId,
+};
 
 use crate::net::minecraft::entity::player::EntityPlayer::EnumChatVisibility;
 use crate::net::minecraft::entity::player::EnumPlayerModelParts::EnumPlayerModelParts;
@@ -158,7 +160,6 @@ pub struct GameSettings {
     pub ofAnimatedTextures: bool,
 }
 
-
 impl GameSettings {
     /// Loads the subset of `options.txt` already consumed by the visible
     /// client bootstrap. Unknown options remain untouched and all defaults are
@@ -170,31 +171,20 @@ impl GameSettings {
         }
         let options = OptionsFile::load(path)?;
         let mut settings = Self::default();
-        settings.mouseSensitivity = read_f32(&options, "mouseSensitivity", settings.mouseSensitivity)
-            .clamp(0.0, 1.0);
+        settings.mouseSensitivity =
+            read_f32(&options, "mouseSensitivity", settings.mouseSensitivity).clamp(0.0, 1.0);
         settings.invertMouse = read_bool(&options, "invertYMouse", settings.invertMouse);
-        settings.renderDistanceChunks = read_i32(
-            &options,
-            "renderDistance",
-            settings.renderDistanceChunks,
-        )
-        .clamp(2, 32);
+        settings.renderDistanceChunks =
+            read_i32(&options, "renderDistance", settings.renderDistanceChunks).clamp(2, 32);
         settings.viewBobbing = read_bool(&options, "bobView", settings.viewBobbing);
         settings.clouds = read_clouds(&options, settings.clouds);
         settings.fancyGraphics = read_bool(&options, "fancyGraphics", settings.fancyGraphics);
         settings.ambientOcclusion = read_ambient_occlusion(&options, settings.ambientOcclusion);
-        settings.pauseOnLostFocus = read_bool(
-            &options,
-            "pauseOnLostFocus",
-            settings.pauseOnLostFocus,
-        );
+        settings.pauseOnLostFocus =
+            read_bool(&options, "pauseOnLostFocus", settings.pauseOnLostFocus);
         settings.entityShadows = read_bool(&options, "entityShadows", settings.entityShadows);
-        settings.attackIndicator = read_i32(
-            &options,
-            "attackIndicator",
-            settings.attackIndicator,
-        )
-        .clamp(0, 2);
+        settings.attackIndicator =
+            read_i32(&options, "attackIndicator", settings.attackIndicator).clamp(0, 2);
         settings.autoJump = read_bool(&options, "autoJump", settings.autoJump);
         settings.touchscreen = read_bool(&options, "touchscreen", settings.touchscreen);
         for binding in &mut settings.keyBindings {
@@ -202,28 +192,31 @@ impl GameSettings {
             binding.keyCode = read_i32(&options, &optionKey, binding.keyCode);
         }
         settings.showSubtitles = read_bool(&options, "showSubtitles", settings.showSubtitles);
-        settings.reducedDebugInfo = read_bool(&options, "reducedDebugInfo", settings.reducedDebugInfo);
-        settings.advancedItemTooltips = read_bool(&options, "advancedItemTooltips", settings.advancedItemTooltips);
+        settings.reducedDebugInfo =
+            read_bool(&options, "reducedDebugInfo", settings.reducedDebugInfo);
+        settings.advancedItemTooltips = read_bool(
+            &options,
+            "advancedItemTooltips",
+            settings.advancedItemTooltips,
+        );
         for category in SoundCategory::ALL {
             settings.soundLevels[category.index()] = read_f32(
                 &options,
                 &format!("soundCategory_{}", category.getName()),
                 settings.soundLevels[category.index()],
-            ).clamp(0.0, 1.0);
+            )
+            .clamp(0.0, 1.0);
         }
         settings.forceSprint = read_bool(&options, "forceSprint", settings.forceSprint);
         settings.gammaSetting = read_f32(&options, "gamma", settings.gammaSetting).clamp(0.0, 1.0);
-        settings.particleSetting = read_i32(
-            &options,
-            "particles",
-            settings.particleSetting,
-        )
-        .clamp(0, 2);
+        settings.particleSetting =
+            read_i32(&options, "particles", settings.particleSetting).clamp(0, 2);
         settings.guiScale = read_i32(&options, "guiScale", settings.guiScale);
         if let Some(language) = options.get("lang") {
             settings.language = language.to_owned();
         }
-        settings.forceUnicodeFont = read_bool(&options, "forceUnicodeFont", settings.forceUnicodeFont);
+        settings.forceUnicodeFont =
+            read_bool(&options, "forceUnicodeFont", settings.forceUnicodeFont);
         settings.fullScreen = read_bool(&options, "fullscreen", settings.fullScreen);
         settings.anaglyph = read_bool(&options, "anaglyph3d", settings.anaglyph);
         settings.fboEnable = read_bool(&options, "fboEnable", settings.fboEnable);
@@ -237,15 +230,26 @@ impl GameSettings {
         if settings.enableVsync {
             settings.limitFramerate = FRAMERATE_LIMIT_MAX;
         }
-        settings.chatVisibility = EnumChatVisibility::getChatVisibility(read_i32(&options, "chatVisibility", settings.chatVisibility.getChatVisibilityId()));
+        settings.chatVisibility = EnumChatVisibility::getChatVisibility(read_i32(
+            &options,
+            "chatVisibility",
+            settings.chatVisibility.getChatVisibilityId(),
+        ));
         settings.chatColours = read_bool(&options, "chatColors", settings.chatColours);
         settings.chatLinks = read_bool(&options, "chatLinks", settings.chatLinks);
         settings.chatLinksPrompt = read_bool(&options, "chatLinksPrompt", settings.chatLinksPrompt);
-        settings.chatOpacity = read_f32(&options, "chatOpacity", settings.chatOpacity).clamp(0.0, 1.0);
+        settings.chatOpacity =
+            read_f32(&options, "chatOpacity", settings.chatOpacity).clamp(0.0, 1.0);
         settings.chatScale = read_f32(&options, "chatScale", settings.chatScale).clamp(0.0, 1.0);
         settings.chatWidth = read_f32(&options, "chatWidth", settings.chatWidth).clamp(0.0, 1.0);
-        settings.chatHeightUnfocused = read_f32(&options, "chatHeightUnfocused", settings.chatHeightUnfocused).clamp(0.0, 1.0);
-        settings.chatHeightFocused = read_f32(&options, "chatHeightFocused", settings.chatHeightFocused).clamp(0.0, 1.0);
+        settings.chatHeightUnfocused = read_f32(
+            &options,
+            "chatHeightUnfocused",
+            settings.chatHeightUnfocused,
+        )
+        .clamp(0.0, 1.0);
+        settings.chatHeightFocused =
+            read_f32(&options, "chatHeightFocused", settings.chatHeightFocused).clamp(0.0, 1.0);
         if let Some(mainHand) = options.get("mainHand") {
             settings.mainHand = if mainHand.eq_ignore_ascii_case("left") {
                 EnumHandSide::Left
@@ -254,10 +258,18 @@ impl GameSettings {
             };
         }
         settings.modelPartFlags = read_model_part_flags(&options, settings.modelPartFlags);
-        if let Some(fov) = options.get("fov").and_then(|value| value.parse::<f32>().ok()) { settings.fovSetting = fov * 40.0 + 70.0; }
-        if let Some(lastServer) = options.get("lastServer") { settings.lastServer = lastServer.to_owned(); }
+        if let Some(fov) = options
+            .get("fov")
+            .and_then(|value| value.parse::<f32>().ok())
+        {
+            settings.fovSetting = fov * 40.0 + 70.0;
+        }
+        if let Some(lastServer) = options.get("lastServer") {
+            settings.lastServer = lastServer.to_owned();
+        }
         settings.resourcePacks = read_string_list(&options, "resourcePacks");
-        settings.incompatibleResourcePacks = read_string_list(&options, "incompatibleResourcePacks");
+        settings.incompatibleResourcePacks =
+            read_string_list(&options, "incompatibleResourcePacks");
         if let Some(backend) = options.get("rustRenderBackend") {
             settings.renderBackend = RenderBackend::parse(backend);
         }
@@ -308,11 +320,17 @@ impl GameSettings {
         options.set("autoJump", self.autoJump.to_string());
         options.set("touchscreen", self.touchscreen.to_string());
         for binding in &self.keyBindings {
-            options.set(format!("key_{}", binding.keyDescription), binding.keyCode.to_string());
+            options.set(
+                format!("key_{}", binding.keyDescription),
+                binding.keyCode.to_string(),
+            );
         }
         options.set("showSubtitles", self.showSubtitles.to_string());
         options.set("reducedDebugInfo", self.reducedDebugInfo.to_string());
-        options.set("advancedItemTooltips", self.advancedItemTooltips.to_string());
+        options.set(
+            "advancedItemTooltips",
+            self.advancedItemTooltips.to_string(),
+        );
         for category in SoundCategory::ALL {
             options.set(
                 format!("soundCategory_{}", category.getName()),
@@ -332,7 +350,10 @@ impl GameSettings {
         options.set("useVbo", self.useVbo.to_string());
         options.set("mipmapLevels", self.mipmapLevels.to_string());
         options.set("maxFps", self.limitFramerate.to_string());
-        options.set("chatVisibility", self.chatVisibility.getChatVisibilityId().to_string());
+        options.set(
+            "chatVisibility",
+            self.chatVisibility.getChatVisibilityId().to_string(),
+        );
         options.set("chatColors", self.chatColours.to_string());
         options.set("chatLinks", self.chatLinks.to_string());
         options.set("chatLinksPrompt", self.chatLinksPrompt.to_string());
@@ -343,7 +364,10 @@ impl GameSettings {
         options.set("chatHeightFocused", self.chatHeightFocused.to_string());
         options.set(
             "mainHand",
-            match self.mainHand { EnumHandSide::Left => "left", EnumHandSide::Right => "right" },
+            match self.mainHand {
+                EnumHandSide::Left => "left",
+                EnumHandSide::Right => "right",
+            },
         );
         write_model_part_flags(&mut options, self.modelPartFlags);
         options.set("lastServer", self.lastServer.clone());
@@ -353,7 +377,8 @@ impl GameSettings {
         );
         options.set(
             "incompatibleResourcePacks",
-            serde_json::to_string(&self.incompatibleResourcePacks).unwrap_or_else(|_| "[]".to_owned()),
+            serde_json::to_string(&self.incompatibleResourcePacks)
+                .unwrap_or_else(|_| "[]".to_owned()),
         );
         options.set("rustRenderBackend", self.renderBackend.optionValue());
         // MCP stores FOV as a normalized slider value: (degrees - 70) / 40.
@@ -366,10 +391,14 @@ impl GameSettings {
         options.set("ofAaLevel", self.ofAaLevel.to_string());
         options.set("ofAfLevel", self.ofAfLevel.to_string());
         options.set("ofFullscreenMode", self.ofFullscreenMode.clone());
-        if let Some(parent) = path.parent() { fs::create_dir_all(parent)?; }
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
         let temporary = path.with_extension("txt_tmp");
         fs::write(&temporary, options.render())?;
-        if path.exists() { fs::remove_file(&path)?; }
+        if path.exists() {
+            fs::remove_file(&path)?;
+        }
         fs::rename(temporary, path)
     }
 
@@ -389,10 +418,14 @@ impl GameSettings {
     /// Later entries win on conflicts, matching the overwrite behavior of
     /// Minecraft 1.12.2 `KeyBinding.HASH#addKey` during registration.
     pub fn keyBindingIdForCode(&self, keyCode: i32) -> Option<KeyBindingId> {
-        if keyCode == 0 { return None; }
-        KeyBindingId::ALL.iter().rev().copied().find(|id| {
-            self.keyBinding(*id).keyCode == keyCode
-        })
+        if keyCode == 0 {
+            return None;
+        }
+        KeyBindingId::ALL
+            .iter()
+            .rev()
+            .copied()
+            .find(|id| self.keyBinding(*id).keyCode == keyCode)
     }
 
     pub fn resetAllKeyBindings(&mut self) {
@@ -419,11 +452,17 @@ fn read_bool(options: &OptionsFile, key: &str, default: bool) -> bool {
 }
 
 fn read_i32(options: &OptionsFile, key: &str, default: i32) -> i32 {
-    options.get(key).and_then(|value| value.parse().ok()).unwrap_or(default)
+    options
+        .get(key)
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(default)
 }
 
 fn read_f32(options: &OptionsFile, key: &str, default: f32) -> f32 {
-    options.get(key).and_then(|value| value.parse().ok()).unwrap_or(default)
+    options
+        .get(key)
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(default)
 }
 
 fn read_string_list(options: &OptionsFile, key: &str) -> Vec<String> {
@@ -487,7 +526,8 @@ fn write_model_part_flags(options: &mut OptionsFile, flags: u8) {
 
 impl Default for GameSettings {
     fn default() -> Self {
-        let single_processor = std::thread::available_parallelism().map_or(true, |value| value.get() <= 1);
+        let single_processor =
+            std::thread::available_parallelism().map_or(true, |value| value.get() <= 1);
         Self {
             mouseSensitivity: 0.5,
             invertMouse: false,
@@ -709,7 +749,10 @@ mod tests {
         assert!(settings.ofFastMath);
         assert!(!settings.ofCustomFonts);
         assert_eq!(settings.ofFullscreenMode, "1920x1080");
-        assert_eq!(settings.resourcePacks, vec!["Vanilla Test.zip", "Folder Pack"]);
+        assert_eq!(
+            settings.resourcePacks,
+            vec!["Vanilla Test.zip", "Folder Pack"]
+        );
         assert_eq!(settings.incompatibleResourcePacks, vec!["Legacy Test.zip"]);
         assert_eq!(settings.renderBackend, RenderBackend::OpenGl);
 
@@ -721,9 +764,15 @@ mod tests {
         let mut settings = GameSettings::default();
         // OptiFine 1.12.2 appends Zoom (C/46) after vanilla Save Toolbar,
         // so initial KeyBinding.HASH registration resolves C to Zoom.
-        assert_eq!(settings.keyBindingIdForCode(46), Some(KeyBindingId::OptifineZoom));
+        assert_eq!(
+            settings.keyBindingIdForCode(46),
+            Some(KeyBindingId::OptifineZoom)
+        );
         settings.setOptionKeyBinding(KeyBindingId::Forward, 44);
-        assert_eq!(settings.keyBindingIdForCode(44), Some(KeyBindingId::Forward));
+        assert_eq!(
+            settings.keyBindingIdForCode(44),
+            Some(KeyBindingId::Forward)
+        );
         settings.setOptionKeyBinding(KeyBindingId::Forward, 0);
         assert_eq!(settings.keyBindingIdForCode(0), None);
     }
@@ -770,10 +819,20 @@ mod tests {
 
     #[test]
     fn save_options_preserves_unknown_entries_and_updates_last_server() {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
-        let directory = std::env::temp_dir().join(format!("mc112-save-options-{}-{unique}", std::process::id()));
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "mc112-save-options-{}-{unique}",
+            std::process::id()
+        ));
         fs::create_dir_all(&directory).unwrap();
-        fs::write(directory.join("options.txt"), "unknownModOption:keep-me\nlastServer:old.example\n").unwrap();
+        fs::write(
+            directory.join("options.txt"),
+            "unknownModOption:keep-me\nlastServer:old.example\n",
+        )
+        .unwrap();
         let mut settings = GameSettings::loadFromGameDir(&directory).unwrap();
         settings.lastServer = "localhost:25565".to_owned();
         settings.forceSprint = true;

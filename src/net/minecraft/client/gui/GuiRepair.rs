@@ -19,15 +19,31 @@ impl GuiRepair {
 
     pub fn new() -> Self {
         let mut slots = vec![
-            GuiSlot { slotNumber: 0, xPos: 27, yPos: 47 },
-            GuiSlot { slotNumber: 1, xPos: 76, yPos: 47 },
-            GuiSlot { slotNumber: 2, xPos: 134, yPos: 47 },
+            GuiSlot {
+                slotNumber: 0,
+                xPos: 27,
+                yPos: 47,
+            },
+            GuiSlot {
+                slotNumber: 1,
+                xPos: 76,
+                yPos: 47,
+            },
+            GuiSlot {
+                slotNumber: 2,
+                xPos: 134,
+                yPos: 47,
+            },
         ];
         append_player_slots(&mut slots, 3);
-        Self { container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots) }
+        Self {
+            container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots),
+        }
     }
 
-    pub fn initGui(&mut self, width: i32, height: i32) { self.container.initGui(width, height); }
+    pub fn initGui(&mut self, width: i32, height: i32) {
+        self.container.initGui(width, height);
+    }
 
     pub fn anvilBackground() -> ResourceLocation {
         ResourceLocation::parse("textures/gui/container/anvil.png")
@@ -35,7 +51,9 @@ impl GuiRepair {
 }
 
 impl Default for GuiRepair {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

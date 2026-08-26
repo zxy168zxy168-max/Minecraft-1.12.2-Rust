@@ -1,8 +1,8 @@
 use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::PacketBuffer::{write_f32_be, write_i64_be, write_var_i32};
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::EnumHand::EnumHand;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 /// Protocol-340 port of MCP 1.12.2 `CPacketPlayerTryUseItemOnBlock`.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -60,7 +60,9 @@ mod tests {
                 0.5,
                 1.0,
                 0.5,
-            ).writePacketData().id,
+            )
+            .writePacketData()
+            .id,
             0x1F,
         );
     }

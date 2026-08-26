@@ -23,10 +23,13 @@ impl RenderGuardian {
     }
 
     pub fn texture(variant: GuardianRenderVariant) -> ResourceLocation {
-        ResourceLocation::new("minecraft", match variant {
-            GuardianRenderVariant::Guardian => "textures/entity/guardian.png",
-            GuardianRenderVariant::ElderGuardian => "textures/entity/guardian_elder.png",
-        })
+        ResourceLocation::new(
+            "minecraft",
+            match variant {
+                GuardianRenderVariant::Guardian => "textures/entity/guardian.png",
+                GuardianRenderVariant::ElderGuardian => "textures/entity/guardian_elder.png",
+            },
+        )
     }
 
     pub fn beamTexture() -> ResourceLocation {
@@ -57,14 +60,15 @@ impl RenderGuardian {
 
     pub fn attackAnimationScale(entity: &EntityOtherClient, partialTicks: f32) -> f32 {
         let variant = match &entity.kind {
-            crate::net::minecraft::client::entity::EntityOtherClient::ClientEntityKind::Mob { entityType } => {
-                Self::variant(*entityType)
-            }
+            crate::net::minecraft::client::entity::EntityOtherClient::ClientEntityKind::Mob {
+                entityType,
+            } => Self::variant(*entityType),
             _ => None,
         };
-        let Some(variant) = variant else { return 0.0; };
-        (entity.guardianAttackTime as f32 + partialTicks)
-            / Self::attackDuration(variant) as f32
+        let Some(variant) = variant else {
+            return 0.0;
+        };
+        (entity.guardianAttackTime as f32 + partialTicks) / Self::attackDuration(variant) as f32
     }
 }
 
@@ -77,6 +81,9 @@ mod tests {
         let elder = GuardianRenderVariant::ElderGuardian;
         assert_eq!(RenderGuardian::preScale(elder), 2.35);
         assert_eq!(RenderGuardian::attackDuration(elder), 60);
-        assert_eq!(RenderGuardian::texture(elder).getPath(), "textures/entity/guardian_elder.png");
+        assert_eq!(
+            RenderGuardian::texture(elder).getPath(),
+            "textures/entity/guardian_elder.png"
+        );
     }
 }

@@ -77,28 +77,16 @@ impl GuiOptionSlider {
             self.GuiButton.height,
         );
 
-        let handleX = self.GuiButton.x
-            + (self.sliderValue * (self.GuiButton.width - 8) as f32) as i32;
-        drawList.draw_textured_modal_rect(
-            texture.clone(),
-            handleX,
-            self.GuiButton.y,
-            0,
-            66,
-            4,
-            20,
-        );
-        drawList.draw_textured_modal_rect(
-            texture,
-            handleX + 4,
-            self.GuiButton.y,
-            196,
-            66,
-            4,
-            20,
-        );
+        let handleX =
+            self.GuiButton.x + (self.sliderValue * (self.GuiButton.width - 8) as f32) as i32;
+        drawList.draw_textured_modal_rect(texture.clone(), handleX, self.GuiButton.y, 0, 66, 4, 20);
+        drawList.draw_textured_modal_rect(texture, handleX + 4, self.GuiButton.y, 196, 66, 4, 20);
 
-        let textColor = if self.GuiButton.enabled { 14_737_632 } else { 10_526_880 };
+        let textColor = if self.GuiButton.enabled {
+            14_737_632
+        } else {
+            10_526_880
+        };
         fontRendererObj.draw_centered_string_with_shadow(
             drawList,
             &self.GuiButton.displayString,
@@ -133,8 +121,8 @@ impl GuiOptionSlider {
     }
 
     fn updateFromMouse(&mut self, mouseX: i32) -> f32 {
-        self.sliderValue = (mouseX - (self.GuiButton.x + 4)) as f32
-            / (self.GuiButton.width - 8) as f32;
+        self.sliderValue =
+            (mouseX - (self.GuiButton.x + 4)) as f32 / (self.GuiButton.width - 8) as f32;
         self.sliderValue = self.sliderValue.clamp(0.0, 1.0);
         self.sliderValue
     }

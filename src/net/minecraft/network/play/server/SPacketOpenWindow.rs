@@ -32,15 +32,33 @@ impl SPacketOpenWindow {
                 input.len()
             )));
         }
-        Ok(Self { windowId, inventoryType, windowTitle, slotCount, entityId })
+        Ok(Self {
+            windowId,
+            inventoryType,
+            windowTitle,
+            slotCount,
+            entityId,
+        })
     }
 
-    pub const fn getWindowId(&self) -> u8 { self.windowId }
-    pub fn getGuiId(&self) -> &str { &self.inventoryType }
-    pub fn getWindowTitle(&self) -> &ITextComponent { &self.windowTitle }
-    pub const fn getSlotCount(&self) -> u8 { self.slotCount }
-    pub const fn getEntityId(&self) -> i32 { self.entityId }
-    pub const fn hasSlots(&self) -> bool { self.slotCount > 0 }
+    pub const fn getWindowId(&self) -> u8 {
+        self.windowId
+    }
+    pub fn getGuiId(&self) -> &str {
+        &self.inventoryType
+    }
+    pub fn getWindowTitle(&self) -> &ITextComponent {
+        &self.windowTitle
+    }
+    pub const fn getSlotCount(&self) -> u8 {
+        self.slotCount
+    }
+    pub const fn getEntityId(&self) -> i32 {
+        self.entityId
+    }
+    pub const fn hasSlots(&self) -> bool {
+        self.slotCount > 0
+    }
 }
 
 #[cfg(test)]
@@ -59,7 +77,10 @@ mod tests {
         let packet = SPacketOpenWindow::readPacketData(&RawPacket::new(0x13, payload)).unwrap();
         assert_eq!(packet.getWindowId(), 3);
         assert_eq!(packet.getGuiId(), "minecraft:container");
-        assert_eq!(packet.getWindowTitle().getUnformattedText(), "container.chest");
+        assert_eq!(
+            packet.getWindowTitle().getUnformattedText(),
+            "container.chest"
+        );
         assert_eq!(packet.getSlotCount(), 27);
     }
     #[test]
@@ -78,5 +99,4 @@ mod tests {
         assert_eq!(packet.getSlotCount(), 17);
         assert_eq!(packet.getEntityId(), 12345);
     }
-
 }

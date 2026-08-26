@@ -8,8 +8,8 @@ use crate::net::minecraft::block::BlockEndPortalFrame::BlockEndPortalFrame;
 use crate::net::minecraft::client::renderer::block::model::BlockFaceUV::BlockFaceUV;
 use crate::net::minecraft::client::renderer::block::model::FaceBakery::FaceBakery;
 use crate::net::minecraft::client::renderer::block::model::ModelBlock::{BlockPart, ModelBlock};
-use crate::net::minecraft::client::renderer::block::model::ModelRotation::ModelRotation;
 use crate::net::minecraft::client::renderer::block::model::ModelResourceLocation::ModelResourceLocation;
+use crate::net::minecraft::client::renderer::block::model::ModelRotation::ModelRotation;
 use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::ResourceManager;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
@@ -151,7 +151,11 @@ impl BlockModelShapes {
         }
         let base = self.getModelResourceLocation(state)?;
         let location = ModelResourceLocation::new(base.getPath(), variant);
-        let resolved = self.resolveLocation(state, &location).ok().flatten().map(Arc::new);
+        let resolved = self
+            .resolveLocation(state, &location)
+            .ok()
+            .flatten()
+            .map(Arc::new);
         self.bakedVariantStore.insert(key, resolved.clone());
         resolved
     }
@@ -198,7 +202,8 @@ impl BlockModelShapes {
         }
         let missing = quads.is_empty();
         if particleTexture.is_none() {
-            particleTexture = quads.first()
+            particleTexture = quads
+                .first()
                 .and_then(|quad| quad.material.layers.first())
                 .map(|layer| layer.texture.clone());
         }
@@ -232,7 +237,8 @@ impl BlockModelShapes {
                 format!("textures/{}.png", textureName.getPath()),
             );
             let faceUv = BlockFaceUV::new(
-                face.uv.unwrap_or_else(|| default_face_uv(part, sourceFacing)),
+                face.uv
+                    .unwrap_or_else(|| default_face_uv(part, sourceFacing)),
                 normalize_rotation(face.rotation),
             );
             let baked = FaceBakery::makeBakedQuad(
@@ -272,8 +278,22 @@ impl BlockModelShapes {
         let meta = state.getMetadata().clamp(0, 15) as usize;
         let wood = ["oak", "spruce", "birch", "jungle", "acacia", "dark_oak"];
         let colors = [
-            "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
-            "silver", "cyan", "purple", "blue", "brown", "green", "red", "black",
+            "white",
+            "orange",
+            "magenta",
+            "light_blue",
+            "yellow",
+            "lime",
+            "pink",
+            "gray",
+            "silver",
+            "cyan",
+            "purple",
+            "blue",
+            "brown",
+            "green",
+            "red",
+            "black",
         ];
         let stoneSlabs = [
             "stone",
@@ -290,8 +310,28 @@ impl BlockModelShapes {
             // Fluids, tile-entity-only renderers and blocks whose actual state
             // cannot yet be reconstructed from protocol metadata alone remain
             // explicit instead of being replaced with an invented cube.
-            0 | 8 | 9 | 10 | 11 | 26 | 54 | 63 | 68 | 119 | 130 | 137
-            | 144 | 146 | 166 | 176 | 177 | 209 | 210 | 211 | 217 | 219..=234 => {
+            0
+            | 8
+            | 9
+            | 10
+            | 11
+            | 26
+            | 54
+            | 63
+            | 68
+            | 119
+            | 130
+            | 137
+            | 144
+            | 146
+            | 166
+            | 176
+            | 177
+            | 209
+            | 210
+            | 211
+            | 217
+            | 219..=234 => {
                 return None;
             }
             1 => Some(ModelResourceLocation::new(
@@ -404,7 +444,11 @@ impl BlockModelShapes {
                     format!("{material}_slab")
                 };
                 let variant = if id == 43 {
-                    if meta & 8 != 0 { "all" } else { "normal" }
+                    if meta & 8 != 0 {
+                        "all"
+                    } else {
+                        "normal"
+                    }
                 } else if meta & 8 != 0 {
                     "half=top"
                 } else {
@@ -412,12 +456,9 @@ impl BlockModelShapes {
                 };
                 Some(ModelResourceLocation::new(name, variant))
             }
-            53 | 67 | 108 | 109 | 114 | 128 | 134..=136 | 156 | 163 | 164 | 180 | 203 => {
-                Some(ModelResourceLocation::new(
-                    state.getBlock().getRegistryPath(),
-                    stair_variant(meta),
-                ))
-            }
+            53 | 67 | 108 | 109 | 114 | 128 | 134..=136 | 156 | 163 | 164 | 180 | 203 => Some(
+                ModelResourceLocation::new(state.getBlock().getRegistryPath(), stair_variant(meta)),
+            ),
             78 => Some(ModelResourceLocation::new(
                 "snow_layer",
                 format!("layers={}", (meta & 7) + 1),
@@ -513,7 +554,10 @@ impl BlockModelShapes {
                     .unwrap_or("prismarine"),
                 "normal",
             )),
-            170 => Some(ModelResourceLocation::new("hay_block", rotated_pillar_axis_variant(meta))),
+            170 => Some(ModelResourceLocation::new(
+                "hay_block",
+                rotated_pillar_axis_variant(meta),
+            )),
             171 => Some(ModelResourceLocation::new(
                 format!("{}_carpet", colors[meta]),
                 "normal",
@@ -537,7 +581,11 @@ impl BlockModelShapes {
                 .unwrap_or("sunflower");
                 Some(ModelResourceLocation::new(
                     plant,
-                    if meta & 8 != 0 { "half=upper" } else { "half=lower" },
+                    if meta & 8 != 0 {
+                        "half=upper"
+                    } else {
+                        "half=lower"
+                    },
                 ))
             }
             179 => Some(ModelResourceLocation::new(
@@ -661,12 +709,17 @@ impl BlockModelShapes {
             candidate.getNamespace(),
             format!("models/{}.json", candidate.getPath()),
         );
-        Ok(self.resourceManager.resource_exists(&modelJson).then_some(VariantModel {
-            model: candidate,
-            x: 0,
-            y: 0,
-            uvlock: false,
-        }).into_iter().collect())
+        Ok(self
+            .resourceManager
+            .resource_exists(&modelJson)
+            .then_some(VariantModel {
+                model: candidate,
+                x: 0,
+                y: 0,
+                uvlock: false,
+            })
+            .into_iter()
+            .collect())
     }
 }
 
@@ -678,10 +731,7 @@ fn parse_variant_properties(variant: &str) -> HashMap<String, String> {
         .collect()
 }
 
-fn multipart_condition_matches(
-    condition: &Value,
-    properties: &HashMap<String, String>,
-) -> bool {
+fn multipart_condition_matches(condition: &Value, properties: &HashMap<String, String>) -> bool {
     let Some(object) = condition.as_object() else {
         return false;
     };
@@ -738,10 +788,12 @@ fn model_location(namespace: &str, value: &str) -> ResourceLocation {
     if location.getPath().starts_with("block/") {
         location
     } else {
-        ResourceLocation::new(location.getNamespace(), format!("block/{}", location.getPath()))
+        ResourceLocation::new(
+            location.getNamespace(),
+            format!("block/{}", location.getPath()),
+        )
     }
 }
-
 
 fn sprite_texture_location(sprite: &ResourceLocation) -> ResourceLocation {
     let path = sprite.getPath();
@@ -799,11 +851,7 @@ fn stair_variant(meta: usize) -> String {
 fn default_variant_for_metadata(blockId: i32, meta: usize) -> String {
     match blockId {
         23 | 158 => format!("facing={}", legacy_facing(meta)),
-        29 | 33 => format!(
-            "extended={},facing={}",
-            meta & 8 != 0,
-            legacy_facing(meta),
-        ),
+        29 | 33 => format!("extended={},facing={}", meta & 8 != 0, legacy_facing(meta),),
         27 | 28 => format!(
             "powered={},shape={}",
             meta & 8 != 0,
@@ -821,11 +869,7 @@ fn default_variant_for_metadata(blockId: i32, meta: usize) -> String {
             meta & 8 != 0,
         ),
         70 | 72 => format!("powered={}", meta != 0),
-        77 | 143 => format!(
-            "facing={},powered={}",
-            button_facing(meta),
-            meta & 8 != 0,
-        ),
+        77 | 143 => format!("facing={},powered={}", button_facing(meta), meta & 8 != 0,),
         86 | 91 => format!("facing={}", horizontal_facing(meta)),
         93 | 94 => format!(
             "delay={},facing={},locked=false",
@@ -1109,8 +1153,14 @@ mod tests {
     #[test]
     fn directional_metadata_variants_match_mcp() {
         assert_eq!(default_variant_for_metadata(61, 2), "facing=north");
-        assert_eq!(default_variant_for_metadata(33, 10), "extended=true,facing=north");
-        assert_eq!(default_variant_for_metadata(69, 7), "facing=down_z,powered=false");
+        assert_eq!(
+            default_variant_for_metadata(33, 10),
+            "extended=true,facing=north"
+        );
+        assert_eq!(
+            default_variant_for_metadata(69, 7),
+            "facing=down_z,powered=false"
+        );
         assert_eq!(default_variant_for_metadata(145, 9), "damage=2,facing=west");
         assert_eq!(default_variant_for_metadata(66, 9), "shape=north_east");
         assert_eq!(default_variant_for_metadata(23, 6), "facing=down");
@@ -1119,7 +1169,6 @@ mod tests {
         assert_eq!(stair_variant(7), "facing=north,half=top,shape=straight");
         assert_eq!(rotated_pillar_axis_variant(12), "axis=y");
     }
-
 
     #[test]
     fn double_plant_state_mapper_uses_only_the_half_property() {
@@ -1147,7 +1196,10 @@ mod tests {
             cullFace: None,
             material: ResolvedFace {
                 layers: vec![TextureLayer {
-                    texture: ResourceLocation::new("minecraft", "textures/blocks/redstone_dust_line.png"),
+                    texture: ResourceLocation::new(
+                        "minecraft",
+                        "textures/blocks/redstone_dust_line.png",
+                    ),
                     tintIndex: tint_index,
                 }],
             },
@@ -1170,8 +1222,14 @@ mod tests {
             shade: true,
             faces: HashMap::new(),
         };
-        assert_eq!(default_face_uv(&part, EnumFacing::Up), [0.0, 0.0, 16.0, 16.0]);
-        assert_eq!(default_face_uv(&part, EnumFacing::North), [0.0, 8.0, 16.0, 16.0]);
+        assert_eq!(
+            default_face_uv(&part, EnumFacing::Up),
+            [0.0, 0.0, 16.0, 16.0]
+        );
+        assert_eq!(
+            default_face_uv(&part, EnumFacing::North),
+            [0.0, 8.0, 16.0, 16.0]
+        );
     }
 
     #[test]

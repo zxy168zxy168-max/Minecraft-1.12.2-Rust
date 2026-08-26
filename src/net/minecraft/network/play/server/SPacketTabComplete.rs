@@ -13,7 +13,9 @@ impl SPacketTabComplete {
         let mut input = packet.payload.as_slice();
         let count = read_var_i32(&mut input)?;
         if count < 0 || count > 32_767 {
-            return Err(CodecError::InvalidData(format!("invalid tab-completion count: {count}")));
+            return Err(CodecError::InvalidData(format!(
+                "invalid tab-completion count: {count}"
+            )));
         }
         let mut matches = Vec::with_capacity(count as usize);
         for _ in 0..count {
@@ -22,7 +24,9 @@ impl SPacketTabComplete {
         Ok(Self { matches })
     }
 
-    pub fn getMatches(&self) -> &[String] { &self.matches }
+    pub fn getMatches(&self) -> &[String] {
+        &self.matches
+    }
 }
 
 #[cfg(test)]

@@ -1,12 +1,21 @@
-#[path = "Sound.rs"] pub mod Sound;
-#[path = "SoundList.rs"] pub mod SoundList;
-#[path = "SoundEventAccessor.rs"] pub mod SoundEventAccessor;
-#[path = "SoundRegistry.rs"] pub mod SoundRegistry;
-#[path = "PositionedSoundRecord.rs"] pub mod PositionedSoundRecord;
-#[path = "SoundHandler.rs"] pub mod SoundHandler;
-#[path = "SoundManager.rs"] pub mod SoundManager;
-#[path = "AudioBackend.rs"] pub mod AudioBackend;
-pub mod MusicTicker;
+#[path = "AudioBackend.rs"]
+pub mod AudioBackend;
 pub mod ElytraSound;
+pub mod MusicTicker;
+#[path = "PositionedSoundRecord.rs"]
+pub mod PositionedSoundRecord;
+#[path = "Sound.rs"]
+pub mod Sound;
+#[path = "SoundEventAccessor.rs"]
+pub mod SoundEventAccessor;
+#[path = "SoundHandler.rs"]
+pub mod SoundHandler;
+#[path = "SoundList.rs"]
+pub mod SoundList;
+#[path = "SoundManager.rs"]
+pub mod SoundManager;
+#[path = "SoundRegistry.rs"]
+pub mod SoundRegistry;
 
-#[path = "LocalSoundEvent.rs"] pub mod LocalSoundEvent;
+#[path = "LocalSoundEvent.rs"]
+pub mod LocalSoundEvent;

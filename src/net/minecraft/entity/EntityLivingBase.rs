@@ -39,10 +39,12 @@ mod tests {
     #[test]
     fn vine_at_feet_is_climbable_for_non_spectator() {
         let mut world = WorldClient::new(0);
-        world.invalidateRegionAndSetBlock(
-            BlockPos::new(0, 64, 0),
-            IBlockState::fromGlobalStateId(106 << 4),
-        ).unwrap();
+        world
+            .invalidateRegionAndSetBlock(
+                BlockPos::new(0, 64, 0),
+                IBlockState::fromGlobalStateId(106 << 4),
+            )
+            .unwrap();
         let mut entity = Entity::default();
         entity.setPosition(0.5, 64.0, 0.5);
         assert!(isOnLadder(&world, &entity, false));

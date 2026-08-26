@@ -10,15 +10,24 @@ pub struct AbstractAttributeMap {
 }
 
 impl AbstractAttributeMap {
-    pub fn registerAttribute(&mut self, name: impl Into<String>, defaultValue: f64) -> &mut ModifiableAttributeInstance {
-        self.attributes.entry(name.into()).or_insert_with(|| ModifiableAttributeInstance::new(defaultValue))
+    pub fn registerAttribute(
+        &mut self,
+        name: impl Into<String>,
+        defaultValue: f64,
+    ) -> &mut ModifiableAttributeInstance {
+        self.attributes
+            .entry(name.into())
+            .or_insert_with(|| ModifiableAttributeInstance::new(defaultValue))
     }
 
     pub fn getAttributeInstanceByName(&self, name: &str) -> Option<&ModifiableAttributeInstance> {
         self.attributes.get(name)
     }
 
-    pub fn getAttributeInstanceByNameMut(&mut self, name: &str) -> Option<&mut ModifiableAttributeInstance> {
+    pub fn getAttributeInstanceByNameMut(
+        &mut self,
+        name: &str,
+    ) -> Option<&mut ModifiableAttributeInstance> {
         self.attributes.get_mut(name)
     }
 

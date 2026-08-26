@@ -22,7 +22,11 @@ pub unsafe fn select_physical_device(
                 .iter()
                 .position(|family| family.queue_flags.contains(vk::QueueFlags::GRAPHICS))?
                 as u32;
-            Some(PhysicalDeviceCandidate { handle, properties, graphics_queue_family })
+            Some(PhysicalDeviceCandidate {
+                handle,
+                properties,
+                graphics_queue_family,
+            })
         })
         .collect::<Vec<_>>();
 
@@ -35,7 +39,10 @@ pub unsafe fn select_physical_device(
             vk::PhysicalDeviceType::CPU => 4,
             _ => 5,
         };
-        (rank, std::cmp::Reverse(candidate.properties.limits.max_image_dimension2_d))
+        (
+            rank,
+            std::cmp::Reverse(candidate.properties.limits.max_image_dimension2_d),
+        )
     });
     candidates.into_iter().next()
 }

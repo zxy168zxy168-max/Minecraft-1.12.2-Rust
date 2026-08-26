@@ -28,12 +28,7 @@ impl ModelBook {
     /// Parameters are the exact six values passed by `GuiEnchantment` and
     /// `TileEntityEnchantmentTableRenderer` into `ModelBook#render`:
     /// `ticks`, right-page factor, left-page factor and open amount.
-    pub fn buildMesh(
-        ticks: f32,
-        pageFlipRight: f32,
-        pageFlipLeft: f32,
-        open: f32,
-    ) -> BookMesh {
+    pub fn buildMesh(ticks: f32, pageFlipRight: f32, pageFlipLeft: f32, open: f32) -> BookMesh {
         let mut mesh = BookMesh {
             vertices: Vec::with_capacity(7 * 24),
             indices: Vec::with_capacity(7 * 36),

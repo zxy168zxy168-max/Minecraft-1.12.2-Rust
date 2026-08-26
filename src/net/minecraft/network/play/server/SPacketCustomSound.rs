@@ -32,16 +32,38 @@ impl SPacketCustomSound {
                 input.len()
             )));
         }
-        Ok(Self { soundName, category, x, y, z, volume, pitch })
+        Ok(Self {
+            soundName,
+            category,
+            x,
+            y,
+            z,
+            volume,
+            pitch,
+        })
     }
 
-    pub fn getSoundName(&self) -> &str { &self.soundName }
-    pub const fn getCategory(&self) -> SoundCategory { self.category }
-    pub fn getX(&self) -> f64 { self.x as f64 / 8.0 }
-    pub fn getY(&self) -> f64 { self.y as f64 / 8.0 }
-    pub fn getZ(&self) -> f64 { self.z as f64 / 8.0 }
-    pub const fn getVolume(&self) -> f32 { self.volume }
-    pub const fn getPitch(&self) -> f32 { self.pitch }
+    pub fn getSoundName(&self) -> &str {
+        &self.soundName
+    }
+    pub const fn getCategory(&self) -> SoundCategory {
+        self.category
+    }
+    pub fn getX(&self) -> f64 {
+        self.x as f64 / 8.0
+    }
+    pub fn getY(&self) -> f64 {
+        self.y as f64 / 8.0
+    }
+    pub fn getZ(&self) -> f64 {
+        self.z as f64 / 8.0
+    }
+    pub const fn getVolume(&self) -> f32 {
+        self.volume
+    }
+    pub const fn getPitch(&self) -> f32 {
+        self.pitch
+    }
 }
 
 pub(super) fn read_sound_category(input: &mut &[u8]) -> Result<SoundCategory, CodecError> {
@@ -81,6 +103,9 @@ mod tests {
         write_f32_be(1.25, &mut payload);
         let packet = SPacketCustomSound::readPacketData(&RawPacket::new(0x19, payload)).unwrap();
         assert_eq!(packet.getCategory(), SoundCategory::Blocks);
-        assert_eq!((packet.getX(), packet.getY(), packet.getZ()), (1.5, -2.5, 4.0));
+        assert_eq!(
+            (packet.getX(), packet.getY(), packet.getZ()),
+            (1.5, -2.5, 4.0)
+        );
     }
 }

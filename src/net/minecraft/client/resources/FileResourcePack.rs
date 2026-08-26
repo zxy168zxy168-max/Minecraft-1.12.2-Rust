@@ -68,7 +68,10 @@ impl FileResourcePack {
         let mut archive = self.archive.lock().map_err(|_| {
             io::Error::new(
                 io::ErrorKind::Other,
-                format!("resource-pack ZIP lock poisoned: {}", self.archive_path.display()),
+                format!(
+                    "resource-pack ZIP lock poisoned: {}",
+                    self.archive_path.display()
+                ),
             )
         })?;
         let mut entry = archive.by_name(name).map_err(zip_error)?;
@@ -77,14 +80,22 @@ impl FileResourcePack {
         Ok(bytes)
     }
 
-    pub fn archive_path(&self) -> &Path { &self.archive_path }
+    pub fn archive_path(&self) -> &Path {
+        &self.archive_path
+    }
 
     pub fn getResourceDomains(&self) -> HashSet<String> {
         let mut domains = HashSet::new();
         for entry in &self.entries {
-            let Some(remainder) = entry.strip_prefix("assets/") else { continue; };
-            let Some((namespace, _)) = remainder.split_once('/') else { continue; };
-            if namespace.is_empty() { continue; }
+            let Some(remainder) = entry.strip_prefix("assets/") else {
+                continue;
+            };
+            let Some((namespace, _)) = remainder.split_once('/') else {
+                continue;
+            };
+            if namespace.is_empty() {
+                continue;
+            }
             if namespace == namespace.to_ascii_lowercase() {
                 domains.insert(namespace.to_owned());
             } else {
@@ -116,7 +127,10 @@ mod tests {
     use zip::ZipWriter;
 
     fn temp_zip() -> PathBuf {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         std::env::temp_dir().join(format!("mc112-resource-pack-{unique}.zip"))
     }
 
@@ -125,9 +139,18 @@ mod tests {
         let path = temp_zip();
         let file = File::create(&path).unwrap();
         let mut writer = ZipWriter::new(file);
-        writer.start_file("pack.mcmeta", SimpleFileOptions::default()).unwrap();
-        writer.write_all(br#"{"pack":{"pack_format":3,"description":"test"}}"#).unwrap();
-        writer.start_file("assets/minecraft/test/value.txt", SimpleFileOptions::default()).unwrap();
+        writer
+            .start_file("pack.mcmeta", SimpleFileOptions::default())
+            .unwrap();
+        writer
+            .write_all(br#"{"pack":{"pack_format":3,"description":"test"}}"#)
+            .unwrap();
+        writer
+            .start_file(
+                "assets/minecraft/test/value.txt",
+                SimpleFileOptions::default(),
+            )
+            .unwrap();
         writer.write_all(b"zip-pack").unwrap();
         writer.finish().unwrap();
 

@@ -5,23 +5,80 @@ use crate::net::minecraft::item::ItemStack::ItemStack;
 const DATA: &[u8] = include_bytes!("CreativeTabData.bin");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct TabSlice { index: i32, offset: usize, length: usize, count: usize }
+struct TabSlice {
+    index: i32,
+    offset: usize,
+    length: usize,
+    count: usize,
+}
 
 const TABS: &[TabSlice] = &[
-    TabSlice { index: 0, offset: 0, length: 1182, count: 197 }, // buildingBlocks
-    TabSlice { index: 1, offset: 1182, length: 1074, count: 179 }, // decorations
-    TabSlice { index: 2, offset: 2256, length: 234, count: 39 }, // redstone
-    TabSlice { index: 3, offset: 2490, length: 108, count: 18 }, // transportation
-    TabSlice { index: 5, offset: 2598, length: 16050, count: 890 }, // search
-    TabSlice { index: 6, offset: 18648, length: 2523, count: 128 }, // misc
-    TabSlice { index: 7, offset: 21171, length: 204, count: 34 }, // food
-    TabSlice { index: 8, offset: 21375, length: 570, count: 35 }, // tools
-    TabSlice { index: 9, offset: 21945, length: 2817, count: 87 }, // combat
-    TabSlice { index: 10, offset: 24762, length: 4584, count: 119 }, // brewing
+    TabSlice {
+        index: 0,
+        offset: 0,
+        length: 1182,
+        count: 197,
+    }, // buildingBlocks
+    TabSlice {
+        index: 1,
+        offset: 1182,
+        length: 1074,
+        count: 179,
+    }, // decorations
+    TabSlice {
+        index: 2,
+        offset: 2256,
+        length: 234,
+        count: 39,
+    }, // redstone
+    TabSlice {
+        index: 3,
+        offset: 2490,
+        length: 108,
+        count: 18,
+    }, // transportation
+    TabSlice {
+        index: 5,
+        offset: 2598,
+        length: 16050,
+        count: 890,
+    }, // search
+    TabSlice {
+        index: 6,
+        offset: 18648,
+        length: 2523,
+        count: 128,
+    }, // misc
+    TabSlice {
+        index: 7,
+        offset: 21171,
+        length: 204,
+        count: 34,
+    }, // food
+    TabSlice {
+        index: 8,
+        offset: 21375,
+        length: 570,
+        count: 35,
+    }, // tools
+    TabSlice {
+        index: 9,
+        offset: 21945,
+        length: 2817,
+        count: 87,
+    }, // combat
+    TabSlice {
+        index: 10,
+        offset: 24762,
+        length: 4584,
+        count: 119,
+    }, // brewing
 ];
 
 pub fn itemsForTab(tabIndex: i32) -> Vec<ItemStack> {
-    let Some(tab) = TABS.iter().find(|entry| entry.index == tabIndex) else { return Vec::new(); };
+    let Some(tab) = TABS.iter().find(|entry| entry.index == tabIndex) else {
+        return Vec::new();
+    };
     let mut input = &DATA[tab.offset..tab.offset + tab.length];
     let mut result = Vec::with_capacity(tab.count);
     while !input.is_empty() {
@@ -40,7 +97,18 @@ mod tests {
     use super::*;
     #[test]
     fn exact_compiled_mcp_counts_decode() {
-        for (index, count) in [(0, 197), (1, 179), (2, 39), (3, 18), (5, 890), (6, 128), (7, 34), (8, 35), (9, 87), (10, 119)] {
+        for (index, count) in [
+            (0, 197),
+            (1, 179),
+            (2, 39),
+            (3, 18),
+            (5, 890),
+            (6, 128),
+            (7, 34),
+            (8, 35),
+            (9, 87),
+            (10, 119),
+        ] {
             assert_eq!(itemsForTab(index).len(), count);
         }
     }

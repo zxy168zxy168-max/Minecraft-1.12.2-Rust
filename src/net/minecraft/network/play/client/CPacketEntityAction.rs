@@ -40,11 +40,19 @@ pub struct CPacketEntityAction {
 
 impl CPacketEntityAction {
     pub const fn new(entityId: i32, action: Action) -> Self {
-        Self { entityId, action, auxData: 0 }
+        Self {
+            entityId,
+            action,
+            auxData: 0,
+        }
     }
 
     pub const fn withAuxData(entityId: i32, action: Action, auxData: i32) -> Self {
-        Self { entityId, action, auxData }
+        Self {
+            entityId,
+            action,
+            auxData,
+        }
     }
 
     pub fn writePacketData(&self) -> RawPacket {
@@ -69,8 +77,8 @@ mod tests {
 
     #[test]
     fn riding_jump_preserves_action_ordinal_and_aux_power() {
-        let packet = CPacketEntityAction::withAuxData(7, Action::StartRidingJump, 83)
-            .writePacketData();
+        let packet =
+            CPacketEntityAction::withAuxData(7, Action::StartRidingJump, 83).writePacketData();
         assert_eq!(packet.id, 0x15);
         assert_eq!(packet.payload, vec![7, 5, 83]);
     }

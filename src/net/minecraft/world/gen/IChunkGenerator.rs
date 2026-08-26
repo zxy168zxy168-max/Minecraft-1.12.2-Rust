@@ -8,9 +8,15 @@ use crate::net::minecraft::world::chunk::Chunk::Chunk;
 /// embedded in `ChunkProviderServer`.
 pub trait IChunkGenerator: Send {
     fn provideChunk(&mut self, x: i32, z: i32) -> Result<Chunk, String>;
-    fn populate(&mut self, _x: i32, _z: i32) -> Result<(), String> { Ok(()) }
-    fn generateStructures(&mut self, _chunk: &mut Chunk, _x: i32, _z: i32) -> bool { false }
+    fn populate(&mut self, _x: i32, _z: i32) -> Result<(), String> {
+        Ok(())
+    }
+    fn generateStructures(&mut self, _chunk: &mut Chunk, _x: i32, _z: i32) -> bool {
+        false
+    }
     fn recreateStructures(&mut self, _chunk: &mut Chunk, _x: i32, _z: i32) {}
     fn generatorName(&self) -> &'static str;
-    fn seaLevelOverride(&self) -> Option<i32> { None }
+    fn seaLevelOverride(&self) -> Option<i32> {
+        None
+    }
 }

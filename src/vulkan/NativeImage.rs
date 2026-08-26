@@ -15,7 +15,10 @@ pub enum NativeImageError {
     #[error("failed to decode PNG: {0}")]
     Png(#[from] png::DecodingError),
     #[error("unsupported PNG output format {color_type:?}/{bit_depth:?}")]
-    Unsupported { color_type: ColorType, bit_depth: BitDepth },
+    Unsupported {
+        color_type: ColorType,
+        bit_depth: BitDepth,
+    },
     #[error("decoded PNG buffer has an invalid length")]
     InvalidLength,
 }
@@ -26,7 +29,11 @@ impl NativeImage {
         if rgba.len() != expected {
             return Err(NativeImageError::InvalidLength);
         }
-        Ok(Self { width, height, rgba })
+        Ok(Self {
+            width,
+            height,
+            rgba,
+        })
     }
 
     pub fn decode_png(bytes: &[u8]) -> Result<Self, NativeImageError> {
@@ -56,26 +63,51 @@ impl NativeImage {
                     rgba.extend_from_slice(&[pixel[0], pixel[0], pixel[0], pixel[1]]);
                 }
             }
-            (color_type, bit_depth) => return Err(NativeImageError::Unsupported { color_type, bit_depth }),
+            (color_type, bit_depth) => {
+                return Err(NativeImageError::Unsupported {
+                    color_type,
+                    bit_depth,
+                })
+            }
         }
 
         if rgba.len() != pixel_count * 4 {
             return Err(NativeImageError::InvalidLength);
         }
 
-        Ok(Self { width: info.width, height: info.height, rgba })
+        Ok(Self {
+            width: info.width,
+            height: info.height,
+            rgba,
+        })
     }
 
-    pub const fn width(&self) -> u32 { self.width }
-    pub const fn height(&self) -> u32 { self.height }
-    pub fn rgba(&self) -> &[u8] { &self.rgba }
-    pub fn rgba_mut(&mut self) -> &mut [u8] { &mut self.rgba }
-    pub fn into_rgba(self) -> Vec<u8> { self.rgba }
+    pub const fn width(&self) -> u32 {
+        self.width
+    }
+    pub const fn height(&self) -> u32 {
+        self.height
+    }
+    pub fn rgba(&self) -> &[u8] {
+        &self.rgba
+    }
+    pub fn rgba_mut(&mut self) -> &mut [u8] {
+        &mut self.rgba
+    }
+    pub fn into_rgba(self) -> Vec<u8> {
+        self.rgba
+    }
 
-    pub fn pixel_rgba(&self, x: u32, y: u32) -> [u8;4] {
-        let x=x.min(self.width.saturating_sub(1)); let y=y.min(self.height.saturating_sub(1));
-        let offset=((y*self.width+x)*4) as usize;
-        [self.rgba[offset],self.rgba[offset+1],self.rgba[offset+2],self.rgba[offset+3]]
+    pub fn pixel_rgba(&self, x: u32, y: u32) -> [u8; 4] {
+        let x = x.min(self.width.saturating_sub(1));
+        let y = y.min(self.height.saturating_sub(1));
+        let offset = ((y * self.width + x) * 4) as usize;
+        [
+            self.rgba[offset],
+            self.rgba[offset + 1],
+            self.rgba[offset + 2],
+            self.rgba[offset + 3],
+        ]
     }
 
     pub fn alpha(&self, x: u32, y: u32) -> u8 {

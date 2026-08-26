@@ -16,8 +16,12 @@ impl EntityAreaEffectCloud {
     pub const DEFAULT_SYNC_RADIUS: f32 = 0.5;
     pub const DEFAULT_PARTICLE: EnumParticleTypes = EnumParticleTypes::SpellMob;
 
-    pub const fn width(radius: f32) -> f32 { radius * 2.0 }
-    pub const fn particleArea(radius: f32) -> f32 { core::f32::consts::PI * radius * radius }
+    pub const fn width(radius: f32) -> f32 {
+        radius * 2.0
+    }
+    pub const fn particleArea(radius: f32) -> f32 {
+        core::f32::consts::PI * radius * radius
+    }
     pub const fn colorComponents(color: i32) -> [f64; 3] {
         [
             ((color >> 16) & 255) as f64 / 255.0,

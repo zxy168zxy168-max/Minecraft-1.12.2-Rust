@@ -4,7 +4,9 @@ use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 
 pub const BLOCK_ID: i32 = 30;
 
-pub const fn isBlockWeb(state: IBlockState) -> bool { state.getBlockId() == BLOCK_ID }
+pub const fn isBlockWeb(state: IBlockState) -> bool {
+    state.getBlockId() == BLOCK_ID
+}
 
 pub const FULL_BLOCK_AABB: AxisAlignedBB = AxisAlignedBB {
     min_x: 0.0,
@@ -17,7 +19,9 @@ pub const FULL_BLOCK_AABB: AxisAlignedBB = AxisAlignedBB {
 
 /// MCP `BlockWeb#getCollisionBoundingBox` returns `NULL_AABB`, while the
 /// inherited selected bounding box remains the full block cube.
-pub const fn getBoundingBox() -> AxisAlignedBB { FULL_BLOCK_AABB }
+pub const fn getBoundingBox() -> AxisAlignedBB {
+    FULL_BLOCK_AABB
+}
 
 pub fn onEntityCollidedWithBlock(entity: &mut Entity) {
     entity.setInWeb();

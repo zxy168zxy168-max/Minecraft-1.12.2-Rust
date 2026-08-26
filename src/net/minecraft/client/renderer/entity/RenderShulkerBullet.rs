@@ -14,8 +14,12 @@ impl RenderShulkerBullet {
 
     pub fn rotLerp(previous: f32, current: f32, partialTicks: f32) -> f32 {
         let mut difference = current - previous;
-        while difference < -180.0 { difference += 360.0; }
-        while difference >= 180.0 { difference -= 360.0; }
+        while difference < -180.0 {
+            difference += 360.0;
+        }
+        while difference >= 180.0 {
+            difference -= 360.0;
+        }
         previous + partialTicks.clamp(0.0, 1.0) * difference
     }
 }

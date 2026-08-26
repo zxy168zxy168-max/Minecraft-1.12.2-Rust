@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
-    fs,
-    io,
+    fs, io,
     path::{Path, PathBuf},
     sync::{Mutex, OnceLock},
 };
@@ -110,9 +109,13 @@ pub struct ShaderOption {
 }
 
 impl ShaderOption {
-    pub fn isChanged(&self) -> bool { self.value != self.valueDefault }
+    pub fn isChanged(&self) -> bool {
+        self.value != self.valueDefault
+    }
 
-    pub fn resetValue(&mut self) { self.value = self.valueDefault.clone(); }
+    pub fn resetValue(&mut self) {
+        self.value = self.valueDefault.clone();
+    }
 
     pub fn nextValue(&mut self) {
         if let Some(index) = self.values.iter().position(|value| value == &self.value) {
@@ -136,18 +139,28 @@ impl ShaderOption {
     }
 
     pub fn setIndexNormalized(&mut self, normalized: f32) -> bool {
-        if self.values.is_empty() { return false; }
+        if self.values.is_empty() {
+            return false;
+        }
         let maximum = self.values.len().saturating_sub(1);
         let index = (normalized.clamp(0.0, 1.0) * maximum as f32).round() as usize;
         let value = self.values[index.min(maximum)].clone();
-        if value == self.value { return false; }
+        if value == self.value {
+            return false;
+        }
         self.value = value;
         true
     }
 
     pub fn indexNormalized(&self) -> f32 {
-        if self.values.len() <= 1 { return 0.0; }
-        let index = self.values.iter().position(|value| value == &self.value).unwrap_or(0);
+        if self.values.len() <= 1 {
+            return 0.0;
+        }
+        let index = self
+            .values
+            .iter()
+            .position(|value| value == &self.value)
+            .unwrap_or(0);
         index as f32 / (self.values.len() - 1) as f32
     }
 
@@ -172,14 +185,23 @@ impl ShaderOption {
                 }
             }
             ShaderOptionKind::Variable => {
-                format!("#define {} {} // Shader option {}", self.name, self.value, self.value)
+                format!(
+                    "#define {} {} // Shader option {}",
+                    self.name, self.value, self.value
+                )
             }
             ShaderOptionKind::ConstSwitch => {
-                format!("const bool {} = {}; // Shader option {}", self.name, self.value, self.value)
+                format!(
+                    "const bool {} = {}; // Shader option {}",
+                    self.name, self.value, self.value
+                )
             }
             ShaderOptionKind::ConstVariable => {
                 let ty = self.constType.as_deref().unwrap_or("float");
-                format!("const {ty} {} = {}; // Shader option {}", self.name, self.value, self.value)
+                format!(
+                    "const {ty} {} = {}; // Shader option {}",
+                    self.name, self.value, self.value
+                )
             }
         }
     }
@@ -216,7 +238,6 @@ pub struct ShaderPackOptions {
     pub configPath: PathBuf,
     pub cacheKey: String,
 }
-
 
 impl Default for ShaderPackOptions {
     fn default() -> Self {
@@ -314,7 +335,10 @@ impl ShaderPackOptions {
             for program in PROGRAM_NAMES {
                 for extension in ["vsh", "fsh"] {
                     let path = format!("{directory}/{program}.{extension}");
-                    let Some(source) = loadShaderOptionSource(pack, &path, &mut sourceCache)? else { continue; };
+                    let Some(source) = loadShaderOptionSource(pack, &path, &mut sourceCache)?
+                    else {
+                        continue;
+                    };
                     collect_options_from_source(source.as_ref(), &path, &mut merged);
                 }
             }
@@ -396,7 +420,10 @@ impl ShaderPackOptions {
     }
 
     pub fn translate<'a>(&'a self, key: &str, fallback: &'a str) -> &'a str {
-        self.translations.get(key).map(String::as_str).unwrap_or(fallback)
+        self.translations
+            .get(key)
+            .map(String::as_str)
+            .unwrap_or(fallback)
     }
 
     pub fn optionNameText<'a>(&'a self, option: &'a ShaderOption) -> &'a str {
@@ -422,7 +449,8 @@ impl ShaderPackOptions {
 
     pub fn optionDescriptionText(&self, option: &ShaderOption) -> String {
         let fallback = option.description.trim().trim_start_matches("//").trim();
-        self.translate(&format!("option.{}.comment", option.name), fallback).to_owned()
+        self.translate(&format!("option.{}.comment", option.name), fallback)
+            .to_owned()
     }
 
     pub fn screenText<'a>(&'a self, name: &'a str) -> &'a str {
@@ -443,36 +471,61 @@ impl ShaderPackOptions {
             .unwrap_or_else(|| "screen".to_owned());
         let Some(raw) = self.screens.get(&key) else {
             let mut fallback = Vec::new();
-            if !self.profiles.is_empty() { fallback.push("<profile>".to_owned()); }
+            if !self.profiles.is_empty() {
+                fallback.push("<profile>".to_owned());
+            }
             fallback.extend(
-                self.options.iter().filter(|option| option.visible).map(|option| option.name.clone()),
+                self.options
+                    .iter()
+                    .filter(|option| option.visible)
+                    .map(|option| option.name.clone()),
             );
             return fallback;
         };
 
         // `Shaders.getShaderOptionsRest` excludes every option explicitly
         // referenced by any configured GUI screen, not only this page.
-        let screenOptionNames = self.screens.values().flat_map(|tokens| tokens.iter()).filter_map(|token| {
-            if token.starts_with('<') || token.starts_with('[') || token == "*" { None }
-            else { Some(token.as_str()) }
-        }).collect::<HashSet<_>>();
+        let screenOptionNames = self
+            .screens
+            .values()
+            .flat_map(|tokens| tokens.iter())
+            .filter_map(|token| {
+                if token.starts_with('<') || token.starts_with('[') || token == "*" {
+                    None
+                } else {
+                    Some(token.as_str())
+                }
+            })
+            .collect::<HashSet<_>>();
         let mut output = Vec::new();
         for token in raw {
             if token == "*" || token == "<rest>" {
                 output.extend(
-                    self.options.iter()
-                        .filter(|option| option.visible && !screenOptionNames.contains(option.name.as_str()))
+                    self.options
+                        .iter()
+                        .filter(|option| {
+                            option.visible && !screenOptionNames.contains(option.name.as_str())
+                        })
                         .map(|option| option.name.clone()),
                 );
             } else if token == "<profile>" {
-                if !self.profiles.is_empty() { output.push(token.clone()); }
+                if !self.profiles.is_empty() {
+                    output.push(token.clone());
+                }
             } else if token == "<empty>" {
                 output.push(token.clone());
-            } else if let Some(name) = token.strip_prefix('[').and_then(|value| value.strip_suffix(']')) {
+            } else if let Some(name) = token
+                .strip_prefix('[')
+                .and_then(|value| value.strip_suffix(']'))
+            {
                 if self.screens.contains_key(&format!("screen.{name}")) {
                     output.push(token.clone());
                 }
-            } else if self.options.iter().any(|option| option.visible && option.name == *token) {
+            } else if self
+                .options
+                .iter()
+                .any(|option| option.visible && option.name == *token)
+            {
                 output.push(token.clone());
             }
         }
@@ -483,18 +536,26 @@ impl ShaderPackOptions {
         let key = screenName
             .map(|name| format!("screen.{name}.columns"))
             .unwrap_or_else(|| "screen.columns".to_owned());
-        self.screenColumns.get(&key).copied().unwrap_or(fallback).clamp(1, 16)
+        self.screenColumns
+            .get(&key)
+            .copied()
+            .unwrap_or(fallback)
+            .clamp(1, 16)
     }
 
     pub fn visibleOptionIndices(&self, screenName: Option<&str>) -> Vec<usize> {
-        let key = screenName.map(|name| format!("screen.{name}")).unwrap_or_else(|| "screen".to_owned());
+        let key = screenName
+            .map(|name| format!("screen.{name}"))
+            .unwrap_or_else(|| "screen".to_owned());
         let mut result = Vec::new();
         let mut seen = HashSet::new();
         let mut visitedScreens = HashSet::new();
         self.collectScreenOptions(&key, &mut result, &mut seen, &mut visitedScreens);
         if result.is_empty() {
             for (index, option) in self.options.iter().enumerate() {
-                if option.visible && seen.insert(index) { result.push(index); }
+                if option.visible && seen.insert(index) {
+                    result.push(index);
+                }
             }
         }
         result
@@ -507,33 +568,54 @@ impl ShaderPackOptions {
         seen: &mut HashSet<usize>,
         visitedScreens: &mut HashSet<String>,
     ) {
-        if !visitedScreens.insert(key.to_owned()) { return; }
-        let Some(tokens) = self.screens.get(key) else { return; };
+        if !visitedScreens.insert(key.to_owned()) {
+            return;
+        }
+        let Some(tokens) = self.screens.get(key) else {
+            return;
+        };
         let mut includeRest = false;
         for token in tokens {
             if token == "*" || token == "<rest>" {
                 includeRest = true;
                 continue;
             }
-            if token == "<empty>" || token == "<profile>" { continue; }
-            if let Some(name) = token.strip_prefix('[').and_then(|value| value.strip_suffix(']')) {
+            if token == "<empty>" || token == "<profile>" {
+                continue;
+            }
+            if let Some(name) = token
+                .strip_prefix('[')
+                .and_then(|value| value.strip_suffix(']'))
+            {
                 self.collectScreenOptions(&format!("screen.{name}"), result, seen, visitedScreens);
                 continue;
             }
-            if let Some(index) = self.options.iter().position(|option| option.name == *token && option.visible) {
-                if seen.insert(index) { result.push(index); }
+            if let Some(index) = self
+                .options
+                .iter()
+                .position(|option| option.name == *token && option.visible)
+            {
+                if seen.insert(index) {
+                    result.push(index);
+                }
             }
         }
         if includeRest {
             for (index, option) in self.options.iter().enumerate() {
-                if option.visible && seen.insert(index) { result.push(index); }
+                if option.visible && seen.insert(index) {
+                    result.push(index);
+                }
             }
         }
     }
 
     pub fn hasProfileSelector(&self, screenName: Option<&str>) -> bool {
-        if self.profiles.is_empty() { return false; }
-        let key = screenName.map(|name| format!("screen.{name}")).unwrap_or_else(|| "screen".to_owned());
+        if self.profiles.is_empty() {
+            return false;
+        }
+        let key = screenName
+            .map(|name| format!("screen.{name}"))
+            .unwrap_or_else(|| "screen".to_owned());
         self.screens
             .get(&key)
             .map(|tokens| tokens.iter().any(|token| token == "<profile>"))
@@ -543,7 +625,10 @@ impl ShaderPackOptions {
     pub fn activeProfileIndex(&self) -> Option<usize> {
         self.profiles.iter().position(|profile| {
             profile.optionValues.iter().all(|(name, value)| {
-                self.options.iter().find(|option| option.name == *name).is_some_and(|option| option.value == *value)
+                self.options
+                    .iter()
+                    .find(|option| option.name == *name)
+                    .is_some_and(|option| option.value == *value)
             })
         })
     }
@@ -560,12 +645,16 @@ impl ShaderPackOptions {
     }
 
     pub fn applyProfile(&mut self, index: usize) -> bool {
-        let Some(profile) = self.profiles.get(index).cloned() else { return false; };
+        let Some(profile) = self.profiles.get(index).cloned() else {
+            return false;
+        };
         let mut changed = false;
         for (name, value) in profile.optionValues {
             if let Some(option) = self.options.iter_mut().find(|option| option.name == name) {
                 let before = option.value.clone();
-                if option.setValue(&value) && option.value != before { changed = true; }
+                if option.setValue(&value) && option.value != before {
+                    changed = true;
+                }
             }
         }
         changed
@@ -590,7 +679,11 @@ impl ShaderPackOptions {
         let mut lines = Vec::new();
         for option in &self.options {
             if option.enabled && option.isChanged() {
-                lines.push(format!("{}={}", escape_property_value(&option.name), escape_property_value(&option.value)));
+                lines.push(format!(
+                    "{}={}",
+                    escape_property_value(&option.name),
+                    escape_property_value(&option.value)
+                ));
             }
         }
         let result = if lines.is_empty() {
@@ -600,7 +693,9 @@ impl ShaderPackOptions {
                 Err(error) => Err(error),
             }
         } else {
-            if let Some(parent) = self.configPath.parent() { fs::create_dir_all(parent)?; }
+            if let Some(parent) = self.configPath.parent() {
+                fs::create_dir_all(parent)?;
+            }
             fs::write(&self.configPath, format!("{}\n", lines.join("\n")))
         };
         if result.is_ok() {
@@ -682,12 +777,23 @@ struct ParsedConst {
     boolType: bool,
 }
 
-fn collect_options_from_source(source: &str, path: &str, output: &mut BTreeMap<String, ShaderOption>) {
+fn collect_options_from_source(
+    source: &str,
+    path: &str,
+    output: &mut BTreeMap<String, ShaderOption>,
+) {
     for line in source.lines() {
         let parsed = parse_define(line)
             .map(|parsed| {
-                let kind = if parsed.value.is_some() { ShaderOptionKind::Variable } else { ShaderOptionKind::Switch };
-                let value = parsed.value.clone().unwrap_or_else(|| (!parsed.commented).to_string());
+                let kind = if parsed.value.is_some() {
+                    ShaderOptionKind::Variable
+                } else {
+                    ShaderOptionKind::Switch
+                };
+                let value = parsed
+                    .value
+                    .clone()
+                    .unwrap_or_else(|| (!parsed.commented).to_string());
                 let values = if kind == ShaderOptionKind::Switch {
                     vec!["false".to_owned(), "true".to_owned()]
                 } else {
@@ -697,17 +803,34 @@ fn collect_options_from_source(source: &str, path: &str, output: &mut BTreeMap<S
             })
             .or_else(|| {
                 let parsed = parse_const(line)?;
-                if !CONST_OPTION_NAMES.contains(&parsed.name.as_str()) { return None; }
-                let kind = if parsed.boolType { ShaderOptionKind::ConstSwitch } else { ShaderOptionKind::ConstVariable };
+                if !CONST_OPTION_NAMES.contains(&parsed.name.as_str()) {
+                    return None;
+                }
+                let kind = if parsed.boolType {
+                    ShaderOptionKind::ConstSwitch
+                } else {
+                    ShaderOptionKind::ConstVariable
+                };
                 let values = if parsed.boolType {
                     vec!["false".to_owned(), "true".to_owned()]
                 } else {
                     parsed.values.clone()
                 };
-                Some((parsed.name, parsed.description, parsed.value, values, kind, Some(parsed.ty)))
+                Some((
+                    parsed.name,
+                    parsed.description,
+                    parsed.value,
+                    values,
+                    kind,
+                    Some(parsed.ty),
+                ))
             });
-        let Some((name, description, value, values, kind, constType)) = parsed else { continue; };
-        if name.starts_with("MC_") { continue; }
+        let Some((name, description, value, values, kind, constType)) = parsed else {
+            continue;
+        };
+        if name.starts_with("MC_") {
+            continue;
+        }
         if matches!(kind, ShaderOptionKind::Switch) && !source_uses_switch(source, &name) {
             continue;
         }
@@ -758,15 +881,24 @@ fn collect_options_from_source(source: &str, path: &str, output: &mut BTreeMap<S
 fn parse_define(line: &str) -> Option<ParsedDefine> {
     let mut trimmed = line.trim_start();
     let commented = trimmed.starts_with("//");
-    if commented { trimmed = trimmed[2..].trim_start(); }
+    if commented {
+        trimmed = trimmed[2..].trim_start();
+    }
     let rest = trimmed.strip_prefix("#define")?.trim_start();
     let (code, comment) = split_comment(rest);
     let mut tokens = code.split_whitespace();
     let name = tokens.next()?.to_owned();
-    if !valid_identifier(&name) { return None; }
+    if !valid_identifier(&name) {
+        return None;
+    }
     let value = tokens.next().map(str::to_owned);
-    if tokens.next().is_some() { return None; }
-    if value.as_deref().is_some_and(|value| !valid_define_value(value)) {
+    if tokens.next().is_some() {
+        return None;
+    }
+    if value
+        .as_deref()
+        .is_some_and(|value| !valid_define_value(value))
+    {
         return None;
     }
     let (mut values, description) = parse_values_comment(comment);
@@ -777,20 +909,34 @@ fn parse_define(line: &str) -> Option<ParsedDefine> {
             values.insert(0, default.clone());
         }
     }
-    Some(ParsedDefine { name, value, description, values, commented })
+    Some(ParsedDefine {
+        name,
+        value,
+        description,
+        values,
+        commented,
+    })
 }
 
 fn parse_const(line: &str) -> Option<ParsedConst> {
     let (code, comment) = split_comment(line.trim());
     let code = code.trim_end_matches(';').trim();
     let mut tokens = code.split_whitespace();
-    if tokens.next()? != "const" { return None; }
+    if tokens.next()? != "const" {
+        return None;
+    }
     let ty = tokens.next()?;
-    if !matches!(ty, "bool" | "int" | "float") { return None; }
+    if !matches!(ty, "bool" | "int" | "float") {
+        return None;
+    }
     let name = tokens.next()?.to_owned();
-    if !valid_identifier(&name) || tokens.next()? != "=" { return None; }
+    if !valid_identifier(&name) || tokens.next()? != "=" {
+        return None;
+    }
     let value = tokens.next()?.trim_end_matches(';').to_owned();
-    if tokens.next().is_some() { return None; }
+    if tokens.next().is_some() {
+        return None;
+    }
     if ty == "bool" && !matches!(value.as_str(), "true" | "false") {
         return None;
     }
@@ -805,7 +951,14 @@ fn parse_const(line: &str) -> Option<ParsedConst> {
     } else if !values.iter().any(|candidate| candidate == &value) {
         values.insert(0, value.clone());
     }
-    Some(ParsedConst { name, value, ty: ty.to_owned(), description, values, boolType: ty == "bool" })
+    Some(ParsedConst {
+        name,
+        value,
+        ty: ty.to_owned(),
+        description,
+        values,
+        boolType: ty == "bool",
+    })
 }
 
 fn split_comment(value: &str) -> (&str, &str) {
@@ -818,13 +971,22 @@ fn split_comment(value: &str) -> (&str, &str) {
 
 fn parse_values_comment(comment: &str) -> (Vec<String>, String) {
     let comment = comment.trim();
-    let Some(start) = comment.find('[') else { return (Vec::new(), comment.to_owned()); };
-    let Some(relativeEnd) = comment[start + 1..].find(']') else { return (Vec::new(), comment.to_owned()); };
+    let Some(start) = comment.find('[') else {
+        return (Vec::new(), comment.to_owned());
+    };
+    let Some(relativeEnd) = comment[start + 1..].find(']') else {
+        return (Vec::new(), comment.to_owned());
+    };
     let end = start + 1 + relativeEnd;
-    let values = comment[start + 1..end].split_whitespace().map(str::to_owned).collect::<Vec<_>>();
+    let values = comment[start + 1..end]
+        .split_whitespace()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
     let mut description = String::new();
     description.push_str(comment[..start].trim());
-    if !description.is_empty() && !comment[end + 1..].trim().is_empty() { description.push(' '); }
+    if !description.is_empty() && !comment[end + 1..].trim().is_empty() {
+        description.push(' ');
+    }
     description.push_str(comment[end + 1..].trim());
     (values, description)
 }
@@ -849,23 +1011,37 @@ fn valid_define_value(value: &str) -> bool {
 }
 
 fn valid_numeric_constant(value: &str) -> bool {
-    let value = value.strip_suffix('f').or_else(|| value.strip_suffix('F')).unwrap_or(value);
+    let value = value
+        .strip_suffix('f')
+        .or_else(|| value.strip_suffix('F'))
+        .unwrap_or(value);
     if value.is_empty() {
         return false;
     }
     let value = value.strip_prefix('-').unwrap_or(value);
-    !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit() || byte == b'.')
+    !value.is_empty()
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || byte == b'.')
 }
 
 fn valid_identifier(value: &str) -> bool {
     let mut chars = value.chars();
-    let Some(first) = chars.next() else { return false; };
+    let Some(first) = chars.next() else {
+        return false;
+    };
     (first == '_' || first.is_ascii_alphabetic())
         && chars.all(|character| character == '_' || character.is_ascii_alphanumeric())
 }
 
-fn parse_sliders(properties: &HashMap<String, String>, options: &[ShaderOption]) -> HashSet<String> {
-    let valid = options.iter().map(|option| option.name.as_str()).collect::<HashSet<_>>();
+fn parse_sliders(
+    properties: &HashMap<String, String>,
+    options: &[ShaderOption],
+) -> HashSet<String> {
+    let valid = options
+        .iter()
+        .map(|option| option.name.as_str())
+        .collect::<HashSet<_>>();
     properties
         .get("sliders")
         .into_iter()
@@ -922,7 +1098,10 @@ fn parse_screens(
                 tokens.push(raw.to_owned());
                 continue;
             }
-            if let Some(name) = raw.strip_prefix('[').and_then(|token| token.strip_suffix(']')) {
+            if let Some(name) = raw
+                .strip_prefix('[')
+                .and_then(|token| token.strip_suffix(']'))
+            {
                 if valid_identifier(name)
                     && parse_one(
                         &format!("screen.{name}"),
@@ -975,21 +1154,34 @@ fn parse_screen_columns(
         .keys()
         .filter_map(|key| {
             let property = format!("{key}.columns");
-            let columns = properties.get(&property)?.trim().parse::<usize>().ok()?.max(1);
+            let columns = properties
+                .get(&property)?
+                .trim()
+                .parse::<usize>()
+                .ok()?
+                .max(1);
             Some((property, columns))
         })
         .collect()
 }
 
-fn parse_profiles(properties: &HashMap<String, String>, options: &mut [ShaderOption]) -> Vec<ShaderProfile> {
+fn parse_profiles(
+    properties: &HashMap<String, String>,
+    options: &mut [ShaderOption],
+) -> Vec<ShaderProfile> {
     let raw = properties
         .iter()
-        .filter_map(|(key, value)| key.strip_prefix("profile.").map(|name| (name.to_owned(), value.clone())))
+        .filter_map(|(key, value)| {
+            key.strip_prefix("profile.")
+                .map(|name| (name.to_owned(), value.clone()))
+        })
         .collect::<BTreeMap<_, _>>();
     let mut output = BTreeMap::<String, ShaderProfile>::new();
     for name in raw.keys() {
         let mut visiting = HashSet::new();
-        if let Some(profile) = parse_profile_recursive(name, &raw, options, &mut output, &mut visiting) {
+        if let Some(profile) =
+            parse_profile_recursive(name, &raw, options, &mut output, &mut visiting)
+        {
             output.insert(name.clone(), profile);
         }
     }
@@ -1003,7 +1195,9 @@ fn parse_profile_recursive(
     parsed: &mut BTreeMap<String, ShaderProfile>,
     visiting: &mut HashSet<String>,
 ) -> Option<ShaderProfile> {
-    if let Some(profile) = parsed.get(name) { return Some(profile.clone()); }
+    if let Some(profile) = parsed.get(name) {
+        return Some(profile.clone());
+    }
     if !visiting.insert(name.to_owned()) {
         log::warn!("[Shaders] Recursive shader profile: {name}");
         return None;
@@ -1016,9 +1210,13 @@ fn parse_profile_recursive(
     };
     for token in definition.split_whitespace() {
         if let Some(parent) = token.strip_prefix("profile.") {
-            if let Some(parentProfile) = parse_profile_recursive(parent, raw, options, parsed, visiting) {
+            if let Some(parentProfile) =
+                parse_profile_recursive(parent, raw, options, parsed, visiting)
+            {
                 profile.optionValues.extend(parentProfile.optionValues);
-                profile.disabledPrograms.extend(parentProfile.disabledPrograms);
+                profile
+                    .disabledPrograms
+                    .extend(parentProfile.disabledPrograms);
             }
             continue;
         }
@@ -1026,14 +1224,15 @@ fn parse_profile_recursive(
             profile.disabledPrograms.insert(program.to_owned());
             continue;
         }
-        let (rawName, rawValue) = if let Some(index) = token.find(|character| character == ':' || character == '=') {
-            (&token[..index], Some(&token[index + 1..]))
-        } else {
-            token
-                .strip_prefix('!')
-                .map(|optionName| (optionName, Some("false")))
-                .unwrap_or((token, Some("true")))
-        };
+        let (rawName, rawValue) =
+            if let Some(index) = token.find(|character| character == ':' || character == '=') {
+                (&token[..index], Some(&token[index + 1..]))
+            } else {
+                token
+                    .strip_prefix('!')
+                    .map(|optionName| (optionName, Some("false")))
+                    .unwrap_or((token, Some("true")))
+            };
         let Some(option) = options.iter_mut().find(|option| option.name == rawName) else {
             log::warn!("[Shaders] Invalid option: {token}");
             continue;
@@ -1041,7 +1240,9 @@ fn parse_profile_recursive(
         let value = rawValue.unwrap_or("true");
         if option.values.iter().any(|candidate| candidate == value) {
             option.visible = true;
-            profile.optionValues.insert(rawName.to_owned(), value.to_owned());
+            profile
+                .optionValues
+                .insert(rawName.to_owned(), value.to_owned());
         } else {
             log::warn!("[Shaders] Invalid value: {token}");
         }
@@ -1050,7 +1251,6 @@ fn parse_profile_recursive(
     parsed.insert(name.to_owned(), profile.clone());
     Some(profile)
 }
-
 
 fn normalize_language_code(language: &str) -> String {
     let mut parts = language.split(['_', '-']);
@@ -1105,7 +1305,10 @@ fn normalize_lang_format_tokens(value: &str) -> String {
     let mut index = 0usize;
     while index < bytes.len() {
         if bytes[index] != b'%' {
-            let character = value[index..].chars().next().expect("valid UTF-8 language value");
+            let character = value[index..]
+                .chars()
+                .next()
+                .expect("valid UTF-8 language value");
             output.push(character);
             index += character.len_utf8();
             continue;
@@ -1152,7 +1355,11 @@ fn parse_java_properties(bytes: &[u8]) -> HashMap<String, String> {
         } else {
             raw
         };
-        let trailing = line.chars().rev().take_while(|character| *character == '\\').count();
+        let trailing = line
+            .chars()
+            .rev()
+            .take_while(|character| *character == '\\')
+            .count();
         if trailing % 2 == 1 {
             current.push_str(line.strip_suffix('\\').unwrap_or(line));
             continuing = true;
@@ -1168,7 +1375,8 @@ fn parse_java_properties(bytes: &[u8]) -> HashMap<String, String> {
 
     let mut output = HashMap::new();
     for line in logical {
-        let line = line.trim_start_matches(|character: char| matches!(character, ' ' | '\t' | '\u{000C}'));
+        let line =
+            line.trim_start_matches(|character: char| matches!(character, ' ' | '\t' | '\u{000C}'));
         if line.is_empty() || line.starts_with('#') || line.starts_with('!') {
             continue;
         }
@@ -1188,11 +1396,15 @@ fn parse_java_properties(bytes: &[u8]) -> HashMap<String, String> {
         let (key, value) = match separator {
             Some(index) => {
                 let mut rest = &line[index..];
-                rest = rest.trim_start_matches(|character: char| matches!(character, ' ' | '\t' | '\u{000C}'));
+                rest = rest.trim_start_matches(|character: char| {
+                    matches!(character, ' ' | '\t' | '\u{000C}')
+                });
                 if rest.starts_with('=') || rest.starts_with(':') {
                     rest = &rest[1..];
                 }
-                rest = rest.trim_start_matches(|character: char| matches!(character, ' ' | '\t' | '\u{000C}'));
+                rest = rest.trim_start_matches(|character: char| {
+                    matches!(character, ' ' | '\t' | '\u{000C}')
+                });
                 (&line[..index], rest)
             }
             None => (line, ""),
@@ -1248,7 +1460,10 @@ fn escape_property_value(value: &str) -> String {
             '\n' => output.push_str("\\n"),
             '\r' => output.push_str("\\r"),
             '\t' => output.push_str("\\t"),
-            '=' | ':' | '#' | '!' => { output.push('\\'); output.push(character); }
+            '=' | ':' | '#' | '!' => {
+                output.push('\\');
+                output.push(character);
+            }
             ' ' if index == 0 => output.push_str("\\ "),
             _ => output.push(character),
         }
@@ -1266,7 +1481,8 @@ mod tests {
         assert_eq!(switch.name, "BLOOM");
         assert!(switch.commented);
         assert!(switch.value.is_none());
-        let variable = parse_define("#define SHADOW_QUALITY 1.0 // [0.5 1.0 2.0] Shadow quality").unwrap();
+        let variable =
+            parse_define("#define SHADOW_QUALITY 1.0 // [0.5 1.0 2.0] Shadow quality").unwrap();
         assert_eq!(variable.values, ["0.5", "1.0", "2.0"]);
         assert_eq!(variable.description, "Shadow quality");
     }
@@ -1303,8 +1519,14 @@ mod tests {
             kind: ShaderOptionKind::Switch,
             constType: None,
         };
-        let set = ShaderPackOptions { options: vec![option], ..ShaderPackOptions::default() };
-        assert_eq!(set.applyLine("//#define BLOOM"), "#define BLOOM // Shader option ON");
+        let set = ShaderPackOptions {
+            options: vec![option],
+            ..ShaderPackOptions::default()
+        };
+        assert_eq!(
+            set.applyLine("//#define BLOOM"),
+            "#define BLOOM // Shader option ON"
+        );
         assert_eq!(set.applyLine("#define OTHER"), "#define OTHER");
     }
 
@@ -1324,7 +1546,9 @@ mod tests {
             kind: ShaderOptionKind::ConstVariable,
             constType: Some(parsed.ty),
         };
-        assert!(option.sourceLine().starts_with("const float shadowDistance = 256;"));
+        assert!(option
+            .sourceLine()
+            .starts_with("const float shadowDistance = 256;"));
     }
 
     #[test]
@@ -1341,21 +1565,41 @@ mod tests {
             kind: ShaderOptionKind::Switch,
             constType: None,
         }];
-        let properties = HashMap::from([("profile.FAST".to_owned(), "BLOOM !program.composite7".to_owned())]);
+        let properties = HashMap::from([(
+            "profile.FAST".to_owned(),
+            "BLOOM !program.composite7".to_owned(),
+        )]);
         let profiles = parse_profiles(&properties, &mut options);
-        assert_eq!(profiles[0].optionValues.get("BLOOM").map(String::as_str), Some("true"));
+        assert_eq!(
+            profiles[0].optionValues.get("BLOOM").map(String::as_str),
+            Some("true")
+        );
         assert!(profiles[0].disabledPrograms.contains("composite7"));
     }
     #[test]
     fn expands_rest_and_preserves_nested_screen_tokens() {
         let mut set = ShaderPackOptions::default();
-        set.options = ["A", "B"].into_iter().map(|name| ShaderOption {
-            name: name.to_owned(), description: String::new(), value: "true".to_owned(),
-            values: vec!["false".to_owned(), "true".to_owned()], valueDefault: "true".to_owned(),
-            paths: vec![], enabled: true, visible: true, kind: ShaderOptionKind::Switch, constType: None,
-        }).collect();
-        set.screens.insert("screen".to_owned(), vec!["A".to_owned(), "[lighting]".to_owned(), "*".to_owned()]);
-        set.screens.insert("screen.lighting".to_owned(), vec!["B".to_owned()]);
+        set.options = ["A", "B"]
+            .into_iter()
+            .map(|name| ShaderOption {
+                name: name.to_owned(),
+                description: String::new(),
+                value: "true".to_owned(),
+                values: vec!["false".to_owned(), "true".to_owned()],
+                valueDefault: "true".to_owned(),
+                paths: vec![],
+                enabled: true,
+                visible: true,
+                kind: ShaderOptionKind::Switch,
+                constType: None,
+            })
+            .collect();
+        set.screens.insert(
+            "screen".to_owned(),
+            vec!["A".to_owned(), "[lighting]".to_owned(), "*".to_owned()],
+        );
+        set.screens
+            .insert("screen.lighting".to_owned(), vec!["B".to_owned()]);
         set.screenColumns.insert("screen.columns".to_owned(), 3);
         assert_eq!(
             set.screenTokens(None),
@@ -1366,7 +1610,11 @@ mod tests {
 
     #[test]
     fn cached_option_model_reopens_no_shader_sources_for_the_same_language() {
-        use std::{collections::HashMap, io, time::{SystemTime, UNIX_EPOCH}};
+        use std::{
+            collections::HashMap,
+            io,
+            time::{SystemTime, UNIX_EPOCH},
+        };
 
         struct CountingPack {
             name: String,
@@ -1374,28 +1622,49 @@ mod tests {
             reads: usize,
         }
         impl IShaderPack for CountingPack {
-            fn getName(&self) -> &str { &self.name }
+            fn getName(&self) -> &str {
+                &self.name
+            }
             fn getResourceAsStream(&mut self, name: &str) -> io::Result<Option<Vec<u8>>> {
                 self.reads += 1;
                 Ok(self.resources.get(name).cloned())
             }
-            fn hasDirectory(&mut self, _name: &str) -> bool { false }
+            fn hasDirectory(&mut self, _name: &str) -> bool {
+                false
+            }
             fn close(&mut self) {}
         }
 
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let game = std::env::temp_dir().join(format!("mc112-option-cache-{unique}"));
         let packName = format!("cache-{unique}.zip");
         let resources = HashMap::from([
-            ("/shaders/gbuffers_basic.vsh".to_owned(), b"#version 120\n#define BLOOM\n#ifdef BLOOM\n#endif\n".to_vec()),
-            ("/shaders/lang/en_US.lang".to_owned(), b"option.BLOOM=Bloom\n".to_vec()),
+            (
+                "/shaders/gbuffers_basic.vsh".to_owned(),
+                b"#version 120\n#define BLOOM\n#ifdef BLOOM\n#endif\n".to_vec(),
+            ),
+            (
+                "/shaders/lang/en_US.lang".to_owned(),
+                b"option.BLOOM=Bloom\n".to_vec(),
+            ),
         ]);
-        let mut first = CountingPack { name: packName.clone(), resources: resources.clone(), reads: 0 };
+        let mut first = CountingPack {
+            name: packName.clone(),
+            resources: resources.clone(),
+            reads: 0,
+        };
         let loaded = ShaderPackOptions::loadForLanguage(&game, &mut first, &[], "en_US").unwrap();
         assert_eq!(loaded.options.len(), 1);
         assert!(first.reads > 0);
 
-        let mut second = CountingPack { name: packName, resources, reads: 0 };
+        let mut second = CountingPack {
+            name: packName,
+            resources,
+            reads: 0,
+        };
         let cached = ShaderPackOptions::tryLoadCachedForLanguage(&game, &mut second, "en_US")
             .unwrap()
             .expect("cached selected-pack model");
@@ -1405,17 +1674,29 @@ mod tests {
 
     #[test]
     fn java_properties_support_continuations_and_unicode_escapes() {
-        let parsed = parse_java_properties(b"screen=A \\
-  B\nname=Shader\\u0020Options\n");
+        let parsed = parse_java_properties(
+            b"screen=A \\
+  B\nname=Shader\\u0020Options\n",
+        );
         assert_eq!(parsed.get("screen").map(String::as_str), Some("A B"));
-        assert_eq!(parsed.get("name").map(String::as_str), Some("Shader Options"));
+        assert_eq!(
+            parsed.get("name").map(String::as_str),
+            Some("Shader Options")
+        );
     }
 
     #[test]
     fn shader_language_files_use_utf8_and_only_split_the_first_equals() {
-        let parsed = parse_shader_lang("option.CLOUDS=云层=高质量\nvalue=FPS %1$d / %2.1f\n".as_bytes());
-        assert_eq!(parsed.get("option.CLOUDS").map(String::as_str), Some("云层=高质量"));
-        assert_eq!(parsed.get("value").map(String::as_str), Some("FPS %1$s / %s"));
+        let parsed =
+            parse_shader_lang("option.CLOUDS=云层=高质量\nvalue=FPS %1$d / %2.1f\n".as_bytes());
+        assert_eq!(
+            parsed.get("option.CLOUDS").map(String::as_str),
+            Some("云层=高质量")
+        );
+        assert_eq!(
+            parsed.get("value").map(String::as_str),
+            Some("FPS %1$s / %s")
+        );
     }
 
     #[test]
@@ -1426,15 +1707,32 @@ mod tests {
             ("screen.lighting".to_owned(), "B".to_owned()),
             ("screen.lighting.columns".to_owned(), "4".to_owned()),
         ]);
-        let mut options = vec![ShaderOption {
-            name: "A".to_owned(), description: String::new(), value: "true".to_owned(),
-            values: vec!["false".to_owned(), "true".to_owned()], valueDefault: "true".to_owned(),
-            paths: vec![], enabled: true, visible: true, kind: ShaderOptionKind::Switch, constType: None,
-        }, ShaderOption {
-            name: "B".to_owned(), description: String::new(), value: "true".to_owned(),
-            values: vec!["false".to_owned(), "true".to_owned()], valueDefault: "true".to_owned(),
-            paths: vec![], enabled: true, visible: true, kind: ShaderOptionKind::Switch, constType: None,
-        }];
+        let mut options = vec![
+            ShaderOption {
+                name: "A".to_owned(),
+                description: String::new(),
+                value: "true".to_owned(),
+                values: vec!["false".to_owned(), "true".to_owned()],
+                valueDefault: "true".to_owned(),
+                paths: vec![],
+                enabled: true,
+                visible: true,
+                kind: ShaderOptionKind::Switch,
+                constType: None,
+            },
+            ShaderOption {
+                name: "B".to_owned(),
+                description: String::new(),
+                value: "true".to_owned(),
+                values: vec!["false".to_owned(), "true".to_owned()],
+                valueDefault: "true".to_owned(),
+                paths: vec![],
+                enabled: true,
+                visible: true,
+                kind: ShaderOptionKind::Switch,
+                constType: None,
+            },
+        ];
         let screens = parse_screens(&properties, &mut options, false);
         let columns = parse_screen_columns(&properties, &screens);
         assert!(screens.contains_key("screen"));
@@ -1443,5 +1741,4 @@ mod tests {
         assert_eq!(columns.get("screen.columns"), Some(&3));
         assert_eq!(columns.get("screen.lighting.columns"), Some(&4));
     }
-
 }

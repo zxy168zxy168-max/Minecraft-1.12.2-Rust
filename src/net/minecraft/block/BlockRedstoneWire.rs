@@ -1,6 +1,6 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 pub const BLOCK_ID: i32 = 55;
@@ -138,8 +138,8 @@ fn isNormalCube(state: IBlockState) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     struct Access(HashMap<BlockPos, IBlockState>);
     impl IBlockAccess for Access {
@@ -151,7 +151,10 @@ mod tests {
     #[test]
     fn isolated_wire_has_four_none_properties() {
         let pos = BlockPos::ORIGIN;
-        assert_eq!(modelVariant(&Access(HashMap::new()), pos), "east=none,north=none,south=none,west=none");
+        assert_eq!(
+            modelVariant(&Access(HashMap::new()), pos),
+            "east=none,north=none,south=none,west=none"
+        );
     }
 
     #[test]
@@ -159,7 +162,10 @@ mod tests {
         let pos = BlockPos::ORIGIN;
         let mut blocks = HashMap::new();
         blocks.insert(pos.north(1), IBlockState::fromGlobalStateId(BLOCK_ID << 4));
-        assert_eq!(getAttachPosition(&Access(blocks), pos, EnumFacing::North), EnumAttachPosition::Side);
+        assert_eq!(
+            getAttachPosition(&Access(blocks), pos, EnumFacing::North),
+            EnumAttachPosition::Side
+        );
     }
 
     #[test]

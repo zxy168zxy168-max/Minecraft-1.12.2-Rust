@@ -21,24 +21,167 @@ impl ImageBufferDownload {
             image_height,
             vec![0; image_width as usize * image_height as usize * 4],
         )?;
-        copy_rect(&image, &mut output, 0, 0, source_width, source_height, 0, 0, false, false);
+        copy_rect(
+            &image,
+            &mut output,
+            0,
+            0,
+            source_width,
+            source_height,
+            0,
+            0,
+            false,
+            false,
+        );
         let legacy = source_height == 32 * scale;
         if legacy {
             clear_rect(&mut output, 0, 32 * scale, 64 * scale, 64 * scale);
             // Java Graphics.drawImage calls use reversed destination X bounds
             // to mirror the old right limbs into the 1.8 left-limb regions.
-            copy_rect(&output.clone(), &mut output, 4 * scale, 16 * scale, 8 * scale, 20 * scale, 20 * scale, 48 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 8 * scale, 16 * scale, 12 * scale, 20 * scale, 24 * scale, 48 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 8 * scale, 20 * scale, 12 * scale, 32 * scale, 16 * scale, 52 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 4 * scale, 20 * scale, 8 * scale, 32 * scale, 20 * scale, 52 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 0 * scale, 20 * scale, 4 * scale, 32 * scale, 24 * scale, 52 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 12 * scale, 20 * scale, 16 * scale, 32 * scale, 28 * scale, 52 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 44 * scale, 16 * scale, 48 * scale, 20 * scale, 36 * scale, 48 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 48 * scale, 16 * scale, 52 * scale, 20 * scale, 40 * scale, 48 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 48 * scale, 20 * scale, 52 * scale, 32 * scale, 32 * scale, 52 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 44 * scale, 20 * scale, 48 * scale, 32 * scale, 36 * scale, 52 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 40 * scale, 20 * scale, 44 * scale, 32 * scale, 40 * scale, 52 * scale, true, false);
-            copy_rect(&output.clone(), &mut output, 52 * scale, 20 * scale, 56 * scale, 32 * scale, 44 * scale, 52 * scale, true, false);
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                4 * scale,
+                16 * scale,
+                8 * scale,
+                20 * scale,
+                20 * scale,
+                48 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                8 * scale,
+                16 * scale,
+                12 * scale,
+                20 * scale,
+                24 * scale,
+                48 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                8 * scale,
+                20 * scale,
+                12 * scale,
+                32 * scale,
+                16 * scale,
+                52 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                4 * scale,
+                20 * scale,
+                8 * scale,
+                32 * scale,
+                20 * scale,
+                52 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                0 * scale,
+                20 * scale,
+                4 * scale,
+                32 * scale,
+                24 * scale,
+                52 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                12 * scale,
+                20 * scale,
+                16 * scale,
+                32 * scale,
+                28 * scale,
+                52 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                44 * scale,
+                16 * scale,
+                48 * scale,
+                20 * scale,
+                36 * scale,
+                48 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                48 * scale,
+                16 * scale,
+                52 * scale,
+                20 * scale,
+                40 * scale,
+                48 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                48 * scale,
+                20 * scale,
+                52 * scale,
+                32 * scale,
+                32 * scale,
+                52 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                44 * scale,
+                20 * scale,
+                48 * scale,
+                32 * scale,
+                36 * scale,
+                52 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                40 * scale,
+                20 * scale,
+                44 * scale,
+                32 * scale,
+                40 * scale,
+                52 * scale,
+                true,
+                false,
+            );
+            copy_rect(
+                &output.clone(),
+                &mut output,
+                52 * scale,
+                20 * scale,
+                56 * scale,
+                32 * scale,
+                44 * scale,
+                52 * scale,
+                true,
+                false,
+            );
         }
 
         set_area_opaque(&mut output, 0, 0, 32 * scale, 16 * scale);
@@ -82,8 +225,10 @@ fn copy_rect(
             let source_y = if mirror_y { sy1 - 1 - y } else { sy0 + y };
             let target_x = dx0 + x;
             let target_y = dy0 + y;
-            if source_x >= source.width() || source_y >= source.height()
-                || target_x >= target.width() || target_y >= target.height()
+            if source_x >= source.width()
+                || source_y >= source.height()
+                || target_x >= target.width()
+                || target_y >= target.height()
             {
                 continue;
             }

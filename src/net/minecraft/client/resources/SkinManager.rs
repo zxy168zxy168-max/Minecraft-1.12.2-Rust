@@ -5,11 +5,11 @@ use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread;
 
-use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::com::mojang::authlib::minecraft::MinecraftProfileTexture::{
     MinecraftProfileTexture, TextureType,
 };
 use crate::com::mojang::authlib::minecraft::MinecraftSessionService::MinecraftSessionService;
+use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::net::minecraft::client::network::NetworkPlayerInfo::{
     NetworkPlayerInfo, PlayerTextureState,
 };
@@ -118,26 +118,36 @@ impl SkinManager {
                                 location,
                                 profileTexture,
                             }) => {
-                                let image = download_texture(&cacheDir, &profileTexture, textureType)
-                                    .map_err(|error| error.to_string());
-                                if sender.send(SkinWorkerResult::Texture(SkinDownloadResult {
-                                    textureType,
-                                    location,
-                                    profileTexture,
-                                    image,
-                                })).is_err() {
+                                let image =
+                                    download_texture(&cacheDir, &profileTexture, textureType)
+                                        .map_err(|error| error.to_string());
+                                if sender
+                                    .send(SkinWorkerResult::Texture(SkinDownloadResult {
+                                        textureType,
+                                        location,
+                                        profileTexture,
+                                        image,
+                                    }))
+                                    .is_err()
+                                {
                                     break;
                                 }
                             }
                             Ok(SkinDownloadTask::ResolveProfile {
-                                key, profile, requireSecure,
+                                key,
+                                profile,
+                                requireSecure,
                             }) => {
                                 let profile = workerSessionService
                                     .completeProfile(&profile, requireSecure)
                                     .map_err(|error| error.to_string());
-                                if sender.send(SkinWorkerResult::Profile(ProfileCompletionResult {
-                                    key, profile,
-                                })).is_err() {
+                                if sender
+                                    .send(SkinWorkerResult::Profile(ProfileCompletionResult {
+                                        key,
+                                        profile,
+                                    }))
+                                    .is_err()
+                                {
                                     break;
                                 }
                             }
@@ -168,7 +178,10 @@ impl SkinManager {
         if !info.beginPlayerTexturesLoad() {
             return;
         }
-        let textures = match self.sessionService.getTextures(info.getGameProfile(), requireSecure) {
+        let textures = match self
+            .sessionService
+            .getTextures(info.getGameProfile(), requireSecure)
+        {
             Ok(textures) => textures,
             Err(error) => {
                 log::warn!(
@@ -200,14 +213,19 @@ impl SkinManager {
     ) {
         if profile.getName().trim().is_empty()
             || (profile.isComplete()
-                && profile.getProperties().iter().any(|property| property.getName() == "textures"))
+                && profile
+                    .getProperties()
+                    .iter()
+                    .any(|property| property.getName() == "textures"))
             || self.failedProfiles.contains(&key)
             || !self.pendingProfiles.insert(key.clone())
         {
             return;
         }
         if let Err(error) = self.taskSender.send(SkinDownloadTask::ResolveProfile {
-            key: key.clone(), profile, requireSecure,
+            key: key.clone(),
+            profile,
+            requireSecure,
         }) {
             self.pendingProfiles.remove(&key);
             log::warn!("failed queueing skull profile completion {key}: {error}");
@@ -225,24 +243,18 @@ impl SkinManager {
         textureType: TextureType,
         profileTexture: MinecraftProfileTexture,
     ) {
-        let location = ResourceLocation::new(
-            "minecraft",
-            format!("skins/{}", profileTexture.getHash()),
-        );
+        let location =
+            ResourceLocation::new("minecraft", format!("skins/{}", profileTexture.getHash()));
         if let Some(loadedTexture) = self.loaded.get(&location) {
-            NetworkPlayerInfo::applyPlayerTexture(
-                &state,
-                textureType,
-                location,
-                loadedTexture,
-            );
+            NetworkPlayerInfo::applyPlayerTexture(&state, textureType, location, loadedTexture);
             return;
         }
         if let Some(callbacks) = self.pending.get_mut(&location) {
             callbacks.push(SkinCallback { state, textureType });
             return;
         }
-        self.pending.insert(location.clone(), vec![SkinCallback { state, textureType }]);
+        self.pending
+            .insert(location.clone(), vec![SkinCallback { state, textureType }]);
         if let Err(error) = self.taskSender.send(SkinDownloadTask::Download {
             cacheDir: self.skinCacheDir.clone(),
             textureType,
@@ -271,10 +283,8 @@ impl SkinManager {
                                     &result.profileTexture,
                                 );
                             }
-                            self.loaded.insert(
-                                result.location.clone(),
-                                result.profileTexture,
-                            );
+                            self.loaded
+                                .insert(result.location.clone(), result.profileTexture);
                             completed.textures.push(DownloadedPlayerTexture {
                                 textureType: result.textureType,
                                 location: result.location,
@@ -282,7 +292,10 @@ impl SkinManager {
                             });
                         }
                         Err(error) => {
-                            log::warn!("failed downloading player texture {}: {error}", result.location);
+                            log::warn!(
+                                "failed downloading player texture {}: {error}",
+                                result.location
+                            );
                         }
                     }
                 }
@@ -292,13 +305,15 @@ impl SkinManager {
                         Ok(profile) => {
                             self.failedProfiles.remove(&result.key);
                             completed.profiles.push(CompletedPlayerProfile {
-                                key: result.key, profile,
+                                key: result.key,
+                                profile,
                             });
                         }
                         Err(error) => {
                             self.failedProfiles.insert(result.key.clone());
                             log::warn!(
-                                "failed completing skull player profile {}: {error}", result.key,
+                                "failed completing skull player profile {}: {error}",
+                                result.key,
                             );
                         }
                     }

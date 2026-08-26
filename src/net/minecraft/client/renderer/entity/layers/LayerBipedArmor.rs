@@ -12,25 +12,99 @@ impl LayerBipedArmor {
         // the ordinary four-pixel ModelBiped arm pivot for every skin type.
         pose.rightArm.pivot[1] = 2.0;
         pose.leftArm.pivot[1] = 2.0;
-        let delta = if slot == EntityEquipmentSlot::Legs { 0.5 } else { 1.0 };
+        let delta = if slot == EntityEquipmentSlot::Legs {
+            0.5
+        } else {
+            1.0
+        };
         match slot {
             EntityEquipmentSlot::Head => vec![
-                model_box([0, 0], [-4.0, -8.0, -4.0], [8, 8, 8], delta, false, pose.head),
-                model_box([32, 0], [-4.0, -8.0, -4.0], [8, 8, 8], delta + 0.5, false, pose.head),
+                model_box(
+                    [0, 0],
+                    [-4.0, -8.0, -4.0],
+                    [8, 8, 8],
+                    delta,
+                    false,
+                    pose.head,
+                ),
+                model_box(
+                    [32, 0],
+                    [-4.0, -8.0, -4.0],
+                    [8, 8, 8],
+                    delta + 0.5,
+                    false,
+                    pose.head,
+                ),
             ],
             EntityEquipmentSlot::Chest => vec![
-                model_box([16, 16], [-4.0, 0.0, -2.0], [8, 12, 4], delta, false, pose.body),
-                model_box([40, 16], [-3.0, -2.0, -2.0], [4, 12, 4], delta, false, pose.rightArm),
-                model_box([40, 16], [-1.0, -2.0, -2.0], [4, 12, 4], delta, true, pose.leftArm),
+                model_box(
+                    [16, 16],
+                    [-4.0, 0.0, -2.0],
+                    [8, 12, 4],
+                    delta,
+                    false,
+                    pose.body,
+                ),
+                model_box(
+                    [40, 16],
+                    [-3.0, -2.0, -2.0],
+                    [4, 12, 4],
+                    delta,
+                    false,
+                    pose.rightArm,
+                ),
+                model_box(
+                    [40, 16],
+                    [-1.0, -2.0, -2.0],
+                    [4, 12, 4],
+                    delta,
+                    true,
+                    pose.leftArm,
+                ),
             ],
             EntityEquipmentSlot::Legs => vec![
-                model_box([16, 16], [-4.0, 0.0, -2.0], [8, 12, 4], delta, false, pose.body),
-                model_box([0, 16], [-2.0, 0.0, -2.0], [4, 12, 4], delta, false, pose.rightLeg),
-                model_box([0, 16], [-2.0, 0.0, -2.0], [4, 12, 4], delta, true, pose.leftLeg),
+                model_box(
+                    [16, 16],
+                    [-4.0, 0.0, -2.0],
+                    [8, 12, 4],
+                    delta,
+                    false,
+                    pose.body,
+                ),
+                model_box(
+                    [0, 16],
+                    [-2.0, 0.0, -2.0],
+                    [4, 12, 4],
+                    delta,
+                    false,
+                    pose.rightLeg,
+                ),
+                model_box(
+                    [0, 16],
+                    [-2.0, 0.0, -2.0],
+                    [4, 12, 4],
+                    delta,
+                    true,
+                    pose.leftLeg,
+                ),
             ],
             EntityEquipmentSlot::Feet => vec![
-                model_box([0, 16], [-2.0, 0.0, -2.0], [4, 12, 4], delta, false, pose.rightLeg),
-                model_box([0, 16], [-2.0, 0.0, -2.0], [4, 12, 4], delta, true, pose.leftLeg),
+                model_box(
+                    [0, 16],
+                    [-2.0, 0.0, -2.0],
+                    [4, 12, 4],
+                    delta,
+                    false,
+                    pose.rightLeg,
+                ),
+                model_box(
+                    [0, 16],
+                    [-2.0, 0.0, -2.0],
+                    [4, 12, 4],
+                    delta,
+                    true,
+                    pose.leftLeg,
+                ),
             ],
             EntityEquipmentSlot::Mainhand | EntityEquipmentSlot::Offhand => Vec::new(),
         }
@@ -45,7 +119,14 @@ const fn model_box(
     mirror: bool,
     pose: PartPose,
 ) -> ModelBoxSpec {
-    ModelBoxSpec { texture, origin, size, delta, mirror, pose }
+    ModelBoxSpec {
+        texture,
+        origin,
+        size,
+        delta,
+        mirror,
+        pose,
+    }
 }
 
 #[cfg(test)]
@@ -54,18 +135,33 @@ mod tests {
 
     fn pose() -> BipedPose {
         BipedPose {
-            head: PartPose::default(), body: PartPose::default(),
-            rightArm: PartPose::default(), leftArm: PartPose::default(),
-            rightLeg: PartPose::default(), leftLeg: PartPose::default(),
+            head: PartPose::default(),
+            body: PartPose::default(),
+            rightArm: PartPose::default(),
+            leftArm: PartPose::default(),
+            rightLeg: PartPose::default(),
+            leftLeg: PartPose::default(),
         }
     }
 
     #[test]
     fn slots_select_exact_model_parts() {
-        assert_eq!(LayerBipedArmor::boxes(pose(), EntityEquipmentSlot::Head).len(), 2);
-        assert_eq!(LayerBipedArmor::boxes(pose(), EntityEquipmentSlot::Chest).len(), 3);
-        assert_eq!(LayerBipedArmor::boxes(pose(), EntityEquipmentSlot::Legs).len(), 3);
-        assert_eq!(LayerBipedArmor::boxes(pose(), EntityEquipmentSlot::Feet).len(), 2);
+        assert_eq!(
+            LayerBipedArmor::boxes(pose(), EntityEquipmentSlot::Head).len(),
+            2
+        );
+        assert_eq!(
+            LayerBipedArmor::boxes(pose(), EntityEquipmentSlot::Chest).len(),
+            3
+        );
+        assert_eq!(
+            LayerBipedArmor::boxes(pose(), EntityEquipmentSlot::Legs).len(),
+            3
+        );
+        assert_eq!(
+            LayerBipedArmor::boxes(pose(), EntityEquipmentSlot::Feet).len(),
+            2
+        );
     }
 
     #[test]

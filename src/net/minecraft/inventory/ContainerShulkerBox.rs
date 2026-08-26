@@ -41,13 +41,27 @@ impl ContainerShulkerBox {
         })
     }
 
-    pub const fn getNumRows(&self) -> usize { 3 }
-    pub const fn lowerSlotCount(&self) -> usize { Self::LOWER_SLOT_COUNT }
-    pub fn slotCount(&self) -> usize { self.inner.slotCount() }
-    pub fn slots(&self) -> &[ItemStack] { self.inner.slots() }
-    pub fn getSlot(&self, slotId: usize) -> Option<&ItemStack> { self.inner.getSlot(slotId) }
-    pub fn windowId(&self) -> i32 { self.inner.windowId }
-    pub fn title(&self) -> &ITextComponent { &self.inner.title }
+    pub const fn getNumRows(&self) -> usize {
+        3
+    }
+    pub const fn lowerSlotCount(&self) -> usize {
+        Self::LOWER_SLOT_COUNT
+    }
+    pub fn slotCount(&self) -> usize {
+        self.inner.slotCount()
+    }
+    pub fn slots(&self) -> &[ItemStack] {
+        self.inner.slots()
+    }
+    pub fn getSlot(&self, slotId: usize) -> Option<&ItemStack> {
+        self.inner.getSlot(slotId)
+    }
+    pub fn windowId(&self) -> i32 {
+        self.inner.windowId
+    }
+    pub fn title(&self) -> &ITextComponent {
+        &self.inner.title
+    }
 
     pub fn isItemValidForSlot(&self, slotId: i32, stack: &ItemStack) -> bool {
         if !(0..Self::LOWER_SLOT_COUNT as i32).contains(&slotId) || stack.isEmpty() {
@@ -75,8 +89,12 @@ impl ContainerShulkerBox {
         self.inner.syncToPlayerInventory(playerInventory);
     }
 
-    pub fn getNextTransactionID(&mut self) -> i16 { self.inner.getNextTransactionID() }
-    pub fn resetQuickCraft(&mut self) { self.inner.resetQuickCraft(); }
+    pub fn getNextTransactionID(&mut self) -> i16 {
+        self.inner.getNextTransactionID()
+    }
+    pub fn resetQuickCraft(&mut self) {
+        self.inner.resetQuickCraft();
+    }
 
     pub fn quickCraft(
         &mut self,
@@ -88,9 +106,7 @@ impl ContainerShulkerBox {
         // During QUICK_CRAFT event 1, GuiContainer adds the hovered slot only
         // when Slot#isItemValid succeeds. Prevent invalid shulker slots from
         // entering Container.dragSlots; event 2 can then delegate unchanged.
-        if Container::getDragEvent(dragType) == 1
-            && !self.isItemValidForSlot(slotId, cursor)
-        {
+        if Container::getDragEvent(dragType) == 1 && !self.isItemValidForSlot(slotId, cursor) {
             return false;
         }
         self.inner.quickCraft(slotId, dragType, cursor, creative)
@@ -98,17 +114,16 @@ impl ContainerShulkerBox {
 
     /// Port of `ContainerShulkerBox#transferStackInSlot`.
     pub fn transferStackInSlot(&mut self, index: usize) -> ItemStack {
-        if index >= self.slotCount() { return ItemStack::EMPTY; }
+        if index >= self.slotCount() {
+            return ItemStack::EMPTY;
+        }
         let original = self.getSlot(index).cloned().unwrap_or(ItemStack::EMPTY);
-        if original.isEmpty() { return ItemStack::EMPTY; }
+        if original.isEmpty() {
+            return ItemStack::EMPTY;
+        }
         let mut moving = original.clone();
         let merged = if index < Self::LOWER_SLOT_COUNT {
-            self.mergeItemStack(
-                &mut moving,
-                Self::LOWER_SLOT_COUNT,
-                self.slotCount(),
-                true,
-            )
+            self.mergeItemStack(&mut moving, Self::LOWER_SLOT_COUNT, self.slotCount(), true)
         } else {
             self.mergeItemStack(&mut moving, 0, Self::LOWER_SLOT_COUNT, false)
         };
@@ -138,12 +153,20 @@ impl ContainerShulkerBox {
 
         if stack.getMaxStackSize() > 1 {
             for &slotId in &indices {
-                if stack.isEmpty() { break; }
-                if !self.isItemValidForSlot(slotId as i32, stack) { continue; }
+                if stack.isEmpty() {
+                    break;
+                }
+                if !self.isItemValidForSlot(slotId as i32, stack) {
+                    continue;
+                }
                 let existing = self.getSlot(slotId).cloned().unwrap_or(ItemStack::EMPTY);
-                if existing.isEmpty() || !existing.canStackWith(stack) { continue; }
+                if existing.isEmpty() || !existing.canStackWith(stack) {
+                    continue;
+                }
                 let capacity = stack.getMaxStackSize() - existing.getCount();
-                if capacity <= 0 { continue; }
+                if capacity <= 0 {
+                    continue;
+                }
                 let moved = capacity.min(stack.getCount());
                 let mut merged = existing;
                 merged.grow(moved);
@@ -154,9 +177,18 @@ impl ContainerShulkerBox {
         }
 
         for &slotId in &indices {
-            if stack.isEmpty() { break; }
-            if !self.isItemValidForSlot(slotId as i32, stack) { continue; }
-            if self.getSlot(slotId).is_some_and(|existing| !existing.isEmpty()) { continue; }
+            if stack.isEmpty() {
+                break;
+            }
+            if !self.isItemValidForSlot(slotId as i32, stack) {
+                continue;
+            }
+            if self
+                .getSlot(slotId)
+                .is_some_and(|existing| !existing.isEmpty())
+            {
+                continue;
+            }
             let moved = stack.getMaxStackSize().min(stack.getCount());
             let placed = stack.splitStack(moved);
             let _ = self.putStackInSlot(slotId as i32, placed);
@@ -166,11 +198,20 @@ impl ContainerShulkerBox {
     }
 
     pub fn swapWithHotbar(&mut self, slotId: usize, hotbarIndex: usize) -> bool {
-        if slotId >= self.slotCount() || hotbarIndex >= 9 { return false; }
+        if slotId >= self.slotCount() || hotbarIndex >= 9 {
+            return false;
+        }
         let hotbarSlot = Self::LOWER_SLOT_COUNT + 27 + hotbarIndex;
-        if slotId == hotbarSlot { return false; }
-        let hotbarStack = self.getSlot(hotbarSlot).cloned().unwrap_or(ItemStack::EMPTY);
-        if !self.isItemValidForSlot(slotId as i32, &hotbarStack) { return false; }
+        if slotId == hotbarSlot {
+            return false;
+        }
+        let hotbarStack = self
+            .getSlot(hotbarSlot)
+            .cloned()
+            .unwrap_or(ItemStack::EMPTY);
+        if !self.isItemValidForSlot(slotId as i32, &hotbarStack) {
+            return false;
+        }
         self.inner.swapWithHotbar(slotId, hotbarIndex)
     }
 
@@ -183,25 +224,26 @@ impl ContainerShulkerBox {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn stack(id: i16, count: u8) -> ItemStack {
-        ItemStack { itemId: id, count, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]
     fn geometry_and_slot_order_match_container_shulker_box() {
         let mut player = InventoryPlayer::default();
         player.mainInventory[0] = stack(1, 3);
-        let container = ContainerShulkerBox::new(
-            7,
-            ITextComponent::fromPlainText("Shulker Box"),
-            27,
-            &player,
-        ).unwrap();
+        let container =
+            ContainerShulkerBox::new(7, ITextComponent::fromPlainText("Shulker Box"), 27, &player)
+                .unwrap();
         assert_eq!(container.slotCount(), 63);
         assert_eq!(container.getSlot(54).unwrap().getCount(), 3);
     }
@@ -213,7 +255,8 @@ mod tests {
             ITextComponent::fromPlainText("Shulker Box"),
             27,
             &InventoryPlayer::default(),
-        ).unwrap();
+        )
+        .unwrap();
         assert!(!container.isItemValidForSlot(0, &stack(219, 1)));
         assert!(!container.isItemValidForSlot(26, &stack(234, 1)));
         assert!(container.isItemValidForSlot(27, &stack(219, 1)));
@@ -224,12 +267,9 @@ mod tests {
     fn shift_click_does_not_insert_shulker_box_into_lower_inventory() {
         let mut player = InventoryPlayer::default();
         player.mainInventory[9] = stack(219, 1);
-        let mut container = ContainerShulkerBox::new(
-            7,
-            ITextComponent::fromPlainText("Shulker Box"),
-            27,
-            &player,
-        ).unwrap();
+        let mut container =
+            ContainerShulkerBox::new(7, ITextComponent::fromPlainText("Shulker Box"), 27, &player)
+                .unwrap();
         assert!(container.transferStackInSlot(27).isEmpty());
         assert_eq!(container.getSlot(27).unwrap().itemId, 219);
     }

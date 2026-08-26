@@ -52,7 +52,6 @@ impl GuiScreen {
         }
     }
 
-
     /// MCP `GuiScreen.drawDefaultBackground` for a client with no loaded world.
     /// The dirt texture and 32-pixel UV scale match `drawWorldBackground(0)`.
     pub fn drawDefaultBackground(&self, drawList: &mut GuiDrawList) {
@@ -92,7 +91,9 @@ impl GuiScreen {
 
     pub fn addButton(&mut self, buttonIn: GuiButton) -> &mut GuiButton {
         self.buttonList.push(buttonIn);
-        self.buttonList.last_mut().expect("button was just inserted")
+        self.buttonList
+            .last_mut()
+            .expect("button was just inserted")
     }
 
     pub fn setWorldAndResolution(&mut self, width: i32, height: i32) {

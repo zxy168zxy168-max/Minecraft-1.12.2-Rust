@@ -31,9 +31,19 @@ impl SPacketSpawnExperienceOrb {
         Ok(result)
     }
 
-    pub const fn getEntityID(&self) -> i32 { self.entityID }
-    pub const fn getX(&self) -> f64 { self.posX }
-    pub const fn getY(&self) -> f64 { self.posY }
-    pub const fn getZ(&self) -> f64 { self.posZ }
-    pub const fn getXPValue(&self) -> i16 { self.xpValue }
+    pub const fn getEntityID(&self) -> i32 {
+        self.entityID
+    }
+    pub const fn getX(&self) -> f64 {
+        self.posX
+    }
+    pub const fn getY(&self) -> f64 {
+        self.posY
+    }
+    pub const fn getZ(&self) -> f64 {
+        self.posZ
+    }
+    pub const fn getXPValue(&self) -> i16 {
+        self.xpValue
+    }
 }

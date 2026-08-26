@@ -8,7 +8,9 @@ impl RenderTNTPrimed {
     pub const TNT_STATE: IBlockState = IBlockState::fromGlobalStateId(46 << 4);
 
     pub fn scale(fuse: i32, partialTicks: f32) -> f32 {
-        if fuse as f32 - partialTicks + 1.0 >= 10.0 { return 1.0; }
+        if fuse as f32 - partialTicks + 1.0 >= 10.0 {
+            return 1.0;
+        }
         let mut value = 1.0 - (fuse as f32 - partialTicks + 1.0) / 10.0;
         value = value.clamp(0.0, 1.0);
         value *= value;
@@ -20,5 +22,7 @@ impl RenderTNTPrimed {
         (1.0 - (fuse as f32 - partialTicks + 1.0) / 100.0) * 0.8
     }
 
-    pub const fn shouldFlash(fuse: i32) -> bool { fuse / 5 % 2 == 0 }
+    pub const fn shouldFlash(fuse: i32) -> bool {
+        fuse / 5 % 2 == 0
+    }
 }

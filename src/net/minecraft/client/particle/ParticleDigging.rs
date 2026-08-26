@@ -1,9 +1,9 @@
 use rand::Rng;
 
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::client::particle::Particle::Particle;
 use crate::net::minecraft::client::renderer::color::BlockColors::BlockColors;
-use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 /// Compact renderer-side equivalent of the extended properties produced by
@@ -89,17 +89,28 @@ impl ParticleDigging {
         self
     }
 
-    pub fn onUpdate(&mut self, world: &WorldClient) { self.particle.onUpdate(world); }
-    pub const fn isExpired(&self) -> bool { self.particle.isExpired }
+    pub fn onUpdate(&mut self, world: &WorldClient) {
+        self.particle.onUpdate(world);
+    }
+    pub const fn isExpired(&self) -> bool {
+        self.particle.isExpired
+    }
 
     pub fn renderState(&self) -> ParticleDiggingRenderState {
         ParticleDiggingRenderState {
             sourceState: self.sourceState,
             sourcePos: self.sourcePos,
             actualModel: self.actualModel,
-            prevPosition: [self.particle.prevPosX, self.particle.prevPosY, self.particle.prevPosZ],
+            prevPosition: [
+                self.particle.prevPosX,
+                self.particle.prevPosY,
+                self.particle.prevPosZ,
+            ],
             position: [self.particle.posX, self.particle.posY, self.particle.posZ],
-            textureJitter: [self.particle.particleTextureJitterX, self.particle.particleTextureJitterY],
+            textureJitter: [
+                self.particle.particleTextureJitterX,
+                self.particle.particleTextureJitterY,
+            ],
             scale: self.particle.particleScale,
             color: [
                 self.particle.particleRed,

@@ -3,7 +3,9 @@ use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 
 pub struct RenderWolf;
 impl RenderWolf {
-    pub fn supports(entityType: MobEntityType) -> bool { entityType.registryName == "wolf" }
+    pub fn supports(entityType: MobEntityType) -> bool {
+        entityType.registryName == "wolf"
+    }
     pub fn texture(entity: &EntityOtherClient) -> ResourceLocation {
         let path = if entity.tameableTamed() {
             "textures/entity/wolf/wolf_tame.png"
@@ -15,7 +17,9 @@ impl RenderWolf {
         ResourceLocation::new("minecraft", path)
     }
     pub fn wetColor(entity: &EntityOtherClient, partialTicks: f32) -> [f32; 4] {
-        if !entity.wolfIsWet() { return [1.0, 1.0, 1.0, 1.0]; }
+        if !entity.wolfIsWet() {
+            return [1.0, 1.0, 1.0, 1.0];
+        }
         let shade = entity.wolfShadingWhileWet(partialTicks);
         [shade, shade, shade, 1.0]
     }

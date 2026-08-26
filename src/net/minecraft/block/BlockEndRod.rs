@@ -1,8 +1,10 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
+use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 
-pub const fn isBlockEndRod(state: IBlockState) -> bool { state.getBlockId() == 198 }
+pub const fn isBlockEndRod(state: IBlockState) -> bool {
+    state.getBlockId() == 198
+}
 
 /// `BlockEndRod#getStateFromMeta`: `EnumFacing.getFront(meta)` uses index
 /// order DOWN, UP, NORTH, SOUTH, WEST, EAST and wraps modulo six.
@@ -19,10 +21,18 @@ pub const fn facing(state: IBlockState) -> EnumFacing {
 
 /// MCP `BlockEndRod#onBlockPlaced`: normally faces the clicked face; if the
 /// supporting end rod already faces that same direction, the new rod reverses.
-pub fn onBlockPlacedState<A: crate::net::minecraft::world::IBlockAccess::IBlockAccess>(world:&A,pos:crate::net::minecraft::util::math::BlockPos::BlockPos,clickedFace:EnumFacing)->IBlockState{
-    let support=world.getBlockState(pos.offset(clickedFace.opposite(),1));
-    let resolved=if isBlockEndRod(support)&&facing(support)==clickedFace{clickedFace.opposite()}else{clickedFace};
-    IBlockState::fromGlobalStateId((198<<4)|(resolved.index()&7))
+pub fn onBlockPlacedState<A: crate::net::minecraft::world::IBlockAccess::IBlockAccess>(
+    world: &A,
+    pos: crate::net::minecraft::util::math::BlockPos::BlockPos,
+    clickedFace: EnumFacing,
+) -> IBlockState {
+    let support = world.getBlockState(pos.offset(clickedFace.opposite(), 1));
+    let resolved = if isBlockEndRod(support) && facing(support) == clickedFace {
+        clickedFace.opposite()
+    } else {
+        clickedFace
+    };
+    IBlockState::fromGlobalStateId((198 << 4) | (resolved.index() & 7))
 }
 
 /// Exact local-space result of `BlockEndRod#getBoundingBox`.

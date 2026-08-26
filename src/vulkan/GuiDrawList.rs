@@ -13,7 +13,14 @@ pub struct GuiVertex {
 
 impl GuiVertex {
     pub const fn new(x: f32, y: f32, z: f32, u: f32, v: f32, color: u32) -> Self {
-        Self { x, y, z, u, v, color }
+        Self {
+            x,
+            y,
+            z,
+            u,
+            v,
+            color,
+        }
     }
 }
 
@@ -38,11 +45,19 @@ impl Transform2D {
     };
 
     pub fn translated(self, x: f32, y: f32) -> Self {
-        self.then(Self { m02: x, m12: y, ..Self::IDENTITY })
+        self.then(Self {
+            m02: x,
+            m12: y,
+            ..Self::IDENTITY
+        })
     }
 
     pub fn scaled(self, x: f32, y: f32) -> Self {
-        self.then(Self { m00: x, m11: y, ..Self::IDENTITY })
+        self.then(Self {
+            m00: x,
+            m11: y,
+            ..Self::IDENTITY
+        })
     }
 
     pub fn rotated_degrees(self, angle: f32) -> Self {
@@ -124,12 +139,24 @@ impl Default for GuiDrawList {
 }
 
 impl GuiDrawList {
-    pub fn new() -> Self { Self::default() }
-    pub fn commands(&self) -> &[GuiDrawCommand] { &self.commands }
-    pub fn into_commands(self) -> Vec<GuiDrawCommand> { self.commands }
-    pub fn clear(&mut self) { self.commands.clear(); }
-    pub fn set_z_level(&mut self, z_level: f32) { self.z_level = z_level; }
-    pub fn z_level(&self) -> f32 { self.z_level }
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn commands(&self) -> &[GuiDrawCommand] {
+        &self.commands
+    }
+    pub fn into_commands(self) -> Vec<GuiDrawCommand> {
+        self.commands
+    }
+    pub fn clear(&mut self) {
+        self.commands.clear();
+    }
+    pub fn set_z_level(&mut self, z_level: f32) {
+        self.z_level = z_level;
+    }
+    pub fn z_level(&self) -> f32 {
+        self.z_level
+    }
 
     pub fn push_matrix(&mut self) {
         let current = self.current_transform();
@@ -161,9 +188,20 @@ impl GuiDrawList {
     }
 
     /// Direct port of `Gui.drawRect`, including coordinate swapping.
-    pub fn draw_rect(&mut self, mut left: i32, mut top: i32, mut right: i32, mut bottom: i32, color: i32) {
-        if left < right { std::mem::swap(&mut left, &mut right); }
-        if top < bottom { std::mem::swap(&mut top, &mut bottom); }
+    pub fn draw_rect(
+        &mut self,
+        mut left: i32,
+        mut top: i32,
+        mut right: i32,
+        mut bottom: i32,
+        color: i32,
+    ) {
+        if left < right {
+            std::mem::swap(&mut left, &mut right);
+        }
+        if top < bottom {
+            std::mem::swap(&mut top, &mut bottom);
+        }
         self.push_quad(
             None,
             GuiTopology::Quads,
@@ -177,17 +215,29 @@ impl GuiDrawList {
     }
 
     pub fn draw_horizontal_line(&mut self, mut start_x: i32, mut end_x: i32, y: i32, color: i32) {
-        if end_x < start_x { std::mem::swap(&mut start_x, &mut end_x); }
+        if end_x < start_x {
+            std::mem::swap(&mut start_x, &mut end_x);
+        }
         self.draw_rect(start_x, y, end_x + 1, y + 1, color);
     }
 
     pub fn draw_vertical_line(&mut self, x: i32, mut start_y: i32, mut end_y: i32, color: i32) {
-        if end_y < start_y { std::mem::swap(&mut start_y, &mut end_y); }
+        if end_y < start_y {
+            std::mem::swap(&mut start_y, &mut end_y);
+        }
         self.draw_rect(x, start_y + 1, x + 1, end_y, color);
     }
 
     /// Direct port of `Gui.drawGradientRect` vertex and color order.
-    pub fn draw_gradient_rect(&mut self, left: i32, top: i32, right: i32, bottom: i32, start_color: i32, end_color: i32) {
+    pub fn draw_gradient_rect(
+        &mut self,
+        left: i32,
+        top: i32,
+        right: i32,
+        bottom: i32,
+        start_color: i32,
+        end_color: i32,
+    ) {
         self.push_quad(
             None,
             GuiTopology::Quads,
@@ -244,9 +294,27 @@ impl GuiDrawList {
             Some(texture),
             GuiTopology::Quads,
             [
-                (x, y + height, u * inv_width, (v + height) * inv_height, 0xFFFF_FFFF),
-                (x + width, y + height, (u + width) * inv_width, (v + height) * inv_height, 0xFFFF_FFFF),
-                (x + width, y, (u + width) * inv_width, v * inv_height, 0xFFFF_FFFF),
+                (
+                    x,
+                    y + height,
+                    u * inv_width,
+                    (v + height) * inv_height,
+                    0xFFFF_FFFF,
+                ),
+                (
+                    x + width,
+                    y + height,
+                    (u + width) * inv_width,
+                    (v + height) * inv_height,
+                    0xFFFF_FFFF,
+                ),
+                (
+                    x + width,
+                    y,
+                    (u + width) * inv_width,
+                    v * inv_height,
+                    0xFFFF_FFFF,
+                ),
                 (x, y, u * inv_width, v * inv_height, 0xFFFF_FFFF),
             ],
         );
@@ -269,7 +337,10 @@ impl GuiDrawList {
     }
 
     fn current_transform(&self) -> Transform2D {
-        *self.transform_stack.last().expect("GUI matrix stack is never empty")
+        *self
+            .transform_stack
+            .last()
+            .expect("GUI matrix stack is never empty")
     }
 
     pub fn push_triangle_strip(
@@ -291,7 +362,11 @@ impl GuiDrawList {
             let (x, y) = transform.transform_point(x, y);
             GuiVertex::new(x, y, self.z_level, u, v, color)
         });
-        self.commands.push(GuiDrawCommand::Quad { texture, topology, vertices });
+        self.commands.push(GuiDrawCommand::Quad {
+            texture,
+            topology,
+            vertices,
+        });
     }
 }
 
@@ -303,7 +378,9 @@ mod tests {
     fn draw_rect_preserves_vanilla_reverse_vertex_order() {
         let mut list = GuiDrawList::new();
         list.draw_rect(1, 2, 5, 7, 0xAABB_CCDDu32 as i32);
-        let GuiDrawCommand::Quad { vertices, .. } = &list.commands()[0] else { panic!("quad expected") };
+        let GuiDrawCommand::Quad { vertices, .. } = &list.commands()[0] else {
+            panic!("quad expected")
+        };
         assert_eq!((vertices[0].x, vertices[0].y), (5.0, 2.0));
         assert_eq!((vertices[2].x, vertices[2].y), (1.0, 7.0));
         assert_eq!(vertices[0].color, 0xAABB_CCDD);
@@ -312,8 +389,18 @@ mod tests {
     #[test]
     fn textured_rect_uses_256_uv_scale() {
         let mut list = GuiDrawList::new();
-        list.draw_textured_modal_rect(ResourceLocation::new("minecraft", "textures/gui/widgets.png"), 10, 20, 0, 66, 100, 20);
-        let GuiDrawCommand::Quad { vertices, .. } = &list.commands()[0] else { panic!("quad expected") };
+        list.draw_textured_modal_rect(
+            ResourceLocation::new("minecraft", "textures/gui/widgets.png"),
+            10,
+            20,
+            0,
+            66,
+            100,
+            20,
+        );
+        let GuiDrawCommand::Quad { vertices, .. } = &list.commands()[0] else {
+            panic!("quad expected")
+        };
         assert_eq!(vertices[0].v, 86.0 / 256.0);
         assert_eq!(vertices[1].u, 100.0 / 256.0);
     }
@@ -325,7 +412,9 @@ mod tests {
         list.rotate_degrees(-20.0);
         list.scale(2.0, 2.0);
         list.push_solid_quad([(0.0, 0.0, 0), (1.0, 0.0, 0), (1.0, 1.0, 0), (0.0, 1.0, 0)]);
-        let GuiDrawCommand::Quad { vertices, .. } = &list.commands()[0] else { panic!("quad expected") };
+        let GuiDrawCommand::Quad { vertices, .. } = &list.commands()[0] else {
+            panic!("quad expected")
+        };
         assert!((vertices[0].x - 100.0).abs() < 0.0001);
         assert!((vertices[0].y - 70.0).abs() < 0.0001);
     }

@@ -33,13 +33,25 @@ impl std::fmt::Debug for DataFixer {
 
 impl DataFixer {
     pub fn new(versionIn: i32) -> Self {
-        Self { walkerMap: HashMap::new(), fixMap: HashMap::new(), version: versionIn }
+        Self {
+            walkerMap: HashMap::new(),
+            fixMap: HashMap::new(),
+            version: versionIn,
+        }
     }
 
     /// MCP overload `process(IFixType, NBTTagCompound)`.
     pub fn process(&self, fixType: FixTypes, compound: NBTTagCompound) -> NBTTagCompound {
-        let version = if compound.hasKeyWithType("DataVersion", 99) { compound.getInteger("DataVersion") } else { -1 };
-        if version >= 1343 { compound } else { self.processVersioned(fixType, compound, version) }
+        let version = if compound.hasKeyWithType("DataVersion", 99) {
+            compound.getInteger("DataVersion")
+        } else {
+            -1
+        };
+        if version >= 1343 {
+            compound
+        } else {
+            self.processVersioned(fixType, compound, version)
+        }
     }
 
     pub fn registerWalker(&mut self, fixType: FixTypes, walker: Arc<dyn IDataWalker>) {
@@ -49,19 +61,33 @@ impl DataFixer {
     pub fn registerFix(&mut self, fixType: FixTypes, fixable: Arc<dyn IFixableData>) {
         let fixVersion = fixable.getFixVersion();
         if fixVersion > self.version {
-            log::warn!("Ignored fix registered for version: {} as the DataVersion of the game is: {}", fixVersion, self.version);
+            log::warn!(
+                "Ignored fix registered for version: {} as the DataVersion of the game is: {}",
+                fixVersion,
+                self.version
+            );
             return;
         }
         let list = self.fixMap.entry(fixType).or_default();
-        let index = list.iter().position(|existing| existing.getFixVersion() > fixVersion).unwrap_or(list.len());
+        let index = list
+            .iter()
+            .position(|existing| existing.getFixVersion() > fixVersion)
+            .unwrap_or(list.len());
         list.insert(index, fixable);
     }
 
-    pub const fn version(&self) -> i32 { self.version }
+    pub const fn version(&self) -> i32 {
+        self.version
+    }
 }
 
 impl IDataFixer for DataFixer {
-    fn processVersioned(&self, fixType: FixTypes, mut compound: NBTTagCompound, versionIn: i32) -> NBTTagCompound {
+    fn processVersioned(
+        &self,
+        fixType: FixTypes,
+        mut compound: NBTTagCompound,
+        versionIn: i32,
+    ) -> NBTTagCompound {
         if versionIn < self.version {
             if let Some(fixes) = self.fixMap.get(&fixType) {
                 for fix in fixes {
@@ -85,7 +111,9 @@ mod tests {
     use super::*;
     struct Fix(i32, &'static str);
     impl IFixableData for Fix {
-        fn getFixVersion(&self) -> i32 { self.0 }
+        fn getFixVersion(&self) -> i32 {
+            self.0
+        }
         fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
             let current = compound.getString("order");
             compound.setString("order", format!("{}{}", current, self.1));

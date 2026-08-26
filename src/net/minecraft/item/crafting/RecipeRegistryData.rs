@@ -1,19 +1,45 @@
-use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::item::crafting::Ingredient::Ingredient;
+use crate::net::minecraft::item::ItemStack::ItemStack;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RecipeKind { Dynamic, Shaped, Shapeless }
+pub enum RecipeKind {
+    Dynamic,
+    Shaped,
+    Shapeless,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RecipeCategory { Search, Tools, BuildingBlocks, Misc, Redstone }
+pub enum RecipeCategory {
+    Search,
+    Tools,
+    BuildingBlocks,
+    Misc,
+    Redstone,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StackSpec { pub itemId: i16, pub metadata: i16, pub count: u8 }
+pub struct StackSpec {
+    pub itemId: i16,
+    pub metadata: i16,
+    pub count: u8,
+}
 impl StackSpec {
-    pub const EMPTY: Self = Self { itemId: -1, metadata: 0, count: 0 };
+    pub const EMPTY: Self = Self {
+        itemId: -1,
+        metadata: 0,
+        count: 0,
+    };
     pub fn toItemStack(self) -> ItemStack {
-        if self.itemId < 0 || self.count == 0 { ItemStack::EMPTY }
-        else { ItemStack { itemId: self.itemId, count: self.count, itemDamage: self.metadata, tagCompound: None } }
+        if self.itemId < 0 || self.count == 0 {
+            ItemStack::EMPTY
+        } else {
+            ItemStack {
+                itemId: self.itemId,
+                count: self.count,
+                itemDamage: self.metadata,
+                tagCompound: None,
+            }
+        }
     }
 }
 
@@ -38,7 +64,9 @@ pub struct RecipeDefinition {
     pub ingredients: &'static str,
 }
 impl RecipeDefinition {
-    pub const fn isDynamic(&self) -> bool { matches!(self.kind, RecipeKind::Dynamic) }
+    pub const fn isDynamic(&self) -> bool {
+        matches!(self.kind, RecipeKind::Dynamic)
+    }
     pub const fn fits(&self, width: usize, height: usize) -> bool {
         match self.kind {
             RecipeKind::Shaped => width >= self.width as usize && height >= self.height as usize,
@@ -47,18 +75,32 @@ impl RecipeDefinition {
         }
     }
     pub const fn ingredientSlotCount(&self) -> usize {
-        if self.ingredients.is_empty() { 0 } else {
+        if self.ingredients.is_empty() {
+            0
+        } else {
             let bytes = self.ingredients.as_bytes();
             let mut count = 1usize;
             let mut i = 0usize;
-            while i < bytes.len() { if bytes[i] == b';' { count += 1; } i += 1; }
+            while i < bytes.len() {
+                if bytes[i] == b';' {
+                    count += 1;
+                }
+                i += 1;
+            }
             count
         }
     }
-    pub fn outputStack(&self) -> ItemStack { self.output.toItemStack() }
+    pub fn outputStack(&self) -> ItemStack {
+        self.output.toItemStack()
+    }
     pub fn ingredientList(&self) -> Vec<Ingredient> {
-        if self.ingredients.is_empty() { return Vec::new(); }
-        self.ingredients.split(';').map(Ingredient::fromEncodedAlternatives).collect()
+        if self.ingredients.is_empty() {
+            return Vec::new();
+        }
+        self.ingredients
+            .split(';')
+            .map(Ingredient::fromEncodedAlternatives)
+            .collect()
     }
 }
 
@@ -510,7 +552,10 @@ pub static RECIPES: [RecipeDefinition; RECIPE_COUNT] = [
 ];
 
 pub fn getRecipeById(id: i32) -> Option<&'static RecipeDefinition> {
-    usize::try_from(id).ok().and_then(|index| RECIPES.get(index)).filter(|recipe| recipe.id == id)
+    usize::try_from(id)
+        .ok()
+        .and_then(|index| RECIPES.get(index))
+        .filter(|recipe| recipe.id == id)
 }
 
 pub fn getRecipeByName(name: &str) -> Option<&'static RecipeDefinition> {

@@ -15,17 +15,41 @@ impl GuiBrewingStand {
 
     pub fn new() -> Self {
         let mut slots = vec![
-            GuiSlot { slotNumber: 0, xPos: 56, yPos: 51 },
-            GuiSlot { slotNumber: 1, xPos: 79, yPos: 58 },
-            GuiSlot { slotNumber: 2, xPos: 102, yPos: 51 },
-            GuiSlot { slotNumber: 3, xPos: 79, yPos: 17 },
-            GuiSlot { slotNumber: 4, xPos: 17, yPos: 17 },
+            GuiSlot {
+                slotNumber: 0,
+                xPos: 56,
+                yPos: 51,
+            },
+            GuiSlot {
+                slotNumber: 1,
+                xPos: 79,
+                yPos: 58,
+            },
+            GuiSlot {
+                slotNumber: 2,
+                xPos: 102,
+                yPos: 51,
+            },
+            GuiSlot {
+                slotNumber: 3,
+                xPos: 79,
+                yPos: 17,
+            },
+            GuiSlot {
+                slotNumber: 4,
+                xPos: 17,
+                yPos: 17,
+            },
         ];
         append_player_slots(&mut slots, 5);
-        Self { container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots) }
+        Self {
+            container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots),
+        }
     }
 
-    pub fn initGui(&mut self, width: i32, height: i32) { self.container.initGui(width, height); }
+    pub fn initGui(&mut self, width: i32, height: i32) {
+        self.container.initGui(width, height);
+    }
 
     pub fn brewingStandBackground() -> ResourceLocation {
         ResourceLocation::parse("textures/gui/container/brewing_stand.png")
@@ -56,7 +80,9 @@ impl GuiBrewingStand {
 }
 
 impl Default for GuiBrewingStand {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

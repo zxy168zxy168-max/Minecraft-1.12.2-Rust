@@ -54,7 +54,9 @@ impl GuiShulkerBox {
 }
 
 impl Default for GuiShulkerBox {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

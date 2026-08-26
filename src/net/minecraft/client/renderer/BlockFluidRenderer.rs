@@ -1,11 +1,11 @@
-use crate::net::minecraft::block::{BlockLiquid, BlockSlab};
-use crate::net::minecraft::block::BlockLiquid::LiquidMaterial;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::BlockLiquid::LiquidMaterial;
+use crate::net::minecraft::block::{BlockLiquid, BlockSlab};
 use crate::net::minecraft::client::renderer::color::BlockColors::BlockColors;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
-use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::world::biome::BiomeColorHelper::BiomeAccess;
+use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 /// Atlas rectangles owned by MCP `BlockFluidRenderer`. Coordinates are exact
 /// `TextureAtlasSprite` min/max values; interpolation below uses the original
@@ -35,7 +35,8 @@ impl FluidMesh {
     fn quad(&mut self, vertices: [FluidVertex; 4]) {
         let base = self.vertices.len() as u32;
         self.vertices.extend_from_slice(&vertices);
-        self.indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
+        self.indices
+            .extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
     }
 }
 
@@ -78,7 +79,11 @@ fn should_side_be_rendered<A: IBlockAccess>(
     }
 }
 
-fn should_render_top_backface<A: IBlockAccess>(access: &A, pos: BlockPos, material: LiquidMaterial) -> bool {
+fn should_render_top_backface<A: IBlockAccess>(
+    access: &A,
+    pos: BlockPos,
+    material: LiquidMaterial,
+) -> bool {
     for dx in -1..=1 {
         for dz in -1..=1 {
             let state = access.getBlockState(BlockPos::new(pos.x + dx, pos.y, pos.z + dz));
@@ -96,11 +101,7 @@ pub fn getFluidHeight<A: IBlockAccess>(access: &A, pos: BlockPos, material: Liqu
     let mut count = 0_i32;
     let mut total = 0.0_f32;
     for sample in 0..4 {
-        let sample_pos = BlockPos::new(
-            pos.x - (sample & 1),
-            pos.y,
-            pos.z - ((sample >> 1) & 1),
-        );
+        let sample_pos = BlockPos::new(pos.x - (sample & 1), pos.y, pos.z - ((sample >> 1) & 1));
         if material.contains(access.getBlockState(sample_pos.up(1))) {
             return 1.0;
         }
@@ -120,7 +121,11 @@ pub fn getFluidHeight<A: IBlockAccess>(access: &A, pos: BlockPos, material: Liqu
             count += 1;
         }
     }
-    if count == 0 { 0.0 } else { 1.0 - total / count as f32 }
+    if count == 0 {
+        0.0
+    } else {
+        1.0 - total / count as f32
+    }
 }
 
 /// One-to-one geometry port of MCP `BlockFluidRenderer#renderFluid`.
@@ -136,7 +141,9 @@ where
     A: IBlockAccess + BiomeAccess,
     F: FnMut(BlockPos, IBlockState) -> u32,
 {
-    let Some(material) = LiquidMaterial::fromState(state) else { return FluidMesh::default(); };
+    let Some(material) = LiquidMaterial::fromState(state) else {
+        return FluidMesh::default();
+    };
     let top = should_side_be_rendered(access, state, pos, EnumFacing::Up, material);
     let bottom = should_side_be_rendered(access, state, pos, EnumFacing::Down, material);
     let sides = [
@@ -169,8 +176,14 @@ where
 
     if top {
         let slope = BlockLiquid::getSlopeAngle(access, pos, state);
-        let sprite = if slope > -999.0 { sprites.flow } else { sprites.still };
-        for height in &mut heights { *height -= epsilon; }
+        let sprite = if slope > -999.0 {
+            sprites.flow
+        } else {
+            sprites.still
+        };
+        for height in &mut heights {
+            *height -= epsilon;
+        }
         let uvs = if slope < -999.0 {
             [
                 interpolate(sprite, 0.0, 0.0),
@@ -197,49 +210,119 @@ where
         ];
         mesh.quad(top_vertices);
         if should_render_top_backface(access, pos.up(1), material) {
-            mesh.quad([top_vertices[0], top_vertices[3], top_vertices[2], top_vertices[1]]);
+            mesh.quad([
+                top_vertices[0],
+                top_vertices[3],
+                top_vertices[2],
+                top_vertices[1],
+            ]);
         }
     }
 
     if bottom {
         let light = packed_light(pos.down(1), state);
         mesh.quad([
-            vertex([x, y, z + 1.0], interpolate(sprites.still, 0.0, 16.0), tint, 0.5, light),
-            vertex([x, y, z], interpolate(sprites.still, 0.0, 0.0), tint, 0.5, light),
-            vertex([x + 1.0, y, z], interpolate(sprites.still, 16.0, 0.0), tint, 0.5, light),
-            vertex([x + 1.0, y, z + 1.0], interpolate(sprites.still, 16.0, 16.0), tint, 0.5, light),
+            vertex(
+                [x, y, z + 1.0],
+                interpolate(sprites.still, 0.0, 16.0),
+                tint,
+                0.5,
+                light,
+            ),
+            vertex(
+                [x, y, z],
+                interpolate(sprites.still, 0.0, 0.0),
+                tint,
+                0.5,
+                light,
+            ),
+            vertex(
+                [x + 1.0, y, z],
+                interpolate(sprites.still, 16.0, 0.0),
+                tint,
+                0.5,
+                light,
+            ),
+            vertex(
+                [x + 1.0, y, z + 1.0],
+                interpolate(sprites.still, 16.0, 16.0),
+                tint,
+                0.5,
+                light,
+            ),
         ]);
     }
 
     for side_index in 0..4 {
-        if !sides[side_index] { continue; }
-        let (dx, dz) = match side_index { 0 => (0, -1), 1 => (0, 1), 2 => (-1, 0), _ => (1, 0) };
+        if !sides[side_index] {
+            continue;
+        }
+        let (dx, dz) = match side_index {
+            0 => (0, -1),
+            1 => (0, 1),
+            2 => (-1, 0),
+            _ => (1, 0),
+        };
         let neighbour_pos = BlockPos::new(pos.x + dx, pos.y, pos.z + dz);
         let neighbour = access.getBlockState(neighbour_pos);
-        let overlay = material == LiquidMaterial::Water && matches!(neighbour.getBlockId(), 20 | 95 | 138 | 165);
-        let sprite = if overlay { sprites.overlay } else { sprites.flow };
+        let overlay = material == LiquidMaterial::Water
+            && matches!(neighbour.getBlockId(), 20 | 95 | 138 | 165);
+        let sprite = if overlay {
+            sprites.overlay
+        } else {
+            sprites.flow
+        };
         let mut lower_a = 0.0_f32;
         let mut lower_b = 0.0_f32;
         if material == LiquidMaterial::Water {
             if matches!(neighbour.getBlockId(), 60 | 208) {
                 lower_a = 0.9375;
                 lower_b = 0.9375;
-            } else if BlockSlab::isBlockSlab(neighbour) && !BlockSlab::isDouble(neighbour) && !BlockSlab::isTop(neighbour) {
+            } else if BlockSlab::isBlockSlab(neighbour)
+                && !BlockSlab::isDouble(neighbour)
+                && !BlockSlab::isTop(neighbour)
+            {
                 lower_a = 0.5;
                 lower_b = 0.5;
             }
         }
         let (high_a, high_b, p0, p1) = match side_index {
-            0 => (heights[0], heights[3], [x, z + epsilon], [x + 1.0, z + epsilon]),
-            1 => (heights[2], heights[1], [x + 1.0, z + 1.0 - epsilon], [x, z + 1.0 - epsilon]),
-            2 => (heights[1], heights[0], [x + epsilon, z + 1.0], [x + epsilon, z]),
-            _ => (heights[3], heights[2], [x + 1.0 - epsilon, z], [x + 1.0 - epsilon, z + 1.0]),
+            0 => (
+                heights[0],
+                heights[3],
+                [x, z + epsilon],
+                [x + 1.0, z + epsilon],
+            ),
+            1 => (
+                heights[2],
+                heights[1],
+                [x + 1.0, z + 1.0 - epsilon],
+                [x, z + 1.0 - epsilon],
+            ),
+            2 => (
+                heights[1],
+                heights[0],
+                [x + epsilon, z + 1.0],
+                [x + epsilon, z],
+            ),
+            _ => (
+                heights[3],
+                heights[2],
+                [x + 1.0 - epsilon, z],
+                [x + 1.0 - epsilon, z + 1.0],
+            ),
         };
-        if high_a <= lower_a && high_b <= lower_b { continue; }
+        if high_a <= lower_a && high_b <= lower_b {
+            continue;
+        }
         lower_a = lower_a.min(high_a);
         lower_b = lower_b.min(high_b);
-        if lower_a > epsilon { lower_a -= epsilon; }
-        if lower_b > epsilon { lower_b -= epsilon; }
+        if lower_a > epsilon {
+            lower_a -= epsilon;
+        }
+        if lower_b > epsilon {
+            lower_b -= epsilon;
+        }
         let uv0 = interpolate(sprite, 0.0, (1.0 - high_a) * 8.0);
         let uv1 = interpolate(sprite, 8.0, (1.0 - high_b) * 8.0);
         let uv2 = interpolate(sprite, 8.0, (1.0 - lower_b) * 8.0);
@@ -262,8 +345,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     struct Access(HashMap<BlockPos, IBlockState>);
     impl IBlockAccess for Access {
@@ -272,8 +355,12 @@ mod tests {
         }
     }
     impl BiomeAccess for Access {
-        fn getBiomeId(&self, _pos: BlockPos) -> u8 { 1 }
-        fn getBlockStateForColor(&self, pos: BlockPos) -> IBlockState { self.getBlockState(pos) }
+        fn getBiomeId(&self, _pos: BlockPos) -> u8 {
+            1
+        }
+        fn getBlockStateForColor(&self, pos: BlockPos) -> IBlockState {
+            self.getBlockState(pos)
+        }
     }
 
     #[test]
@@ -281,8 +368,15 @@ mod tests {
         let origin = BlockPos::new(0, 64, 0);
         let source = IBlockState::fromGlobalStateId(9 << 4);
         let mut states = HashMap::new();
-        for dx in -1..=1 { for dz in -1..=1 { states.insert(BlockPos::new(dx, 64, dz), source); } }
-        assert!((getFluidHeight(&Access(states), origin, LiquidMaterial::Water) - 8.0 / 9.0).abs() < 1.0e-5);
+        for dx in -1..=1 {
+            for dz in -1..=1 {
+                states.insert(BlockPos::new(dx, 64, dz), source);
+            }
+        }
+        assert!(
+            (getFluidHeight(&Access(states), origin, LiquidMaterial::Water) - 8.0 / 9.0).abs()
+                < 1.0e-5
+        );
     }
 
     #[test]

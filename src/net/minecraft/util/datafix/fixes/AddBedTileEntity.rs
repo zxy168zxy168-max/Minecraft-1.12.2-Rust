@@ -5,7 +5,9 @@ use crate::net::minecraft::util::datafix::IFixableData::IFixableData;
 /// MCP 1.12.2 `AddBedTileEntity` (DataVersion 1125).
 pub struct AddBedTileEntity;
 impl IFixableData for AddBedTileEntity {
-    fn getFixVersion(&self) -> i32 { 1125 }
+    fn getFixVersion(&self) -> i32 {
+        1125
+    }
     fn fixTagCompound(&self, mut root: NBTTagCompound) -> NBTTagCompound {
         let mut level = root.getCompoundTag("Level");
         let chunk_x = level.getInteger("xPos");

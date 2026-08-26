@@ -1,2 +1,4 @@
-#[path = "IBlockState.rs"] pub mod IBlockState;
-#[path = "BlockFaceShape.rs"] pub mod BlockFaceShape;
+#[path = "BlockFaceShape.rs"]
+pub mod BlockFaceShape;
+#[path = "IBlockState.rs"]
+pub mod IBlockState;

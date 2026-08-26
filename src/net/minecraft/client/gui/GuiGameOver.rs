@@ -47,11 +47,13 @@ impl GuiGameOver {
         self.GuiScreen.height = height;
         self.GuiScreen.buttonList.clear();
         self.enableButtonsTimer = 0;
-        self.title = locale.translate_key(if self.hardcore {
-            "deathScreen.title.hardcore"
-        } else {
-            "deathScreen.title"
-        }).to_owned();
+        self.title = locale
+            .translate_key(if self.hardcore {
+                "deathScreen.title.hardcore"
+            } else {
+                "deathScreen.title"
+            })
+            .to_owned();
         self.scorePrefix = locale.translate_key("deathScreen.score").to_owned();
 
         let respawnLabel = locale.translate_key(if self.hardcore {
@@ -129,7 +131,8 @@ impl GuiGameOver {
             100,
             0x00FF_FFFF,
         );
-        self.GuiScreen.drawScreen(drawList, font, mouseX, mouseY, partialTicks);
+        self.GuiScreen
+            .drawScreen(drawList, font, mouseX, mouseY, partialTicks);
     }
 
     pub fn mouseClicked(
@@ -138,19 +141,31 @@ impl GuiGameOver {
         mouseY: i32,
         mouseButton: i32,
     ) -> Option<GuiGameOverInteraction> {
-        if mouseButton != 0 { return None; }
-        let button = self.GuiScreen.buttonList.iter()
+        if mouseButton != 0 {
+            return None;
+        }
+        let button = self
+            .GuiScreen
+            .buttonList
+            .iter()
             .find(|button| button.mousePressed(mouseX, mouseY))?;
         let action = match button.id {
             0 => GuiGameOverAction::Respawn,
             1 => GuiGameOverAction::Quit,
             _ => return None,
         };
-        Some(GuiGameOverInteraction { action, sound: button.playPressSound() })
+        Some(GuiGameOverInteraction {
+            action,
+            sound: button.playPressSound(),
+        })
     }
 
-    pub const fn isHardcore(&self) -> bool { self.hardcore }
-    pub const fn doesGuiPauseGame(&self) -> bool { false }
+    pub const fn isHardcore(&self) -> bool {
+        self.hardcore
+    }
+    pub const fn doesGuiPauseGame(&self) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -159,15 +174,18 @@ mod tests {
 
     fn locale() -> Locale {
         let mut locale = Locale::default();
-        locale.load_bytes(concat!(
-            "deathScreen.title=You died!\n",
-            "deathScreen.title.hardcore=Game over!\n",
-            "deathScreen.score=Score\n",
-            "deathScreen.respawn=Respawn\n",
-            "deathScreen.spectate=Spectate world\n",
-            "deathScreen.titleScreen=Title screen\n",
-            "deathScreen.leaveServer=Leave server\n",
-        ).as_bytes());
+        locale.load_bytes(
+            concat!(
+                "deathScreen.title=You died!\n",
+                "deathScreen.title.hardcore=Game over!\n",
+                "deathScreen.score=Score\n",
+                "deathScreen.respawn=Respawn\n",
+                "deathScreen.spectate=Spectate world\n",
+                "deathScreen.titleScreen=Title screen\n",
+                "deathScreen.leaveServer=Leave server\n",
+            )
+            .as_bytes(),
+        );
         locale
     }
 
@@ -175,9 +193,21 @@ mod tests {
     fn buttons_match_vanilla_positions_and_unlock_after_twenty_ticks() {
         let mut screen = GuiGameOver::new(None, false, 7);
         screen.initGui(854, 480, &locale());
-        assert_eq!((screen.GuiScreen.buttonList[0].x, screen.GuiScreen.buttonList[0].y), (327, 192));
+        assert_eq!(
+            (
+                screen.GuiScreen.buttonList[0].x,
+                screen.GuiScreen.buttonList[0].y
+            ),
+            (327, 192)
+        );
         assert!(!screen.GuiScreen.buttonList[0].enabled);
-        for _ in 0..20 { screen.updateScreen(); }
-        assert!(screen.GuiScreen.buttonList.iter().all(|button| button.enabled));
+        for _ in 0..20 {
+            screen.updateScreen();
+        }
+        assert!(screen
+            .GuiScreen
+            .buttonList
+            .iter()
+            .all(|button| button.enabled));
     }
 }

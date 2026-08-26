@@ -1,5 +1,5 @@
-use crate::net::minecraft::block::BlockBed::BlockBed;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::BlockBed::BlockBed;
 use crate::net::minecraft::client::renderer::tileentity::TileEntityItemStackRenderer::{
     BuiltInItemMesh, TileEntityItemStackRenderer,
 };
@@ -10,7 +10,9 @@ pub struct TileEntityBedRenderer;
 
 impl TileEntityBedRenderer {
     pub fn buildMesh(tile: &TileEntityBed, state: IBlockState) -> Option<BuiltInItemMesh> {
-        if !BlockBed::isBlockBed(state) { return None; }
+        if !BlockBed::isBlockBed(state) {
+            return None;
+        }
         Some(TileEntityItemStackRenderer::buildWorldBedHalf(
             tile.colorMetadata() as i16,
             BlockBed::isHead(state),

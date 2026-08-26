@@ -1,8 +1,8 @@
 use crate::net::minecraft::block::state::BlockFaceShape::BlockFaceShape;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 pub const fn isBlockPane(state: IBlockState) -> bool {
@@ -25,7 +25,11 @@ pub const fn excludesSolidConnection(blockId: i32) -> bool {
     )
 }
 
-pub fn canConnectTo<A: IBlockAccess>(world: &A, neighbourPos: BlockPos, neighbourFace: EnumFacing) -> bool {
+pub fn canConnectTo<A: IBlockAccess>(
+    world: &A,
+    neighbourPos: BlockPos,
+    neighbourFace: EnumFacing,
+) -> bool {
     let neighbour = world.getBlockState(neighbourPos);
     let shape = neighbour.getBlockFaceShape(world, neighbourPos, neighbourFace);
     (!excludesSolidConnection(neighbour.getBlockId()) && shape == BlockFaceShape::SOLID)
@@ -51,10 +55,18 @@ pub fn connectionMask<A: IBlockAccess>(world: &A, pos: BlockPos) -> u8 {
 /// Port of `BlockPane.addCollisionBoxToList` after `getActualState`.
 pub fn getCollisionBoxes(mask: u8) -> Vec<AxisAlignedBB> {
     let mut boxes = vec![AxisAlignedBB::new(0.4375, 0.0, 0.4375, 0.5625, 1.0, 0.5625)];
-    if mask & 1 != 0 { boxes.push(AxisAlignedBB::new(0.4375, 0.0, 0.0, 0.5625, 1.0, 0.4375)); }
-    if mask & 2 != 0 { boxes.push(AxisAlignedBB::new(0.5625, 0.0, 0.4375, 1.0, 1.0, 0.5625)); }
-    if mask & 4 != 0 { boxes.push(AxisAlignedBB::new(0.4375, 0.0, 0.5625, 0.5625, 1.0, 1.0)); }
-    if mask & 8 != 0 { boxes.push(AxisAlignedBB::new(0.0, 0.0, 0.4375, 0.4375, 1.0, 0.5625)); }
+    if mask & 1 != 0 {
+        boxes.push(AxisAlignedBB::new(0.4375, 0.0, 0.0, 0.5625, 1.0, 0.4375));
+    }
+    if mask & 2 != 0 {
+        boxes.push(AxisAlignedBB::new(0.5625, 0.0, 0.4375, 1.0, 1.0, 0.5625));
+    }
+    if mask & 4 != 0 {
+        boxes.push(AxisAlignedBB::new(0.4375, 0.0, 0.5625, 0.5625, 1.0, 1.0));
+    }
+    if mask & 8 != 0 {
+        boxes.push(AxisAlignedBB::new(0.0, 0.0, 0.4375, 0.4375, 1.0, 0.5625));
+    }
     boxes
 }
 
@@ -72,8 +84,8 @@ pub fn getBoundingBox(mask: u8) -> AxisAlignedBB {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     struct Access(HashMap<BlockPos, IBlockState>);
     impl IBlockAccess for Access {

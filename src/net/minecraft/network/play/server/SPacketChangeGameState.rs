@@ -23,8 +23,12 @@ impl SPacketChangeGameState {
         Ok(result)
     }
 
-    pub const fn getGameState(&self) -> i32 { self.state }
-    pub const fn getValue(&self) -> f32 { self.value }
+    pub const fn getGameState(&self) -> i32 {
+        self.state
+    }
+    pub const fn getValue(&self) -> f32 {
+        self.value
+    }
 }
 
 #[cfg(test)]
@@ -35,7 +39,8 @@ mod tests {
     fn game_mode_reason_uses_unsigned_byte_then_float() {
         let mut payload = vec![3];
         payload.extend_from_slice(&1.0_f32.to_bits().to_be_bytes());
-        let packet = SPacketChangeGameState::readPacketData(&RawPacket::new(0x1E, payload)).unwrap();
+        let packet =
+            SPacketChangeGameState::readPacketData(&RawPacket::new(0x1E, payload)).unwrap();
         assert_eq!(packet.getGameState(), 3);
         assert_eq!(packet.getValue(), 1.0);
     }

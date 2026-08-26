@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use crate::compat::Java::JavaRandom;
 use crate::compat::JavaProperties::parse_java_properties;
-use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::{ResourceManager, ResourceManagerError};
+use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::{
+    ResourceManager, ResourceManagerError,
+};
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::vulkan::NativeImage::{NativeImage, NativeImageError};
 use thiserror::Error;
@@ -83,12 +85,16 @@ impl FontRenderer {
     }
 
     pub fn reload(&mut self, resource_manager: &ResourceManager) -> Result<(), FontRendererError> {
-        self.location_font_texture = hd_font_location(resource_manager, &self.location_font_texture_base, self.custom_fonts);
-        self.unicode_page_locations = build_unicode_page_locations(resource_manager, self.custom_fonts);
+        self.location_font_texture = hd_font_location(
+            resource_manager,
+            &self.location_font_texture_base,
+            self.custom_fonts,
+        );
+        self.unicode_page_locations =
+            build_unicode_page_locations(resource_manager, self.custom_fonts);
         self.read_font_texture(resource_manager)?;
         self.read_glyph_sizes(resource_manager)
     }
-
 
     pub fn test_metric_renderer() -> Self {
         let mut renderer = Self {
@@ -106,7 +112,12 @@ impl FontRenderer {
             font_random: JavaRandom::new(0),
             custom_fonts: false,
             unicode_page_locations: (0_u16..=255)
-                .map(|page| ResourceLocation::new("minecraft", format!("textures/font/unicode_page_{page:02x}.png")))
+                .map(|page| {
+                    ResourceLocation::new(
+                        "minecraft",
+                        format!("textures/font/unicode_page_{page:02x}.png"),
+                    )
+                })
                 .collect(),
         };
         renderer.char_width[32] = 4;
@@ -114,11 +125,21 @@ impl FontRenderer {
         renderer
     }
 
-    pub const fn unicode_flag(&self) -> bool { self.unicode_flag }
-    pub fn set_unicode_flag(&mut self, unicode: bool) { self.unicode_flag = unicode; }
-    pub const fn bidi_flag(&self) -> bool { self.bidi_flag }
-    pub fn set_bidi_flag(&mut self, bidi: bool) { self.bidi_flag = bidi; }
-    pub fn font_texture(&self) -> &ResourceLocation { &self.location_font_texture }
+    pub const fn unicode_flag(&self) -> bool {
+        self.unicode_flag
+    }
+    pub fn set_unicode_flag(&mut self, unicode: bool) {
+        self.unicode_flag = unicode;
+    }
+    pub const fn bidi_flag(&self) -> bool {
+        self.bidi_flag
+    }
+    pub fn set_bidi_flag(&mut self, bidi: bool) {
+        self.bidi_flag = bidi;
+    }
+    pub fn font_texture(&self) -> &ResourceLocation {
+        &self.location_font_texture
+    }
 
     pub fn get_string_width(&self, text: &str) -> i32 {
         let units: Vec<u16> = text.encode_utf16().collect();
@@ -140,7 +161,11 @@ impl FontRenderer {
             }
             width += char_width;
             if bold && char_width > 0.0 {
-                width += if self.unicode_flag { 1.0 } else { self.offset_bold };
+                width += if self.unicode_flag {
+                    1.0
+                } else {
+                    self.offset_bold
+                };
             }
             index += 1;
         }
@@ -173,30 +198,48 @@ impl FontRenderer {
                 formatting = true;
             } else {
                 width += char_width;
-                if bold { width += 1.0; }
+                if bold {
+                    width += 1.0;
+                }
             }
-            if width > max_width as f32 { break; }
-            if reverse { output.insert(0, unit); } else { output.push(unit); }
+            if width > max_width as f32 {
+                break;
+            }
+            if reverse {
+                output.insert(0, unit);
+            } else {
+                output.push(unit);
+            }
             index += step;
         }
         String::from_utf16_lossy(&output)
     }
 
     pub fn list_formatted_string_to_width(&self, text: &str, wrap_width: i32) -> Vec<String> {
-        self.wrap_formatted_string_to_width(text, wrap_width).split('\n').map(str::to_owned).collect()
+        self.wrap_formatted_string_to_width(text, wrap_width)
+            .split('\n')
+            .map(str::to_owned)
+            .collect()
     }
 
     fn wrap_formatted_string_to_width(&self, text: &str, wrap_width: i32) -> String {
         let units: Vec<u16> = text.encode_utf16().collect();
-        if units.len() <= 1 { return text.to_owned(); }
+        if units.len() <= 1 {
+            return text.to_owned();
+        }
         let split = self.size_string_to_width(&units, wrap_width);
-        if units.len() <= split { return text.to_owned(); }
+        if units.len() <= split {
+            return text.to_owned();
+        }
         let head = String::from_utf16_lossy(&units[..split]);
         let split_unit = units[split];
         let skip = usize::from(split_unit == b' ' as u16 || split_unit == b'\n' as u16);
         let tail = String::from_utf16_lossy(&units[(split + skip)..]);
         let continuation = format!("{}{}", get_format_from_string(&head), tail);
-        format!("{head}\n{}", self.wrap_formatted_string_to_width(&continuation, wrap_width))
+        format!(
+            "{head}\n{}",
+            self.wrap_formatted_string_to_width(&continuation, wrap_width)
+        )
     }
 
     fn size_string_to_width(&self, units: &[u16], wrap_width: i32) -> usize {
@@ -207,21 +250,51 @@ impl FontRenderer {
         while index < units.len() {
             let unit = units[index];
             match unit {
-                10 => { last_space = Some(index + 1); break; }
-                32 => { last_space = Some(index); width += self.get_char_width_float(unit); if bold { width += 1.0; } }
+                10 => {
+                    last_space = Some(index + 1);
+                    break;
+                }
+                32 => {
+                    last_space = Some(index);
+                    width += self.get_char_width_float(unit);
+                    if bold {
+                        width += 1.0;
+                    }
+                }
                 167 if index + 1 < units.len() => {
                     index += 1;
                     let code = ascii_lower(units[index]);
-                    if code == b'l' { bold = true; }
-                    else if code == b'r' || (b'0'..=b'9').contains(&code) || (b'a'..=b'f').contains(&code) { bold = false; }
+                    if code == b'l' {
+                        bold = true;
+                    } else if code == b'r'
+                        || (b'0'..=b'9').contains(&code)
+                        || (b'a'..=b'f').contains(&code)
+                    {
+                        bold = false;
+                    }
                 }
-                _ => { width += self.get_char_width_float(unit); if bold { width += 1.0; } }
+                _ => {
+                    width += self.get_char_width_float(unit);
+                    if bold {
+                        width += 1.0;
+                    }
+                }
             }
-            if unit == 10 { break; }
+            if unit == 10 {
+                break;
+            }
             index += 1;
-            if java_round_f32(width) > wrap_width { break; }
+            if java_round_f32(width) > wrap_width {
+                break;
+            }
         }
-        if index != units.len() { if let Some(space) = last_space { if space < index { return space; } } }
+        if index != units.len() {
+            if let Some(space) = last_space {
+                if space < index {
+                    return space;
+                }
+            }
+        }
         index
     }
 
@@ -274,8 +347,12 @@ impl FontRenderer {
         mut color: i32,
         shadow: bool,
     ) -> i32 {
-        if (color & -67_108_864) == 0 { color |= -16_777_216; }
-        if shadow { color = (color & 16_579_836) >> 2 | color & -16_777_216; }
+        if (color & -67_108_864) == 0 {
+            color |= -16_777_216;
+        }
+        if shadow {
+            color = (color & 16_579_836) >> 2 | color & -16_777_216;
+        }
         let base_color = color as u32;
         let alpha = (base_color >> 24) & 255;
         let mut current_color = base_color;
@@ -289,11 +366,22 @@ impl FontRenderer {
             if unit == 167 && index + 1 < units.len() {
                 index += 1;
                 let code = ascii_lower(units[index]);
-                let format_index = FORMAT_CODES.as_bytes().iter().position(|&candidate| candidate == code).map(|v| v as i32).unwrap_or(-1);
+                let format_index = FORMAT_CODES
+                    .as_bytes()
+                    .iter()
+                    .position(|&candidate| candidate == code)
+                    .map(|v| v as i32)
+                    .unwrap_or(-1);
                 if format_index < 16 {
                     styles = Styles::default();
-                    let mut color_index = if !(0..=15).contains(&format_index) { 15 } else { format_index as usize };
-                    if shadow { color_index += 16; }
+                    let mut color_index = if !(0..=15).contains(&format_index) {
+                        15
+                    } else {
+                        format_index as usize
+                    };
+                    if shadow {
+                        color_index += 16;
+                    }
                     current_color = (alpha << 24) | self.color_code[color_index];
                 } else {
                     match format_index {
@@ -302,7 +390,10 @@ impl FontRenderer {
                         18 => styles.strikethrough = true,
                         19 => styles.underline = true,
                         20 => styles.italic = true,
-                        21 => { styles = Styles::default(); current_color = base_color; }
+                        21 => {
+                            styles = Styles::default();
+                            current_color = base_color;
+                        }
                         _ => {}
                     }
                 }
@@ -310,7 +401,11 @@ impl FontRenderer {
                 continue;
             }
 
-            let mut default_index = default_chars.iter().position(|&candidate| candidate == unit).map(|v| v as i32).unwrap_or(-1);
+            let mut default_index = default_chars
+                .iter()
+                .position(|&candidate| candidate == unit)
+                .map(|v| v as i32)
+                .unwrap_or(-1);
             if styles.random && default_index != -1 {
                 let target_width = self.get_char_width(unit);
                 loop {
@@ -323,18 +418,51 @@ impl FontRenderer {
                 }
             }
 
-            let bold_offset = if default_index != -1 && !self.unicode_flag { self.offset_bold } else { 0.5 };
-            let shadow_unicode_offset = (unit == 0 || default_index == -1 || self.unicode_flag) && shadow;
-            if shadow_unicode_offset { x -= bold_offset; y -= bold_offset; }
-            let mut advance = self.render_char(draw_list, unit, default_index, x, y, current_color, styles.italic);
-            if shadow_unicode_offset { x += bold_offset; y += bold_offset; }
+            let bold_offset = if default_index != -1 && !self.unicode_flag {
+                self.offset_bold
+            } else {
+                0.5
+            };
+            let shadow_unicode_offset =
+                (unit == 0 || default_index == -1 || self.unicode_flag) && shadow;
+            if shadow_unicode_offset {
+                x -= bold_offset;
+                y -= bold_offset;
+            }
+            let mut advance = self.render_char(
+                draw_list,
+                unit,
+                default_index,
+                x,
+                y,
+                current_color,
+                styles.italic,
+            );
+            if shadow_unicode_offset {
+                x += bold_offset;
+                y += bold_offset;
+            }
 
             if styles.bold {
                 x += bold_offset;
-                if shadow_unicode_offset { x -= bold_offset; y -= bold_offset; }
-                self.render_char(draw_list, unit, default_index, x, y, current_color, styles.italic);
+                if shadow_unicode_offset {
+                    x -= bold_offset;
+                    y -= bold_offset;
+                }
+                self.render_char(
+                    draw_list,
+                    unit,
+                    default_index,
+                    x,
+                    y,
+                    current_color,
+                    styles.italic,
+                );
                 x -= bold_offset;
-                if shadow_unicode_offset { x += bold_offset; y += bold_offset; }
+                if shadow_unicode_offset {
+                    x += bold_offset;
+                    y += bold_offset;
+                }
                 advance += bold_offset;
             }
 
@@ -373,7 +501,11 @@ impl FontRenderer {
         italic: bool,
     ) -> f32 {
         if unit == b' ' as u16 || unit == 160 {
-            return if self.unicode_flag { 4.0 } else { self.char_width_float[unit as usize] };
+            return if self.unicode_flag {
+                4.0
+            } else {
+                self.char_width_float[unit as usize]
+            };
         }
         if default_index != -1 && !self.unicode_flag {
             self.render_default_char(draw_list, default_index as usize, x, y, color, italic)
@@ -399,10 +531,34 @@ impl FontRenderer {
         draw_list.push_triangle_strip(
             self.location_font_texture.clone(),
             [
-                (x + italic_offset, y, texture_x / 128.0, texture_y / 128.0, color),
-                (x - italic_offset, y + 7.99, texture_x / 128.0, (texture_y + 7.99) / 128.0, color),
-                (x + render_size - 1.0 + italic_offset, y, (texture_x + render_size - 1.0) / 128.0, texture_y / 128.0, color),
-                (x + render_size - 1.0 - italic_offset, y + 7.99, (texture_x + render_size - 1.0) / 128.0, (texture_y + 7.99) / 128.0, color),
+                (
+                    x + italic_offset,
+                    y,
+                    texture_x / 128.0,
+                    texture_y / 128.0,
+                    color,
+                ),
+                (
+                    x - italic_offset,
+                    y + 7.99,
+                    texture_x / 128.0,
+                    (texture_y + 7.99) / 128.0,
+                    color,
+                ),
+                (
+                    x + render_size - 1.0 + italic_offset,
+                    y,
+                    (texture_x + render_size - 1.0) / 128.0,
+                    texture_y / 128.0,
+                    color,
+                ),
+                (
+                    x + render_size - 1.0 - italic_offset,
+                    y + 7.99,
+                    (texture_x + render_size - 1.0) / 128.0,
+                    (texture_y + 7.99) / 128.0,
+                    color,
+                ),
             ],
         );
         width
@@ -418,7 +574,9 @@ impl FontRenderer {
         italic: bool,
     ) -> f32 {
         let packed = self.glyph_width[unit as usize];
-        if packed == 0 { return 0.0; }
+        if packed == 0 {
+            return 0.0;
+        }
         let page = (unit / 256) as u8;
         let start = (packed >> 4) as f32;
         let end = ((packed & 15) + 1) as f32;
@@ -430,24 +588,56 @@ impl FontRenderer {
         draw_list.push_triangle_strip(
             texture,
             [
-                (x + italic_offset, y, texture_x / 256.0, texture_y / 256.0, color),
-                (x - italic_offset, y + 7.99, texture_x / 256.0, (texture_y + 15.98) / 256.0, color),
-                (x + render_width / 2.0 + italic_offset, y, (texture_x + render_width) / 256.0, texture_y / 256.0, color),
-                (x + render_width / 2.0 - italic_offset, y + 7.99, (texture_x + render_width) / 256.0, (texture_y + 15.98) / 256.0, color),
+                (
+                    x + italic_offset,
+                    y,
+                    texture_x / 256.0,
+                    texture_y / 256.0,
+                    color,
+                ),
+                (
+                    x - italic_offset,
+                    y + 7.99,
+                    texture_x / 256.0,
+                    (texture_y + 15.98) / 256.0,
+                    color,
+                ),
+                (
+                    x + render_width / 2.0 + italic_offset,
+                    y,
+                    (texture_x + render_width) / 256.0,
+                    texture_y / 256.0,
+                    color,
+                ),
+                (
+                    x + render_width / 2.0 - italic_offset,
+                    y + 7.99,
+                    (texture_x + render_width) / 256.0,
+                    (texture_y + 15.98) / 256.0,
+                    color,
+                ),
             ],
         );
         (end - start) / 2.0 + 1.0
     }
 
     fn get_char_width_float(&self, unit: u16) -> f32 {
-        if unit == 167 { return -1.0; }
-        if unit == b' ' as u16 || unit == 160 { return self.char_width_float[32]; }
-        let default_index = DEFAULT_FONT_CHARS.encode_utf16().position(|candidate| candidate == unit);
+        if unit == 167 {
+            return -1.0;
+        }
+        if unit == b' ' as u16 || unit == 160 {
+            return self.char_width_float[32];
+        }
+        let default_index = DEFAULT_FONT_CHARS
+            .encode_utf16()
+            .position(|candidate| candidate == unit);
         if unit > 0 && default_index.is_some() && !self.unicode_flag {
             return self.char_width_float[default_index.unwrap()];
         }
         let packed = self.glyph_width[unit as usize];
-        if packed == 0 { return 0.0; }
+        if packed == 0 {
+            return 0.0;
+        }
         let start = packed >> 4;
         let end = (packed & 15) + 1;
         (((end as i32 - start as i32) / 2) + 1) as f32
@@ -461,23 +651,36 @@ impl FontRenderer {
         (0_u16..=255)
             .filter(|page| {
                 let start = *page as usize * 256;
-                self.glyph_width[start..start + 256].iter().any(|&width| width != 0)
+                self.glyph_width[start..start + 256]
+                    .iter()
+                    .any(|&width| width != 0)
             })
             .map(|page| page as u8)
             .collect()
     }
 
-    fn read_font_texture(&mut self, resource_manager: &ResourceManager) -> Result<(), FontRendererError> {
+    fn read_font_texture(
+        &mut self,
+        resource_manager: &ResourceManager,
+    ) -> Result<(), FontRendererError> {
         let resource = resource_manager.get_resource(&self.location_font_texture)?;
         let image = NativeImage::decode_png(&resource.bytes)?;
         if image.width() % 16 != 0 || image.height() % 16 != 0 {
-            return Err(FontRendererError::InvalidFontDimensions(image.width(), image.height()));
+            return Err(FontRendererError::InvalidFontDimensions(
+                image.width(),
+                image.height(),
+            ));
         }
         let properties_location = ResourceLocation::new(
             self.location_font_texture.getNamespace(),
-            self.location_font_texture.getPath().strip_suffix(".png").map(|path| format!("{path}.properties")).unwrap_or_default(),
+            self.location_font_texture
+                .getPath()
+                .strip_suffix(".png")
+                .map(|path| format!("{path}.properties"))
+                .unwrap_or_default(),
         );
-        let properties = resource_manager.get_resource(&properties_location)
+        let properties = resource_manager
+            .get_resource(&properties_location)
             .ok()
             .map(|resource| parse_properties(&resource.bytes))
             .unwrap_or_default();
@@ -490,7 +693,9 @@ impl FontRenderer {
         let bold_scale_factor = scale.clamp(1.0, 2.0);
         self.offset_bold = 1.0 / bold_scale_factor;
         if let Some(value) = read_float(&properties, "offsetBold") {
-            if value >= 0.0 { self.offset_bold = value; }
+            if value >= 0.0 {
+                self.offset_bold = value;
+            }
         }
 
         for glyph in 0..256_usize {
@@ -506,52 +711,98 @@ impl FontRenderer {
                         break;
                     }
                 }
-                if !empty { break; }
+                if !empty {
+                    break;
+                }
                 right -= 1;
             }
             if glyph == 32 {
-                right = if char_width <= 8 { (2.0 * scale) as i32 } else { (1.5 * scale) as i32 };
+                right = if char_width <= 8 {
+                    (2.0 * scale) as i32
+                } else {
+                    (1.5 * scale) as i32
+                };
             }
             self.char_width_float[glyph] = (right + 1) as f32 / scale + 1.0;
         }
 
         for (key, value) in &properties {
-            let Some(index_text) = key.strip_prefix("width.") else { continue; };
-            let Ok(index) = index_text.parse::<usize>() else { continue; };
-            let Ok(width) = value.parse::<f32>() else { continue; };
-            if index < 256 && width >= 0.0 { self.char_width_float[index] = width; }
+            let Some(index_text) = key.strip_prefix("width.") else {
+                continue;
+            };
+            let Ok(index) = index_text.parse::<usize>() else {
+                continue;
+            };
+            let Ok(width) = value.parse::<f32>() else {
+                continue;
+            };
+            if index < 256 && width >= 0.0 {
+                self.char_width_float[index] = width;
+            }
         }
-        for index in 0..256 { self.char_width[index] = java_round_f32(self.char_width_float[index]); }
+        for index in 0..256 {
+            self.char_width[index] = java_round_f32(self.char_width_float[index]);
+        }
         Ok(())
     }
 
-    fn read_glyph_sizes(&mut self, resource_manager: &ResourceManager) -> Result<(), FontRendererError> {
-        let resource = resource_manager.get_resource(&ResourceLocation::new("minecraft", "font/glyph_sizes.bin"))?;
-        if resource.bytes.len() < 65_536 { return Err(FontRendererError::InvalidGlyphSizes(resource.bytes.len())); }
+    fn read_glyph_sizes(
+        &mut self,
+        resource_manager: &ResourceManager,
+    ) -> Result<(), FontRendererError> {
+        let resource = resource_manager
+            .get_resource(&ResourceLocation::new("minecraft", "font/glyph_sizes.bin"))?;
+        if resource.bytes.len() < 65_536 {
+            return Err(FontRendererError::InvalidGlyphSizes(resource.bytes.len()));
+        }
         self.glyph_width.copy_from_slice(&resource.bytes[..65_536]);
         Ok(())
     }
 }
 
-
-fn build_unicode_page_locations(resource_manager: &ResourceManager, custom_fonts: bool) -> Vec<ResourceLocation> {
+fn build_unicode_page_locations(
+    resource_manager: &ResourceManager,
+    custom_fonts: bool,
+) -> Vec<ResourceLocation> {
     (0_u16..=255)
         .map(|page| {
-            let base = ResourceLocation::new("minecraft", format!("textures/font/unicode_page_{page:02x}.png"));
+            let base = ResourceLocation::new(
+                "minecraft",
+                format!("textures/font/unicode_page_{page:02x}.png"),
+            );
             if !custom_fonts {
                 return base;
             }
-            let candidate = ResourceLocation::new(base.getNamespace(), format!("mcpatcher/font/unicode_page_{page:02x}.png"));
-            if resource_manager.resource_exists(&candidate) { candidate } else { base }
+            let candidate = ResourceLocation::new(
+                base.getNamespace(),
+                format!("mcpatcher/font/unicode_page_{page:02x}.png"),
+            );
+            if resource_manager.resource_exists(&candidate) {
+                candidate
+            } else {
+                base
+            }
         })
         .collect()
 }
 
-fn hd_font_location(resource_manager: &ResourceManager, base: &ResourceLocation, custom_fonts: bool) -> ResourceLocation {
-    if !custom_fonts { return base.clone(); }
-    let Some(path) = base.getPath().strip_prefix("textures/") else { return base.clone(); };
+fn hd_font_location(
+    resource_manager: &ResourceManager,
+    base: &ResourceLocation,
+    custom_fonts: bool,
+) -> ResourceLocation {
+    if !custom_fonts {
+        return base.clone();
+    }
+    let Some(path) = base.getPath().strip_prefix("textures/") else {
+        return base.clone();
+    };
     let candidate = ResourceLocation::new(base.getNamespace(), format!("mcpatcher/{path}"));
-    if resource_manager.resource_exists(&candidate) { candidate } else { base.clone() }
+    if resource_manager.resource_exists(&candidate) {
+        candidate
+    } else {
+        base.clone()
+    }
 }
 
 fn get_format_from_string(text: &str) -> String {
@@ -562,9 +813,12 @@ fn get_format_from_string(text: &str) -> String {
         if units[index] == 167 {
             let code = ascii_lower(units[index + 1]);
             if (b'0'..=b'9').contains(&code) || (b'a'..=b'f').contains(&code) {
-                result.clear(); result.push('§'); result.push(code as char);
+                result.clear();
+                result.push('§');
+                result.push(code as char);
             } else if (b'k'..=b'o').contains(&code) || code == b'r' {
-                result.push('§'); result.push(code as char);
+                result.push('§');
+                result.push(code as char);
             }
             index += 1;
         }
@@ -580,7 +834,9 @@ fn build_color_codes(anaglyph: bool) -> [u32; 32] {
         let mut red = (index >> 2 & 1) * 170 + modifier;
         let mut green = (index >> 1 & 1) * 170 + modifier;
         let mut blue = (index & 1) * 170 + modifier;
-        if index == 6 { red += 85; }
+        if index == 6 {
+            red += 85;
+        }
         if anaglyph {
             let gray_red = (red * 30 + green * 59 + blue * 11) / 100;
             let gray_green = (red * 30 + green * 70) / 100;
@@ -589,7 +845,11 @@ fn build_color_codes(anaglyph: bool) -> [u32; 32] {
             green = gray_green;
             blue = gray_blue;
         }
-        if index >= 16 { red /= 4; green /= 4; blue /= 4; }
+        if index >= 16 {
+            red /= 4;
+            green /= 4;
+            blue /= 4;
+        }
         colors[index as usize] = ((red & 255) << 16 | (green & 255) << 8 | blue & 255) as u32;
     }
     colors
@@ -600,7 +860,10 @@ fn parse_properties(bytes: &[u8]) -> HashMap<String, String> {
 }
 
 fn read_bool(values: &HashMap<String, String>, key: &str, default: bool) -> bool {
-    match values.get(key).map(|value| value.trim().to_ascii_lowercase()) {
+    match values
+        .get(key)
+        .map(|value| value.trim().to_ascii_lowercase())
+    {
         Some(value) if value == "true" || value == "on" => true,
         Some(value) if value == "false" || value == "off" => false,
         _ => default,
@@ -613,10 +876,16 @@ fn read_float(values: &HashMap<String, String>, key: &str) -> Option<f32> {
 
 fn ascii_lower(unit: u16) -> u8 {
     let byte = unit as u8;
-    if byte.is_ascii_uppercase() { byte.to_ascii_lowercase() } else { byte }
+    if byte.is_ascii_uppercase() {
+        byte.to_ascii_lowercase()
+    } else {
+        byte
+    }
 }
 
-fn java_round_f32(value: f32) -> i32 { (value + 0.5).floor() as i32 }
+fn java_round_f32(value: f32) -> i32 {
+    (value + 0.5).floor() as i32
+}
 
 #[cfg(test)]
 mod tests {
@@ -638,7 +907,14 @@ mod tests {
             blend: false,
             font_random: JavaRandom::new(0),
             custom_fonts: false,
-            unicode_page_locations: (0_u16..=255).map(|page| ResourceLocation::new("minecraft", format!("textures/font/unicode_page_{page:02x}.png"))).collect(),
+            unicode_page_locations: (0_u16..=255)
+                .map(|page| {
+                    ResourceLocation::new(
+                        "minecraft",
+                        format!("textures/font/unicode_page_{page:02x}.png"),
+                    )
+                })
+                .collect(),
         };
         renderer.char_width_float[32] = 4.0;
         renderer
@@ -675,9 +951,16 @@ mod tests {
         renderer.glyph_width[glyph] = 0x0F;
         let mut drawList = GuiDrawList::new();
         renderer.draw_string(&mut drawList, "箱", 8.0, 6.0, 4_210_752, false);
-        let GuiDrawCommand::Quad { texture: Some(texture), .. } = &drawList.commands()[0] else {
+        let GuiDrawCommand::Quad {
+            texture: Some(texture),
+            ..
+        } = &drawList.commands()[0]
+        else {
             panic!("Unicode glyph did not emit a textured font quad");
         };
-        assert_eq!(texture, &ResourceLocation::new("minecraft", "textures/font/unicode_page_7b.png"));
+        assert_eq!(
+            texture,
+            &ResourceLocation::new("minecraft", "textures/font/unicode_page_7b.png")
+        );
     }
 }

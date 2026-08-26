@@ -22,7 +22,11 @@ impl RenderMinecart {
         } else {
             0.0
         };
-        entity.entity.boundingBox.expand_xyz(content).expand_xyz(0.5)
+        entity
+            .entity
+            .boundingBox
+            .expand_xyz(content)
+            .expand_xyz(0.5)
     }
 
     pub fn deterministicOffset(entityId: i32) -> [f32; 3] {
@@ -31,15 +35,22 @@ impl RenderMinecart {
             .wrapping_mul(value)
             .wrapping_mul(4_392_167_121)
             .wrapping_add(value.wrapping_mul(98_761));
-        [16, 20, 24].map(|shift| {
-            ((((value >> shift) & 7) as f32 + 0.5) / 8.0 - 0.5) * 0.004
-        })
+        [16, 20, 24].map(|shift| ((((value >> shift) & 7) as f32 + 0.5) / 8.0 - 0.5) * 0.004)
     }
 
-    pub fn damageRotation(rollingAmplitude: i32, damage: f32, rollingDirection: i32, partialTicks: f32) -> f32 {
+    pub fn damageRotation(
+        rollingAmplitude: i32,
+        damage: f32,
+        rollingDirection: i32,
+        partialTicks: f32,
+    ) -> f32 {
         let f = rollingAmplitude as f32 - partialTicks;
         let f1 = (damage - partialTicks).max(0.0);
-        if f > 0.0 { f.sin() * f * f1 / 10.0 * rollingDirection as f32 } else { 0.0 }
+        if f > 0.0 {
+            f.sin() * f * f1 / 10.0 * rollingDirection as f32
+        } else {
+            0.0
+        }
     }
 
     /// `RenderTntMinecart#renderCartContents` pre-explosion fourth-power pulse.

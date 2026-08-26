@@ -109,7 +109,10 @@ fn load_recursive(
     model: &ResourceLocation,
     visiting: &mut HashSet<ResourceLocation>,
 ) -> anyhow::Result<ModelBlock> {
-    anyhow::ensure!(visiting.insert(model.clone()), "cyclic model parent: {model}");
+    anyhow::ensure!(
+        visiting.insert(model.clone()),
+        "cyclic model parent: {model}"
+    );
 
     if model.getNamespace() == "minecraft" && model.getPath().starts_with("builtin/") {
         visiting.remove(model);
@@ -198,7 +201,10 @@ mod tests {
         );
         child.inheritMissingFrom(&parent);
         assert_eq!(child.getTransform(TransformType::Gui).scale, [0.625; 3]);
-        assert_eq!(child.getTransform(TransformType::Ground).translation, [0.0, 0.1875, 0.0]);
+        assert_eq!(
+            child.getTransform(TransformType::Ground).translation,
+            [0.0, 0.1875, 0.0]
+        );
         parent.inheritMissingFrom(&child);
     }
 }

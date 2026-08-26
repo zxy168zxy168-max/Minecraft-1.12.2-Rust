@@ -29,16 +29,38 @@ impl SoundType {
     const fn new(volume: f32, pitch: f32, prefix: &'static str) -> Self {
         // Rust cannot concatenate const strings. Concrete event names are
         // selected by the accessors below from the exact type index.
-        Self { volume, pitch, breakSound: prefix, stepSound: prefix, placeSound: prefix, hitSound: prefix, fallSound: prefix }
+        Self {
+            volume,
+            pitch,
+            breakSound: prefix,
+            stepSound: prefix,
+            placeSound: prefix,
+            hitSound: prefix,
+            fallSound: prefix,
+        }
     }
 
-    pub const fn getVolume(self) -> f32 { self.volume }
-    pub const fn getPitch(self) -> f32 { self.pitch }
-    pub fn getBreakSound(self) -> ResourceLocation { ResourceLocation::parse(event_name(self.breakSound, "break")) }
-    pub fn getStepSound(self) -> ResourceLocation { ResourceLocation::parse(event_name(self.stepSound, "step")) }
-    pub fn getPlaceSound(self) -> ResourceLocation { ResourceLocation::parse(event_name(self.placeSound, "place")) }
-    pub fn getHitSound(self) -> ResourceLocation { ResourceLocation::parse(event_name(self.hitSound, "hit")) }
-    pub fn getFallSound(self) -> ResourceLocation { ResourceLocation::parse(event_name(self.fallSound, "fall")) }
+    pub const fn getVolume(self) -> f32 {
+        self.volume
+    }
+    pub const fn getPitch(self) -> f32 {
+        self.pitch
+    }
+    pub fn getBreakSound(self) -> ResourceLocation {
+        ResourceLocation::parse(event_name(self.breakSound, "break"))
+    }
+    pub fn getStepSound(self) -> ResourceLocation {
+        ResourceLocation::parse(event_name(self.stepSound, "step"))
+    }
+    pub fn getPlaceSound(self) -> ResourceLocation {
+        ResourceLocation::parse(event_name(self.placeSound, "place"))
+    }
+    pub fn getHitSound(self) -> ResourceLocation {
+        ResourceLocation::parse(event_name(self.hitSound, "hit"))
+    }
+    pub fn getFallSound(self) -> ResourceLocation {
+        ResourceLocation::parse(event_name(self.fallSound, "fall"))
+    }
 
     /// Exact default `Block.blockSoundType` assigned by `Block.registerBlocks`.
     pub fn forBlockId(blockId: i32) -> Self {
@@ -129,22 +151,15 @@ const SOUND_TYPES: [SoundType; 12] = [
 ];
 
 const SOUND_TYPE_INDEX_BY_BLOCK: [u8; 256] = [
-    0, 0, 3, 2, 0, 1, 3, 0, 0, 0, 0, 0, 7, 2, 0, 0,
-    0, 1, 3, 3, 5, 0, 0, 0, 0, 1, 1, 4, 4, 0, 0, 3,
-    3, 0, 0, 6, 0, 3, 3, 3, 3, 4, 4, 0, 0, 0, 3, 1,
-    0, 0, 1, 6, 4, 0, 1, 0, 0, 4, 1, 3, 2, 0, 0, 1,
-    1, 9, 4, 0, 1, 1, 0, 4, 1, 0, 0, 1, 1, 0, 8, 5,
-    8, 6, 2, 3, 0, 1, 1, 0, 7, 5, 5, 1, 6, 1, 1, 5,
-    1, 0, 0, 1, 1, 4, 5, 1, 1, 1, 3, 1, 0, 0, 3, 3,
-    0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 5, 1, 1, 1,
-    0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 3, 3, 1,
-    0, 10, 1, 1, 1, 1, 1, 1, 4, 0, 4, 0, 0, 4, 0, 0,
-    5, 3, 1, 0, 0, 11, 0, 4, 0, 5, 3, 6, 0, 0, 5, 3,
-    1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 3,
-    3, 0, 0, 0, 5, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0,
+    0, 0, 3, 2, 0, 1, 3, 0, 0, 0, 0, 0, 7, 2, 0, 0, 0, 1, 3, 3, 5, 0, 0, 0, 0, 1, 1, 4, 4, 0, 0, 3,
+    3, 0, 0, 6, 0, 3, 3, 3, 3, 4, 4, 0, 0, 0, 3, 1, 0, 0, 1, 6, 4, 0, 1, 0, 0, 4, 1, 3, 2, 0, 0, 1,
+    1, 9, 4, 0, 1, 1, 0, 4, 1, 0, 0, 1, 1, 0, 8, 5, 8, 6, 2, 3, 0, 1, 1, 0, 7, 5, 5, 1, 6, 1, 1, 5,
+    1, 0, 0, 1, 1, 4, 5, 1, 1, 1, 3, 1, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 5, 5, 1, 1, 1,
+    0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 3, 3, 1, 0, 10, 1, 1, 1, 1, 1, 1, 4, 0, 4, 0, 0, 4, 0,
+    0, 5, 3, 1, 0, 0, 11, 0, 4, 0, 5, 3, 6, 0, 0, 5, 3, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 5, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0,
+    0, 0,
 ];
 
 const fn build_sound_type_table() -> [SoundType; 256] {

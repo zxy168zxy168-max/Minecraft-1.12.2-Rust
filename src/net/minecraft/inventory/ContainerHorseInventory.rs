@@ -29,14 +29,18 @@ impl HorseInventoryKind {
     }
 
     /// MCP `AbstractHorse#func_190685_dA`; only llama overrides this false.
-    pub const fn canUseSaddleSlot(self) -> bool { !matches!(self, Self::Llama) }
+    pub const fn canUseSaddleSlot(self) -> bool {
+        !matches!(self, Self::Llama)
+    }
 
     /// MCP `AbstractHorse#func_190677_dK`, overridden by EntityHorse/EntityLlama.
     pub const fn hasEquipmentSlot(self) -> bool {
         matches!(self, Self::Horse | Self::Llama)
     }
 
-    pub const fn isLlama(self) -> bool { matches!(self, Self::Llama) }
+    pub const fn isLlama(self) -> bool {
+        matches!(self, Self::Llama)
+    }
 }
 
 /// Protocol/entity facts required to instantiate MCP 1.12.2
@@ -87,25 +91,35 @@ impl ContainerHorseInventory {
             )));
         }
         Ok(Self {
-            inner: ContainerChest::new(
-                windowId,
-                "EntityHorse",
-                title,
-                slotCount,
-                playerInventory,
-            )?,
+            inner: ContainerChest::new(windowId, "EntityHorse", title, slotCount, playerInventory)?,
             spec,
         })
     }
 
-    pub const fn spec(&self) -> HorseInventorySpec { self.spec }
-    pub fn lowerSlotCount(&self) -> usize { self.spec.lowerSlotCount() }
-    pub const fn getNumRows(&self) -> usize { 0 }
-    pub fn slotCount(&self) -> usize { self.inner.slotCount() }
-    pub fn slots(&self) -> &[ItemStack] { self.inner.slots() }
-    pub fn getSlot(&self, slotId: usize) -> Option<&ItemStack> { self.inner.getSlot(slotId) }
-    pub fn windowId(&self) -> i32 { self.inner.windowId }
-    pub fn title(&self) -> &ITextComponent { &self.inner.title }
+    pub const fn spec(&self) -> HorseInventorySpec {
+        self.spec
+    }
+    pub fn lowerSlotCount(&self) -> usize {
+        self.spec.lowerSlotCount()
+    }
+    pub const fn getNumRows(&self) -> usize {
+        0
+    }
+    pub fn slotCount(&self) -> usize {
+        self.inner.slotCount()
+    }
+    pub fn slots(&self) -> &[ItemStack] {
+        self.inner.slots()
+    }
+    pub fn getSlot(&self, slotId: usize) -> Option<&ItemStack> {
+        self.inner.getSlot(slotId)
+    }
+    pub fn windowId(&self) -> i32 {
+        self.inner.windowId
+    }
+    pub fn title(&self) -> &ITextComponent {
+        &self.inner.title
+    }
 
     pub fn isItemValidForSlot(&self, slotId: i32, stack: &ItemStack) -> bool {
         if stack.isEmpty() || slotId < 0 || slotId as usize >= self.slotCount() {
@@ -132,7 +146,11 @@ impl ContainerHorseInventory {
     }
 
     pub fn slotLimit(&self, slotId: i32, stack: &ItemStack) -> i32 {
-        if slotId == 1 { 1 } else { stack.getMaxStackSize() }
+        if slotId == 1 {
+            1
+        } else {
+            stack.getMaxStackSize()
+        }
     }
 
     pub fn putStackInSlot(&mut self, slotId: i32, stack: ItemStack) -> Result<(), CodecError> {
@@ -151,8 +169,12 @@ impl ContainerHorseInventory {
         self.inner.syncToPlayerInventory(inventory);
     }
 
-    pub fn getNextTransactionID(&mut self) -> i16 { self.inner.getNextTransactionID() }
-    pub fn resetQuickCraft(&mut self) { self.inner.resetQuickCraft(); }
+    pub fn getNextTransactionID(&mut self) -> i16 {
+        self.inner.getNextTransactionID()
+    }
+    pub fn resetQuickCraft(&mut self) {
+        self.inner.resetQuickCraft();
+    }
 
     pub fn quickCraft(
         &mut self,
@@ -161,9 +183,7 @@ impl ContainerHorseInventory {
         cursor: &mut ItemStack,
         creative: bool,
     ) -> bool {
-        if Container::getDragEvent(dragType) == 1
-            && !self.isItemValidForSlot(slotId, cursor)
-        {
+        if Container::getDragEvent(dragType) == 1 && !self.isItemValidForSlot(slotId, cursor) {
             return false;
         }
         self.inner.quickCraft(slotId, dragType, cursor, creative)
@@ -171,13 +191,18 @@ impl ContainerHorseInventory {
 
     /// Exact branch ordering from `ContainerHorseInventory#transferStackInSlot`.
     pub fn transferStackInSlot(&mut self, index: usize) -> ItemStack {
-        if index >= self.slotCount() { return ItemStack::EMPTY; }
+        if index >= self.slotCount() {
+            return ItemStack::EMPTY;
+        }
         let original = self.getSlot(index).cloned().unwrap_or(ItemStack::EMPTY);
-        if original.isEmpty() { return ItemStack::EMPTY; }
+        if original.isEmpty() {
+            return ItemStack::EMPTY;
+        }
         let mut moving = original.clone();
         let lower = self.lowerSlotCount();
         let merged = if index < lower {
-            self.inner.mergeItemStack(&mut moving, lower, self.slotCount(), true)
+            self.inner
+                .mergeItemStack(&mut moving, lower, self.slotCount(), true)
         } else if self.isItemValidForSlot(1, &moving)
             && self.getSlot(1).is_some_and(ItemStack::isEmpty)
         {
@@ -203,7 +228,9 @@ impl ContainerHorseInventory {
         end: usize,
         reverse: bool,
     ) -> bool {
-        if stack.isEmpty() || start >= end || end > self.slotCount() { return false; }
+        if stack.isEmpty() || start >= end || end > self.slotCount() {
+            return false;
+        }
         let indices: Vec<usize> = if reverse {
             (start..end).rev().collect()
         } else {
@@ -212,13 +239,23 @@ impl ContainerHorseInventory {
         let mut changed = false;
         if stack.getMaxStackSize() > 1 {
             for &slot in &indices {
-                if stack.isEmpty() { break; }
-                if !self.isItemValidForSlot(slot as i32, stack) { continue; }
+                if stack.isEmpty() {
+                    break;
+                }
+                if !self.isItemValidForSlot(slot as i32, stack) {
+                    continue;
+                }
                 let existing = self.getSlot(slot).cloned().unwrap_or(ItemStack::EMPTY);
-                if existing.isEmpty() || !existing.canStackWith(stack) { continue; }
-                let limit = self.slotLimit(slot as i32, stack).min(stack.getMaxStackSize());
+                if existing.isEmpty() || !existing.canStackWith(stack) {
+                    continue;
+                }
+                let limit = self
+                    .slotLimit(slot as i32, stack)
+                    .min(stack.getMaxStackSize());
                 let capacity = limit - existing.getCount();
-                if capacity <= 0 { continue; }
+                if capacity <= 0 {
+                    continue;
+                }
                 let moved = capacity.min(stack.getCount());
                 let mut merged = existing;
                 merged.grow(moved);
@@ -228,13 +265,18 @@ impl ContainerHorseInventory {
             }
         }
         for &slot in &indices {
-            if stack.isEmpty() { break; }
+            if stack.isEmpty() {
+                break;
+            }
             if !self.isItemValidForSlot(slot as i32, stack)
-                || self.getSlot(slot).is_some_and(|existing| !existing.isEmpty())
+                || self
+                    .getSlot(slot)
+                    .is_some_and(|existing| !existing.isEmpty())
             {
                 continue;
             }
-            let moved = self.slotLimit(slot as i32, stack)
+            let moved = self
+                .slotLimit(slot as i32, stack)
                 .min(stack.getMaxStackSize())
                 .min(stack.getCount());
             let placed = stack.splitStack(moved);
@@ -245,11 +287,20 @@ impl ContainerHorseInventory {
     }
 
     pub fn swapWithHotbar(&mut self, slotId: usize, hotbarIndex: usize) -> bool {
-        if slotId >= self.slotCount() || hotbarIndex >= 9 { return false; }
+        if slotId >= self.slotCount() || hotbarIndex >= 9 {
+            return false;
+        }
         let hotbarSlot = self.lowerSlotCount() + 27 + hotbarIndex;
-        if slotId == hotbarSlot { return false; }
-        let hotbar = self.getSlot(hotbarSlot).cloned().unwrap_or(ItemStack::EMPTY);
-        if !self.isItemValidForSlot(slotId as i32, &hotbar) { return false; }
+        if slotId == hotbarSlot {
+            return false;
+        }
+        let hotbar = self
+            .getSlot(hotbarSlot)
+            .cloned()
+            .unwrap_or(ItemStack::EMPTY);
+        if !self.isItemValidForSlot(slotId as i32, &hotbar) {
+            return false;
+        }
         self.inner.swapWithHotbar(slotId, hotbarIndex)
     }
 
@@ -267,7 +318,12 @@ mod tests {
     use super::*;
 
     fn stack(id: i16, count: u8) -> ItemStack {
-        ItemStack { itemId: id, count, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]
@@ -301,7 +357,8 @@ mod tests {
                 chested: false,
                 chestColumns: 0,
             },
-        ).unwrap();
+        )
+        .unwrap();
         assert!(horse.isItemValidForSlot(0, &stack(329, 1)));
         assert!(horse.isItemValidForSlot(1, &stack(417, 1)));
         assert!(!horse.isItemValidForSlot(1, &stack(171, 1)));
@@ -317,7 +374,8 @@ mod tests {
                 chested: false,
                 chestColumns: 1,
             },
-        ).unwrap();
+        )
+        .unwrap();
         assert!(!llama.isItemValidForSlot(0, &stack(329, 1)));
         assert!(llama.isItemValidForSlot(1, &stack(171, 1)));
     }

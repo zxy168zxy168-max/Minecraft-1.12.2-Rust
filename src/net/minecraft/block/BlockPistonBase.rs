@@ -1,6 +1,6 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
 /// Collision-state subset of MCP 1.12.2 `BlockPistonBase`.
 pub struct BlockPistonBase;

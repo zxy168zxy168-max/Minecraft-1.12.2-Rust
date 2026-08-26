@@ -30,7 +30,10 @@ impl AbstractHorse {
     pub const REARING_CLEAR_TICK: i32 = 20;
 
     pub fn canBeSteered(registryName: &str) -> bool {
-        matches!(registryName, "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse")
+        matches!(
+            registryName,
+            "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse"
+        )
     }
 
     /// Calculation half of MCP `AbstractHorse#setJumpPower`.
@@ -81,7 +84,10 @@ mod tests {
         let half = AbstractHorse::jumpPowerUpdate(true, 45).unwrap();
         assert!((half.jumpPower - 0.6).abs() < 1.0e-6);
         assert!(half.rear);
-        assert_eq!(AbstractHorse::jumpPowerUpdate(true, 90).unwrap().jumpPower, 1.0);
+        assert_eq!(
+            AbstractHorse::jumpPowerUpdate(true, 90).unwrap().jumpPower,
+            1.0
+        );
     }
 
     #[test]

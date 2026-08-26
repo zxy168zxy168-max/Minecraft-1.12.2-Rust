@@ -9,8 +9,8 @@ use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::R
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::vulkan::CpuFrame::CpuFrame;
 use crate::vulkan::GuiCompiler::{CompiledGuiFrame, CompiledGuiStep, GuiBatch, VulkanGuiVertex};
-use crate::vulkan::GuiRenderFrame::GuiRenderFrame;
 use crate::vulkan::GuiDrawList::GuiDrawList;
+use crate::vulkan::GuiRenderFrame::GuiRenderFrame;
 use crate::vulkan::NativeImage::NativeImage;
 use crate::vulkan::PanoramaRenderer::PanoramaPassPlan;
 use crate::vulkan::TextureSource::TextureSource;
@@ -102,8 +102,14 @@ impl SoftwareGuiRenderer {
         outputWidth: u32,
         outputHeight: u32,
     ) -> anyhow::Result<GuiRenderFrame> {
-        anyhow::ensure!(guiWidth > 0 && guiHeight > 0, "GUI dimensions must be positive");
-        anyhow::ensure!(outputWidth > 0 && outputHeight > 0, "output dimensions must be positive");
+        anyhow::ensure!(
+            guiWidth > 0 && guiHeight > 0,
+            "GUI dimensions must be positive"
+        );
+        anyhow::ensure!(
+            outputWidth > 0 && outputHeight > 0,
+            "output dimensions must be positive"
+        );
 
         let compiled = CompiledGuiFrame::compile(drawList);
         let mut textures = HashMap::new();
@@ -111,20 +117,31 @@ impl SoftwareGuiRenderer {
             match step {
                 CompiledGuiStep::Draw(batch) => {
                     if let Some(location) = batch.texture.as_ref() {
-                        textures.entry(location.clone()).or_insert_with(|| self.texture(location));
+                        textures
+                            .entry(location.clone())
+                            .or_insert_with(|| self.texture(location));
                     }
                 }
                 CompiledGuiStep::Panorama(plan) => {
                     if let Some(sample) = plan.samples.first() {
                         for face in &sample.faces {
                             let location = &face.texture;
-                            textures.entry(location.clone()).or_insert_with(|| self.texture(location));
+                            textures
+                                .entry(location.clone())
+                                .or_insert_with(|| self.texture(location));
                         }
                     }
                 }
             }
         }
-        Ok(GuiRenderFrame { compiled, textures, guiWidth, guiHeight, outputWidth, outputHeight })
+        Ok(GuiRenderFrame {
+            compiled,
+            textures,
+            guiWidth,
+            guiHeight,
+            outputWidth,
+            outputHeight,
+        })
     }
 
     pub fn render(
@@ -135,8 +152,14 @@ impl SoftwareGuiRenderer {
         outputWidth: u32,
         outputHeight: u32,
     ) -> anyhow::Result<CpuFrame> {
-        anyhow::ensure!(guiWidth > 0 && guiHeight > 0, "GUI dimensions must be positive");
-        anyhow::ensure!(outputWidth > 0 && outputHeight > 0, "output dimensions must be positive");
+        anyhow::ensure!(
+            guiWidth > 0 && guiHeight > 0,
+            "GUI dimensions must be positive"
+        );
+        anyhow::ensure!(
+            outputWidth > 0 && outputHeight > 0,
+            "output dimensions must be positive"
+        );
 
         let mut output = CpuFrame::new(outputWidth, outputHeight);
         output.clear([0, 0, 0, 255]);
@@ -156,12 +179,7 @@ impl SoftwareGuiRenderer {
                     panoramaElapsed = panoramaElapsed.saturating_add(panoramaStarted.elapsed());
 
                     let compositeStarted = Instant::now();
-                    composite_panorama(
-                        &mut output,
-                        panorama.as_ref(),
-                        guiWidth,
-                        guiHeight,
-                    );
+                    composite_panorama(&mut output, panorama.as_ref(), guiWidth, guiHeight);
                     compositeElapsed = compositeElapsed.saturating_add(compositeStarted.elapsed());
                 }
                 CompiledGuiStep::Draw(batch) => {
@@ -170,18 +188,17 @@ impl SoftwareGuiRenderer {
                         Some(location) => Some(self.texture(location)),
                         None => None,
                     };
-                    rasterize_batch(
-                        &mut output,
-                        batch,
-                        texture.as_deref(),
-                        guiWidth,
-                        guiHeight,
-                    );
+                    rasterize_batch(&mut output, batch, texture.as_deref(), guiWidth, guiHeight);
                     batchElapsed = batchElapsed.saturating_add(batchStarted.elapsed());
                 }
             }
         }
-        self.recordProfile(compileElapsed, panoramaElapsed, compositeElapsed, batchElapsed);
+        self.recordProfile(
+            compileElapsed,
+            panoramaElapsed,
+            compositeElapsed,
+            batchElapsed,
+        );
         Ok(output)
     }
 
@@ -194,8 +211,12 @@ impl SoftwareGuiRenderer {
     ) {
         self.profileFrames = self.profileFrames.saturating_add(1);
         self.profileCompileNanos = self.profileCompileNanos.saturating_add(compile.as_nanos());
-        self.profilePanoramaNanos = self.profilePanoramaNanos.saturating_add(panorama.as_nanos());
-        self.profileCompositeNanos = self.profileCompositeNanos.saturating_add(composite.as_nanos());
+        self.profilePanoramaNanos = self
+            .profilePanoramaNanos
+            .saturating_add(panorama.as_nanos());
+        self.profileCompositeNanos = self
+            .profileCompositeNanos
+            .saturating_add(composite.as_nanos());
         self.profileBatchNanos = self.profileBatchNanos.saturating_add(batches.as_nanos());
 
         let elapsed = self.profileStarted.elapsed();
@@ -236,10 +257,16 @@ impl SoftwareGuiRenderer {
     }
 
     fn render_panorama(&mut self, plan: &PanoramaPassPlan) -> anyhow::Result<Arc<CpuFrame>> {
-        let firstSample = plan.samples.first().context("panorama plan has no samples")?;
+        let firstSample = plan
+            .samples
+            .first()
+            .context("panorama plan has no samples")?;
         let textures = std::array::from_fn(|index| firstSample.faces[index].texture.clone());
         let first_blur_passes = plan.samples.len() as i32;
-        let second_blur_passes = plan.blur_invocations.first().map_or(0, |invocation| invocation.layers.len() as i32);
+        let second_blur_passes = plan
+            .blur_invocations
+            .first()
+            .map_or(0, |invocation| invocation.layers.len() as i32);
         let final_blur_pairs = ((plan.blur_invocations.len().saturating_sub(1)) / 2) as i32;
         let timer = infer_panorama_timer(plan);
 
@@ -257,9 +284,12 @@ impl SoftwareGuiRenderer {
             return Ok(Arc::clone(&cache.image));
         }
 
-        let faces: [Arc<TextureSource>; 6] = std::array::from_fn(|index| self.texture(&textures[index]));
-        let image = Arc::new(render_panorama_image(plan, &faces, &self.panoramaRays)
-            .context("failed rasterizing Minecraft 1.12.2 panorama")?);
+        let faces: [Arc<TextureSource>; 6] =
+            std::array::from_fn(|index| self.texture(&textures[index]));
+        let image = Arc::new(
+            render_panorama_image(plan, &faces, &self.panoramaRays)
+                .context("failed rasterizing Minecraft 1.12.2 panorama")?,
+        );
         self.panoramaCache = Some(PanoramaCache {
             textures,
             timer,
@@ -270,8 +300,6 @@ impl SoftwareGuiRenderer {
         });
         Ok(image)
     }
-
-
 }
 
 fn infer_panorama_timer(plan: &PanoramaPassPlan) -> f32 {
@@ -311,24 +339,40 @@ fn render_panorama_image(
         alpha: f32,
         inverse_alpha: f32,
     }
-    let firstSample = plan.samples.first().expect("panorama samples checked above");
+    let firstSample = plan
+        .samples
+        .first()
+        .expect("panorama samples checked above");
     let pitch = firstSample.pitch_degrees.to_radians();
     let yaw = firstSample.yaw_degrees.to_radians();
     let (sin_pitch, cos_pitch) = pitch.sin_cos();
     let (sin_yaw, cos_yaw) = yaw.sin_cos();
-    let prepared = plan.samples.iter().map(|sample| {
-        debug_assert_eq!(sample.pitch_degrees.to_bits(), firstSample.pitch_degrees.to_bits());
-        debug_assert_eq!(sample.yaw_degrees.to_bits(), firstSample.yaw_degrees.to_bits());
-        let alpha = sample.faces[0].alpha_u8 as f32 / 255.0;
-        PreparedSample {
-            translated: rotate_dynamic_inverse(
-                [-sample.translate_x, -sample.translate_y, 0.0],
-                sin_pitch, cos_pitch, sin_yaw, cos_yaw,
-            ),
-            alpha,
-            inverse_alpha: 1.0 - alpha,
-        }
-    }).collect::<Vec<_>>();
+    let prepared = plan
+        .samples
+        .iter()
+        .map(|sample| {
+            debug_assert_eq!(
+                sample.pitch_degrees.to_bits(),
+                firstSample.pitch_degrees.to_bits()
+            );
+            debug_assert_eq!(
+                sample.yaw_degrees.to_bits(),
+                firstSample.yaw_degrees.to_bits()
+            );
+            let alpha = sample.faces[0].alpha_u8 as f32 / 255.0;
+            PreparedSample {
+                translated: rotate_dynamic_inverse(
+                    [-sample.translate_x, -sample.translate_y, 0.0],
+                    sin_pitch,
+                    cos_pitch,
+                    sin_yaw,
+                    cos_yaw,
+                ),
+                alpha,
+                inverse_alpha: 1.0 - alpha,
+            }
+        })
+        .collect::<Vec<_>>();
 
     // All 64 jittered samples share the same animated camera rotation. The
     // previous software fallback recalculated that rotation for every
@@ -377,11 +421,7 @@ fn render_panorama_image(
 
     let mut blurScratch = CpuFrame::new(PANORAMA_SIZE, PANORAMA_SIZE);
     for invocation in &plan.blur_invocations {
-        rotate_and_blur_into(
-            &panorama,
-            &mut blurScratch,
-            invocation.layers.as_slice(),
-        );
+        rotate_and_blur_into(&panorama, &mut blurScratch, invocation.layers.as_slice());
         std::mem::swap(&mut panorama, &mut blurScratch);
     }
     Ok(panorama)
@@ -399,13 +439,8 @@ fn rotate_dynamic_inverse(
     let x1 = value[0];
     let y1 = cosPitch * value[1] + sinPitch * value[2];
     let z1 = -sinPitch * value[1] + cosPitch * value[2];
-    [
-        cosYaw * x1 - sinYaw * z1,
-        y1,
-        sinYaw * x1 + cosYaw * z1,
-    ]
+    [cosYaw * x1 - sinYaw * z1, y1, sinYaw * x1 + cosYaw * z1]
 }
-
 
 #[derive(Clone, Copy)]
 struct PreparedPanoramaRay {
@@ -430,10 +465,7 @@ impl PreparedPanoramaRay {
     }
 }
 
-fn intersect_cube_prepared(
-    origin: [f32; 3],
-    ray: PreparedPanoramaRay,
-) -> (usize, f32, f32) {
+fn intersect_cube_prepared(origin: [f32; 3], ray: PreparedPanoramaRay) -> (usize, f32, f32) {
     // Every jitter origin remains inside the unit cube. The exiting face is
     // therefore the smallest positive slab distance. Cache the ray reciprocal
     // and sign boundary once per target pixel: the former fallback performed
@@ -484,7 +516,9 @@ fn rotate_and_blur_into(
     debug_assert_eq!(source.width(), destination.width());
     debug_assert_eq!(source.height(), destination.height());
     destination.rgba_mut().copy_from_slice(source.rgba());
-    if layers.is_empty() { return; }
+    if layers.is_empty() {
+        return;
+    }
 
     // GuiMainMenu.rotateAndBlurSkybox samples every layer from the same
     // pre-invocation texture while blending the layers into the destination in
@@ -510,18 +544,15 @@ fn rotate_and_blur_into(
                     for layer in layers {
                         let alpha = layer.alpha.clamp(0.0, 1.0);
                         let inverse = 1.0 - alpha;
-                        let u = (x as f32 + 0.5) / PANORAMA_SIZE as f32
-                            + layer.horizontal_uv_offset;
+                        let u =
+                            (x as f32 + 0.5) / PANORAMA_SIZE as f32 + layer.horizontal_uv_offset;
                         let sample = sample_cpu_frame(source, u, v, true, true);
-                        row[offset] = to_u8(
-                            sample[0] * alpha + row[offset] as f32 / 255.0 * inverse,
-                        );
-                        row[offset + 1] = to_u8(
-                            sample[1] * alpha + row[offset + 1] as f32 / 255.0 * inverse,
-                        );
-                        row[offset + 2] = to_u8(
-                            sample[2] * alpha + row[offset + 2] as f32 / 255.0 * inverse,
-                        );
+                        row[offset] =
+                            to_u8(sample[0] * alpha + row[offset] as f32 / 255.0 * inverse);
+                        row[offset + 1] =
+                            to_u8(sample[1] * alpha + row[offset + 1] as f32 / 255.0 * inverse);
+                        row[offset + 2] =
+                            to_u8(sample[2] * alpha + row[offset + 2] as f32 / 255.0 * inverse);
                         row[offset + 3] = 255;
                     }
                 }
@@ -579,9 +610,24 @@ fn rasterize_batch(
 ) {
     for triangle in batch.indices.chunks_exact(3) {
         let vertices = [
-            scale_vertex(batch.vertices[triangle[0] as usize], output, guiWidth, guiHeight),
-            scale_vertex(batch.vertices[triangle[1] as usize], output, guiWidth, guiHeight),
-            scale_vertex(batch.vertices[triangle[2] as usize], output, guiWidth, guiHeight),
+            scale_vertex(
+                batch.vertices[triangle[0] as usize],
+                output,
+                guiWidth,
+                guiHeight,
+            ),
+            scale_vertex(
+                batch.vertices[triangle[1] as usize],
+                output,
+                guiWidth,
+                guiHeight,
+            ),
+            scale_vertex(
+                batch.vertices[triangle[2] as usize],
+                output,
+                guiWidth,
+                guiHeight,
+            ),
         ];
         rasterize_triangle(output, vertices, texture);
     }
@@ -607,12 +653,22 @@ fn rasterize_triangle(
     let p1 = [vertices[1].position[0], vertices[1].position[1]];
     let p2 = [vertices[2].position[0], vertices[2].position[1]];
     let area = edge(p0, p1, p2);
-    if area.abs() < 1.0e-8 { return; }
+    if area.abs() < 1.0e-8 {
+        return;
+    }
 
     let minX = p0[0].min(p1[0]).min(p2[0]).floor().max(0.0) as i32;
-    let maxX = p0[0].max(p1[0]).max(p2[0]).ceil().min(output.width() as f32) as i32;
+    let maxX = p0[0]
+        .max(p1[0])
+        .max(p2[0])
+        .ceil()
+        .min(output.width() as f32) as i32;
     let minY = p0[1].min(p1[1]).min(p2[1]).floor().max(0.0) as i32;
-    let maxY = p0[1].max(p1[1]).max(p2[1]).ceil().min(output.height() as f32) as i32;
+    let maxY = p0[1]
+        .max(p1[1])
+        .max(p2[1])
+        .ceil()
+        .min(output.height() as f32) as i32;
 
     for y in minY..maxY {
         for x in minX..maxX {
@@ -620,17 +676,27 @@ fn rasterize_triangle(
             let w0 = edge(p1, p2, point) / area;
             let w1 = edge(p2, p0, point) / area;
             let w2 = edge(p0, p1, point) / area;
-            if w0 < -1.0e-5 || w1 < -1.0e-5 || w2 < -1.0e-5 { continue; }
+            if w0 < -1.0e-5 || w1 < -1.0e-5 || w2 < -1.0e-5 {
+                continue;
+            }
 
             let uv = [
                 vertices[0].uv[0] * w0 + vertices[1].uv[0] * w1 + vertices[2].uv[0] * w2,
                 vertices[0].uv[1] * w0 + vertices[1].uv[1] * w1 + vertices[2].uv[1] * w2,
             ];
             let color = [
-                vertices[0].color_rgba[0] * w0 + vertices[1].color_rgba[0] * w1 + vertices[2].color_rgba[0] * w2,
-                vertices[0].color_rgba[1] * w0 + vertices[1].color_rgba[1] * w1 + vertices[2].color_rgba[1] * w2,
-                vertices[0].color_rgba[2] * w0 + vertices[1].color_rgba[2] * w1 + vertices[2].color_rgba[2] * w2,
-                vertices[0].color_rgba[3] * w0 + vertices[1].color_rgba[3] * w1 + vertices[2].color_rgba[3] * w2,
+                vertices[0].color_rgba[0] * w0
+                    + vertices[1].color_rgba[0] * w1
+                    + vertices[2].color_rgba[0] * w2,
+                vertices[0].color_rgba[1] * w0
+                    + vertices[1].color_rgba[1] * w1
+                    + vertices[2].color_rgba[1] * w2,
+                vertices[0].color_rgba[2] * w0
+                    + vertices[1].color_rgba[2] * w1
+                    + vertices[2].color_rgba[2] * w2,
+                vertices[0].color_rgba[3] * w0
+                    + vertices[1].color_rgba[3] * w1
+                    + vertices[2].color_rgba[3] * w2,
             ];
             let source = if let Some(texture) = texture {
                 let texel = sample_texture(
@@ -652,7 +718,9 @@ fn rasterize_triangle(
             // Textured Gui quads use Minecraft's ordinary GL_GREATER 0.1
             // alpha test. Gui.drawGradientRect explicitly disables alpha
             // testing, so its low-alpha tail must still blend into the menu.
-            if texture.is_some() && source[3] <= 0.1 { continue; }
+            if texture.is_some() && source[3] <= 0.1 {
+                continue;
+            }
             output.blend_pixel(x, y, source);
         }
     }
@@ -663,11 +731,27 @@ fn edge(a: [f32; 2], b: [f32; 2], point: [f32; 2]) -> f32 {
 }
 
 fn sample_texture(image: &NativeImage, u: f32, v: f32, linear: bool, clamp: bool) -> [f32; 4] {
-    sample_rgba(image.width(), image.height(), image.rgba(), u, v, linear, clamp)
+    sample_rgba(
+        image.width(),
+        image.height(),
+        image.rgba(),
+        u,
+        v,
+        linear,
+        clamp,
+    )
 }
 
 fn sample_cpu_frame(image: &CpuFrame, u: f32, v: f32, linear: bool, clamp: bool) -> [f32; 4] {
-    sample_rgba(image.width(), image.height(), image.rgba(), u, v, linear, clamp)
+    sample_rgba(
+        image.width(),
+        image.height(),
+        image.rgba(),
+        u,
+        v,
+        linear,
+        clamp,
+    )
 }
 
 fn sample_rgba(
@@ -679,12 +763,18 @@ fn sample_rgba(
     linear: bool,
     clamp: bool,
 ) -> [f32; 4] {
-    if width == 0 || height == 0 { return [0.0, 0.0, 0.0, 0.0]; }
+    if width == 0 || height == 0 {
+        return [0.0, 0.0, 0.0, 0.0];
+    }
     let normalizedU = normalize_coordinate(u, clamp);
     let normalizedV = normalize_coordinate(v, clamp);
     if !linear {
-        let x = (normalizedU * width as f32).floor().clamp(0.0, (width - 1) as f32) as u32;
-        let y = (normalizedV * height as f32).floor().clamp(0.0, (height - 1) as f32) as u32;
+        let x = (normalizedU * width as f32)
+            .floor()
+            .clamp(0.0, (width - 1) as f32) as u32;
+        let y = (normalizedV * height as f32)
+            .floor()
+            .clamp(0.0, (height - 1) as f32) as u32;
         return rgba_pixel(width, rgba, x, y);
     }
 
@@ -739,7 +829,10 @@ fn rgba_pixel_wrapped(
             y.clamp(0, height as i32 - 1) as u32,
         )
     } else {
-        (x.rem_euclid(width as i32) as u32, y.rem_euclid(height as i32) as u32)
+        (
+            x.rem_euclid(width as i32) as u32,
+            y.rem_euclid(height as i32) as u32,
+        )
     };
     rgba_pixel(width, rgba, x, y)
 }
@@ -754,10 +847,8 @@ mod tests {
 
     #[test]
     fn center_ray_hits_a_cube_face_with_centered_uv() {
-        let (face, u, v) = intersect_cube_prepared(
-            [0.0, 0.0, 0.0],
-            PreparedPanoramaRay::new([0.0, 0.0, 1.0]),
-        );
+        let (face, u, v) =
+            intersect_cube_prepared([0.0, 0.0, 0.0], PreparedPanoramaRay::new([0.0, 0.0, 1.0]));
         assert_eq!(face, 0);
         assert!((u - 0.5).abs() < f32::EPSILON);
         assert!((v - 0.5).abs() < f32::EPSILON);
@@ -765,10 +856,8 @@ mod tests {
 
     #[test]
     fn positive_x_face_orientation_matches_gui_main_menu_rotation() {
-        let (face, u, v) = intersect_cube_prepared(
-            [0.0, 0.0, 0.0],
-            PreparedPanoramaRay::new([1.0, 0.25, 0.5]),
-        );
+        let (face, u, v) =
+            intersect_cube_prepared([0.0, 0.0, 0.0], PreparedPanoramaRay::new([1.0, 0.25, 0.5]));
         assert_eq!(face, 1);
         assert!((u - 0.25).abs() < 0.0001);
         assert!((v - 0.625).abs() < 0.0001);
@@ -780,11 +869,17 @@ mod tests {
             2,
             2,
             vec![
-                255, 0, 0, 255, 0, 255, 0, 255,
-                0, 0, 255, 255, 255, 255, 255, 255,
+                255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
             ],
-        ).unwrap();
-        assert_eq!(sample_texture(&image, 0.1, 0.1, false, true), [1.0, 0.0, 0.0, 1.0]);
-        assert_eq!(sample_texture(&image, 0.9, 0.9, false, true), [1.0, 1.0, 1.0, 1.0]);
+        )
+        .unwrap();
+        assert_eq!(
+            sample_texture(&image, 0.1, 0.1, false, true),
+            [1.0, 0.0, 0.0, 1.0]
+        );
+        assert_eq!(
+            sample_texture(&image, 0.9, 0.9, false, true),
+            [1.0, 1.0, 1.0, 1.0]
+        );
     }
 }

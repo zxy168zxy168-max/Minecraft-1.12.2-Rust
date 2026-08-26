@@ -115,9 +115,7 @@ impl Gui {
         height: i32,
     ) {
         drawList.set_z_level(self.zLevel);
-        drawList.draw_textured_modal_rect(
-            texture, x, y, textureX, textureY, width, height,
-        );
+        drawList.draw_textured_modal_rect(texture, x, y, textureX, textureY, width, height);
     }
 
     pub fn drawModalRectWithCustomSizedTexture(

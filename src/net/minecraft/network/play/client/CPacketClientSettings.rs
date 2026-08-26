@@ -45,11 +45,21 @@ impl CPacketClientSettings {
         Ok(RawPacket::new(0x04, payload))
     }
 
-    pub fn getLang(&self) -> &str { &self.lang }
-    pub const fn getChatVisibility(&self) -> EnumChatVisibility { self.chatVisibility }
-    pub const fn isColorsEnabled(&self) -> bool { self.enableColors }
-    pub const fn getModelPartFlags(&self) -> u8 { self.modelPartFlags }
-    pub const fn getMainHand(&self) -> EnumHandSide { self.mainHand }
+    pub fn getLang(&self) -> &str {
+        &self.lang
+    }
+    pub const fn getChatVisibility(&self) -> EnumChatVisibility {
+        self.chatVisibility
+    }
+    pub const fn isColorsEnabled(&self) -> bool {
+        self.enableColors
+    }
+    pub const fn getModelPartFlags(&self) -> u8 {
+        self.modelPartFlags
+    }
+    pub const fn getMainHand(&self) -> EnumHandSide {
+        self.mainHand
+    }
 }
 
 #[cfg(test)]

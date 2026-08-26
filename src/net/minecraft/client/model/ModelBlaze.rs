@@ -48,8 +48,7 @@ impl ModelBlaze {
             phase += 1.0;
         }
 
-        phase = std::f32::consts::FRAC_PI_4
-            + input.ageInTicks * std::f32::consts::PI * 0.03;
+        phase = std::f32::consts::FRAC_PI_4 + input.ageInTicks * std::f32::consts::PI * 0.03;
         for i in 4..8 {
             boxes.push(model_box(
                 [0, 16],
@@ -101,10 +100,20 @@ mod tests {
 
     fn input(age: f32) -> LivingRenderInput {
         LivingRenderInput {
-            position: [0.0; 3], bodyYaw: 10.0, headYaw: 40.0, headPitch: 20.0,
-            limbSwing: 0.0, limbSwingAmount: 0.0, ageInTicks: age,
-            swingProgress: 0.0, sneaking: false, child: false, deathRotation: 0.0,
-            preScale: 1.0, preScaleXYZ: [1.0; 3], childLayout: LivingChildLayout::BIPED,
+            position: [0.0; 3],
+            bodyYaw: 10.0,
+            headYaw: 40.0,
+            headPitch: 20.0,
+            limbSwing: 0.0,
+            limbSwingAmount: 0.0,
+            ageInTicks: age,
+            swingProgress: 0.0,
+            sneaking: false,
+            child: false,
+            deathRotation: 0.0,
+            preScale: 1.0,
+            preScaleXYZ: [1.0; 3],
+            childLayout: LivingChildLayout::BIPED,
             adultTranslation: [0.0; 3],
         }
     }

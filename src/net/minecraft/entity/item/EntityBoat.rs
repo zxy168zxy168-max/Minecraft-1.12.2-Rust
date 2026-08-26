@@ -11,8 +11,12 @@ pub enum BoatType {
 
 impl BoatType {
     pub const ALL: [Self; 6] = [
-        Self::Oak, Self::Spruce, Self::Birch,
-        Self::Jungle, Self::Acacia, Self::DarkOak,
+        Self::Oak,
+        Self::Spruce,
+        Self::Birch,
+        Self::Jungle,
+        Self::Acacia,
+        Self::DarkOak,
     ];
 
     /// MCP `EntityBoat.Type#byId`: invalid synchronized values fall back to OAK.
@@ -38,7 +42,6 @@ impl BoatType {
         }
     }
 }
-
 
 /// MCP 1.12.2 `EntityBoat.Status` declaration order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

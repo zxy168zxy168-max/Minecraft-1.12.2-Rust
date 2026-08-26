@@ -22,12 +22,22 @@ impl SPacketWindowProperty {
                 input.len()
             )));
         }
-        Ok(Self { windowId, property, value })
+        Ok(Self {
+            windowId,
+            property,
+            value,
+        })
     }
 
-    pub const fn getWindowId(&self) -> u8 { self.windowId }
-    pub const fn getProperty(&self) -> i16 { self.property }
-    pub const fn getValue(&self) -> i16 { self.value }
+    pub const fn getWindowId(&self) -> u8 {
+        self.windowId
+    }
+    pub const fn getProperty(&self) -> i16 {
+        self.property
+    }
+    pub const fn getValue(&self) -> i16 {
+        self.value
+    }
 }
 
 #[cfg(test)]

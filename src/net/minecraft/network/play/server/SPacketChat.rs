@@ -15,14 +15,21 @@ impl SPacketChat {
         let mut input = packet.payload.as_slice();
         let chatComponent = read_text_component(&mut input)?;
         let type_ = ChatType::func_192582_a(read_i8(&mut input)?);
-        Ok(Self { chatComponent, type_ })
+        Ok(Self {
+            chatComponent,
+            type_,
+        })
     }
 
-    pub fn getChatComponent(&self) -> &ITextComponent { &self.chatComponent }
+    pub fn getChatComponent(&self) -> &ITextComponent {
+        &self.chatComponent
+    }
     pub const fn isSystem(&self) -> bool {
         matches!(self.type_, ChatType::System | ChatType::GameInfo)
     }
-    pub const fn func_192590_c(&self) -> ChatType { self.type_ }
+    pub const fn func_192590_c(&self) -> ChatType {
+        self.type_
+    }
 }
 
 #[cfg(test)]

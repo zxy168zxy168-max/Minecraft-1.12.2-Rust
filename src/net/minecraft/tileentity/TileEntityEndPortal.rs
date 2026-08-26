@@ -1,6 +1,6 @@
 use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
 /// MCP 1.12.2 `TileEntityEndPortal`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -9,7 +9,9 @@ pub struct TileEntityEndPortal {
 }
 
 impl TileEntityEndPortal {
-    pub const fn new(pos: BlockPos) -> Self { Self { pos } }
+    pub const fn new(pos: BlockPos) -> Self {
+        Self { pos }
+    }
 
     pub fn fromNbt(tag: &NBTTagCompound) -> Option<Self> {
         let id = tag.getString("id");

@@ -119,7 +119,9 @@ impl ClippingHelperShadow {
         })
     }
 
-    pub fn planeCount(&self) -> usize { self.shadowClipPlanes.len() }
+    pub fn planeCount(&self) -> usize {
+        self.shadowClipPlanes.len()
+    }
 }
 
 fn adjacentPlaneIndices(index: usize) -> [usize; 4] {
@@ -131,34 +133,18 @@ fn adjacentPlaneIndices(index: usize) -> [usize; 4] {
     }
 }
 
-fn makeShadowPlane(
-    positivePlane: [f32; 4],
-    negativePlane: [f32; 4],
-    sun: [f32; 4],
-) -> [f32; 4] {
+fn makeShadowPlane(positivePlane: [f32; 4], negativePlane: [f32; 4], sun: [f32; 4]) -> [f32; 4] {
     let intersection = cross3(positivePlane, negativePlane);
     let mut shadowPlane = normalize3(cross3(intersection, sun));
     let dotPlanes = dot3(positivePlane, negativePlane);
     let dotShadowNegative = dot3(shadowPlane, negativePlane);
-    let distanceShadowNegative = distance3(
-        shadowPlane,
-        scale3(negativePlane, dotShadowNegative),
-    );
-    let distancePositiveNegative = distance3(
-        positivePlane,
-        scale3(negativePlane, dotPlanes),
-    );
+    let distanceShadowNegative = distance3(shadowPlane, scale3(negativePlane, dotShadowNegative));
+    let distancePositiveNegative = distance3(positivePlane, scale3(negativePlane, dotPlanes));
     let positiveFactor = distanceShadowNegative / distancePositiveNegative;
 
     let dotShadowPositive = dot3(shadowPlane, positivePlane);
-    let distanceShadowPositive = distance3(
-        shadowPlane,
-        scale3(positivePlane, dotShadowPositive),
-    );
-    let distanceNegativePositive = distance3(
-        negativePlane,
-        scale3(positivePlane, dotPlanes),
-    );
+    let distanceShadowPositive = distance3(shadowPlane, scale3(positivePlane, dotShadowPositive));
+    let distanceNegativePositive = distance3(negativePlane, scale3(positivePlane, dotPlanes));
     let negativeFactor = distanceShadowPositive / distanceNegativePositive;
     shadowPlane[3] = positivePlane[3] * positiveFactor + negativePlane[3] * negativeFactor;
     shadowPlane
@@ -196,7 +182,12 @@ fn dot4(plane: [f32; 4], x: f64, y: f64, z: f64) -> f64 {
 }
 
 fn scale3(value: [f32; 4], scalar: f32) -> [f32; 4] {
-    [value[0] * scalar, value[1] * scalar, value[2] * scalar, value[3]]
+    [
+        value[0] * scalar,
+        value[1] * scalar,
+        value[2] * scalar,
+        value[3],
+    ]
 }
 
 fn distance3(left: [f32; 4], right: [f32; 4]) -> f32 {
@@ -224,26 +215,16 @@ mod tests {
 
     fn identity4() -> [f32; 16] {
         [
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
         ]
     }
 
     #[test]
     fn builds_optifine_shadow_silhouette_planes() {
-        let helper = ClippingHelperShadow::fromMatrices(
-            identity4(),
-            identity4(),
-            [0.0, 1.0, 0.0, 0.0],
-        );
+        let helper =
+            ClippingHelperShadow::fromMatrices(identity4(), identity4(), [0.0, 1.0, 0.0, 0.0]);
         assert!(helper.planeCount() > 0);
         assert!(helper.planeCount() <= 10);
-        assert!(helper.isBoxInFrustum(
-            -0.25, -0.25, -0.25,
-            0.25, 0.25, 0.25,
-            [0.0, 0.0, 0.0],
-        ));
+        assert!(helper.isBoxInFrustum(-0.25, -0.25, -0.25, 0.25, 0.25, 0.25, [0.0, 0.0, 0.0],));
     }
 }

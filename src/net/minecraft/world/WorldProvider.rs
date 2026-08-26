@@ -1,19 +1,19 @@
-use crate::net::minecraft::world::DimensionType::DimensionType;
+use crate::net::minecraft::util::math::MathHelper::{clamp_f32, cos, sin, PI};
+use crate::net::minecraft::util::math::Vec3d::Vec3d;
 use crate::net::minecraft::world::biome::Biome::Biome;
-use crate::net::minecraft::world::biome::BiomeProviderSingle::BiomeProviderSingle;
 use crate::net::minecraft::world::biome::BiomeProvider::BiomeProvider;
 use crate::net::minecraft::world::biome::BiomeProviderKind::BiomeProviderKind;
+use crate::net::minecraft::world::biome::BiomeProviderSingle::BiomeProviderSingle;
 use crate::net::minecraft::world::gen::ChunkGeneratorFlat::ChunkGeneratorFlat;
 use crate::net::minecraft::world::gen::ChunkGeneratorOverworld::ChunkGeneratorOverworld;
 use crate::net::minecraft::world::gen::FlatGeneratorInfo::FlatGeneratorInfo;
 use crate::net::minecraft::world::gen::IChunkGenerator::IChunkGenerator;
 use crate::net::minecraft::world::storage::WorldInfo::WorldInfo;
-use crate::net::minecraft::world::WorldType::WorldType;
+use crate::net::minecraft::world::DimensionType::DimensionType;
 use crate::net::minecraft::world::WorldProviderEnd::WorldProviderEnd;
 use crate::net::minecraft::world::WorldProviderHell::WorldProviderHell;
 use crate::net::minecraft::world::WorldProviderSurface::WorldProviderSurface;
-use crate::net::minecraft::util::math::Vec3d::Vec3d;
-use crate::net::minecraft::util::math::MathHelper::{clamp_f32, cos, sin, PI};
+use crate::net::minecraft::world::WorldType::WorldType;
 
 /// MCP 1.12.2 `WorldProvider` vanilla-dimension dispatch.
 ///
@@ -35,8 +35,8 @@ pub struct WorldProvider {
 
 impl WorldProvider {
     pub fn new(dimension: i32) -> Self {
-        let dimensionType = DimensionType::getById(dimension)
-            .unwrap_or_else(|error| panic!("{error}"));
+        let dimensionType =
+            DimensionType::getById(dimension).unwrap_or_else(|error| panic!("{error}"));
         let lightBrightnessTable = if dimensionType == DimensionType::Nether {
             WorldProviderHell::generateLightBrightnessTable()
         } else {
@@ -48,8 +48,18 @@ impl WorldProvider {
             table
         };
         let (biomeProvider, field_191067_f) = match dimensionType {
-            DimensionType::Nether => (Some(BiomeProviderKind::Single(BiomeProviderSingle::new(Biome::getBiome(8)))), false),
-            DimensionType::TheEnd => (Some(BiomeProviderKind::Single(BiomeProviderSingle::new(Biome::getBiome(9)))), false),
+            DimensionType::Nether => (
+                Some(BiomeProviderKind::Single(BiomeProviderSingle::new(
+                    Biome::getBiome(8),
+                ))),
+                false,
+            ),
+            DimensionType::TheEnd => (
+                Some(BiomeProviderKind::Single(BiomeProviderSingle::new(
+                    Biome::getBiome(9),
+                ))),
+                false,
+            ),
             DimensionType::Overworld => (None, true),
         };
         Self {
@@ -74,47 +84,100 @@ impl WorldProvider {
                 self.field_191067_f = true;
                 self.biomeProvider = match self.terrainType {
                     WorldType::Flat => {
-                        let flat = FlatGeneratorInfo::createFlatGeneratorFromString(&self.generatorSettings);
-                        Some(BiomeProviderKind::Single(BiomeProviderSingle::new(Biome::getBiome(flat.getBiome().clamp(0, 255) as u8))))
+                        let flat = FlatGeneratorInfo::createFlatGeneratorFromString(
+                            &self.generatorSettings,
+                        );
+                        Some(BiomeProviderKind::Single(BiomeProviderSingle::new(
+                            Biome::getBiome(flat.getBiome().clamp(0, 255) as u8),
+                        )))
                     }
-                    WorldType::DebugWorld => Some(BiomeProviderKind::Single(BiomeProviderSingle::new(Biome::getBiome(1)))),
-                    _ => Some(BiomeProviderKind::Layered(BiomeProvider::new(info.getSeed(), self.terrainType, &self.generatorSettings))),
+                    WorldType::DebugWorld => Some(BiomeProviderKind::Single(
+                        BiomeProviderSingle::new(Biome::getBiome(1)),
+                    )),
+                    _ => Some(BiomeProviderKind::Layered(BiomeProvider::new(
+                        info.getSeed(),
+                        self.terrainType,
+                        &self.generatorSettings,
+                    ))),
                 };
             }
             DimensionType::Nether => {
                 self.field_191067_f = false;
-                self.biomeProvider = Some(BiomeProviderKind::Single(BiomeProviderSingle::new(Biome::getBiome(8))));
+                self.biomeProvider = Some(BiomeProviderKind::Single(BiomeProviderSingle::new(
+                    Biome::getBiome(8),
+                )));
             }
             DimensionType::TheEnd => {
                 self.field_191067_f = false;
-                self.biomeProvider = Some(BiomeProviderKind::Single(BiomeProviderSingle::new(Biome::getBiome(9))));
+                self.biomeProvider = Some(BiomeProviderKind::Single(BiomeProviderSingle::new(
+                    Biome::getBiome(9),
+                )));
             }
         }
     }
 
-    pub const fn getTerrainType(&self) -> WorldType { self.terrainType }
-    pub fn getGeneratorSettings(&self) -> &str { &self.generatorSettings }
-    pub fn getBiomeProvider(&self) -> Option<&BiomeProviderKind> { self.biomeProvider.as_ref() }
+    pub const fn getTerrainType(&self) -> WorldType {
+        self.terrainType
+    }
+    pub fn getGeneratorSettings(&self) -> &str {
+        &self.generatorSettings
+    }
+    pub fn getBiomeProvider(&self) -> Option<&BiomeProviderKind> {
+        self.biomeProvider.as_ref()
+    }
 
     /// MCP `WorldProvider#createChunkGenerator` at the currently migrated
     /// generator boundary. Unsupported vanilla generators return an explicit
     /// error instead of an empty/fabricated Chunk.
-    pub fn createChunkGenerator(&self, seed: i64, mapFeaturesEnabled: bool) -> Result<Box<dyn IChunkGenerator>, String> {
+    pub fn createChunkGenerator(
+        &self,
+        seed: i64,
+        mapFeaturesEnabled: bool,
+    ) -> Result<Box<dyn IChunkGenerator>, String> {
         match (self.dimensionType, self.terrainType) {
-            (DimensionType::Overworld, WorldType::Flat) => Ok(Box::new(ChunkGeneratorFlat::new(seed, mapFeaturesEnabled, &self.generatorSettings))),
-            (DimensionType::Overworld, WorldType::DebugWorld) => Err("ChunkGeneratorDebug has not yet been ported".to_owned()),
-            (DimensionType::Overworld, WorldType::Default | WorldType::Default11 | WorldType::LargeBiomes | WorldType::Amplified | WorldType::Customized) => {
-                let biomeProvider=self.biomeProvider.clone().ok_or_else(|| "Overworld BiomeProvider/GenLayer graph is not configured".to_owned())?;
-                Ok(Box::new(ChunkGeneratorOverworld::new(seed,mapFeaturesEnabled,self.terrainType,&self.generatorSettings,biomeProvider)))
+            (DimensionType::Overworld, WorldType::Flat) => Ok(Box::new(ChunkGeneratorFlat::new(
+                seed,
+                mapFeaturesEnabled,
+                &self.generatorSettings,
+            ))),
+            (DimensionType::Overworld, WorldType::DebugWorld) => {
+                Err("ChunkGeneratorDebug has not yet been ported".to_owned())
             }
-            (DimensionType::Nether, _) => Err("ChunkGeneratorHell has not yet been ported".to_owned()),
-            (DimensionType::TheEnd, _) => Err("ChunkGeneratorEnd has not yet been ported".to_owned()),
+            (
+                DimensionType::Overworld,
+                WorldType::Default
+                | WorldType::Default11
+                | WorldType::LargeBiomes
+                | WorldType::Amplified
+                | WorldType::Customized,
+            ) => {
+                let biomeProvider = self.biomeProvider.clone().ok_or_else(|| {
+                    "Overworld BiomeProvider/GenLayer graph is not configured".to_owned()
+                })?;
+                Ok(Box::new(ChunkGeneratorOverworld::new(
+                    seed,
+                    mapFeaturesEnabled,
+                    self.terrainType,
+                    &self.generatorSettings,
+                    biomeProvider,
+                )))
+            }
+            (DimensionType::Nether, _) => {
+                Err("ChunkGeneratorHell has not yet been ported".to_owned())
+            }
+            (DimensionType::TheEnd, _) => {
+                Err("ChunkGeneratorEnd has not yet been ported".to_owned())
+            }
         }
     }
 
     /// MCP `WorldProvider#getAverageGroundLevel`.
     pub fn getAverageGroundLevel(&self, seaLevel: i32) -> i32 {
-        if self.terrainType == WorldType::Flat { 4 } else { seaLevel + 1 }
+        if self.terrainType == WorldType::Flat {
+            4
+        } else {
+            seaLevel + 1
+        }
     }
 
     pub const fn getDimension(&self) -> i32 {
@@ -122,7 +185,9 @@ impl WorldProvider {
     }
 
     /// MCP subclass `getDimensionType` dispatch.
-    pub const fn getDimensionType(&self) -> DimensionType { self.dimensionType }
+    pub const fn getDimensionType(&self) -> DimensionType {
+        self.dimensionType
+    }
 
     /// Rust equivalent of `DimensionType#createDimension`.
     pub fn forDimensionType(dimensionType: DimensionType) -> Self {
@@ -159,7 +224,9 @@ impl WorldProvider {
     /// 1.12.2 this is the surface provider only; both the Nether and the End
     /// leave the flag false, so their chunk sections omit the 2048-byte sky
     /// nibble array.
-    pub const fn hasSkyLight(&self) -> bool { self.field_191067_f }
+    pub const fn hasSkyLight(&self) -> bool {
+        self.field_191067_f
+    }
 
     pub const fn getLightBrightnessTable(&self) -> &[f32; 16] {
         &self.lightBrightnessTable
@@ -168,14 +235,21 @@ impl WorldProvider {
     /// MCP `WorldProvider#getCloudHeight`. Vanilla surface clouds use the
     /// fixed Y=128 plane; the client option adds its separate 0..128 offset.
     pub const fn getCloudHeight(&self) -> f32 {
-        match self.dimensionType { DimensionType::TheEnd => WorldProviderEnd::getCloudHeight(), _ => 128.0 }
+        match self.dimensionType {
+            DimensionType::TheEnd => WorldProviderEnd::getCloudHeight(),
+            _ => 128.0,
+        }
     }
 
     /// MCP `WorldProvider#calcSunriseSunsetColors`. End overrides this to
     /// return null; surface and Nether inherit the base computation. Rust
     /// returns the four source values by value rather than exposing the Java
     /// provider's reusable private array.
-    pub fn calcSunriseSunsetColors(&self, celestialAngle: f32, _partialTicks: f32) -> Option<[f32; 4]> {
+    pub fn calcSunriseSunsetColors(
+        &self,
+        celestialAngle: f32,
+        _partialTicks: f32,
+    ) -> Option<[f32; 4]> {
         if self.dimensionType == DimensionType::TheEnd {
             return None;
         }
@@ -226,7 +300,8 @@ impl WorldProvider {
     /// MCP `WorldProvider#doesWaterVaporize`. Vanilla `WorldProviderHell`
     /// sets `isHellWorld=true`; the surface and End providers leave it false.
     pub const fn doesWaterVaporize(&self) -> bool {
-        matches!(self.dimensionType, DimensionType::Nether) && WorldProviderHell::doesWaterVaporize()
+        matches!(self.dimensionType, DimensionType::Nether)
+            && WorldProviderHell::doesWaterVaporize()
     }
 
     /// MCP `WorldProvider#canDropChunk` plus `WorldProviderSurface` override.
@@ -260,25 +335,30 @@ impl WorldProvider {
                 // MCP performs Math.cos in double precision after promoting
                 // the float angle, then narrows the result back to float.
                 let eased = 1.0_f32
-                    - (((angle as f64 * std::f64::consts::PI).cos() + 1.0_f64)
-                        / 2.0_f64) as f32;
+                    - (((angle as f64 * std::f64::consts::PI).cos() + 1.0_f64) / 2.0_f64) as f32;
                 angle + (eased - angle) / 3.0
             }
         }
     }
     /// MCP `WorldProvider#isSkyColored`, with End override.
-    pub fn isSkyColored(&self) -> bool { self.dimensionType != DimensionType::TheEnd }
+    pub fn isSkyColored(&self) -> bool {
+        self.dimensionType != DimensionType::TheEnd
+    }
 
     /// MCP `WorldProvider#doesXZShowFog`.
-    pub const fn doesXZShowFog(&self, _x:i32, _z:i32) -> bool {
+    pub const fn doesXZShowFog(&self, _x: i32, _z: i32) -> bool {
         matches!(self.dimensionType, DimensionType::Nether)
     }
 
     /// MCP End fixed spawn coordinate; other providers return null.
-    pub const fn getSpawnCoordinate(&self) -> Option<crate::net::minecraft::util::math::BlockPos::BlockPos> {
-        match self.dimensionType { DimensionType::TheEnd => Some(WorldProviderEnd::getSpawnCoordinate()), _ => None }
+    pub const fn getSpawnCoordinate(
+        &self,
+    ) -> Option<crate::net::minecraft::util::math::BlockPos::BlockPos> {
+        match self.dimensionType {
+            DimensionType::TheEnd => Some(WorldProviderEnd::getSpawnCoordinate()),
+            _ => None,
+        }
     }
-
 }
 
 #[cfg(test)]
@@ -327,11 +407,16 @@ mod tests {
     #[test]
     fn fog_and_sunrise_dispatch_match_dimension_overrides() {
         let nether = WorldProvider::new(-1);
-        assert_eq!(nether.getFogColor(0.1, 0.5), WorldProviderHell::getFogColor());
+        assert_eq!(
+            nether.getFogColor(0.1, 0.5),
+            WorldProviderHell::getFogColor()
+        );
         let end = WorldProvider::new(1);
         assert_eq!(end.getFogColor(0.1, 0.5), WorldProviderEnd::getFogColor());
         assert!(end.calcSunriseSunsetColors(0.0, 0.0).is_none());
-        assert!(WorldProvider::new(0).calcSunriseSunsetColors(0.25, 0.0).is_some());
+        assert!(WorldProvider::new(0)
+            .calcSunriseSunsetColors(0.25, 0.0)
+            .is_some());
     }
 
     #[test]
@@ -345,8 +430,12 @@ mod tests {
         assert!(!nether.canRespawnHere());
         assert!(!end.getHasNoSky());
         assert_eq!(end.getCloudHeight(), 8.0);
-        assert_eq!(end.getSpawnCoordinate(), Some(crate::net::minecraft::util::math::BlockPos::BlockPos::new(100,50,0)));
+        assert_eq!(
+            end.getSpawnCoordinate(),
+            Some(crate::net::minecraft::util::math::BlockPos::BlockPos::new(
+                100, 50, 0
+            ))
+        );
         assert_eq!(surface.getMoonPhase(24_000 * 9), 1);
     }
-
 }

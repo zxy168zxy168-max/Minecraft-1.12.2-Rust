@@ -24,9 +24,18 @@ impl RenderBoat {
         BoatType::ALL.into_iter().map(Self::texture).collect()
     }
 
-    pub fn damageRotation(timeSinceHit: i32, damageTaken: f32, forwardDirection: i32, partialTicks: f32) -> f32 {
+    pub fn damageRotation(
+        timeSinceHit: i32,
+        damageTaken: f32,
+        forwardDirection: i32,
+        partialTicks: f32,
+    ) -> f32 {
         let f = timeSinceHit as f32 - partialTicks;
         let f1 = (damageTaken - partialTicks).max(0.0);
-        if f > 0.0 { f.sin() * f * f1 / 10.0 * forwardDirection as f32 } else { 0.0 }
+        if f > 0.0 {
+            f.sin() * f * f1 / 10.0 * forwardDirection as f32
+        } else {
+            0.0
+        }
     }
 }

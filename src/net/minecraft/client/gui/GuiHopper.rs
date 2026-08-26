@@ -36,10 +36,14 @@ impl GuiHopper {
                 yPos: 109,
             });
         }
-        Self { container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots) }
+        Self {
+            container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots),
+        }
     }
 
-    pub fn initGui(&mut self, width: i32, height: i32) { self.container.initGui(width, height); }
+    pub fn initGui(&mut self, width: i32, height: i32) {
+        self.container.initGui(width, height);
+    }
 
     pub fn hopperBackground() -> ResourceLocation {
         ResourceLocation::parse("textures/gui/container/hopper.png")
@@ -47,7 +51,9 @@ impl GuiHopper {
 }
 
 impl Default for GuiHopper {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

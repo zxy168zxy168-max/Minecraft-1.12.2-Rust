@@ -4,11 +4,15 @@ use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 pub struct RenderSquid;
 
 impl RenderSquid {
-    pub fn supports(entityType: MobEntityType) -> bool { entityType.registryName == "squid" }
+    pub fn supports(entityType: MobEntityType) -> bool {
+        entityType.registryName == "squid"
+    }
     pub fn texture() -> ResourceLocation {
         ResourceLocation::new("minecraft", "textures/entity/squid.png")
     }
-    pub const fn shadowSize() -> f32 { 0.7 }
+    pub const fn shadowSize() -> f32 {
+        0.7
+    }
 
     /// MCP `RenderSquid#handleRotationFloat`.
     pub fn tentacleAngle(entity: &EntityOtherClient, partialTicks: f32) -> f32 {

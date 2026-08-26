@@ -1,5 +1,7 @@
 use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::{read_i64_be, read_u8, read_var_i32, CodecError};
+use crate::net::minecraft::network::PacketBuffer::{
+    read_i64_be, read_u8, read_var_i32, CodecError,
+};
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 /// Protocol-340 clientbound `SPacketBlockAction` (`0x0A`).
@@ -20,13 +22,27 @@ impl SPacketBlockAction {
         let blockType = read_var_i32(&mut input)?;
         if !input.is_empty() {
             return Err(CodecError::InvalidData(format!(
-                "{} trailing BlockAction bytes", input.len(),
+                "{} trailing BlockAction bytes",
+                input.len(),
             )));
         }
-        Ok(Self { blockPosition, instrument, pitch, blockType })
+        Ok(Self {
+            blockPosition,
+            instrument,
+            pitch,
+            blockType,
+        })
     }
-    pub const fn getBlockPosition(&self) -> BlockPos { self.blockPosition }
-    pub const fn getData1(&self) -> i32 { self.instrument as i32 }
-    pub const fn getData2(&self) -> i32 { self.pitch as i32 }
-    pub const fn getBlockTypeId(&self) -> i32 { self.blockType }
+    pub const fn getBlockPosition(&self) -> BlockPos {
+        self.blockPosition
+    }
+    pub const fn getData1(&self) -> i32 {
+        self.instrument as i32
+    }
+    pub const fn getData2(&self) -> i32 {
+        self.pitch as i32
+    }
+    pub const fn getBlockTypeId(&self) -> i32 {
+        self.blockType
+    }
 }

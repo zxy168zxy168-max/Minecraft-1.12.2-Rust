@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
-    fs,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -80,7 +79,10 @@ pub struct ShaderPackEntry {
 
 impl ShaderPackEntry {
     pub fn isExternal(&self) -> bool {
-        matches!(self.kind, ShaderPackKind::Folder(_) | ShaderPackKind::Zip(_))
+        matches!(
+            self.kind,
+            ShaderPackKind::Folder(_) | ShaderPackKind::Zip(_)
+        )
     }
 }
 
@@ -192,24 +194,38 @@ impl Shaders {
     /// `File.listFiles()` does not parse pack contents; this remains metadata-only.
     pub fn listOfShaders(&self) -> Vec<ShaderPackEntry> {
         let mut result = vec![
-            ShaderPackEntry { name: packNameNone.to_owned(), kind: ShaderPackKind::None },
-            ShaderPackEntry { name: packNameDefault.to_owned(), kind: ShaderPackKind::Default },
+            ShaderPackEntry {
+                name: packNameNone.to_owned(),
+                kind: ShaderPackKind::None,
+            },
+            ShaderPackEntry {
+                name: packNameDefault.to_owned(),
+                kind: ShaderPackKind::Default,
+            },
         ];
 
         if !self.shaderpacksdir.exists() {
             let _ = fs::create_dir(&self.shaderpacksdir);
         }
-        let Ok(entries) = fs::read_dir(&self.shaderpacksdir) else { return result; };
+        let Ok(entries) = fs::read_dir(&self.shaderpacksdir) else {
+            return result;
+        };
         for entry in entries.flatten() {
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().into_owned();
             if path.is_dir() {
                 let shaders = path.join("shaders");
                 if shaders.exists() && shaders.is_dir() {
-                    result.push(ShaderPackEntry { name, kind: ShaderPackKind::Folder(path) });
+                    result.push(ShaderPackEntry {
+                        name,
+                        kind: ShaderPackKind::Folder(path),
+                    });
                 }
             } else if path.is_file() && name.to_ascii_lowercase().ends_with(".zip") {
-                result.push(ShaderPackEntry { name, kind: ShaderPackKind::Zip(path) });
+                result.push(ShaderPackEntry {
+                    name,
+                    kind: ShaderPackKind::Zip(path),
+                });
             }
         }
         result
@@ -230,27 +246,18 @@ impl Shaders {
     }
 
     pub fn cycleRenderQuality(&mut self, previous: bool) {
-        self.configRenderResMul = cycle_float(
-            self.configRenderResMul,
-            &QUALITY_MULTIPLIERS,
-            previous,
-        );
+        self.configRenderResMul =
+            cycle_float(self.configRenderResMul, &QUALITY_MULTIPLIERS, previous);
     }
 
     pub fn cycleShadowQuality(&mut self, previous: bool) {
-        self.configShadowResMul = cycle_float(
-            self.configShadowResMul,
-            &QUALITY_MULTIPLIERS,
-            previous,
-        );
+        self.configShadowResMul =
+            cycle_float(self.configShadowResMul, &QUALITY_MULTIPLIERS, previous);
     }
 
     pub fn cycleHandDepth(&mut self, previous: bool) {
-        self.configHandDepthMul = cycle_float(
-            self.configHandDepthMul,
-            &HAND_DEPTH_VALUES,
-            previous,
-        );
+        self.configHandDepthMul =
+            cycle_float(self.configHandDepthMul, &HAND_DEPTH_VALUES, previous);
     }
 
     /// Equivalent to the resource-container selection portion at the start of
@@ -275,7 +282,10 @@ impl Shaders {
     }
 
     pub fn selectedIndex(&self, packs: &[ShaderPackEntry]) -> usize {
-        packs.iter().position(|entry| entry.name == self.currentshadername).unwrap_or(0)
+        packs
+            .iter()
+            .position(|entry| entry.name == self.currentshadername)
+            .unwrap_or(0)
     }
 
     pub fn storeConfig(&self) -> io::Result<()> {
@@ -319,18 +329,30 @@ impl Shaders {
 
     fn configProperties(&self) -> Vec<(&'static str, String)> {
         vec![
-            ("antialiasingLevel", self.configAntialiasingLevel.to_string()),
+            (
+                "antialiasingLevel",
+                self.configAntialiasingLevel.to_string(),
+            ),
             ("normalMapEnabled", self.configNormalMap.to_string()),
             ("specularMapEnabled", self.configSpecularMap.to_string()),
             ("renderResMul", format_float(self.configRenderResMul)),
             ("shadowResMul", format_float(self.configShadowResMul)),
             ("handDepthMul", format_float(self.configHandDepthMul)),
             ("cloudShadow", self.configCloudShadow.to_string()),
-            ("oldHandLight", self.configOldHandLight.propertyValue().to_owned()),
-            ("oldLighting", self.configOldLighting.propertyValue().to_owned()),
+            (
+                "oldHandLight",
+                self.configOldHandLight.propertyValue().to_owned(),
+            ),
+            (
+                "oldLighting",
+                self.configOldLighting.propertyValue().to_owned(),
+            ),
             (shaderPackPropertyKey, self.currentshadername.clone()),
             ("tweakBlockDamage", self.configTweakBlockDamage.to_string()),
-            ("shadowClipFrustrum", self.configShadowClipFrustrum.to_string()),
+            (
+                "shadowClipFrustrum",
+                self.configShadowClipFrustrum.to_string(),
+            ),
             ("TexMinFilB", self.configTexMinFilB.to_string()),
             ("TexMinFilN", self.configTexMinFilN.to_string()),
             ("TexMinFilS", self.configTexMinFilS.to_string()),
@@ -340,7 +362,9 @@ impl Shaders {
         ]
     }
 
-    pub fn shaderpacksDir(&self) -> &Path { &self.shaderpacksdir }
+    pub fn shaderpacksDir(&self) -> &Path {
+        &self.shaderpacksdir
+    }
 }
 
 pub fn valueIndex(value: f32, values: &[f32]) -> usize {
@@ -364,7 +388,11 @@ fn cycle_float(value: f32, values: &[f32], previous: bool) -> f32 {
     }
     let mut index = valueIndex(value, values);
     if previous {
-        index = if index == 0 { values.len() - 1 } else { index - 1 };
+        index = if index == 0 {
+            values.len() - 1
+        } else {
+            index - 1
+        };
     } else {
         index = (index + 1) % values.len();
     }
@@ -386,7 +414,11 @@ fn parse_i32(value: &str, default: i32) -> i32 {
 }
 
 fn parse_f32(value: &str, default: f32) -> f32 {
-    value.parse().ok().filter(|value: &f32| value.is_finite()).unwrap_or(default)
+    value
+        .parse()
+        .ok()
+        .filter(|value: &f32| value.is_finite())
+        .unwrap_or(default)
 }
 
 fn format_float(value: f32) -> String {
@@ -398,13 +430,19 @@ fn format_float(value: f32) -> String {
 }
 
 fn property_key(line: &str) -> Option<&str> {
-    if line.is_empty() || line.starts_with('#') || line.starts_with('!') { return None; }
+    if line.is_empty() || line.starts_with('#') || line.starts_with('!') {
+        return None;
+    }
     let mut escaped = false;
     for (index, ch) in line.char_indices() {
         if !escaped && (matches!(ch, '=' | ':') || matches!(ch, ' ' | '\t' | '\u{000C}')) {
             return Some(&line[..index]);
         }
-        if ch == '\\' { escaped = !escaped; } else { escaped = false; }
+        if ch == '\\' {
+            escaped = !escaped;
+        } else {
+            escaped = false;
+        }
     }
     Some(line.trim_end_matches(['\n', '\r']))
 }
@@ -418,7 +456,10 @@ fn escape_property_value(value: &str) -> String {
             '\r' => result.push_str("\\r"),
             '\t' => result.push_str("\\t"),
             '\u{000C}' => result.push_str("\\f"),
-            '=' | ':' | '#' | '!' => { result.push('\\'); result.push(ch); }
+            '=' | ':' | '#' | '!' => {
+                result.push('\\');
+                result.push(ch);
+            }
             ' ' if index == 0 => result.push_str("\\ "),
             ch if (ch as u32) < 0x20 || (ch as u32) > 0x7E => {
                 let mut units = [0u16; 2];
@@ -436,11 +477,17 @@ fn escape_property_value(value: &str) -> String {
 mod tests {
     use super::*;
     use crate::net::optifine::shader::IShaderPack::IShaderPack;
-    use std::{io::Write, time::{SystemTime, UNIX_EPOCH}};
+    use std::{
+        io::Write,
+        time::{SystemTime, UNIX_EPOCH},
+    };
     use zip::{write::SimpleFileOptions, ZipWriter};
 
     fn temp_game_dir() -> PathBuf {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         std::env::temp_dir().join(format!("mc112-shaders-{unique}"))
     }
 
@@ -452,13 +499,18 @@ mod tests {
         fs::write(game.join("shaderpacks/readme.txt"), b"ignored").unwrap();
         let file = fs::File::create(game.join("shaderpacks/ZipPack.ZIP")).unwrap();
         let mut writer = ZipWriter::new(file);
-        writer.start_file("shaders/gbuffers_basic.vsh", SimpleFileOptions::default()).unwrap();
+        writer
+            .start_file("shaders/gbuffers_basic.vsh", SimpleFileOptions::default())
+            .unwrap();
         writer.write_all(b"test").unwrap();
         writer.finish().unwrap();
 
         let shaders = Shaders::loadConfig(&game);
         let packs = shaders.listOfShaders();
-        let names = packs.iter().map(|entry| entry.name.as_str()).collect::<Vec<_>>();
+        let names = packs
+            .iter()
+            .map(|entry| entry.name.as_str())
+            .collect::<Vec<_>>();
         assert_eq!(&names[..2], &[packNameNone, packNameDefault]);
         assert!(names.contains(&"FolderPack"));
         assert!(names.contains(&"ZipPack.ZIP"));
@@ -484,11 +536,24 @@ mod tests {
         shaders.storeConfig().unwrap();
         let text = fs::read_to_string(game.join(optionsfilename)).unwrap();
         for key in [
-            "antialiasingLevel", "normalMapEnabled", "specularMapEnabled",
-            "renderResMul", "shadowResMul", "handDepthMul", "cloudShadow",
-            "oldHandLight", "oldLighting", "shaderPack", "tweakBlockDamage",
-            "shadowClipFrustrum", "TexMinFilB", "TexMinFilN", "TexMinFilS",
-            "TexMagFilB", "TexMagFilN", "TexMagFilS",
+            "antialiasingLevel",
+            "normalMapEnabled",
+            "specularMapEnabled",
+            "renderResMul",
+            "shadowResMul",
+            "handDepthMul",
+            "cloudShadow",
+            "oldHandLight",
+            "oldLighting",
+            "shaderPack",
+            "tweakBlockDamage",
+            "shadowClipFrustrum",
+            "TexMinFilB",
+            "TexMinFilN",
+            "TexMinFilS",
+            "TexMagFilB",
+            "TexMagFilN",
+            "TexMagFilS",
         ] {
             assert!(text.contains(&format!("{key}=")), "missing {key}");
         }
@@ -506,7 +571,8 @@ mod tests {
         fs::write(
             game.join(optionsfilename),
             b"shaderPack=OFF\ncustomKey=keep\nnormalMapEnabled=false\n",
-        ).unwrap();
+        )
+        .unwrap();
         let mut shaders = Shaders::loadConfig(&game);
         shaders.currentshadername = "Folder Pack".to_owned();
         shaders.storeConfig().unwrap();
@@ -542,12 +608,19 @@ mod tests {
     fn opens_selected_folder_pack_and_falls_back_to_off_for_missing_pack() {
         let game = temp_game_dir();
         fs::create_dir_all(game.join("shaderpacks/FolderPack/shaders")).unwrap();
-        fs::write(game.join("shaderpacks/FolderPack/shaders/test.fsh"), b"shader").unwrap();
+        fs::write(
+            game.join("shaderpacks/FolderPack/shaders/test.fsh"),
+            b"shader",
+        )
+        .unwrap();
         let mut shaders = Shaders::loadConfig(&game);
         shaders.setShaderPack("FolderPack").unwrap();
         let mut pack = shaders.loadShaderPack(None);
         assert_eq!(pack.getName(), "FolderPack");
-        assert_eq!(pack.getResourceAsStream("/shaders/test.fsh").unwrap(), Some(b"shader".to_vec()));
+        assert_eq!(
+            pack.getResourceAsStream("/shaders/test.fsh").unwrap(),
+            Some(b"shader".to_vec())
+        );
         shaders.setShaderPack("missing.zip").unwrap();
         assert_eq!(shaders.loadShaderPack(None).getName(), packNameNone);
         let _ = fs::remove_dir_all(game);

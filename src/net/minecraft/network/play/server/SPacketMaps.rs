@@ -3,9 +3,7 @@ use crate::net::minecraft::network::PacketBuffer::{
     read_bool, read_byte_array, read_i8, read_u8, read_var_i32, CodecError,
 };
 use crate::net::minecraft::world::storage::MapData::MapData;
-use crate::net::minecraft::world::storage::MapDecoration::{
-    MapDecoration, MapDecorationType,
-};
+use crate::net::minecraft::world::storage::MapDecoration::{MapDecoration, MapDecorationType};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SPacketMaps {
@@ -92,14 +90,30 @@ impl SPacketMaps {
         })
     }
 
-    pub const fn getMapId(&self) -> i32 { self.mapId }
-    pub const fn getMapScale(&self) -> i8 { self.mapScale }
-    pub const fn isTrackingPosition(&self) -> bool { self.trackingPosition }
-    pub fn getIcons(&self) -> &[MapDecoration] { &self.icons }
-    pub const fn getColumns(&self) -> u8 { self.columns }
-    pub const fn getRows(&self) -> u8 { self.rows }
-    pub const fn getMinX(&self) -> u8 { self.minX }
-    pub const fn getMinZ(&self) -> u8 { self.minZ }
+    pub const fn getMapId(&self) -> i32 {
+        self.mapId
+    }
+    pub const fn getMapScale(&self) -> i8 {
+        self.mapScale
+    }
+    pub const fn isTrackingPosition(&self) -> bool {
+        self.trackingPosition
+    }
+    pub fn getIcons(&self) -> &[MapDecoration] {
+        &self.icons
+    }
+    pub const fn getColumns(&self) -> u8 {
+        self.columns
+    }
+    pub const fn getRows(&self) -> u8 {
+        self.rows
+    }
+    pub const fn getMinX(&self) -> u8 {
+        self.minX
+    }
+    pub const fn getMinZ(&self) -> u8 {
+        self.minZ
+    }
 
     /// MCP `SPacketMaps#setMapdataTo`.
     pub fn setMapdataTo(&self, mapData: &mut MapData) {
@@ -109,9 +123,8 @@ impl SPacketMaps {
         mapData.mapDecorations.extend(self.icons.iter().copied());
         for column in 0..self.columns as usize {
             for row in 0..self.rows as usize {
-                let destination = self.minX as usize
-                    + column
-                    + (self.minZ as usize + row) * MapData::WIDTH;
+                let destination =
+                    self.minX as usize + column + (self.minZ as usize + row) * MapData::WIDTH;
                 let source = column + row * self.columns as usize;
                 mapData.colors[destination] = self.mapDataBytes[source];
             }
@@ -123,7 +136,9 @@ impl SPacketMaps {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::net::minecraft::network::PacketBuffer::{write_bool, write_byte_array, write_var_i32};
+    use crate::net::minecraft::network::PacketBuffer::{
+        write_bool, write_byte_array, write_var_i32,
+    };
 
     #[test]
     fn packet_applies_column_major_patch_and_icon_nibbles() {
@@ -140,7 +155,10 @@ mod tests {
         packet.setMapdataTo(&mut map);
         assert_eq!(map.scale, 2);
         assert!(map.trackingPosition);
-        assert_eq!(map.mapDecorations[0].decorationType(), MapDecorationType::Mansion);
+        assert_eq!(
+            map.mapDecorations[0].decorationType(),
+            MapDecorationType::Mansion
+        );
         assert_eq!(map.mapDecorations[0].getRotation(), 3);
         assert_eq!(map.mapDecorations[0].getY(), -4);
         assert_eq!(map.colors[3 + 4 * 128], 10);

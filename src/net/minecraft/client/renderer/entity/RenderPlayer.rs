@@ -1,10 +1,10 @@
 use crate::net::minecraft::client::model::ModelBiped::{
     ArmPose, BipedMotionInput, BipedPose, ModelBiped,
 };
-use crate::net::minecraft::client::model::ModelPlayer::{ModelBoxSpec, ModelPlayer};
 use crate::net::minecraft::client::model::ModelBoxGeometry::{
     model_box_geometry, ModelBoxRotation, MODEL_BOX_FACE_INDICES,
 };
+use crate::net::minecraft::client::model::ModelPlayer::{ModelBoxSpec, ModelPlayer};
 use crate::net::minecraft::util::EnumHandSide::EnumHandSide;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -86,7 +86,10 @@ impl RenderPlayer {
             };
             yawDegrees = (sign * cosine.acos()).to_degrees() as f32;
         }
-        ElytraCorpseRotation { pitchDegrees, yawDegrees }
+        ElytraCorpseRotation {
+            pitchDegrees,
+            yawDegrees,
+        }
     }
 
     pub fn buildPose(input: PlayerRenderInput) -> BipedPose {
@@ -118,7 +121,13 @@ impl RenderPlayer {
             indices: Vec::with_capacity(boxes.len().saturating_mul(36)),
         };
         for modelBox in boxes {
-            add_model_box(&mut mesh, modelBox, input.position, input.bodyYaw, input.sneaking);
+            add_model_box(
+                &mut mesh,
+                modelBox,
+                input.position,
+                input.bodyYaw,
+                input.sneaking,
+            );
         }
         mesh
     }
@@ -167,12 +176,7 @@ impl RenderPlayer {
             indices: Vec::with_capacity(minimumBoxes.saturating_mul(36)),
         };
         for modelBox in boxes {
-            add_model_box_local_with_texture(
-                &mut mesh,
-                modelBox,
-                textureWidth,
-                textureHeight,
-            );
+            add_model_box_local_with_texture(&mut mesh, modelBox, textureWidth, textureHeight);
         }
         mesh
     }
@@ -208,8 +212,18 @@ impl RenderPlayer {
         skinParts: u8,
     ) -> PlayerModelMesh {
         let pose = ModelBiped::setRotationAngles(
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, false, slim, false,
-            ArmPose::Empty, ArmPose::Empty,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            false,
+            false,
+            slim,
+            false,
+            ArmPose::Empty,
+            ArmPose::Empty,
         );
         let mut armPose = match side {
             EnumHandSide::Right => pose.rightArm,
@@ -223,12 +237,9 @@ impl RenderPlayer {
             EnumHandSide::Left => 0x04,
         };
         let mut mesh = PlayerModelMesh::default();
-        for modelBox in ModelPlayer::firstPersonArmBoxes(
-            armPose,
-            slim,
-            side,
-            skinParts & wearMask != 0,
-        ) {
+        for modelBox in
+            ModelPlayer::firstPersonArmBoxes(armPose, slim, side, skinParts & wearMask != 0)
+        {
             add_model_box_local(&mut mesh, modelBox);
         }
         mesh
@@ -303,7 +314,13 @@ impl PlayerWorldBoxTransform {
     }
 }
 
-fn add_model_box(mesh: &mut PlayerModelMesh, spec: ModelBoxSpec, position: [f32; 3], bodyYaw: f32, sneaking: bool) {
+fn add_model_box(
+    mesh: &mut PlayerModelMesh,
+    spec: ModelBoxSpec,
+    position: [f32; 3],
+    bodyYaw: f32,
+    sneaking: bool,
+) {
     add_model_box_with_texture(mesh, spec, position, bodyYaw, sneaking, 64.0, 64.0);
 }
 
@@ -372,7 +389,7 @@ fn add_model_box_local_with_texture(
         .extend(MODEL_BOX_FACE_INDICES.iter().map(|index| base + index));
 }
 
-fn model_to_local(mut point: [f32;3], pivot: [f32;3], rotation: [f32;3]) -> [f32;3] {
+fn model_to_local(mut point: [f32; 3], pivot: [f32; 3], rotation: [f32; 3]) -> [f32; 3] {
     point = rotate_x(point, rotation[0]);
     point = rotate_y(point, rotation[1]);
     point = rotate_z(point, rotation[2]);
@@ -384,30 +401,61 @@ fn model_to_local(mut point: [f32;3], pivot: [f32;3], rotation: [f32;3]) -> [f32
     ]
 }
 
-fn model_to_world(mut point: [f32;3], pivot: [f32;3], rotation: [f32;3], position: [f32;3], bodyYaw: f32, sneaking: bool) -> [f32;3] {
+fn model_to_world(
+    mut point: [f32; 3],
+    pivot: [f32; 3],
+    rotation: [f32; 3],
+    position: [f32; 3],
+    bodyYaw: f32,
+    sneaking: bool,
+) -> [f32; 3] {
     point = rotate_x(point, rotation[0]);
     point = rotate_y(point, rotation[1]);
     point = rotate_z(point, rotation[2]);
-    point[0] += pivot[0]; point[1] += pivot[1]; point[2] += pivot[2];
+    point[0] += pivot[0];
+    point[1] += pivot[1];
+    point[2] += pivot[2];
     // `RenderLivingBase.prepareScale` + `RenderPlayer.preRenderCallback`.
     let scale = 0.0625 * 0.9375;
-    let mut local = [-point[0]*scale, 1.501*0.9375-point[1]*scale, point[2]*scale];
+    let mut local = [
+        -point[0] * scale,
+        1.501 * 0.9375 - point[1] * scale,
+        point[2] * scale,
+    ];
     if sneaking {
         // `RenderPlayer.doRender` lowers the entity origin by 0.125 blocks,
         // then both ModelBiped and the wear-layer pass translate by 0.2 in
         // model space under the inverted 0.9375 living-model scale.
         local[1] -= 0.125 + 0.2 * 0.9375;
     }
-    let yaw = (180.0-bodyYaw).to_radians();
-    let x = local[0]*yaw.cos()+local[2]*yaw.sin();
-    let z = -local[0]*yaw.sin()+local[2]*yaw.cos();
-    [position[0]+x,position[1]+local[1],position[2]+z]
+    let yaw = (180.0 - bodyYaw).to_radians();
+    let x = local[0] * yaw.cos() + local[2] * yaw.sin();
+    let z = -local[0] * yaw.sin() + local[2] * yaw.cos();
+    [position[0] + x, position[1] + local[1], position[2] + z]
 }
 
-fn rotate_x(p:[f32;3],a:f32)->[f32;3]{let(c,s)=(a.cos(),a.sin());[p[0],p[1]*c-p[2]*s,p[1]*s+p[2]*c]}
-fn rotate_y(p:[f32;3],a:f32)->[f32;3]{let(c,s)=(a.cos(),a.sin());[p[0]*c+p[2]*s,p[1],-p[0]*s+p[2]*c]}
-fn rotate_z(p:[f32;3],a:f32)->[f32;3]{let(c,s)=(a.cos(),a.sin());[p[0]*c-p[1]*s,p[0]*s+p[1]*c,p[2]]}
-fn wrap_degrees(mut value:f32)->f32{value%=360.0;if value>=180.0{value-=360.0;}if value< -180.0{value+=360.0;}value}
+fn rotate_x(p: [f32; 3], a: f32) -> [f32; 3] {
+    let (c, s) = (a.cos(), a.sin());
+    [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c]
+}
+fn rotate_y(p: [f32; 3], a: f32) -> [f32; 3] {
+    let (c, s) = (a.cos(), a.sin());
+    [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]
+}
+fn rotate_z(p: [f32; 3], a: f32) -> [f32; 3] {
+    let (c, s) = (a.cos(), a.sin());
+    [p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]]
+}
+fn wrap_degrees(mut value: f32) -> f32 {
+    value %= 360.0;
+    if value >= 180.0 {
+        value -= 360.0;
+    }
+    if value < -180.0 {
+        value += 360.0;
+    }
+    value
+}
 
 #[cfg(test)]
 mod tests {
@@ -484,7 +532,6 @@ mod tests {
         assert!(((standing[1] - sneaking[1]) - 0.3125).abs() < 1.0e-6);
     }
 
-
     #[test]
     fn precomputed_player_local_transform_matches_legacy_path() {
         let spec = ModelBoxSpec {
@@ -521,7 +568,14 @@ mod tests {
         };
         let point = [-1.4, 2.1, 0.6];
         let position = [21.0, 70.0, -13.5];
-        let expected = model_to_world(point, spec.pose.pivot, spec.pose.rotation, position, 73.0, true);
+        let expected = model_to_world(
+            point,
+            spec.pose.pivot,
+            spec.pose.rotation,
+            position,
+            73.0,
+            true,
+        );
         let actual = PlayerWorldBoxTransform::new(spec, position, 73.0, true).apply(point);
         for axis in 0..3 {
             assert!((actual[axis] - expected[axis]).abs() < 1.0e-5);
@@ -534,50 +588,37 @@ mod tests {
         assert_eq!(cape.vertices.len(), 24);
         assert_eq!(cape.indices.len(), 36);
         assert!(cape.vertices.iter().all(|vertex| {
-            (0.0..=1.0).contains(&vertex.uv[0])
-                && (0.0..=1.0).contains(&vertex.uv[1])
+            (0.0..=1.0).contains(&vertex.uv[0]) && (0.0..=1.0).contains(&vertex.uv[1])
         }));
-        assert!(cape.vertices.iter().any(|vertex| (vertex.uv[1] - 0.5625).abs() < 1.0e-6));
+        assert!(cape
+            .vertices
+            .iter()
+            .any(|vertex| (vertex.uv[1] - 0.5625).abs() < 1.0e-6));
     }
 
     #[test]
     fn first_person_arm_mesh_contains_base_and_enabled_sleeve() {
-        let base = RenderPlayer::buildFirstPersonArmMesh(
-            false, EnumHandSide::Right, 0,
-        );
-        let withSleeve = RenderPlayer::buildFirstPersonArmMesh(
-            false, EnumHandSide::Right, 0x08,
-        );
+        let base = RenderPlayer::buildFirstPersonArmMesh(false, EnumHandSide::Right, 0);
+        let withSleeve = RenderPlayer::buildFirstPersonArmMesh(false, EnumHandSide::Right, 0x08);
         assert_eq!(base.indices.len(), 36);
         assert_eq!(withSleeve.indices.len(), 72);
         assert!(withSleeve.vertices.iter().all(|vertex| {
-            vertex.uv[0] >= 0.0 && vertex.uv[0] <= 1.0
-                && vertex.uv[1] >= 0.0 && vertex.uv[1] <= 1.0
+            vertex.uv[0] >= 0.0 && vertex.uv[0] <= 1.0 && vertex.uv[1] >= 0.0 && vertex.uv[1] <= 1.0
         }));
     }
 
     #[test]
     fn elytra_corpse_pitch_reaches_vanilla_ninety_degree_pose() {
-        let rotation = RenderPlayer::elytraCorpseRotation(
-            10,
-            0.0,
-            0.0,
-            [0.0, 0.0, 1.0],
-            [0.0, 0.0, 1.0],
-        );
+        let rotation =
+            RenderPlayer::elytraCorpseRotation(10, 0.0, 0.0, [0.0, 0.0, 1.0], [0.0, 0.0, 1.0]);
         assert!((rotation.pitchDegrees + 90.0).abs() < 1.0e-6);
         assert!(rotation.yawDegrees.abs() < 1.0e-6);
     }
 
     #[test]
     fn elytra_corpse_yaw_uses_vanilla_cross_product_sign() {
-        let rotation = RenderPlayer::elytraCorpseRotation(
-            10,
-            0.0,
-            0.0,
-            [0.0, 0.0, 1.0],
-            [1.0, 0.0, 0.0],
-        );
+        let rotation =
+            RenderPlayer::elytraCorpseRotation(10, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]);
         assert!((rotation.yawDegrees - 90.0).abs() < 1.0e-5);
     }
 }

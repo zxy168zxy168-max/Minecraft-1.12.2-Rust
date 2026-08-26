@@ -74,12 +74,16 @@ impl NBTBase {
             Self::Compound(value) => value.write(output),
             Self::IntArray(values) => {
                 writeLength(output, values.len())?;
-                for value in values { output.write_i32::<BigEndian>(*value)?; }
+                for value in values {
+                    output.write_i32::<BigEndian>(*value)?;
+                }
                 Ok(())
             }
             Self::LongArray(values) => {
                 writeLength(output, values.len())?;
-                for value in values { output.write_i64::<BigEndian>(*value)?; }
+                for value in values {
+                    output.write_i64::<BigEndian>(*value)?;
+                }
                 Ok(())
             }
         }
@@ -87,7 +91,10 @@ impl NBTBase {
 
     pub fn readPayload<R: Read>(tagId: u8, input: &mut R, depth: usize) -> io::Result<Self> {
         if depth > 512 {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "Tried to read NBT tag with too high complexity, depth > 512"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Tried to read NBT tag with too high complexity, depth > 512",
+            ));
         }
         Ok(match tagId {
             TAG_END => Self::End,
@@ -109,28 +116,43 @@ impl NBTBase {
             TAG_INT_ARRAY => {
                 let length = readLength(input)?;
                 let mut values = Vec::with_capacity(length);
-                for _ in 0..length { values.push(input.read_i32::<BigEndian>()?); }
+                for _ in 0..length {
+                    values.push(input.read_i32::<BigEndian>()?);
+                }
                 Self::IntArray(values)
             }
             TAG_LONG_ARRAY => {
                 let length = readLength(input)?;
                 let mut values = Vec::with_capacity(length);
-                for _ in 0..length { values.push(input.read_i64::<BigEndian>()?); }
+                for _ in 0..length {
+                    values.push(input.read_i64::<BigEndian>()?);
+                }
                 Self::LongArray(values)
             }
-            other => return Err(io::Error::new(io::ErrorKind::InvalidData, format!("Invalid NBT tag id {other}"))),
+            other => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Invalid NBT tag id {other}"),
+                ))
+            }
         })
     }
 }
 
 fn writeLength<W: Write>(output: &mut W, length: usize) -> io::Result<()> {
-    let length = i32::try_from(length).map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "NBT collection is too large"))?;
+    let length = i32::try_from(length)
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "NBT collection is too large"))?;
     output.write_i32::<BigEndian>(length)
 }
 
 fn readLength<R: Read>(input: &mut R) -> io::Result<usize> {
     let length = input.read_i32::<BigEndian>()?;
-    if length < 0 { return Err(io::Error::new(io::ErrorKind::InvalidData, "Negative NBT collection length")); }
+    if length < 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Negative NBT collection length",
+        ));
+    }
     Ok(length as usize)
 }
 
@@ -151,7 +173,12 @@ pub fn writeJavaUtf<W: Write>(output: &mut W, value: &str) -> io::Result<()> {
             }
         }
     }
-    let length = u16::try_from(encoded.len()).map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "encoded string too long: more than 65535 bytes"))?;
+    let length = u16::try_from(encoded.len()).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "encoded string too long: more than 65535 bytes",
+        )
+    })?;
     output.write_u16::<BigEndian>(length)?;
     output.write_all(&encoded)
 }
@@ -165,32 +192,69 @@ pub fn readJavaUtf<R: Read>(input: &mut R) -> io::Result<String> {
     while index < bytes.len() {
         let first = bytes[index];
         if first & 0x80 == 0 {
-            if first == 0 { return Err(io::Error::new(io::ErrorKind::InvalidData, "NUL byte is invalid in modified UTF-8")); }
+            if first == 0 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "NUL byte is invalid in modified UTF-8",
+                ));
+            }
             units.push(first as u16);
             index += 1;
         } else if first & 0xE0 == 0xC0 {
-            if index + 1 >= bytes.len() { return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "truncated modified UTF-8 sequence")); }
+            if index + 1 >= bytes.len() {
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "truncated modified UTF-8 sequence",
+                ));
+            }
             let second = bytes[index + 1];
-            if second & 0xC0 != 0x80 { return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid modified UTF-8 continuation byte")); }
+            if second & 0xC0 != 0x80 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "invalid modified UTF-8 continuation byte",
+                ));
+            }
             units.push((((first & 0x1F) as u16) << 6) | ((second & 0x3F) as u16));
             index += 2;
         } else if first & 0xF0 == 0xE0 {
-            if index + 2 >= bytes.len() { return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "truncated modified UTF-8 sequence")); }
+            if index + 2 >= bytes.len() {
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "truncated modified UTF-8 sequence",
+                ));
+            }
             let second = bytes[index + 1];
             let third = bytes[index + 2];
             if second & 0xC0 != 0x80 || third & 0xC0 != 0x80 {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid modified UTF-8 continuation byte"));
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "invalid modified UTF-8 continuation byte",
+                ));
             }
-            units.push((((first & 0x0F) as u16) << 12) | (((second & 0x3F) as u16) << 6) | ((third & 0x3F) as u16));
+            units.push(
+                (((first & 0x0F) as u16) << 12)
+                    | (((second & 0x3F) as u16) << 6)
+                    | ((third & 0x3F) as u16),
+            );
             index += 3;
         } else {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid modified UTF-8 leading byte"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "invalid modified UTF-8 leading byte",
+            ));
         }
     }
-    String::from_utf16(&units).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid UTF-16 sequence in modified UTF-8 string"))
+    String::from_utf16(&units).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            "invalid UTF-16 sequence in modified UTF-8 string",
+        )
+    })
 }
 
-pub(crate) fn emptyCompoundMap() -> BTreeMap<String, NBTBase> { BTreeMap::new() }
+pub(crate) fn emptyCompoundMap() -> BTreeMap<String, NBTBase> {
+    BTreeMap::new()
+}
 
 #[cfg(test)]
 mod tests {

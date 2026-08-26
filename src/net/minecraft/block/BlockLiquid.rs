@@ -1,9 +1,9 @@
-use crate::net::minecraft::block::BlockStairs;
 use crate::net::minecraft::block::state::BlockFaceShape::BlockFaceShape;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
+use crate::net::minecraft::block::BlockStairs;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::math::Vec3d::Vec3d;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 /// Rust identity for the two MCP `MaterialLiquid` instances used by
@@ -25,8 +25,10 @@ impl LiquidMaterial {
     }
 
     pub const fn contains(self, state: IBlockState) -> bool {
-        matches!((self, state.getBlockId()),
-            (Self::Water, 8 | 9) | (Self::Lava, 10 | 11))
+        matches!(
+            (self, state.getBlockId()),
+            (Self::Water, 8 | 9) | (Self::Lava, 10 | 11)
+        )
     }
 }
 
@@ -47,12 +49,20 @@ pub fn getLiquidHeightPercent(mut level: i32) -> f32 {
 }
 
 pub fn getDepth(state: IBlockState, material: LiquidMaterial) -> i32 {
-    if material.contains(state) { getLevel(state) } else { -1 }
+    if material.contains(state) {
+        getLevel(state)
+    } else {
+        -1
+    }
 }
 
 pub fn getRenderedDepth(state: IBlockState, material: LiquidMaterial) -> i32 {
     let depth = getDepth(state, material);
-    if depth >= 8 { 0 } else { depth }
+    if depth >= 8 {
+        0
+    } else {
+        depth
+    }
 }
 
 /// `Material#blocksMovement` bridge needed by the flow-gradient calculation.
@@ -86,11 +96,7 @@ fn isBlockSolid<A: IBlockAccess>(
 }
 
 /// Direct port of `BlockLiquid#getFlow` over the protocol-global state IDs.
-pub fn getFlow<A: IBlockAccess>(
-    world: &A,
-    pos: BlockPos,
-    state: IBlockState,
-) -> Vec3d {
+pub fn getFlow<A: IBlockAccess>(world: &A, pos: BlockPos, state: IBlockState) -> Vec3d {
     let Some(material) = LiquidMaterial::fromState(state) else {
         return Vec3d::ZERO;
     };
@@ -148,11 +154,7 @@ pub fn getFlow<A: IBlockAccess>(
 }
 
 /// Direct port of `BlockLiquid#getSlopeAngle`.
-pub fn getSlopeAngle<A: IBlockAccess>(
-    world: &A,
-    pos: BlockPos,
-    state: IBlockState,
-) -> f32 {
+pub fn getSlopeAngle<A: IBlockAccess>(world: &A, pos: BlockPos, state: IBlockState) -> f32 {
     let flow = getFlow(world, pos, state);
     if flow.x == 0.0 && flow.z == 0.0 {
         -1000.0
@@ -163,11 +165,7 @@ pub fn getSlopeAngle<A: IBlockAccess>(
 
 /// Direct port of `BlockLiquid#func_190973_f`, the occupied fraction used for
 /// eye-submersion and fluid-volume tests.
-pub fn getFilledPercentage<A: IBlockAccess>(
-    state: IBlockState,
-    world: &A,
-    pos: BlockPos,
-) -> f32 {
+pub fn getFilledPercentage<A: IBlockAccess>(state: IBlockState, world: &A, pos: BlockPos) -> f32 {
     let level = getLevel(state);
     if level & 7 == 0
         && LiquidMaterial::fromState(state) == Some(LiquidMaterial::Water)
@@ -181,8 +179,8 @@ pub fn getFilledPercentage<A: IBlockAccess>(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     struct Access(HashMap<BlockPos, IBlockState>);
     impl IBlockAccess for Access {
@@ -204,7 +202,11 @@ mod tests {
         let mut states = HashMap::new();
         states.insert(origin, IBlockState::fromGlobalStateId((8 << 4) | 1));
         states.insert(origin.east(1), IBlockState::fromGlobalStateId((8 << 4) | 4));
-        let flow = getFlow(&Access(states), origin, IBlockState::fromGlobalStateId((8 << 4) | 1));
+        let flow = getFlow(
+            &Access(states),
+            origin,
+            IBlockState::fromGlobalStateId((8 << 4) | 1),
+        );
         assert!(flow.x > 0.99);
         assert!(flow.z.abs() < 1.0e-6);
     }

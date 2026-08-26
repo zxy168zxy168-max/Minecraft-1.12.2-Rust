@@ -556,11 +556,18 @@ pub struct SoundEvent;
 
 impl SoundEvent {
     pub fn getById(id: i32) -> Option<ResourceLocation> {
-        SOUND_EVENT_NAMES.get(usize::try_from(id).ok()?).map(ResourceLocation::parse)
+        SOUND_EVENT_NAMES
+            .get(usize::try_from(id).ok()?)
+            .map(ResourceLocation::parse)
     }
     pub fn getId(location: &ResourceLocation) -> Option<i32> {
-        if location.getNamespace() != "minecraft" { return None; }
-        SOUND_EVENT_NAMES.iter().position(|name| *name == location.getPath()).map(|index| index as i32)
+        if location.getNamespace() != "minecraft" {
+            return None;
+        }
+        SOUND_EVENT_NAMES
+            .iter()
+            .position(|name| *name == location.getPath())
+            .map(|index| index as i32)
     }
 }
 

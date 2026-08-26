@@ -1,4 +1,5 @@
-#[path = "GameProfile.rs"] pub mod GameProfile;
+#[path = "GameProfile.rs"]
+pub mod GameProfile;
 
 pub mod minecraft;
 

@@ -4,14 +4,16 @@ use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 pub struct RenderSheep;
 
 impl RenderSheep {
-    pub fn supports(entityType: MobEntityType) -> bool { entityType.registryName == "sheep" }
-    pub fn texture() -> ResourceLocation { ResourceLocation::new("minecraft", "textures/entity/sheep/sheep.png") }
+    pub fn supports(entityType: MobEntityType) -> bool {
+        entityType.registryName == "sheep"
+    }
+    pub fn texture() -> ResourceLocation {
+        ResourceLocation::new("minecraft", "textures/entity/sheep/sheep.png")
+    }
     pub fn woolColor(metadata: u8) -> [f32; 4] {
         const COLORS: [u32; 16] = [
-            0xF9FFFE, 0xF9801D, 0xC74EBD, 0x3AB3DA,
-            0xFED83D, 0x80C71F, 0xF38BAA, 0x474F52,
-            0x9D9D97, 0x169C9C, 0x8932B8, 0x3C44AA,
-            0x835432, 0x5E7C16, 0xB02E26, 0x1D1D21,
+            0xF9FFFE, 0xF9801D, 0xC74EBD, 0x3AB3DA, 0xFED83D, 0x80C71F, 0xF38BAA, 0x474F52,
+            0x9D9D97, 0x169C9C, 0x8932B8, 0x3C44AA, 0x835432, 0x5E7C16, 0xB02E26, 0x1D1D21,
         ];
         let rgb = COLORS.get(metadata as usize).copied().unwrap_or(COLORS[0]);
         if metadata == 0 {

@@ -18,9 +18,33 @@ impl BlockFire {
     pub const fn canCatchFire(state: IBlockState) -> bool {
         matches!(
             state.getBlockId(),
-            5 | 17 | 18 | 31 | 32 | 35 | 37 | 38 | 46 | 47 | 53 | 85 | 106 | 107
-                | 125 | 126 | 134 | 135 | 136 | 161 | 162 | 163 | 164 | 170 | 171
-                | 173 | 175 | 183..=192
+            5 | 17
+                | 18
+                | 31
+                | 32
+                | 35
+                | 37
+                | 38
+                | 46
+                | 47
+                | 53
+                | 85
+                | 106
+                | 107
+                | 125
+                | 126
+                | 134
+                | 135
+                | 136
+                | 161
+                | 162
+                | 163
+                | 164
+                | 170
+                | 171
+                | 173
+                | 175
+                | 183..=192
         )
     }
 
@@ -32,11 +56,21 @@ impl BlockFire {
             return 0;
         }
         let mut mask = 0_u8;
-        if Self::canCatchFire(world.getBlockState(pos.north(1))) { mask |= 1; }
-        if Self::canCatchFire(world.getBlockState(pos.east(1))) { mask |= 2; }
-        if Self::canCatchFire(world.getBlockState(pos.south(1))) { mask |= 4; }
-        if Self::canCatchFire(world.getBlockState(pos.west(1))) { mask |= 8; }
-        if Self::canCatchFire(world.getBlockState(pos.up(1))) { mask |= 16; }
+        if Self::canCatchFire(world.getBlockState(pos.north(1))) {
+            mask |= 1;
+        }
+        if Self::canCatchFire(world.getBlockState(pos.east(1))) {
+            mask |= 2;
+        }
+        if Self::canCatchFire(world.getBlockState(pos.south(1))) {
+            mask |= 4;
+        }
+        if Self::canCatchFire(world.getBlockState(pos.west(1))) {
+            mask |= 8;
+        }
+        if Self::canCatchFire(world.getBlockState(pos.up(1))) {
+            mask |= 16;
+        }
         mask
     }
 
@@ -48,7 +82,12 @@ impl BlockFire {
         let upper = mask & 16 != 0;
         format!(
             "age={},east={},north={},south={},up={},west={}",
-            age.clamp(0, 15), east, north, south, upper, west,
+            age.clamp(0, 15),
+            east,
+            north,
+            south,
+            upper,
+            west,
         )
     }
 }
@@ -59,8 +98,14 @@ mod tests {
 
     #[test]
     fn flammability_registry_matches_vanilla_examples() {
-        assert!(BlockFire::canCatchFire(IBlockState::fromGlobalStateId(5 << 4)));
-        assert!(BlockFire::canCatchFire(IBlockState::fromGlobalStateId(46 << 4)));
-        assert!(!BlockFire::canCatchFire(IBlockState::fromGlobalStateId(1 << 4)));
+        assert!(BlockFire::canCatchFire(IBlockState::fromGlobalStateId(
+            5 << 4
+        )));
+        assert!(BlockFire::canCatchFire(IBlockState::fromGlobalStateId(
+            46 << 4
+        )));
+        assert!(!BlockFire::canCatchFire(IBlockState::fromGlobalStateId(
+            1 << 4
+        )));
     }
 }

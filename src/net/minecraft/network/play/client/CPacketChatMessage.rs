@@ -20,7 +20,9 @@ impl CPacketChatMessage {
         Ok(RawPacket::new(0x02, payload))
     }
 
-    pub fn getMessage(&self) -> &str { &self.message }
+    pub fn getMessage(&self) -> &str {
+        &self.message
+    }
 }
 
 fn truncate_utf16(value: &str, maximum: usize) -> String {

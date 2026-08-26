@@ -4,12 +4,12 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::compat::Java::JavaRandom;
+use crate::net::minecraft::client::audio::PositionedSoundRecord::PositionedSoundRecord;
 use crate::net::minecraft::client::audio::Sound::{Sound, Type};
 use crate::net::minecraft::client::audio::SoundEventAccessor::SoundEventAccessor;
 use crate::net::minecraft::client::audio::SoundList::SoundList;
-use crate::net::minecraft::client::audio::SoundRegistry::SoundRegistry;
 use crate::net::minecraft::client::audio::SoundManager::SoundManager;
-use crate::net::minecraft::client::audio::PositionedSoundRecord::PositionedSoundRecord;
+use crate::net::minecraft::client::audio::SoundRegistry::SoundRegistry;
 use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::{
     ResourceManager, ResourceManagerError,
 };
@@ -19,7 +19,11 @@ use crate::net::minecraft::util::SoundCategory::SoundCategory;
 #[derive(Debug, Error)]
 pub enum SoundHandlerError {
     #[error("invalid sounds.json in {pack} ({location}): {message}")]
-    InvalidSoundsJson { pack: String, location: ResourceLocation, message: String },
+    InvalidSoundsJson {
+        pack: String,
+        location: ResourceLocation,
+        message: String,
+    },
 }
 
 /// Resource registration half of MCP 1.12.2 `SoundHandler`.
@@ -45,8 +49,10 @@ pub struct SoundHandler {
 
 impl SoundHandler {
     pub fn new(manager: ResourceManager) -> Self {
-        let seed = SystemTime::now().duration_since(UNIX_EPOCH)
-            .unwrap_or_default().as_nanos() as i64;
+        let seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as i64;
         let mut handler = Self {
             soundRegistry: SoundRegistry::default(),
             mcResourceManager: manager,
@@ -66,7 +72,11 @@ impl SoundHandler {
 
     pub fn onResourceManagerReload(&mut self) {
         self.soundRegistry.clearMap();
-        let mut domains = self.mcResourceManager.get_resource_domains().into_iter().collect::<Vec<_>>();
+        let mut domains = self
+            .mcResourceManager
+            .get_resource_domains()
+            .into_iter()
+            .collect::<Vec<_>>();
         // The Java Set has no semantic ordering. Sorting makes tests and logs
         // deterministic without changing per-domain resource-pack precedence.
         domains.sort();
@@ -117,7 +127,9 @@ impl SoundHandler {
 
         for sound in sounds.getSounds() {
             if sound.getType() == Type::File
-                && !self.mcResourceManager.resource_exists(&sound.getSoundAsOggLocation())
+                && !self
+                    .mcResourceManager
+                    .resource_exists(&sound.getSoundAsOggLocation())
             {
                 log::warn!(
                     "File {} does not exist, cannot add it to event {}",
@@ -131,7 +143,6 @@ impl SoundHandler {
             }
         }
     }
-
 
     pub fn playSound(&mut self, sound: PositionedSoundRecord) -> Option<u64> {
         let Some(accessor) = self.soundRegistry.getObject(&sound.positionedSoundLocation) else {
@@ -168,12 +179,8 @@ impl SoundHandler {
                 return None;
             }
         };
-        self.sndManager.playResolvedSound(
-            sound,
-            resolved,
-            resource.bytes,
-            &self.soundLevels,
-        )
+        self.sndManager
+            .playResolvedSound(sound, resolved, resource.bytes, &self.soundLevels)
     }
 
     pub fn updateSoundChannel(
@@ -184,7 +191,8 @@ impl SoundHandler {
         pitch: f32,
     ) {
         self.sndManager.setSoundPosition(channel, position);
-        self.sndManager.setSoundVolumePitch(channel, volume, pitch, &self.soundLevels);
+        self.sndManager
+            .setSoundVolumePitch(channel, volume, pitch, &self.soundLevels);
     }
 
     pub fn stopChannel(&mut self, channel: u64) {
@@ -206,13 +214,9 @@ impl SoundHandler {
         }
     }
 
-    pub fn setListener(
-        &mut self,
-        position: [f32; 3],
-        rotationYaw: f32,
-        rotationPitch: f32,
-    ) {
-        self.sndManager.setListener(position, rotationYaw, rotationPitch);
+    pub fn setListener(&mut self, position: [f32; 3], rotationYaw: f32, rotationPitch: f32) {
+        self.sndManager
+            .setListener(position, rotationYaw, rotationPitch);
     }
 
     pub fn setSoundLevel(&mut self, category: SoundCategory, volume: f32) {
@@ -262,7 +266,9 @@ impl SoundHandler {
         std::mem::take(&mut self.pendingSoundEvents)
     }
 
-    pub fn soundManager(&self) -> &SoundManager { &self.sndManager }
+    pub fn soundManager(&self) -> &SoundManager {
+        &self.sndManager
+    }
 
     pub fn getAccessor(&self, location: &ResourceLocation) -> Option<&SoundEventAccessor> {
         self.soundRegistry.getObject(location)
@@ -277,28 +283,44 @@ impl SoundHandler {
             .unwrap_or_else(Sound::missing)
     }
 
-    pub fn registry(&self) -> &SoundRegistry { &self.soundRegistry }
-    pub fn resourceManager(&self) -> &ResourceManager { &self.mcResourceManager }
+    pub fn registry(&self) -> &SoundRegistry {
+        &self.soundRegistry
+    }
+    pub fn resourceManager(&self) -> &ResourceManager {
+        &self.mcResourceManager
+    }
 }
 
 fn parse_sound_map(bytes: &[u8]) -> Result<Vec<(String, SoundList)>, String> {
     let value: Value = serde_json::from_slice(bytes).map_err(|error| error.to_string())?;
-    let object = value.as_object().ok_or_else(|| "sounds.json root must be an object".to_owned())?;
-    object.iter().map(|(name, value)| {
-        SoundList::fromJson(value).map(|list| (name.clone(), list))
-            .map_err(|message| format!("event {name}: {message}"))
-    }).collect()
+    let object = value
+        .as_object()
+        .ok_or_else(|| "sounds.json root must be an object".to_owned())?;
+    object
+        .iter()
+        .map(|(name, value)| {
+            SoundList::fromJson(value)
+                .map(|list| (name.clone(), list))
+                .map_err(|message| format!("event {name}: {message}"))
+        })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, time::{SystemTime, UNIX_EPOCH}};
+    use std::{
+        fs,
+        time::{SystemTime, UNIX_EPOCH},
+    };
 
     fn temp_assets() -> std::path::PathBuf {
         let path = std::env::temp_dir().join(format!(
             "mc112-sounds-{}",
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
         ));
         fs::create_dir_all(path.join("minecraft/sounds/test")).unwrap();
         path
@@ -309,19 +331,29 @@ mod tests {
         let base = temp_assets();
         let overlay = temp_assets();
         fs::write(base.join("minecraft/sounds/test/base.ogg"), b"ogg").unwrap();
-        fs::write(base.join("minecraft/sounds.json"), br#"{
+        fs::write(
+            base.join("minecraft/sounds.json"),
+            br#"{
             "test.event":{"subtitle":"subtitles.test","sounds":["test/base"]}
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         fs::write(overlay.join("minecraft/sounds/test/overlay.ogg"), b"ogg").unwrap();
-        fs::write(overlay.join("minecraft/sounds.json"), br#"{
+        fs::write(
+            overlay.join("minecraft/sounds.json"),
+            br#"{
             "test.event":{"sounds":["test/overlay"]}
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let mut manager = ResourceManager::new();
         manager.add_directory_pack("base", &base);
         manager.add_directory_pack("overlay", &overlay);
         let handler = SoundHandler::new(manager);
-        let accessor = handler.getAccessor(&ResourceLocation::parse("minecraft:test.event")).unwrap();
+        let accessor = handler
+            .getAccessor(&ResourceLocation::parse("minecraft:test.event"))
+            .unwrap();
         assert_eq!(accessor.sounds().len(), 2);
         assert_eq!(accessor.getSubtitle(), Some("subtitles.test"));
 
@@ -334,21 +366,34 @@ mod tests {
         let base = temp_assets();
         let overlay = temp_assets();
         fs::write(base.join("minecraft/sounds/test/base.ogg"), b"ogg").unwrap();
-        fs::write(base.join("minecraft/sounds.json"), br#"{
+        fs::write(
+            base.join("minecraft/sounds.json"),
+            br#"{
             "test.event":{"sounds":["test/base"]}
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         fs::write(overlay.join("minecraft/sounds/test/overlay.ogg"), b"ogg").unwrap();
-        fs::write(overlay.join("minecraft/sounds.json"), br#"{
+        fs::write(
+            overlay.join("minecraft/sounds.json"),
+            br#"{
             "test.event":{"replace":true,"sounds":["test/overlay"]}
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         let mut manager = ResourceManager::new();
         manager.add_directory_pack("base", &base);
         manager.add_directory_pack("overlay", &overlay);
         let handler = SoundHandler::new(manager);
-        let accessor = handler.getAccessor(&ResourceLocation::parse("minecraft:test.event")).unwrap();
+        let accessor = handler
+            .getAccessor(&ResourceLocation::parse("minecraft:test.event"))
+            .unwrap();
         assert_eq!(accessor.sounds().len(), 1);
-        assert_eq!(accessor.sounds()[0].getSoundLocation().to_string(), "minecraft:test/overlay");
+        assert_eq!(
+            accessor.sounds()[0].getSoundLocation().to_string(),
+            "minecraft:test/overlay"
+        );
 
         let _ = fs::remove_dir_all(base);
         let _ = fs::remove_dir_all(overlay);

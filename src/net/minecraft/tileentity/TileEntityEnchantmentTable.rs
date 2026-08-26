@@ -46,10 +46,7 @@ impl TileEntityEnchantmentTable {
 
     pub fn fromNbt(tag: &NBTTagCompound) -> Option<Self> {
         let id = tag.getString("id");
-        if !id.is_empty()
-            && id != "minecraft:enchanting_table"
-            && id != "EnchantTable"
-        {
+        if !id.is_empty() && id != "minecraft:enchanting_table" && id != "EnchantTable" {
             return None;
         }
         let mut tile = Self::new(BlockPos::new(
@@ -89,13 +86,13 @@ impl TileEntityEnchantmentTable {
             self.tRot = d1.atan2(d0) as f32;
             self.bookSpread += 0.1;
 
-            let chooseNewPage = self.bookSpread < 0.5 || with_random(|random| random.next_i32_bound(40) == 0);
+            let chooseNewPage =
+                self.bookSpread < 0.5 || with_random(|random| random.next_i32_bound(40) == 0);
             if chooseNewPage {
                 let previousTarget = self.flipT;
                 loop {
-                    let delta = with_random(|random| {
-                        random.next_i32_bound(4) - random.next_i32_bound(4)
-                    });
+                    let delta =
+                        with_random(|random| random.next_i32_bound(4) - random.next_i32_bound(4));
                     self.flipT += delta as f32;
                     if previousTarget != self.flipT {
                         break;
@@ -140,7 +137,9 @@ impl TileEntityEnchantmentTable {
     }
 
     pub fn hasCustomName(&self) -> bool {
-        self.customName.as_ref().is_some_and(|name| !name.is_empty())
+        self.customName
+            .as_ref()
+            .is_some_and(|name| !name.is_empty())
     }
 
     pub fn getName(&self) -> &str {

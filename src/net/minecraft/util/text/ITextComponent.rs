@@ -21,7 +21,11 @@ pub struct ITextComponent {
 impl ITextComponent {
     pub fn fromPlainText(text: impl Into<String>) -> Self {
         let text = text.into();
-        Self { formattedText: text.clone(), unformattedText: text, rawJson: None }
+        Self {
+            formattedText: text.clone(),
+            unformattedText: text,
+            rawJson: None,
+        }
     }
 
     pub fn fromJsonLenient(json: &str) -> Result<Self, TextComponentError> {
@@ -34,7 +38,13 @@ impl ITextComponent {
     pub fn fromValue(value: &Value) -> Result<Self, TextComponentError> {
         let mut formatted = String::new();
         let mut unformatted = String::new();
-        append_component(value, &mut formatted, &mut unformatted, TextStyle::default(), None)?;
+        append_component(
+            value,
+            &mut formatted,
+            &mut unformatted,
+            TextStyle::default(),
+            None,
+        )?;
         Ok(Self {
             formattedText: formatted,
             unformattedText: unformatted,
@@ -42,18 +52,38 @@ impl ITextComponent {
         })
     }
 
-    pub fn getFormattedText(&self) -> &str { &self.formattedText }
-    pub fn getUnformattedText(&self) -> &str { &self.unformattedText }
+    pub fn getFormattedText(&self) -> &str {
+        &self.formattedText
+    }
+    pub fn getUnformattedText(&self) -> &str {
+        &self.unformattedText
+    }
 
     pub fn resolveWithLocale(&self, locale: &Locale) -> Self {
-        let Some(raw) = self.rawJson.as_deref() else { return self.clone(); };
-        let Ok(value) = serde_json::from_str::<Value>(raw) else { return self.clone(); };
+        let Some(raw) = self.rawJson.as_deref() else {
+            return self.clone();
+        };
+        let Ok(value) = serde_json::from_str::<Value>(raw) else {
+            return self.clone();
+        };
         let mut formatted = String::new();
         let mut unformatted = String::new();
-        if append_component(&value, &mut formatted, &mut unformatted, TextStyle::default(), Some(locale)).is_err() {
+        if append_component(
+            &value,
+            &mut formatted,
+            &mut unformatted,
+            TextStyle::default(),
+            Some(locale),
+        )
+        .is_err()
+        {
             return self.clone();
         }
-        Self { formattedText: formatted, unformattedText: unformatted, rawJson: self.rawJson.clone() }
+        Self {
+            formattedText: formatted,
+            unformattedText: unformatted,
+            rawJson: self.rawJson.clone(),
+        }
     }
 }
 
@@ -70,28 +100,62 @@ struct TextStyle {
 impl TextStyle {
     fn resolve(object: &serde_json::Map<String, Value>, inherited: Self) -> Self {
         Self {
-            color: object.get("color").and_then(Value::as_str).and_then(color_code).or(inherited.color),
-            bold: object.get("bold").and_then(Value::as_bool).unwrap_or(inherited.bold),
-            italic: object.get("italic").and_then(Value::as_bool).unwrap_or(inherited.italic),
-            underlined: object.get("underlined").and_then(Value::as_bool).unwrap_or(inherited.underlined),
-            strikethrough: object.get("strikethrough").and_then(Value::as_bool).unwrap_or(inherited.strikethrough),
-            obfuscated: object.get("obfuscated").and_then(Value::as_bool).unwrap_or(inherited.obfuscated),
+            color: object
+                .get("color")
+                .and_then(Value::as_str)
+                .and_then(color_code)
+                .or(inherited.color),
+            bold: object
+                .get("bold")
+                .and_then(Value::as_bool)
+                .unwrap_or(inherited.bold),
+            italic: object
+                .get("italic")
+                .and_then(Value::as_bool)
+                .unwrap_or(inherited.italic),
+            underlined: object
+                .get("underlined")
+                .and_then(Value::as_bool)
+                .unwrap_or(inherited.underlined),
+            strikethrough: object
+                .get("strikethrough")
+                .and_then(Value::as_bool)
+                .unwrap_or(inherited.strikethrough),
+            obfuscated: object
+                .get("obfuscated")
+                .and_then(Value::as_bool)
+                .unwrap_or(inherited.obfuscated),
         }
     }
 
     fn append_transition(from: Self, to: Self, output: &mut String) {
-        if from == to { return; }
+        if from == to {
+            return;
+        }
         // A reset followed by the complete effective target style is the only
         // formatting-code representation that can express JSON `false`
         // overriding an inherited true value. Default-to-default emits
         // nothing, preserving empty-component semantics.
         output.push_str("§r");
-        if let Some(color) = to.color { output.push('§'); output.push(color); }
-        if to.obfuscated { output.push_str("§k"); }
-        if to.bold { output.push_str("§l"); }
-        if to.strikethrough { output.push_str("§m"); }
-        if to.underlined { output.push_str("§n"); }
-        if to.italic { output.push_str("§o"); }
+        if let Some(color) = to.color {
+            output.push('§');
+            output.push(color);
+        }
+        if to.obfuscated {
+            output.push_str("§k");
+        }
+        if to.bold {
+            output.push_str("§l");
+        }
+        if to.strikethrough {
+            output.push_str("§m");
+        }
+        if to.underlined {
+            output.push_str("§n");
+        }
+        if to.italic {
+            output.push_str("§o");
+        }
     }
 }
 
@@ -197,22 +261,31 @@ fn format_translation(template: &str, arguments: &[String]) -> String {
         let formatStart = index;
         index += 1;
         let digitsStart = index;
-        while index < characters.len() && characters[index].is_ascii_digit() { index += 1; }
-        let explicit = if index < characters.len() && characters[index] == '$' && index > digitsStart {
-            let value = characters[digitsStart..index].iter().collect::<String>().parse::<usize>().ok();
+        while index < characters.len() && characters[index].is_ascii_digit() {
             index += 1;
-            value.and_then(|value| value.checked_sub(1))
-        } else {
-            index = digitsStart;
-            None
-        };
+        }
+        let explicit =
+            if index < characters.len() && characters[index] == '$' && index > digitsStart {
+                let value = characters[digitsStart..index]
+                    .iter()
+                    .collect::<String>()
+                    .parse::<usize>()
+                    .ok();
+                index += 1;
+                value.and_then(|value| value.checked_sub(1))
+            } else {
+                index = digitsStart;
+                None
+            };
         if index < characters.len() && characters[index] == 's' {
             let argumentIndex = explicit.unwrap_or_else(|| {
                 let value = sequential;
                 sequential += 1;
                 value
             });
-            if let Some(argument) = arguments.get(argumentIndex) { output.push_str(argument); }
+            if let Some(argument) = arguments.get(argumentIndex) {
+                output.push_str(argument);
+            }
             index += 1;
         } else {
             output.extend(characters[formatStart..index].iter());
@@ -223,10 +296,22 @@ fn format_translation(template: &str, arguments: &[String]) -> String {
 
 fn color_code(color: &str) -> Option<char> {
     Some(match color {
-        "black" => '0', "dark_blue" => '1', "dark_green" => '2', "dark_aqua" => '3',
-        "dark_red" => '4', "dark_purple" => '5', "gold" => '6', "gray" => '7',
-        "dark_gray" => '8', "blue" => '9', "green" => 'a', "aqua" => 'b',
-        "red" => 'c', "light_purple" => 'd', "yellow" => 'e', "white" => 'f',
+        "black" => '0',
+        "dark_blue" => '1',
+        "dark_green" => '2',
+        "dark_aqua" => '3',
+        "dark_red" => '4',
+        "dark_purple" => '5',
+        "gold" => '6',
+        "gray" => '7',
+        "dark_gray" => '8',
+        "blue" => '9',
+        "green" => 'a',
+        "aqua" => 'b',
+        "red" => 'c',
+        "light_purple" => 'd',
+        "yellow" => 'e',
+        "white" => 'f',
         _ => return None,
     })
 }
@@ -237,11 +322,12 @@ mod tests {
 
     #[test]
     fn parses_extra_and_color() {
-        let component = ITextComponent::fromJsonLenient(r#"{"text":"A","color":"red","extra":[{"text":"B"}]}"#).unwrap();
+        let component =
+            ITextComponent::fromJsonLenient(r#"{"text":"A","color":"red","extra":[{"text":"B"}]}"#)
+                .unwrap();
         assert_eq!(component.getUnformattedText(), "AB");
         assert!(component.getFormattedText().contains("§cA"));
     }
-
 
     #[test]
     fn empty_default_component_stays_empty() {
@@ -249,7 +335,6 @@ mod tests {
         assert!(component.getFormattedText().is_empty());
         assert!(component.getUnformattedText().is_empty());
     }
-
 
     #[test]
     fn child_inherits_and_can_disable_parent_styles() {
@@ -265,11 +350,15 @@ mod tests {
     #[test]
     fn translation_supports_sequential_positional_and_literal_percent() {
         let mut locale = Locale::default();
-        locale.load_bytes(b"test.format=%2$s / %s / %% / %1$s
-");
+        locale.load_bytes(
+            b"test.format=%2$s / %s / %% / %1$s
+",
+        );
         let component = ITextComponent::fromJsonLenient(
             r#"{"translate":"test.format","with":["first","second"]}"#,
-        ).unwrap().resolveWithLocale(&locale);
+        )
+        .unwrap()
+        .resolveWithLocale(&locale);
         assert_eq!(component.getUnformattedText(), "second / first / % / first");
     }
 }

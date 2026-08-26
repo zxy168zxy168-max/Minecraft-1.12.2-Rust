@@ -1,7 +1,5 @@
 use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::{
-    read_i32_be, read_string, read_u8, CodecError,
-};
+use crate::net::minecraft::network::PacketBuffer::{read_i32_be, read_string, read_u8, CodecError};
 use crate::net::minecraft::world::EnumDifficulty::EnumDifficulty;
 use crate::net::minecraft::world::GameType::GameType;
 use crate::net::minecraft::world::WorldType::WorldType;
@@ -33,10 +31,18 @@ impl SPacketRespawn {
         })
     }
 
-    pub const fn getDimensionID(&self) -> i32 { self.dimensionId }
-    pub const fn getDifficulty(&self) -> EnumDifficulty { self.difficulty }
-    pub const fn getGameType(&self) -> GameType { self.gameType }
-    pub fn getWorldType(&self) -> &WorldType { &self.worldType }
+    pub const fn getDimensionID(&self) -> i32 {
+        self.dimensionId
+    }
+    pub const fn getDifficulty(&self) -> EnumDifficulty {
+        self.difficulty
+    }
+    pub const fn getGameType(&self) -> GameType {
+        self.gameType
+    }
+    pub fn getWorldType(&self) -> &WorldType {
+        &self.worldType
+    }
 }
 
 #[cfg(test)]

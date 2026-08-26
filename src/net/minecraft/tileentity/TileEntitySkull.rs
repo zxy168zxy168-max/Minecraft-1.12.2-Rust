@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
-use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::com::mojang::authlib::properties::Property::Property;
+use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::net::minecraft::nbt::NBTBase::TAG_COMPOUND;
 use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
@@ -37,7 +37,11 @@ impl TileEntitySkull {
         if !matches!(id.as_str(), "minecraft:skull" | "Skull") {
             return None;
         }
-        let pos = BlockPos::new(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"));
+        let pos = BlockPos::new(
+            tag.getInteger("x"),
+            tag.getInteger("y"),
+            tag.getInteger("z"),
+        );
         let mut result = Self::new(pos);
         result.readFromNBT(tag);
         Some(result)
@@ -66,11 +70,21 @@ impl TileEntitySkull {
         readGameProfileFromNBT(tag)
     }
 
-    pub const fn getSkullType(&self) -> i32 { self.skullType }
-    pub const fn getSkullRotation(&self) -> i32 { self.skullRotation }
-    pub fn getPlayerProfile(&self) -> Option<&GameProfile> { self.playerProfile.as_ref() }
+    pub const fn getSkullType(&self) -> i32 {
+        self.skullType
+    }
+    pub const fn getSkullRotation(&self) -> i32 {
+        self.skullRotation
+    }
+    pub fn getPlayerProfile(&self) -> Option<&GameProfile> {
+        self.playerProfile.as_ref()
+    }
     pub fn getAnimationProgress(&self, partialTicks: f32) -> f32 {
-        if self.dragonAnimated { self.dragonAnimatedTicks as f32 + partialTicks } else { self.dragonAnimatedTicks as f32 }
+        if self.dragonAnimated {
+            self.dragonAnimatedTicks as f32 + partialTicks
+        } else {
+            self.dragonAnimatedTicks as f32
+        }
     }
 
     pub fn setDragonPowered(&mut self, powered: bool) {
@@ -98,8 +112,12 @@ pub fn readGameProfileFromNBT(tag: &NBTTagCompound) -> Option<GameProfile> {
             for index in 0..list.tagCount() {
                 let property = list.getCompoundTagAt(index);
                 let value = property.getString("Value");
-                if value.is_empty() { continue; }
-                let signature = property.hasKey("Signature").then(|| property.getString("Signature"));
+                if value.is_empty() {
+                    continue;
+                }
+                let signature = property
+                    .hasKey("Signature")
+                    .then(|| property.getString("Signature"));
                 profile.addProperty(Property::new(property_name.clone(), value, signature));
             }
         }
@@ -128,8 +146,11 @@ mod tests {
         owner.setCompoundTag("Properties", properties);
         let mut tag = NBTTagCompound::new();
         tag.setString("id", "minecraft:skull");
-        tag.setInteger("x", 2); tag.setInteger("y", 64); tag.setInteger("z", -3);
-        tag.setByte("SkullType", 3); tag.setByte("Rot", 12);
+        tag.setInteger("x", 2);
+        tag.setInteger("y", 64);
+        tag.setInteger("z", -3);
+        tag.setByte("SkullType", 3);
+        tag.setByte("Rot", 12);
         tag.setCompoundTag("Owner", owner);
         let skull = TileEntitySkull::fromNbt(&tag).unwrap();
         assert_eq!(skull.pos, BlockPos::new(2, 64, -3));

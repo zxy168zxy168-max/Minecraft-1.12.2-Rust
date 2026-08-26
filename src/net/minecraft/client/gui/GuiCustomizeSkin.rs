@@ -52,12 +52,16 @@ impl Default for GuiCustomizeSkin {
 }
 
 impl GuiCustomizeSkin {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn initGui(&mut self, width: i32, height: i32, locale: &Locale, settings: &GameSettings) {
         self.GuiScreen.width = width;
         self.GuiScreen.height = height;
-        self.title = locale.translate_key("options.skinCustomisation.title").to_owned();
+        self.title = locale
+            .translate_key("options.skinCustomisation.title")
+            .to_owned();
         let top = height / 6;
         let mut index = 0usize;
         for (part, button) in &mut self.partButtons {
@@ -81,7 +85,9 @@ impl GuiCustomizeSkin {
             }),
         );
         index += 1;
-        if index % 2 == 1 { index += 1; }
+        if index % 2 == 1 {
+            index += 1;
+        }
         self.done.x = width / 2 - 100;
         self.done.y = top + (index / 2) as i32 * 24;
         self.done.displayString = locale.translate_key("gui.done").to_owned();
@@ -134,8 +140,10 @@ impl GuiCustomizeSkin {
         for (_, button) in &mut self.partButtons {
             button.drawButton(draw, font, mouseX, mouseY, partialTicks);
         }
-        self.hand.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.done.drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.hand
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.done
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
     }
 
     pub fn mouseClicked(
@@ -144,7 +152,9 @@ impl GuiCustomizeSkin {
         mouseY: i32,
         mouseButton: i32,
     ) -> Option<GuiCustomizeSkinInteraction> {
-        if mouseButton != 0 { return None; }
+        if mouseButton != 0 {
+            return None;
+        }
         for (part, button) in &self.partButtons {
             if button.mousePressed(mouseX, mouseY) {
                 return Some(GuiCustomizeSkinInteraction {
@@ -159,10 +169,12 @@ impl GuiCustomizeSkin {
                 sound: self.hand.playPressSound(),
             });
         }
-        self.done.mousePressed(mouseX, mouseY).then(|| GuiCustomizeSkinInteraction {
-            action: GuiCustomizeSkinAction::Done,
-            sound: self.done.playPressSound(),
-        })
+        self.done
+            .mousePressed(mouseX, mouseY)
+            .then(|| GuiCustomizeSkinInteraction {
+                action: GuiCustomizeSkinAction::Done,
+                sound: self.done.playPressSound(),
+            })
     }
 }
 

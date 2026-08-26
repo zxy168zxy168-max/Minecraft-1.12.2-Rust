@@ -37,7 +37,10 @@ impl TileEntityBeaconRenderer {
         ];
         let mut inner = [[0.0; 2]; 4];
         for (corner, angle) in inner.iter_mut().zip(angles) {
-            *corner = [0.5 + angle.cos() * beamRadius, 0.5 + angle.sin() * beamRadius];
+            *corner = [
+                0.5 + angle.cos() * beamRadius,
+                0.5 + angle.sin() * beamRadius,
+            ];
         }
         BeaconBeamSegmentGeometry {
             innerCorners: inner,
@@ -51,10 +54,7 @@ impl TileEntityBeaconRenderer {
                 -1.0 + scroll,
                 height as f32 * textureScale * (0.5 / beamRadius) - 1.0 + scroll,
             ],
-            outerV: [
-                -1.0 + scroll,
-                height as f32 * textureScale - 1.0 + scroll,
-            ],
+            outerV: [-1.0 + scroll, height as f32 * textureScale - 1.0 + scroll],
         }
     }
 }

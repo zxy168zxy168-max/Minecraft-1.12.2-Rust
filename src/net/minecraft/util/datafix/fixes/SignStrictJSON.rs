@@ -71,7 +71,9 @@ impl SignStrictJSON {
         if let Some(text) = Self::primitiveText(value) {
             return serde_json::from_str(&Self::textComponent(&text)).ok();
         }
-        let Value::Array(values) = value else { return None; };
+        let Value::Array(values) = value else {
+            return None;
+        };
         let mut values = values.iter();
         let first = values.next()?;
         let mut root = Self::legacyGsonComponent(first)?;
@@ -97,21 +99,35 @@ impl SignStrictJSON {
             }
             return Some(root);
         }
-        let Value::Object(input) = value else { return None; };
+        let Value::Object(input) = value else {
+            return None;
+        };
 
         let mut output = Map::new();
         // Style.Serializer fields are copied onto the component object by the
         // source serializer. Preserve only source-valid JSON field types.
-        for key in ["bold", "italic", "underlined", "strikethrough", "obfuscated"] {
-            if let Some(Value::Bool(flag)) = input.get(key) { output.insert(key.to_owned(), Value::Bool(*flag)); }
+        for key in [
+            "bold",
+            "italic",
+            "underlined",
+            "strikethrough",
+            "obfuscated",
+        ] {
+            if let Some(Value::Bool(flag)) = input.get(key) {
+                output.insert(key.to_owned(), Value::Bool(*flag));
+            }
         }
         for key in ["color", "insertion"] {
-            if let Some(Value::String(text)) = input.get(key) { output.insert(key.to_owned(), Value::String(text.clone())); }
+            if let Some(Value::String(text)) = input.get(key) {
+                output.insert(key.to_owned(), Value::String(text.clone()));
+            }
         }
         // clickEvent / hoverEvent are style payloads; if syntactically objects,
         // retaining them is equivalent to Serializer round-tripping them.
         for key in ["clickEvent", "hoverEvent"] {
-            if let Some(Value::Object(object)) = input.get(key) { output.insert(key.to_owned(), Value::Object(object.clone())); }
+            if let Some(Value::Object(object)) = input.get(key) {
+                output.insert(key.to_owned(), Value::Object(object.clone()));
+            }
         }
 
         if let Some(text) = input.get("text").and_then(Self::primitiveText) {
@@ -134,7 +150,9 @@ impl SignStrictJSON {
                     }
                     args.push(component);
                 }
-                if !args.is_empty() { output.insert("with".to_owned(), Value::Array(args)); }
+                if !args.is_empty() {
+                    output.insert("with".to_owned(), Value::Array(args));
+                }
             }
         } else if let Some(Value::Object(score)) = input.get("score") {
             let name = score.get("name").and_then(Self::primitiveText)?;
@@ -155,20 +173,28 @@ impl SignStrictJSON {
         }
 
         if let Some(Value::Array(extra)) = input.get("extra") {
-            if extra.is_empty() { return None; }
+            if extra.is_empty() {
+                return None;
+            }
             let mut siblings = Vec::with_capacity(extra.len());
-            for child in extra { siblings.push(Self::vanillaComponent(child)?); }
+            for child in extra {
+                siblings.push(Self::vanillaComponent(child)?);
+            }
             output.insert("extra".to_owned(), Value::Array(siblings));
         }
         Some(Value::Object(output))
     }
 
     fn appendSibling(root: &mut Value, child: Value) -> Option<()> {
-        let Value::Object(root) = root else { return None; };
+        let Value::Object(root) = root else {
+            return None;
+        };
         match root.get_mut("extra") {
             Some(Value::Array(extra)) => extra.push(child),
             Some(_) => return None,
-            None => { root.insert("extra".to_owned(), Value::Array(vec![child])); }
+            None => {
+                root.insert("extra".to_owned(), Value::Array(vec![child]));
+            }
         }
         Some(())
     }
@@ -180,7 +206,9 @@ impl SignStrictJSON {
 }
 
 impl IFixableData for SignStrictJSON {
-    fn getFixVersion(&self) -> i32 { 101 }
+    fn getFixVersion(&self) -> i32 {
+        101
+    }
     fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
         if compound.getString("id") == "Sign" {
             Self::updateLine(&mut compound, "Text1");
@@ -197,8 +225,10 @@ mod tests {
     use super::*;
     #[test]
     fn legacy_plain_and_quoted_sign_lines_become_component_objects() {
-        let mut sign = NBTTagCompound::new(); sign.setString("id", "Sign");
-        sign.setString("Text1", "hello"); sign.setString("Text2", "\"world\"");
+        let mut sign = NBTTagCompound::new();
+        sign.setString("id", "Sign");
+        sign.setString("Text1", "hello");
+        sign.setString("Text2", "\"world\"");
         let fixed = SignStrictJSON.fixTagCompound(sign);
         assert_eq!(fixed.getString("Text1"), r#"{"text":"hello"}"#);
         assert_eq!(fixed.getString("Text2"), r#"{"text":"world"}"#);

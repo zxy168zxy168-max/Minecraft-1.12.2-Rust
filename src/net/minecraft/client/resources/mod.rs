@@ -1,9 +1,18 @@
-#[path = "FolderResourcePack.rs"] pub mod FolderResourcePack;
-#[path = "FileResourcePack.rs"] pub mod FileResourcePack;
-#[path = "ResourcePackRepository.rs"] pub mod ResourcePackRepository;
-#[path = "Locale.rs"] pub mod Locale;
-#[path = "SimpleReloadableResourceManager.rs"] pub mod SimpleReloadableResourceManager;
-#[path = "DefaultPlayerSkin.rs"] pub mod DefaultPlayerSkin;
-#[path = "SkinManager.rs"] pub mod SkinManager;
-#[path = "Language.rs"] pub mod Language;
-#[path = "LanguageManager.rs"] pub mod LanguageManager;
+#[path = "DefaultPlayerSkin.rs"]
+pub mod DefaultPlayerSkin;
+#[path = "FileResourcePack.rs"]
+pub mod FileResourcePack;
+#[path = "FolderResourcePack.rs"]
+pub mod FolderResourcePack;
+#[path = "Language.rs"]
+pub mod Language;
+#[path = "LanguageManager.rs"]
+pub mod LanguageManager;
+#[path = "Locale.rs"]
+pub mod Locale;
+#[path = "ResourcePackRepository.rs"]
+pub mod ResourcePackRepository;
+#[path = "SimpleReloadableResourceManager.rs"]
+pub mod SimpleReloadableResourceManager;
+#[path = "SkinManager.rs"]
+pub mod SkinManager;

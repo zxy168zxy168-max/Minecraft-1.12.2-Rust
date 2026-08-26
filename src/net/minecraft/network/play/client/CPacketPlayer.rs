@@ -1,7 +1,5 @@
 use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::{
-    write_bool, write_f32_be, write_f64_be,
-};
+use crate::net::minecraft::network::PacketBuffer::{write_bool, write_f32_be, write_f64_be};
 
 /// Protocol-340 port of MCP `CPacketPlayer` and its three concrete movement
 /// variants. Packet ids are the 1.12.2 serverbound Play ids.
@@ -11,7 +9,11 @@ pub struct CPacketPlayer {
 }
 
 impl CPacketPlayer {
-    pub const fn new(onGroundIn: bool) -> Self { Self { onGround: onGroundIn } }
+    pub const fn new(onGroundIn: bool) -> Self {
+        Self {
+            onGround: onGroundIn,
+        }
+    }
 
     pub fn writePacketData(&self) -> RawPacket {
         let mut payload = Vec::with_capacity(1);
@@ -54,15 +56,15 @@ pub struct PositionRotation {
 }
 
 impl PositionRotation {
-    pub const fn new(
-        x: f64,
-        y: f64,
-        z: f64,
-        yaw: f32,
-        pitch: f32,
-        onGround: bool,
-    ) -> Self {
-        Self { x, y, z, yaw, pitch, onGround }
+    pub const fn new(x: f64, y: f64, z: f64, yaw: f32, pitch: f32, onGround: bool) -> Self {
+        Self {
+            x,
+            y,
+            z,
+            yaw,
+            pitch,
+            onGround,
+        }
     }
 
     pub fn writePacketData(&self) -> RawPacket {
@@ -86,7 +88,11 @@ pub struct Rotation {
 
 impl Rotation {
     pub const fn new(yaw: f32, pitch: f32, onGround: bool) -> Self {
-        Self { yaw, pitch, onGround }
+        Self {
+            yaw,
+            pitch,
+            onGround,
+        }
     }
 
     pub fn writePacketData(&self) -> RawPacket {
@@ -105,8 +111,16 @@ mod tests {
     #[test]
     fn protocol_340_player_packet_ids_match_mcp_variants() {
         assert_eq!(CPacketPlayer::new(true).writePacketData().id, 0x0C);
-        assert_eq!(Position::new(1.0, 2.0, 3.0, false).writePacketData().id, 0x0D);
-        assert_eq!(PositionRotation::new(1.0, 2.0, 3.0, 4.0, 5.0, false).writePacketData().id, 0x0E);
+        assert_eq!(
+            Position::new(1.0, 2.0, 3.0, false).writePacketData().id,
+            0x0D
+        );
+        assert_eq!(
+            PositionRotation::new(1.0, 2.0, 3.0, 4.0, 5.0, false)
+                .writePacketData()
+                .id,
+            0x0E
+        );
         assert_eq!(Rotation::new(4.0, 5.0, true).writePacketData().id, 0x0F);
     }
 }

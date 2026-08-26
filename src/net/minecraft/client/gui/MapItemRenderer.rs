@@ -47,9 +47,7 @@ impl MapItemRenderer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::net::minecraft::world::storage::MapDecoration::{
-        MapDecoration, MapDecorationType,
-    };
+    use crate::net::minecraft::world::storage::MapDecoration::{MapDecoration, MapDecorationType};
 
     #[test]
     fn empty_pixels_keep_the_vanilla_low_alpha_checker() {

@@ -154,7 +154,10 @@ mod tests {
     fn parses_latin1_and_unicode_escapes() {
         let values = parse_java_properties(b"name=caf\xE9\nwide=\\u5BBD\\u5EA6\n");
         assert_eq!(values.get("name").map(String::as_str), Some("caf\u{00E9}"));
-        assert_eq!(values.get("wide").map(String::as_str), Some("\u{5BBD}\u{5EA6}"));
+        assert_eq!(
+            values.get("wide").map(String::as_str),
+            Some("\u{5BBD}\u{5EA6}")
+        );
         let emoji = parse_java_properties(b"emoji=\\uD83D\\uDE00\n");
         assert_eq!(emoji.get("emoji").map(String::as_str), Some("\u{1F600}"));
     }
@@ -162,14 +165,20 @@ mod tests {
     #[test]
     fn preserves_java_separators_and_escaped_spaces() {
         let values = parse_java_properties(b"key\\ with\\ spaces : value\\:part\nplain value\n");
-        assert_eq!(values.get("key with spaces").map(String::as_str), Some("value:part"));
+        assert_eq!(
+            values.get("key with spaces").map(String::as_str),
+            Some("value:part")
+        );
         assert_eq!(values.get("plain").map(String::as_str), Some("value"));
     }
 
     #[test]
     fn joins_continued_lines_and_skips_leading_whitespace() {
         let values = parse_java_properties(b"message=first\\\n   second\\\n\tthird\n");
-        assert_eq!(values.get("message").map(String::as_str), Some("firstsecondthird"));
+        assert_eq!(
+            values.get("message").map(String::as_str),
+            Some("firstsecondthird")
+        );
     }
 
     #[test]

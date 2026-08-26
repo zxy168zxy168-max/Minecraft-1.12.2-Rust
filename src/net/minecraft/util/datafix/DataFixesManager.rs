@@ -2,6 +2,41 @@ use std::sync::Arc;
 
 use crate::net::minecraft::entity::Entity::Entity;
 use crate::net::minecraft::item::ItemStack::ItemStack;
+use crate::net::minecraft::nbt::NBTBase::{NBTBase, TAG_COMPOUND, TAG_LIST};
+use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
+use crate::net::minecraft::util::datafix::fixes::AddBedTileEntity::AddBedTileEntity;
+use crate::net::minecraft::util::datafix::fixes::ArmorStandSilent::ArmorStandSilent;
+use crate::net::minecraft::util::datafix::fixes::BannerItemColor::BannerItemColor;
+use crate::net::minecraft::util::datafix::fixes::BedItemColor::BedItemColor;
+use crate::net::minecraft::util::datafix::fixes::BookPagesStrictJSON::BookPagesStrictJSON;
+use crate::net::minecraft::util::datafix::fixes::CookedFishIDTypo::CookedFishIDTypo;
+use crate::net::minecraft::util::datafix::fixes::ElderGuardianSplit::ElderGuardianSplit;
+use crate::net::minecraft::util::datafix::fixes::EntityArmorAndHeld::EntityArmorAndHeld;
+use crate::net::minecraft::util::datafix::fixes::EntityHealth::EntityHealth;
+use crate::net::minecraft::util::datafix::fixes::EntityId::EntityId;
+use crate::net::minecraft::util::datafix::fixes::ForceVBOOn::ForceVBOOn;
+use crate::net::minecraft::util::datafix::fixes::HorseSaddle::HorseSaddle;
+use crate::net::minecraft::util::datafix::fixes::HorseSplit::HorseSplit;
+use crate::net::minecraft::util::datafix::fixes::ItemIntIDToString::ItemIntIDToString;
+use crate::net::minecraft::util::datafix::fixes::MinecartEntityTypes::MinecartEntityTypes;
+use crate::net::minecraft::util::datafix::fixes::OptionsLowerCaseLanguage::OptionsLowerCaseLanguage;
+use crate::net::minecraft::util::datafix::fixes::PaintingDirection::PaintingDirection;
+use crate::net::minecraft::util::datafix::fixes::PotionItems::PotionItems;
+use crate::net::minecraft::util::datafix::fixes::PotionWater::PotionWater;
+use crate::net::minecraft::util::datafix::fixes::RedundantChanceTags::RedundantChanceTags;
+use crate::net::minecraft::util::datafix::fixes::RidingToPassengers::RidingToPassengers;
+use crate::net::minecraft::util::datafix::fixes::ShulkerBoxEntityColor::ShulkerBoxEntityColor;
+use crate::net::minecraft::util::datafix::fixes::ShulkerBoxItemColor::ShulkerBoxItemColor;
+use crate::net::minecraft::util::datafix::fixes::ShulkerBoxTileColor::ShulkerBoxTileColor;
+use crate::net::minecraft::util::datafix::fixes::SignStrictJSON::SignStrictJSON;
+use crate::net::minecraft::util::datafix::fixes::SkeletonSplit::SkeletonSplit;
+use crate::net::minecraft::util::datafix::fixes::SpawnEggNames::SpawnEggNames;
+use crate::net::minecraft::util::datafix::fixes::SpawnerEntityTypes::SpawnerEntityTypes;
+use crate::net::minecraft::util::datafix::fixes::StringToUUID::StringToUUID;
+use crate::net::minecraft::util::datafix::fixes::TileEntityId::TileEntityId;
+use crate::net::minecraft::util::datafix::fixes::TotemItemRename::TotemItemRename;
+use crate::net::minecraft::util::datafix::fixes::ZombieProfToType::ZombieProfToType;
+use crate::net::minecraft::util::datafix::fixes::ZombieSplit::ZombieSplit;
 use crate::net::minecraft::util::datafix::walkers::ItemStackData::ItemStackData;
 use crate::net::minecraft::util::datafix::walkers::ItemStackDataLists::ItemStackDataLists;
 use crate::net::minecraft::util::datafix::walkers::VanillaDataWalkers::{
@@ -9,44 +44,9 @@ use crate::net::minecraft::util::datafix::walkers::VanillaDataWalkers::{
     PlayerInventoryDataWalker, PlayerRootVehicleDataWalker, StructureTemplateDataWalker,
     VillagerTradeDataWalker,
 };
-use crate::net::minecraft::nbt::NBTBase::{NBTBase, TAG_COMPOUND, TAG_LIST};
-use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 use crate::net::minecraft::util::datafix::DataFixer::DataFixer;
 use crate::net::minecraft::util::datafix::FixTypes::FixTypes;
 use crate::net::minecraft::util::datafix::IDataFixer::IDataFixer;
-use crate::net::minecraft::util::datafix::fixes::AddBedTileEntity::AddBedTileEntity;
-use crate::net::minecraft::util::datafix::fixes::BannerItemColor::BannerItemColor;
-use crate::net::minecraft::util::datafix::fixes::EntityArmorAndHeld::EntityArmorAndHeld;
-use crate::net::minecraft::util::datafix::fixes::ItemIntIDToString::ItemIntIDToString;
-use crate::net::minecraft::util::datafix::fixes::PotionItems::PotionItems;
-use crate::net::minecraft::util::datafix::fixes::ShulkerBoxItemColor::ShulkerBoxItemColor;
-use crate::net::minecraft::util::datafix::fixes::SpawnEggNames::SpawnEggNames;
-use crate::net::minecraft::util::datafix::fixes::SpawnerEntityTypes::SpawnerEntityTypes;
-use crate::net::minecraft::util::datafix::fixes::StringToUUID::StringToUUID;
-use crate::net::minecraft::util::datafix::fixes::ArmorStandSilent::ArmorStandSilent;
-use crate::net::minecraft::util::datafix::fixes::BedItemColor::BedItemColor;
-use crate::net::minecraft::util::datafix::fixes::CookedFishIDTypo::CookedFishIDTypo;
-use crate::net::minecraft::util::datafix::fixes::ElderGuardianSplit::ElderGuardianSplit;
-use crate::net::minecraft::util::datafix::fixes::EntityHealth::EntityHealth;
-use crate::net::minecraft::util::datafix::fixes::EntityId::EntityId;
-use crate::net::minecraft::util::datafix::fixes::ForceVBOOn::ForceVBOOn;
-use crate::net::minecraft::util::datafix::fixes::HorseSaddle::HorseSaddle;
-use crate::net::minecraft::util::datafix::fixes::HorseSplit::HorseSplit;
-use crate::net::minecraft::util::datafix::fixes::MinecartEntityTypes::MinecartEntityTypes;
-use crate::net::minecraft::util::datafix::fixes::OptionsLowerCaseLanguage::OptionsLowerCaseLanguage;
-use crate::net::minecraft::util::datafix::fixes::PaintingDirection::PaintingDirection;
-use crate::net::minecraft::util::datafix::fixes::PotionWater::PotionWater;
-use crate::net::minecraft::util::datafix::fixes::RedundantChanceTags::RedundantChanceTags;
-use crate::net::minecraft::util::datafix::fixes::RidingToPassengers::RidingToPassengers;
-use crate::net::minecraft::util::datafix::fixes::ShulkerBoxEntityColor::ShulkerBoxEntityColor;
-use crate::net::minecraft::util::datafix::fixes::ShulkerBoxTileColor::ShulkerBoxTileColor;
-use crate::net::minecraft::util::datafix::fixes::SkeletonSplit::SkeletonSplit;
-use crate::net::minecraft::util::datafix::fixes::TileEntityId::TileEntityId;
-use crate::net::minecraft::util::datafix::fixes::TotemItemRename::TotemItemRename;
-use crate::net::minecraft::util::datafix::fixes::ZombieSplit::ZombieSplit;
-use crate::net::minecraft::util::datafix::fixes::BookPagesStrictJSON::BookPagesStrictJSON;
-use crate::net::minecraft::util::datafix::fixes::SignStrictJSON::SignStrictJSON;
-use crate::net::minecraft::util::datafix::fixes::ZombieProfToType::ZombieProfToType;
 use crate::net::minecraft::world::chunk::storage::AnvilChunkLoader::AnvilChunkLoader;
 use crate::net::minecraft::world::storage::WorldInfo::WorldInfo;
 
@@ -83,46 +83,133 @@ impl DataFixesManager {
         // All delegate to EntityLiving#registerFixesMob and therefore recurse
         // ItemStack fixes through ArmorItems + HandItems.
         const LIVING: &[&str] = &[
-            "bat", "blaze", "cave_spider", "chicken", "cow", "creeper", "donkey",
-            "elder_guardian", "ender_dragon", "enderman", "endermite", "evocation_illager",
-            "ghast", "giant", "guardian", "horse", "husk", "magma_cube", "mule",
-            "mooshroom", "ocelot", "pig", "zombie_pigman", "rabbit", "sheep", "shulker",
-            "silverfish", "skeleton", "skeleton_horse", "slime", "snowman", "spider",
-            "squid", "stray", "vex", "villager", "villager_golem", "vindication_illager",
-            "witch", "wither", "wither_skeleton", "wolf", "zombie", "zombie_horse",
+            "bat",
+            "blaze",
+            "cave_spider",
+            "chicken",
+            "cow",
+            "creeper",
+            "donkey",
+            "elder_guardian",
+            "ender_dragon",
+            "enderman",
+            "endermite",
+            "evocation_illager",
+            "ghast",
+            "giant",
+            "guardian",
+            "horse",
+            "husk",
+            "magma_cube",
+            "mule",
+            "mooshroom",
+            "ocelot",
+            "pig",
+            "zombie_pigman",
+            "rabbit",
+            "sheep",
+            "shulker",
+            "silverfish",
+            "skeleton",
+            "skeleton_horse",
+            "slime",
+            "snowman",
+            "spider",
+            "squid",
+            "stray",
+            "vex",
+            "villager",
+            "villager_golem",
+            "vindication_illager",
+            "witch",
+            "wither",
+            "wither_skeleton",
+            "wolf",
+            "zombie",
+            "zombie_horse",
             "zombie_villager",
         ];
         for id in LIVING {
-            fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackDataLists::new(id, &["ArmorItems", "HandItems"])));
+            fixer.registerWalker(
+                FixTypes::Entity,
+                Arc::new(ItemStackDataLists::new(id, &["ArmorItems", "HandItems"])),
+            );
         }
 
         // Source class-specific nested ItemStack walkers.
-        fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackDataLists::new("armor_stand", &["ArmorItems", "HandItems"])));
-        fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackData::new("item", &["Item"])));
-        fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackData::new("item_frame", &["Item"])));
-        fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackData::new("fireworks_rocket", &["FireworksItem"])));
-        fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackData::new("potion", &["Potion"])));
-        fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackDataLists::new("villager", &["Inventory"])));
+        fixer.registerWalker(
+            FixTypes::Entity,
+            Arc::new(ItemStackDataLists::new(
+                "armor_stand",
+                &["ArmorItems", "HandItems"],
+            )),
+        );
+        fixer.registerWalker(
+            FixTypes::Entity,
+            Arc::new(ItemStackData::new("item", &["Item"])),
+        );
+        fixer.registerWalker(
+            FixTypes::Entity,
+            Arc::new(ItemStackData::new("item_frame", &["Item"])),
+        );
+        fixer.registerWalker(
+            FixTypes::Entity,
+            Arc::new(ItemStackData::new("fireworks_rocket", &["FireworksItem"])),
+        );
+        fixer.registerWalker(
+            FixTypes::Entity,
+            Arc::new(ItemStackData::new("potion", &["Potion"])),
+        );
+        fixer.registerWalker(
+            FixTypes::Entity,
+            Arc::new(ItemStackDataLists::new("villager", &["Inventory"])),
+        );
         fixer.registerWalker(FixTypes::Entity, Arc::new(VillagerTradeDataWalker));
 
         for id in ["horse", "donkey", "mule", "skeleton_horse", "zombie_horse"] {
-            fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackData::new(id, &["SaddleItem"])));
+            fixer.registerWalker(
+                FixTypes::Entity,
+                Arc::new(ItemStackData::new(id, &["SaddleItem"])),
+            );
         }
-        fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackData::new("horse", &["ArmorItem"])));
+        fixer.registerWalker(
+            FixTypes::Entity,
+            Arc::new(ItemStackData::new("horse", &["ArmorItem"])),
+        );
         for id in ["donkey", "mule"] {
-            fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackDataLists::new(id, &["Items"])));
+            fixer.registerWalker(
+                FixTypes::Entity,
+                Arc::new(ItemStackDataLists::new(id, &["Items"])),
+            );
         }
         for id in ["chest_minecart", "hopper_minecart"] {
-            fixer.registerWalker(FixTypes::Entity, Arc::new(ItemStackDataLists::new(id, &["Items"])));
+            fixer.registerWalker(
+                FixTypes::Entity,
+                Arc::new(ItemStackDataLists::new(id, &["Items"])),
+            );
         }
         fixer.registerWalker(FixTypes::Entity, Arc::new(MinecartSpawnerDataWalker));
         fixer.registerWalker(FixTypes::Entity, Arc::new(MinecartCommandBlockDataWalker));
 
         // Exact TileEntity inventory walkers called by createFixer.
-        for id in ["furnace", "chest", "dispenser", "dropper", "brewing_stand", "hopper", "shulker_box"] {
-            fixer.registerWalker(FixTypes::BlockEntity, Arc::new(ItemStackDataLists::new(id, &["Items"])));
+        for id in [
+            "furnace",
+            "chest",
+            "dispenser",
+            "dropper",
+            "brewing_stand",
+            "hopper",
+            "shulker_box",
+        ] {
+            fixer.registerWalker(
+                FixTypes::BlockEntity,
+                Arc::new(ItemStackDataLists::new(id, &["Items"])),
+            );
         }
-        fixer.registerWalker(FixTypes::BlockEntity, Arc::new(ItemStackData::new("jukebox", &["RecordItem"])));
+        fixer.registerWalker(
+            FixTypes::BlockEntity,
+            Arc::new(ItemStackData::new("jukebox", &["RecordItem"])),
+        );
         fixer.registerWalker(FixTypes::BlockEntity, Arc::new(MobSpawnerDataWalker));
     }
 
@@ -165,20 +252,38 @@ impl DataFixesManager {
     }
 
     /// MCP `processItemStack` helper.
-    pub fn processItemStack(fixer: &dyn IDataFixer, mut compound: NBTTagCompound, version: i32, key: &str) -> NBTTagCompound {
+    pub fn processItemStack(
+        fixer: &dyn IDataFixer,
+        mut compound: NBTTagCompound,
+        version: i32,
+        key: &str,
+    ) -> NBTTagCompound {
         if compound.hasKeyWithType(key, TAG_COMPOUND) {
-            let fixed = fixer.processVersioned(FixTypes::ItemInstance, compound.getCompoundTag(key), version);
+            let fixed = fixer.processVersioned(
+                FixTypes::ItemInstance,
+                compound.getCompoundTag(key),
+                version,
+            );
             compound.setCompoundTag(key, fixed);
         }
         compound
     }
 
     /// MCP `processInventory` helper.
-    pub fn processInventory(fixer: &dyn IDataFixer, mut compound: NBTTagCompound, version: i32, key: &str) -> NBTTagCompound {
+    pub fn processInventory(
+        fixer: &dyn IDataFixer,
+        mut compound: NBTTagCompound,
+        version: i32,
+        key: &str,
+    ) -> NBTTagCompound {
         if compound.hasKeyWithType(key, TAG_LIST) {
             let mut list = compound.getTagList(key, TAG_COMPOUND);
             for index in 0..list.tagCount() {
-                let fixed = fixer.processVersioned(FixTypes::ItemInstance, list.getCompoundTagAt(index), version);
+                let fixed = fixer.processVersioned(
+                    FixTypes::ItemInstance,
+                    list.getCompoundTagAt(index),
+                    version,
+                );
                 list.set(index, NBTBase::Compound(fixed));
             }
             compound.setTagList(key, list);
@@ -205,7 +310,10 @@ mod tests {
         assert_eq!(fixed.getString("id"), "minecraft:boat");
         let passengers = fixed.getTagList("Passengers", TAG_COMPOUND);
         assert_eq!(passengers.tagCount(), 1);
-        assert_eq!(passengers.getCompoundTagAt(0).getString("id"), "minecraft:pig");
+        assert_eq!(
+            passengers.getCompoundTagAt(0).getString("id"),
+            "minecraft:pig"
+        );
     }
 
     #[test]
@@ -213,20 +321,32 @@ mod tests {
         let fixer = DataFixesManager::createFixer();
         let mut root = NBTTagCompound::new();
         let mut level = NBTTagCompound::new();
-        level.setInteger("xPos", 2); level.setInteger("zPos", -3);
+        level.setInteger("xPos", 2);
+        level.setInteger("zPos", -3);
         level.setTagList("TileEntities", NBTTagList::new());
         let mut section = NBTTagCompound::new();
         section.setByte("Y", 4);
-        let mut blocks = vec![0u8;4096];
+        let mut blocks = vec![0u8; 4096];
         let index = 5 | (7 << 8) | (9 << 4);
         blocks[index] = 26; // 26 << 4 == 416, source bed block test.
         section.setByteArray("Blocks", blocks);
-        let mut sections = NBTTagList::new(); sections.appendTag(NBTBase::Compound(section));
-        level.setTagList("Sections", sections); root.setCompoundTag("Level", level);
+        let mut sections = NBTTagList::new();
+        sections.appendTag(NBTBase::Compound(section));
+        level.setTagList("Sections", sections);
+        root.setCompoundTag("Level", level);
         let fixed = fixer.processVersioned(FixTypes::Chunk, root, 1000);
-        let beds = fixed.getCompoundTag("Level").getTagList("TileEntities", TAG_COMPOUND);
-        assert_eq!(beds.tagCount(),1);
-        let bed=beds.getCompoundTagAt(0);
-        assert_eq!((bed.getInteger("x"),bed.getInteger("y"),bed.getInteger("z")),(37,71,-39));
+        let beds = fixed
+            .getCompoundTag("Level")
+            .getTagList("TileEntities", TAG_COMPOUND);
+        assert_eq!(beds.tagCount(), 1);
+        let bed = beds.getCompoundTagAt(0);
+        assert_eq!(
+            (
+                bed.getInteger("x"),
+                bed.getInteger("y"),
+                bed.getInteger("z")
+            ),
+            (37, 71, -39)
+        );
     }
 }

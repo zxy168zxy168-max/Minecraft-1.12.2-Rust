@@ -28,9 +28,16 @@ impl SPacketWindowItems {
                 input.len()
             )));
         }
-        Ok(Self { windowId, itemStacks })
+        Ok(Self {
+            windowId,
+            itemStacks,
+        })
     }
 
-    pub const fn getWindowId(&self) -> u8 { self.windowId }
-    pub fn getItemStacks(&self) -> &[ItemStack] { &self.itemStacks }
+    pub const fn getWindowId(&self) -> u8 {
+        self.windowId
+    }
+    pub fn getItemStacks(&self) -> &[ItemStack] {
+        &self.itemStacks
+    }
 }

@@ -22,10 +22,20 @@ impl SPacketEntityEquipment {
                 input.len()
             )));
         }
-        Ok(Self { entityID, equipmentSlot, itemStack })
+        Ok(Self {
+            entityID,
+            equipmentSlot,
+            itemStack,
+        })
     }
 
-    pub const fn getEntityID(&self) -> i32 { self.entityID }
-    pub const fn getEquipmentSlot(&self) -> EntityEquipmentSlot { self.equipmentSlot }
-    pub fn getItemStack(&self) -> &ItemStack { &self.itemStack }
+    pub const fn getEntityID(&self) -> i32 {
+        self.entityID
+    }
+    pub const fn getEquipmentSlot(&self) -> EntityEquipmentSlot {
+        self.equipmentSlot
+    }
+    pub fn getItemStack(&self) -> &ItemStack {
+        &self.itemStack
+    }
 }

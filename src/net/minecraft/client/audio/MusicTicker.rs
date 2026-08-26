@@ -77,7 +77,9 @@ impl Default for MusicTicker {
 }
 
 impl MusicTicker {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn update(&mut self, musicType: MusicType, soundHandler: &mut SoundHandler) {
         let requested = musicType.musicLocation();
@@ -85,11 +87,8 @@ impl MusicTicker {
         if let Some(current) = self.currentMusic.clone() {
             if current != requested {
                 soundHandler.stopSound(&current);
-                self.timeUntilNextMusic = random_inclusive(
-                    &mut self.rand,
-                    0,
-                    musicType.minDelay() / 2,
-                );
+                self.timeUntilNextMusic =
+                    random_inclusive(&mut self.rand, 0, musicType.minDelay() / 2);
             }
 
             if !soundHandler.isSoundPlaying(&current) {
@@ -119,8 +118,12 @@ impl MusicTicker {
         self.timeUntilNextMusic = i32::MAX;
     }
 
-    pub fn currentMusic(&self) -> Option<&ResourceLocation> { self.currentMusic.as_ref() }
-    pub const fn timeUntilNextMusic(&self) -> i32 { self.timeUntilNextMusic }
+    pub fn currentMusic(&self) -> Option<&ResourceLocation> {
+        self.currentMusic.as_ref()
+    }
+    pub const fn timeUntilNextMusic(&self) -> i32 {
+        self.timeUntilNextMusic
+    }
 }
 
 fn random_inclusive(random: &mut JavaRandom, minimum: i32, maximum: i32) -> i32 {
@@ -137,7 +140,10 @@ mod tests {
 
     #[test]
     fn music_type_values_match_mcp_1122() {
-        assert_eq!(MusicType::Menu.musicLocation(), ResourceLocation::parse("minecraft:music.menu"));
+        assert_eq!(
+            MusicType::Menu.musicLocation(),
+            ResourceLocation::parse("minecraft:music.menu")
+        );
         assert_eq!(MusicType::Game.minDelay(), 12_000);
         assert_eq!(MusicType::Game.maxDelay(), 24_000);
         assert_eq!(MusicType::EndBoss.maxDelay(), 0);

@@ -1,47 +1,91 @@
-#[path = "ModelBoxGeometry.rs"] pub mod ModelBoxGeometry;
-#[path = "ModelBiped.rs"] pub mod ModelBiped;
-#[path = "ModelPlayer.rs"] pub mod ModelPlayer;
-#[path = "ModelShield.rs"] pub mod ModelShield;
-#[path = "ModelZombie.rs"] pub mod ModelZombie;
-#[path = "ModelSkeleton.rs"] pub mod ModelSkeleton;
-#[path = "ModelArmorStand.rs"] pub mod ModelArmorStand;
+#[path = "ModelArmorStand.rs"]
+pub mod ModelArmorStand;
 pub mod ModelArmorStandArmor;
-#[path = "ModelQuadruped.rs"] pub mod ModelQuadruped;
-#[path = "ModelPig.rs"] pub mod ModelPig;
-#[path = "ModelCow.rs"] pub mod ModelCow;
-#[path = "ModelSheep1.rs"] pub mod ModelSheep1;
-#[path = "ModelSheep2.rs"] pub mod ModelSheep2;
-#[path = "ModelChicken.rs"] pub mod ModelChicken;
-#[path = "ModelCreeper.rs"] pub mod ModelCreeper;
-#[path = "ModelSpider.rs"] pub mod ModelSpider;
-#[path = "ModelEnderman.rs"] pub mod ModelEnderman;
-#[path = "ModelSquid.rs"] pub mod ModelSquid;
-#[path = "ModelDragon.rs"] pub mod ModelDragon;
-#[path = "ModelSlime.rs"] pub mod ModelSlime;
-#[path = "ModelMagmaCube.rs"] pub mod ModelMagmaCube;
-#[path = "ModelBlaze.rs"] pub mod ModelBlaze;
-#[path = "ModelGhast.rs"] pub mod ModelGhast;
-#[path = "ModelGuardian.rs"] pub mod ModelGuardian;
-#[path = "ModelShulker.rs"] pub mod ModelShulker;
-#[path = "ModelShulkerBullet.rs"] pub mod ModelShulkerBullet;
-#[path = "ModelWolf.rs"] pub mod ModelWolf;
-#[path = "ModelOcelot.rs"] pub mod ModelOcelot;
-#[path = "ModelRabbit.rs"] pub mod ModelRabbit;
-#[path = "ModelPolarBear.rs"] pub mod ModelPolarBear;
-#[path = "ModelHorse.rs"] pub mod ModelHorse;
-#[path = "ModelLlama.rs"] pub mod ModelLlama;
-#[path = "ModelVillager.rs"] pub mod ModelVillager;
-#[path = "ModelWitch.rs"] pub mod ModelWitch;
-#[path = "ModelIllager.rs"] pub mod ModelIllager;
-#[path = "ModelZombieVillager.rs"] pub mod ModelZombieVillager;
-#[path = "ModelVehicleBox.rs"] pub mod ModelVehicleBox;
-#[path = "ModelBoat.rs"] pub mod ModelBoat;
-#[path = "ModelMinecart.rs"] pub mod ModelMinecart;
-#[path = "ModelLeashKnot.rs"] pub mod ModelLeashKnot;
-#[path = "ModelBook.rs"] pub mod ModelBook;
+#[path = "ModelBiped.rs"]
+pub mod ModelBiped;
+#[path = "ModelBlaze.rs"]
+pub mod ModelBlaze;
+#[path = "ModelBoat.rs"]
+pub mod ModelBoat;
+#[path = "ModelBook.rs"]
+pub mod ModelBook;
+#[path = "ModelBoxGeometry.rs"]
+pub mod ModelBoxGeometry;
+#[path = "ModelChicken.rs"]
+pub mod ModelChicken;
+#[path = "ModelCow.rs"]
+pub mod ModelCow;
+#[path = "ModelCreeper.rs"]
+pub mod ModelCreeper;
+#[path = "ModelDragon.rs"]
+pub mod ModelDragon;
+#[path = "ModelEnderman.rs"]
+pub mod ModelEnderman;
+#[path = "ModelGhast.rs"]
+pub mod ModelGhast;
+#[path = "ModelGuardian.rs"]
+pub mod ModelGuardian;
+#[path = "ModelHorse.rs"]
+pub mod ModelHorse;
+#[path = "ModelIllager.rs"]
+pub mod ModelIllager;
+#[path = "ModelLeashKnot.rs"]
+pub mod ModelLeashKnot;
+#[path = "ModelLlama.rs"]
+pub mod ModelLlama;
+#[path = "ModelMagmaCube.rs"]
+pub mod ModelMagmaCube;
+#[path = "ModelMinecart.rs"]
+pub mod ModelMinecart;
+#[path = "ModelOcelot.rs"]
+pub mod ModelOcelot;
+#[path = "ModelPig.rs"]
+pub mod ModelPig;
+#[path = "ModelPlayer.rs"]
+pub mod ModelPlayer;
+#[path = "ModelPolarBear.rs"]
+pub mod ModelPolarBear;
+#[path = "ModelQuadruped.rs"]
+pub mod ModelQuadruped;
+#[path = "ModelRabbit.rs"]
+pub mod ModelRabbit;
+#[path = "ModelSheep1.rs"]
+pub mod ModelSheep1;
+#[path = "ModelSheep2.rs"]
+pub mod ModelSheep2;
+#[path = "ModelShield.rs"]
+pub mod ModelShield;
+#[path = "ModelShulker.rs"]
+pub mod ModelShulker;
+#[path = "ModelShulkerBullet.rs"]
+pub mod ModelShulkerBullet;
+#[path = "ModelSkeleton.rs"]
+pub mod ModelSkeleton;
+#[path = "ModelSlime.rs"]
+pub mod ModelSlime;
+#[path = "ModelSpider.rs"]
+pub mod ModelSpider;
+#[path = "ModelSquid.rs"]
+pub mod ModelSquid;
+#[path = "ModelVehicleBox.rs"]
+pub mod ModelVehicleBox;
+#[path = "ModelVillager.rs"]
+pub mod ModelVillager;
+#[path = "ModelWitch.rs"]
+pub mod ModelWitch;
+#[path = "ModelWolf.rs"]
+pub mod ModelWolf;
+#[path = "ModelZombie.rs"]
+pub mod ModelZombie;
+#[path = "ModelZombieVillager.rs"]
+pub mod ModelZombieVillager;
 
-#[path = "ModelSkeletonHead.rs"] pub mod ModelSkeletonHead;
+#[path = "ModelSkeletonHead.rs"]
+pub mod ModelSkeletonHead;
 
-#[path = "ModelSign.rs"] pub mod ModelSign;
-#[path = "ModelEnderCrystal.rs"] pub mod ModelEnderCrystal;
-#[path = "ModelElytra.rs"] pub mod ModelElytra;
+#[path = "ModelElytra.rs"]
+pub mod ModelElytra;
+#[path = "ModelEnderCrystal.rs"]
+pub mod ModelEnderCrystal;
+#[path = "ModelSign.rs"]
+pub mod ModelSign;

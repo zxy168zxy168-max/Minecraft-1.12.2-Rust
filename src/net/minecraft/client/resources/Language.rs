@@ -87,7 +87,10 @@ mod tests {
         let a = Language::new("en_us", "US", "English", false);
         let b = Language::new("en_us", "GB", "English (UK)", false);
         assert_eq!(a, b);
-        assert_eq!(a.cmp(&Language::new("af_za", "", "", false)), std::cmp::Ordering::Greater);
+        assert_eq!(
+            a.cmp(&Language::new("af_za", "", "", false)),
+            std::cmp::Ordering::Greater
+        );
         assert!(a < Language::new("zh_cn", "", "", false));
     }
 }

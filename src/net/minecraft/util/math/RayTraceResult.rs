@@ -1,6 +1,6 @@
 use super::BlockPos::BlockPos;
-use super::Vec3d::Vec3d;
 use super::EnumFacing;
+use super::Vec3d::Vec3d;
 
 /// Rust port of MCP 1.12.2 `RayTraceResult` for block and miss hits.
 /// Entity hits are added with the multiplayer entity subsystem.
@@ -38,5 +38,7 @@ impl RayTraceResult {
         }
     }
 
-    pub const fn getBlockPos(self) -> BlockPos { self.blockPos }
+    pub const fn getBlockPos(self) -> BlockPos {
+        self.blockPos
+    }
 }

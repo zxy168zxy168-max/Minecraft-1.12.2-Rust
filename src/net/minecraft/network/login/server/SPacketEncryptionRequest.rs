@@ -21,16 +21,31 @@ impl SPacketEncryptionRequest {
         let publicKey = decodePublicKey(&publicKeyEncoded)?;
         let verifyTokenMaximum = input.len();
         let verifyToken = read_byte_array(&mut input, verifyTokenMaximum)?;
-        Ok(Self { hashedServerId, publicKey, publicKeyEncoded, verifyToken })
+        Ok(Self {
+            hashedServerId,
+            publicKey,
+            publicKeyEncoded,
+            verifyToken,
+        })
     }
-    pub fn getServerId(&self) -> &str { &self.hashedServerId }
-    pub fn getPublicKey(&self) -> &RsaPublicKey { &self.publicKey }
-    pub fn getPublicKeyEncoded(&self) -> &[u8] { &self.publicKeyEncoded }
-    pub fn getVerifyToken(&self) -> &[u8] { &self.verifyToken }
+    pub fn getServerId(&self) -> &str {
+        &self.hashedServerId
+    }
+    pub fn getPublicKey(&self) -> &RsaPublicKey {
+        &self.publicKey
+    }
+    pub fn getPublicKeyEncoded(&self) -> &[u8] {
+        &self.publicKeyEncoded
+    }
+    pub fn getVerifyToken(&self) -> &[u8] {
+        &self.verifyToken
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum SPacketEncryptionRequestError {
-    #[error(transparent)] Codec(#[from] CodecError),
-    #[error(transparent)] Crypt(#[from] CryptManagerError),
+    #[error(transparent)]
+    Codec(#[from] CodecError),
+    #[error(transparent)]
+    Crypt(#[from] CryptManagerError),
 }

@@ -45,22 +45,40 @@ impl PositionedSoundRecord {
 
     pub fn getMasterRecord(sound: ResourceLocation, pitch: f32) -> Self {
         Self::new(
-            sound, SoundCategory::Master, 0.25, pitch, false, 0,
-            AttenuationType::None, [0.0; 3],
+            sound,
+            SoundCategory::Master,
+            0.25,
+            pitch,
+            false,
+            0,
+            AttenuationType::None,
+            [0.0; 3],
         )
     }
 
     pub fn getMusicRecord(sound: ResourceLocation) -> Self {
         Self::new(
-            sound, SoundCategory::Music, 1.0, 1.0, false, 0,
-            AttenuationType::None, [0.0; 3],
+            sound,
+            SoundCategory::Music,
+            1.0,
+            1.0,
+            false,
+            0,
+            AttenuationType::None,
+            [0.0; 3],
         )
     }
 
     pub fn getRecordSoundRecord(sound: ResourceLocation, position: [f32; 3]) -> Self {
         Self::new(
-            sound, SoundCategory::Records, 4.0, 1.0, false, 0,
-            AttenuationType::Linear, position,
+            sound,
+            SoundCategory::Records,
+            4.0,
+            1.0,
+            false,
+            0,
+            AttenuationType::Linear,
+            position,
         )
     }
 }

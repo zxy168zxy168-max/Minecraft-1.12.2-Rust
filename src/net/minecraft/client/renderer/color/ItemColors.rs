@@ -18,7 +18,9 @@ impl ItemColors {
     pub const DEFAULT_COLOR: i32 = -1;
 
     pub fn new(grass: &ColorizerGrass) -> Self {
-        Self { inventoryGrassColor: grass.getGrassColor(0.5, 1.0) }
+        Self {
+            inventoryGrassColor: grass.getGrassColor(0.5, 1.0),
+        }
     }
 
     pub fn getColorFromItemstack(&self, stack: &ItemStack, tintIndex: i32) -> i32 {
@@ -28,7 +30,11 @@ impl ItemColors {
         match stack.itemId {
             // Items.LEATHER_HELMET/CHESTPLATE/LEGGINGS/BOOTS.
             298..=301 => {
-                if tintIndex > 0 { Self::DEFAULT_COLOR } else { leather_color(stack) }
+                if tintIndex > 0 {
+                    Self::DEFAULT_COLOR
+                } else {
+                    leather_color(stack)
+                }
             }
             // Blocks.DOUBLE_PLANT. Only double grass and double fern are tinted.
             175 => match stack.itemDamage & 7 {
@@ -37,11 +43,19 @@ impl ItemColors {
             },
             // Items.FIREWORK_CHARGE.
             402 => {
-                if tintIndex == 1 { firework_charge_color(stack) } else { Self::DEFAULT_COLOR }
+                if tintIndex == 1 {
+                    firework_charge_color(stack)
+                } else {
+                    Self::DEFAULT_COLOR
+                }
             }
             // Items.POTIONITEM, Items.SPLASH_POTION, Items.LINGERING_POTION.
             373 | 438 | 441 => {
-                if tintIndex > 0 { Self::DEFAULT_COLOR } else { potion_color(stack) }
+                if tintIndex > 0 {
+                    Self::DEFAULT_COLOR
+                } else {
+                    potion_color(stack)
+                }
             }
             // Items.SPAWN_EGG.
             383 => spawn_egg_color(stack, tintIndex),
@@ -49,11 +63,19 @@ impl ItemColors {
             2 | 18 | 31 | 106 | 111 | 161 => self.block_item_color(stack),
             // Items.TIPPED_ARROW.
             440 => {
-                if tintIndex == 0 { potion_color(stack) } else { Self::DEFAULT_COLOR }
+                if tintIndex == 0 {
+                    potion_color(stack)
+                } else {
+                    Self::DEFAULT_COLOR
+                }
             }
             // Items.FILLED_MAP.
             358 => {
-                if tintIndex == 0 { Self::DEFAULT_COLOR } else { filled_map_color(stack) }
+                if tintIndex == 0 {
+                    Self::DEFAULT_COLOR
+                } else {
+                    filled_map_color(stack)
+                }
             }
             _ => Self::DEFAULT_COLOR,
         }
@@ -64,7 +86,13 @@ impl ItemColors {
             // Blocks.GRASS: BlockColors' null-world inventory fallback.
             2 => self.inventoryGrassColor,
             // Blocks.TALLGRASS: dead bush is white; grass and fern use grass colormap.
-            31 => if stack.itemDamage & 3 == 0 { 0xFF_FFFF } else { self.inventoryGrassColor },
+            31 => {
+                if stack.itemDamage & 3 == 0 {
+                    0xFF_FFFF
+                } else {
+                    self.inventoryGrassColor
+                }
+            }
             // Blocks.VINE.
             106 => ColorizerFoliage::getFoliageColorBasic(),
             // Blocks.LEAVES: oak/jungle basic, spruce/birch fixed.
@@ -83,7 +111,9 @@ impl ItemColors {
 }
 
 fn leather_color(stack: &ItemStack) -> i32 {
-    let Some(root) = &stack.tagCompound else { return 10_511_680; };
+    let Some(root) = &stack.tagCompound else {
+        return 10_511_680;
+    };
     if !root.hasKeyWithType("display", TAG_COMPOUND) {
         return 10_511_680;
     }
@@ -96,7 +126,9 @@ fn leather_color(stack: &ItemStack) -> i32 {
 }
 
 fn firework_charge_color(stack: &ItemStack) -> i32 {
-    let Some(root) = &stack.tagCompound else { return 9_079_434; };
+    let Some(root) = &stack.tagCompound else {
+        return 9_079_434;
+    };
     if !root.hasKeyWithType("Explosion", TAG_COMPOUND) {
         return 9_079_434;
     }
@@ -147,7 +179,11 @@ fn potion_color(stack: &ItemStack) -> i32 {
     let mut effects = Vec::<PotionColorEffect>::new();
     if let Some((potion_id, amplifier)) = potion_type_effect(&potion_name) {
         if let Some(color) = potion_effect_color(potion_id) {
-            effects.push(PotionColorEffect { color, amplifier, showParticles: true });
+            effects.push(PotionColorEffect {
+                color,
+                amplifier,
+                showParticles: true,
+            });
         }
     }
 
@@ -157,7 +193,9 @@ fn potion_color(stack: &ItemStack) -> i32 {
             for index in 0..custom.tagCount() {
                 let effect = custom.getCompoundTagAt(index);
                 let potion_id = effect.getByte("Id") as i32;
-                let Some(color) = potion_effect_color(potion_id) else { continue; };
+                let Some(color) = potion_effect_color(potion_id) else {
+                    continue;
+                };
                 let amplifier = (effect.getByte("Amplifier") as i32).max(0);
                 let show_particles = if effect.hasKeyWithType("ShowParticles", 1) {
                     effect.getBoolean("ShowParticles")
@@ -192,7 +230,11 @@ fn potion_effect_list_color(effects: &[PotionColorEffect]) -> i32 {
     let mut green = 0.0_f32;
     let mut blue = 0.0_f32;
     let mut weight = 0_i32;
-    for effect in effects.iter().copied().filter(|effect| effect.showParticles) {
+    for effect in effects
+        .iter()
+        .copied()
+        .filter(|effect| effect.showParticles)
+    {
         let effect_weight = effect.amplifier + 1;
         red += (effect_weight * ((effect.color >> 16) & 0xFF)) as f32 / 255.0;
         green += (effect_weight * ((effect.color >> 8) & 0xFF)) as f32 / 255.0;
@@ -211,7 +253,10 @@ fn potion_effect_list_color(effects: &[PotionColorEffect]) -> i32 {
 fn potion_type_effect(name: &str) -> Option<(i32, i32)> {
     let path = name.strip_prefix("minecraft:").unwrap_or(name);
     let amplifier = if path.starts_with("strong_") { 1 } else { 0 };
-    let base = path.strip_prefix("long_").or_else(|| path.strip_prefix("strong_")).unwrap_or(path);
+    let base = path
+        .strip_prefix("long_")
+        .or_else(|| path.strip_prefix("strong_"))
+        .unwrap_or(path);
     let id = match base {
         "night_vision" => 16,
         "invisibility" => 14,
@@ -266,11 +311,15 @@ fn potion_effect_color(id: i32) -> Option<i32> {
 }
 
 fn potion_type_color(name: &str) -> Option<i32> {
-    POTION_TYPE_COLORS.iter().find_map(|(key, color)| (*key == name).then_some(*color))
+    POTION_TYPE_COLORS
+        .iter()
+        .find_map(|(key, color)| (*key == name).then_some(*color))
 }
 
 fn spawn_egg_color(stack: &ItemStack, tint_index: i32) -> i32 {
-    let Some(root) = &stack.tagCompound else { return ItemColors::DEFAULT_COLOR; };
+    let Some(root) = &stack.tagCompound else {
+        return ItemColors::DEFAULT_COLOR;
+    };
     if !root.hasKeyWithType("EntityTag", TAG_COMPOUND) {
         return ItemColors::DEFAULT_COLOR;
     }
@@ -279,14 +328,23 @@ fn spawn_egg_color(stack: &ItemStack, tint_index: i32) -> i32 {
         return ItemColors::DEFAULT_COLOR;
     }
     let id = normalize_resource_location(&entity_tag.getString("id"));
-    let Some((_, primary, secondary)) = ENTITY_EGG_COLORS.iter().find(|(key, _, _)| *key == id.as_str()) else {
+    let Some((_, primary, secondary)) = ENTITY_EGG_COLORS
+        .iter()
+        .find(|(key, _, _)| *key == id.as_str())
+    else {
         return ItemColors::DEFAULT_COLOR;
     };
-    if tint_index == 0 { *primary } else { *secondary }
+    if tint_index == 0 {
+        *primary
+    } else {
+        *secondary
+    }
 }
 
 fn filled_map_color(stack: &ItemStack) -> i32 {
-    let Some(root) = &stack.tagCompound else { return -12_173_266; };
+    let Some(root) = &stack.tagCompound else {
+        return -12_173_266;
+    };
     if !root.hasKeyWithType("display", TAG_COMPOUND) {
         return -12_173_266;
     }
@@ -299,7 +357,11 @@ fn filled_map_color(stack: &ItemStack) -> i32 {
 }
 
 fn normalize_resource_location(value: &str) -> String {
-    if value.contains(':') { value.to_owned() } else { format!("minecraft:{value}") }
+    if value.contains(':') {
+        value.to_owned()
+    } else {
+        format!("minecraft:{value}")
+    }
 }
 
 const POTION_TYPE_COLORS: &[(&str, i32)] = &[
@@ -394,7 +456,12 @@ mod tests {
     use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 
     fn item(item_id: i16, damage: i16, tag: Option<NBTTagCompound>) -> ItemStack {
-        ItemStack { itemId: item_id, count: 1, itemDamage: damage, tagCompound: tag }
+        ItemStack {
+            itemId: item_id,
+            count: 1,
+            itemDamage: damage,
+            tagCompound: tag,
+        }
     }
 
     #[test]
@@ -409,7 +476,10 @@ mod tests {
         display.setInteger("MapColor", 0xABCDEF);
         let mut root = NBTTagCompound::new();
         root.setCompoundTag("display", display);
-        assert_eq!(filled_map_color(&item(358, 0, Some(root))), -16_777_216_i32 | 0xABCDEF);
+        assert_eq!(
+            filled_map_color(&item(358, 0, Some(root))),
+            -16_777_216_i32 | 0xABCDEF
+        );
     }
 
     #[test]
@@ -419,8 +489,16 @@ mod tests {
         assert_eq!(potion_color(&item(373, 0, Some(root))), 0x135724);
 
         let effects = [
-            PotionColorEffect { color: 0xFF0000, amplifier: 0, showParticles: true },
-            PotionColorEffect { color: 0x0000FF, amplifier: 1, showParticles: true },
+            PotionColorEffect {
+                color: 0xFF0000,
+                amplifier: 0,
+                showParticles: true,
+            },
+            PotionColorEffect {
+                color: 0x0000FF,
+                amplifier: 1,
+                showParticles: true,
+            },
         ];
         assert_eq!(potion_effect_list_color(&effects), 0x5500AA);
     }

@@ -8,7 +8,9 @@ use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 pub struct LayerSheepWool;
 
 impl LayerSheepWool {
-    pub fn shouldRender(entity: &EntityOtherClient) -> bool { !entity.sheepSheared() }
+    pub fn shouldRender(entity: &EntityOtherClient) -> bool {
+        !entity.sheepSheared()
+    }
     pub fn texture() -> ResourceLocation {
         ResourceLocation::new("minecraft", "textures/entity/sheep/sheep_fur.png")
     }

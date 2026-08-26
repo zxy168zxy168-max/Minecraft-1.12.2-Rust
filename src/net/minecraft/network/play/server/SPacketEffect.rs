@@ -26,21 +26,32 @@ impl SPacketEffect {
                 input.len()
             )));
         }
-        Ok(Self { soundType, soundPos, soundData, serverWide })
+        Ok(Self {
+            soundType,
+            soundPos,
+            soundData,
+            serverWide,
+        })
     }
 
-    pub const fn isSoundServerwide(&self) -> bool { self.serverWide }
-    pub const fn getSoundType(&self) -> i32 { self.soundType }
-    pub const fn getSoundData(&self) -> i32 { self.soundData }
-    pub const fn getSoundPos(&self) -> BlockPos { self.soundPos }
+    pub const fn isSoundServerwide(&self) -> bool {
+        self.serverWide
+    }
+    pub const fn getSoundType(&self) -> i32 {
+        self.soundType
+    }
+    pub const fn getSoundData(&self) -> i32 {
+        self.soundData
+    }
+    pub const fn getSoundPos(&self) -> BlockPos {
+        self.soundPos
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::net::minecraft::network::PacketBuffer::{
-        write_bool, write_i32_be, write_i64_be,
-    };
+    use crate::net::minecraft::network::PacketBuffer::{write_bool, write_i32_be, write_i64_be};
 
     #[test]
     fn reads_world_event_payload() {

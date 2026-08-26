@@ -77,7 +77,9 @@ impl SpawnEggNames {
     }
 }
 impl IFixableData for SpawnEggNames {
-    fn getFixVersion(&self) -> i32 { 105 }
+    fn getFixVersion(&self) -> i32 {
+        105
+    }
     fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
         if compound.getString("id") == "minecraft:spawn_egg" {
             let mut tag = compound.getCompoundTag("tag");
@@ -90,7 +92,9 @@ impl IFixableData for SpawnEggNames {
                     compound.setCompoundTag("tag", tag);
                 }
             }
-            if damage != 0 { compound.setShort("Damage", 0); }
+            if damage != 0 {
+                compound.setShort("Damage", 0);
+            }
         }
         compound
     }

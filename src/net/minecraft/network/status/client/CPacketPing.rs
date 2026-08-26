@@ -1,13 +1,24 @@
 use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::PacketBuffer::write_i64_be;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CPacketPing { clientTime: i64 }
-impl CPacketPing {
-    pub const fn new(clientTimeIn: i64) -> Self { Self { clientTime: clientTimeIn } }
-    pub fn writePacketData(self) -> RawPacket { let mut payload = Vec::with_capacity(8); write_i64_be(self.clientTime, &mut payload); RawPacket::new(1, payload) }
-    pub const fn getClientTime(self) -> i64 { self.clientTime }
+pub struct CPacketPing {
+    clientTime: i64,
 }
-
+impl CPacketPing {
+    pub const fn new(clientTimeIn: i64) -> Self {
+        Self {
+            clientTime: clientTimeIn,
+        }
+    }
+    pub fn writePacketData(self) -> RawPacket {
+        let mut payload = Vec::with_capacity(8);
+        write_i64_be(self.clientTime, &mut payload);
+        RawPacket::new(1, payload)
+    }
+    pub const fn getClientTime(self) -> i64 {
+        self.clientTime
+    }
+}
 
 #[cfg(test)]
 mod tests {

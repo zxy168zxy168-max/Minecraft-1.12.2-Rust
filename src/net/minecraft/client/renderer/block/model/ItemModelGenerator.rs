@@ -25,11 +25,7 @@ impl ItemModelGenerator {
             // ModelBlock stores logical atlas-sprite names (for example
             // `minecraft:items/apple`), not the backing PNG resource path.
             textures.insert(layerName.clone(), spriteName.to_string());
-            elements.extend(Self::getBlockParts(
-                tintIndex as i32,
-                layerName,
-                texture,
-            ));
+            elements.extend(Self::getBlockParts(tintIndex as i32, layerName, texture));
         }
         if elements.is_empty() {
             return None;
@@ -102,36 +98,57 @@ impl ItemModelGenerator {
             let minimum = span.min as f32;
             let maximum = span.max as f32;
             let anchor = span.anchor as f32;
-            let (
-                mut x0, mut y0, mut x1, mut y1,
-                mut u0, mut v0, mut u1, mut v1,
-                uScale, vScale,
-            ) = match span.facing {
-                SpanFacing::Up => (
-                    minimum, anchor, maximum + 1.0, anchor,
-                    minimum, anchor, maximum + 1.0, anchor,
-                    16.0 / frameWidth as f32,
-                    16.0 / (frameHeight.saturating_sub(1).max(1)) as f32,
-                ),
-                SpanFacing::Down => (
-                    minimum, anchor + 1.0, maximum + 1.0, anchor + 1.0,
-                    minimum, anchor, maximum + 1.0, anchor,
-                    16.0 / frameWidth as f32,
-                    16.0 / (frameHeight.saturating_sub(1).max(1)) as f32,
-                ),
-                SpanFacing::Left => (
-                    anchor, minimum, anchor, maximum + 1.0,
-                    anchor, maximum + 1.0, anchor, minimum,
-                    16.0 / (frameWidth.saturating_sub(1).max(1)) as f32,
-                    16.0 / frameHeight as f32,
-                ),
-                SpanFacing::Right => (
-                    anchor + 1.0, minimum, anchor + 1.0, maximum + 1.0,
-                    anchor, maximum + 1.0, anchor, minimum,
-                    16.0 / (frameWidth.saturating_sub(1).max(1)) as f32,
-                    16.0 / frameHeight as f32,
-                ),
-            };
+            let (mut x0, mut y0, mut x1, mut y1, mut u0, mut v0, mut u1, mut v1, uScale, vScale) =
+                match span.facing {
+                    SpanFacing::Up => (
+                        minimum,
+                        anchor,
+                        maximum + 1.0,
+                        anchor,
+                        minimum,
+                        anchor,
+                        maximum + 1.0,
+                        anchor,
+                        16.0 / frameWidth as f32,
+                        16.0 / (frameHeight.saturating_sub(1).max(1)) as f32,
+                    ),
+                    SpanFacing::Down => (
+                        minimum,
+                        anchor + 1.0,
+                        maximum + 1.0,
+                        anchor + 1.0,
+                        minimum,
+                        anchor,
+                        maximum + 1.0,
+                        anchor,
+                        16.0 / frameWidth as f32,
+                        16.0 / (frameHeight.saturating_sub(1).max(1)) as f32,
+                    ),
+                    SpanFacing::Left => (
+                        anchor,
+                        minimum,
+                        anchor,
+                        maximum + 1.0,
+                        anchor,
+                        maximum + 1.0,
+                        anchor,
+                        minimum,
+                        16.0 / (frameWidth.saturating_sub(1).max(1)) as f32,
+                        16.0 / frameHeight as f32,
+                    ),
+                    SpanFacing::Right => (
+                        anchor + 1.0,
+                        minimum,
+                        anchor + 1.0,
+                        maximum + 1.0,
+                        anchor,
+                        maximum + 1.0,
+                        anchor,
+                        minimum,
+                        16.0 / (frameWidth.saturating_sub(1).max(1)) as f32,
+                        16.0 / frameHeight as f32,
+                    ),
+                };
 
             let geometryU = 16.0 / frameWidth as f32;
             let geometryV = 16.0 / frameHeight as f32;
@@ -173,7 +190,6 @@ impl ItemModelGenerator {
         }
         parts
     }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -230,8 +246,7 @@ fn collect_spans(texture: &TextureSource, width: u32, height: u32) -> Vec<Span> 
                 let opaque = !transparent_in_frame(image, x, y, width, height, frameY);
                 for facing in SpanFacing::VALUES {
                     let (dx, dy) = facing.offset();
-                    if opaque
-                        && transparent_in_frame(image, x + dx, y + dy, width, height, frameY)
+                    if opaque && transparent_in_frame(image, x + dx, y + dy, width, height, frameY)
                     {
                         create_or_expand_span(&mut spans, facing, x, y);
                     }

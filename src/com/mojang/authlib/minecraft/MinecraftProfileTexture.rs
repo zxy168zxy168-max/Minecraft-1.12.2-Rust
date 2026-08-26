@@ -16,10 +16,15 @@ pub enum TextureType {
 
 impl MinecraftProfileTexture {
     pub fn new(url: impl Into<String>, metadata: BTreeMap<String, String>) -> Self {
-        Self { url: url.into(), metadata }
+        Self {
+            url: url.into(),
+            metadata,
+        }
     }
 
-    pub fn getUrl(&self) -> &str { &self.url }
+    pub fn getUrl(&self) -> &str {
+        &self.url
+    }
 
     pub fn getMetadata(&self, key: &str) -> Option<&str> {
         self.metadata.get(key).map(String::as_str)
@@ -29,7 +34,10 @@ impl MinecraftProfileTexture {
     /// query/fragment, and final extension while retaining the texture hash.
     pub fn getHash(&self) -> String {
         let without_fragment = self.url.split('#').next().unwrap_or(&self.url);
-        let without_query = without_fragment.split('?').next().unwrap_or(without_fragment);
+        let without_query = without_fragment
+            .split('?')
+            .next()
+            .unwrap_or(without_fragment);
         let name = without_query.rsplit('/').next().unwrap_or(without_query);
         match name.rfind('.') {
             Some(index) if index > 0 => name[..index].to_owned(),

@@ -1,5 +1,5 @@
-use crate::net::minecraft::block::Block::Block;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::Block::Block;
 use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
 use crate::net::minecraft::client::gui::GuiIngame::{HudSolidRect, HudText};
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
@@ -43,7 +43,9 @@ pub struct DebugOverlayFrame {
 pub struct GuiOverlayDebug;
 
 impl GuiOverlayDebug {
-    pub fn new() -> Self { Self }
+    pub fn new() -> Self {
+        Self
+    }
 
     pub fn buildFrame(
         &self,
@@ -84,9 +86,7 @@ impl GuiOverlayDebug {
             ),
             format!(
                 "E: {}+{}, P: {}",
-                data.remotePlayerCount,
-                data.nonPlayerEntityCount,
-                data.particleCount,
+                data.remotePlayerCount, data.nonPlayerEntityCount, data.particleCount,
             ),
             dimension_name(data.dimension).to_owned(),
             String::new(),
@@ -132,7 +132,10 @@ impl GuiOverlayDebug {
                 format!("Day: {}", data.worldTime.div_euclid(24_000)),
             ]);
             if let Some((target, _)) = data.targetBlock {
-                lines.push(format!("Looking at: {} {} {}", target.x, target.y, target.z));
+                lines.push(format!(
+                    "Looking at: {} {} {}",
+                    target.x, target.y, target.z
+                ));
             }
         }
         lines.push(String::new());
@@ -152,7 +155,10 @@ impl GuiOverlayDebug {
             String::new(),
             format!("CPU: {}", cpu_name()),
             String::new(),
-            format!("Display: {}x{} (Vulkan)", data.outputWidth, data.outputHeight),
+            format!(
+                "Display: {}x{} (Vulkan)",
+                data.outputWidth, data.outputHeight
+            ),
             data.vulkanDevice.clone(),
         ];
         if !data.reducedDebugInfo {
@@ -176,9 +182,15 @@ fn append_lines(
 ) {
     let fontHeight = 9;
     for (index, line) in lines.iter().enumerate() {
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
         let width = fontRenderer.get_string_width(line);
-        let x = if rightAligned { guiWidth - 2 - width } else { 2 };
+        let x = if rightAligned {
+            guiWidth - 2 - width
+        } else {
+            2
+        };
         let y = 2 + fontHeight * index as i32;
         frame.rectangles.push(HudSolidRect::new(
             x - 1,
@@ -202,7 +214,13 @@ fn render_chunk_budget(distance: i32) -> i32 {
     diameter * diameter * 16
 }
 
-fn visible(value: bool) -> &'static str { if value { "visible" } else { "hidden" } }
+fn visible(value: bool) -> &'static str {
+    if value {
+        "visible"
+    } else {
+        "hidden"
+    }
+}
 fn dimension_name(dimension: i32) -> &'static str {
     match dimension {
         -1 => "The Nether",
@@ -229,8 +247,12 @@ fn facing_description(yaw: f32) -> &'static str {
     }
 }
 
-fn wrap_degrees(value: f32) -> f32 { (value + 180.0).rem_euclid(360.0) - 180.0 }
-fn rust_runtime_label() -> String { option_env!("RUSTC_VERSION").unwrap_or("native").to_owned() }
+fn wrap_degrees(value: f32) -> f32 {
+    (value + 180.0).rem_euclid(360.0) - 180.0
+}
+fn rust_runtime_label() -> String {
+    option_env!("RUSTC_VERSION").unwrap_or("native").to_owned()
+}
 fn cpu_name() -> String {
     std::env::var("PROCESSOR_IDENTIFIER")
         .or_else(|_| std::env::var("HOSTTYPE"))

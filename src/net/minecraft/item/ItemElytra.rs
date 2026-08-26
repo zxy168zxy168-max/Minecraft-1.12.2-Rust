@@ -23,7 +23,12 @@ mod tests {
 
     #[test]
     fn source_predicate_rejects_last_durability_point() {
-        let mut stack = ItemStack { itemId: 443, count: 1, itemDamage: 430, tagCompound: None };
+        let mut stack = ItemStack {
+            itemId: 443,
+            count: 1,
+            itemDamage: 430,
+            tagCompound: None,
+        };
         assert!(ItemElytra::isBroken(&stack));
         stack.itemDamage = 431;
         assert!(!ItemElytra::isBroken(&stack));

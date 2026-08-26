@@ -10,7 +10,8 @@ pub struct SoundRegistry {
 
 impl SoundRegistry {
     pub fn add(&mut self, accessor: SoundEventAccessor) {
-        self.soundRegistry.insert(accessor.getLocation().clone(), accessor);
+        self.soundRegistry
+            .insert(accessor.getLocation().clone(), accessor);
     }
     pub fn getObject(&self, location: &ResourceLocation) -> Option<&SoundEventAccessor> {
         self.soundRegistry.get(location)
@@ -18,7 +19,13 @@ impl SoundRegistry {
     pub fn getObjectMut(&mut self, location: &ResourceLocation) -> Option<&mut SoundEventAccessor> {
         self.soundRegistry.get_mut(location)
     }
-    pub fn clearMap(&mut self) { self.soundRegistry.clear(); }
-    pub fn getKeys(&self) -> impl Iterator<Item = &ResourceLocation> { self.soundRegistry.keys() }
-    pub fn len(&self) -> usize { self.soundRegistry.len() }
+    pub fn clearMap(&mut self) {
+        self.soundRegistry.clear();
+    }
+    pub fn getKeys(&self) -> impl Iterator<Item = &ResourceLocation> {
+        self.soundRegistry.keys()
+    }
+    pub fn len(&self) -> usize {
+        self.soundRegistry.len()
+    }
 }

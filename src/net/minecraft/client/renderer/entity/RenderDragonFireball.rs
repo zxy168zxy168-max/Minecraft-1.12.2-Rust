@@ -7,6 +7,9 @@ impl RenderDragonFireball {
     pub const SCALE: f32 = 2.0;
 
     pub fn texture() -> ResourceLocation {
-        ResourceLocation::new("minecraft", "textures/entity/enderdragon/dragon_fireball.png")
+        ResourceLocation::new(
+            "minecraft",
+            "textures/entity/enderdragon/dragon_fireball.png",
+        )
     }
 }

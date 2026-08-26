@@ -60,8 +60,7 @@ pub fn choose_surface_format(formats: &[vk::SurfaceFormatKHR]) -> Option<vk::Sur
     ];
     for format in PREFERRED {
         if let Some(candidate) = formats.iter().copied().find(|candidate| {
-            candidate.format == format
-                && candidate.color_space == vk::ColorSpaceKHR::SRGB_NONLINEAR
+            candidate.format == format && candidate.color_space == vk::ColorSpaceKHR::SRGB_NONLINEAR
         }) {
             return Some(candidate);
         }
@@ -114,9 +113,7 @@ pub fn choose_image_count(capabilities: &vk::SurfaceCapabilitiesKHR) -> u32 {
     }
 }
 
-fn choose_composite_alpha(
-    supported: vk::CompositeAlphaFlagsKHR,
-) -> vk::CompositeAlphaFlagsKHR {
+fn choose_composite_alpha(supported: vk::CompositeAlphaFlagsKHR) -> vk::CompositeAlphaFlagsKHR {
     for candidate in [
         vk::CompositeAlphaFlagsKHR::OPAQUE,
         vk::CompositeAlphaFlagsKHR::PRE_MULTIPLIED,
@@ -138,9 +135,18 @@ mod tests {
         vk::SurfaceCapabilitiesKHR {
             min_image_count: 2,
             max_image_count: 3,
-            current_extent: vk::Extent2D { width: u32::MAX, height: u32::MAX },
-            min_image_extent: vk::Extent2D { width: 320, height: 240 },
-            max_image_extent: vk::Extent2D { width: 3840, height: 2160 },
+            current_extent: vk::Extent2D {
+                width: u32::MAX,
+                height: u32::MAX,
+            },
+            min_image_extent: vk::Extent2D {
+                width: 320,
+                height: 240,
+            },
+            max_image_extent: vk::Extent2D {
+                width: 3840,
+                height: 2160,
+            },
             supported_transforms: vk::SurfaceTransformFlagsKHR::IDENTITY,
             current_transform: vk::SurfaceTransformFlagsKHR::IDENTITY,
             supported_composite_alpha: vk::CompositeAlphaFlagsKHR::OPAQUE,
@@ -160,13 +166,20 @@ mod tests {
     fn non_vsync_prefers_immediate_then_mailbox() {
         assert_eq!(
             choose_present_mode(
-                &[vk::PresentModeKHR::FIFO, vk::PresentModeKHR::IMMEDIATE, vk::PresentModeKHR::MAILBOX],
+                &[
+                    vk::PresentModeKHR::FIFO,
+                    vk::PresentModeKHR::IMMEDIATE,
+                    vk::PresentModeKHR::MAILBOX
+                ],
                 false,
             ),
             vk::PresentModeKHR::IMMEDIATE
         );
         assert_eq!(
-            choose_present_mode(&[vk::PresentModeKHR::FIFO, vk::PresentModeKHR::MAILBOX], false),
+            choose_present_mode(
+                &[vk::PresentModeKHR::FIFO, vk::PresentModeKHR::MAILBOX],
+                false
+            ),
             vk::PresentModeKHR::MAILBOX
         );
     }
@@ -174,7 +187,13 @@ mod tests {
     #[test]
     fn extent_is_clamped_when_surface_does_not_fix_it() {
         let value = choose_extent(&capabilities(), 200, 3000);
-        assert_eq!(value, vk::Extent2D { width: 320, height: 2160 });
+        assert_eq!(
+            value,
+            vk::Extent2D {
+                width: 320,
+                height: 2160
+            }
+        );
     }
 
     #[test]

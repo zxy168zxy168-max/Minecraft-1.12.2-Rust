@@ -13,19 +13,31 @@ fn cache() -> &'static Mutex<HashMap<PathBuf, SharedRegionFile>> {
 }
 
 fn region_path(worldDir: &Path, chunkX: i32, chunkZ: i32) -> PathBuf {
-    worldDir.join("region").join(format!("r.{}.{}.mca", chunkX >> 5, chunkZ >> 5))
+    worldDir
+        .join("region")
+        .join(format!("r.{}.{}.mca", chunkX >> 5, chunkZ >> 5))
 }
 
 /// MCP 1.12.2 `RegionFileCache` with the same 256-file eviction ceiling.
-pub fn createOrLoadRegionFile(worldDir: impl AsRef<Path>, chunkX: i32, chunkZ: i32) -> io::Result<SharedRegionFile> {
+pub fn createOrLoadRegionFile(
+    worldDir: impl AsRef<Path>,
+    chunkX: i32,
+    chunkZ: i32,
+) -> io::Result<SharedRegionFile> {
     let worldDir = worldDir.as_ref();
     let path = region_path(worldDir, chunkX, chunkZ);
-    let mut regions = cache().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(region) = regions.get(&path) { return Ok(Arc::clone(region)); }
+    let mut regions = cache()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(region) = regions.get(&path) {
+        return Ok(Arc::clone(region));
+    }
     std::fs::create_dir_all(worldDir.join("region"))?;
     if regions.len() >= 256 {
         for region in regions.values() {
-            if let Ok(mut region) = region.lock() { let _ = region.close(); }
+            if let Ok(mut region) = region.lock() {
+                let _ = region.close();
+            }
         }
         regions.clear();
     }
@@ -36,15 +48,27 @@ pub fn createOrLoadRegionFile(worldDir: impl AsRef<Path>, chunkX: i32, chunkZ: i
 
 /// MCP `func_191065_b`: return no region when neither region directory nor
 /// target file exists; do not create a new file for existence checks.
-pub fn getExistingRegionFile(worldDir: impl AsRef<Path>, chunkX: i32, chunkZ: i32) -> io::Result<Option<SharedRegionFile>> {
+pub fn getExistingRegionFile(
+    worldDir: impl AsRef<Path>,
+    chunkX: i32,
+    chunkZ: i32,
+) -> io::Result<Option<SharedRegionFile>> {
     let worldDir = worldDir.as_ref();
     let path = region_path(worldDir, chunkX, chunkZ);
-    let mut regions = cache().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(region) = regions.get(&path) { return Ok(Some(Arc::clone(region))); }
-    if !worldDir.join("region").exists() || !path.exists() { return Ok(None); }
+    let mut regions = cache()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(region) = regions.get(&path) {
+        return Ok(Some(Arc::clone(region)));
+    }
+    if !worldDir.join("region").exists() || !path.exists() {
+        return Ok(None);
+    }
     if regions.len() >= 256 {
         for region in regions.values() {
-            if let Ok(mut region) = region.lock() { let _ = region.close(); }
+            if let Ok(mut region) = region.lock() {
+                let _ = region.close();
+            }
         }
         regions.clear();
     }
@@ -54,30 +78,51 @@ pub fn getExistingRegionFile(worldDir: impl AsRef<Path>, chunkX: i32, chunkZ: i3
 }
 
 pub fn clearRegionFileReferences() {
-    let mut regions = cache().lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut regions = cache()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     for region in regions.values() {
-        if let Ok(mut region) = region.lock() { let _ = region.close(); }
+        if let Ok(mut region) = region.lock() {
+            let _ = region.close();
+        }
     }
     regions.clear();
 }
 
-pub fn readChunkData(worldDir: impl AsRef<Path>, chunkX: i32, chunkZ: i32) -> io::Result<Option<Vec<u8>>> {
+pub fn readChunkData(
+    worldDir: impl AsRef<Path>,
+    chunkX: i32,
+    chunkZ: i32,
+) -> io::Result<Option<Vec<u8>>> {
     let region = createOrLoadRegionFile(worldDir, chunkX, chunkZ)?;
-    let result = region.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    let result = region
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
         .readChunkData(chunkX & 31, chunkZ & 31)?;
     Ok(result)
 }
 
-pub fn writeChunkData(worldDir: impl AsRef<Path>, chunkX: i32, chunkZ: i32, data: &[u8]) -> io::Result<()> {
+pub fn writeChunkData(
+    worldDir: impl AsRef<Path>,
+    chunkX: i32,
+    chunkZ: i32,
+    data: &[u8],
+) -> io::Result<()> {
     let region = createOrLoadRegionFile(worldDir, chunkX, chunkZ)?;
-    region.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    region
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
         .writeChunkData(chunkX & 31, chunkZ & 31, data)?;
     Ok(())
 }
 
 pub fn isChunkSaved(worldDir: impl AsRef<Path>, chunkX: i32, chunkZ: i32) -> io::Result<bool> {
-    let Some(region) = getExistingRegionFile(worldDir, chunkX, chunkZ)? else { return Ok(false); };
-    let saved = region.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    let Some(region) = getExistingRegionFile(worldDir, chunkX, chunkZ)? else {
+        return Ok(false);
+    };
+    let saved = region
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
         .isChunkSaved(chunkX & 31, chunkZ & 31);
     Ok(saved)
 }
@@ -95,7 +140,10 @@ mod tests {
         writeChunkData(&root, 33, -1, b"region cache payload").unwrap();
         assert!(root.join("region/r.1.-1.mca").is_file());
         assert!(isChunkSaved(&root, 33, -1).unwrap());
-        assert_eq!(readChunkData(&root, 33, -1).unwrap().unwrap(), b"region cache payload");
+        assert_eq!(
+            readChunkData(&root, 33, -1).unwrap().unwrap(),
+            b"region cache payload"
+        );
         clearRegionFileReferences();
         let _ = std::fs::remove_dir_all(root);
     }

@@ -21,18 +21,20 @@ use crate::net::minecraft::client::network::NetHandlerPlayClient::{
 };
 use crate::net::minecraft::client::resources::Locale::Locale;
 use crate::net::minecraft::entity::player::EntityPlayer::EnumChatVisibility;
-use crate::net::minecraft::network::EnumConnectionState::ConnectionState;
-use crate::net::minecraft::network::NetworkManager::{LocalEndpointAddress, NetworkManager, NetworkManagerError};
-use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::handshake::client::C00Handshake::C00Handshake;
 use crate::net::minecraft::network::login::client::CPacketLoginStart::CPacketLoginStart;
 use crate::net::minecraft::network::play::server::SPacketJoinGame::SPacketJoinGame;
+use crate::net::minecraft::network::EnumConnectionState::ConnectionState;
+use crate::net::minecraft::network::NetworkManager::{
+    LocalEndpointAddress, NetworkManager, NetworkManagerError,
+};
+use crate::net::minecraft::network::Packet::RawPacket;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
 use crate::net::minecraft::util::EnumHandSide::EnumHandSide;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
-use crate::net::minecraft::util::SoundCategory::SoundCategory;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::Session::Session;
-use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
+use crate::net::minecraft::util::SoundCategory::SoundCategory;
 use crate::vulkan::GuiDrawList::GuiDrawList;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,7 +43,10 @@ pub enum GuiConnectingEvent {
     CompressionEnabled(i32),
     LoginSuccess(GameProfile),
     JoinGame(SPacketJoinGame),
-    Respawn { dimension: i32, dimensionChanged: bool },
+    Respawn {
+        dimension: i32,
+        dimensionChanged: bool,
+    },
     TerrainReady,
     PlayerDied(ITextComponent),
     Sound {
@@ -60,7 +65,10 @@ pub enum GuiConnectingEvent {
         serverWide: bool,
     },
     Disconnected(String),
-    Failed { reasonKey: &'static str, message: String },
+    Failed {
+        reasonKey: &'static str,
+        message: String,
+    },
     Cancelled,
 }
 
@@ -164,9 +172,35 @@ impl GuiConnecting {
         let (playPacketSender, playPacketReceiver) = mpsc::channel();
         let cancel = Arc::new(AtomicBool::new(false));
         let sharedPlayState = SharedPlayClientState::new();
-        let settings = ClientSettingsSnapshot { language, renderDistanceChunks, chatVisibility, chatColours, modelPartFlags, mainHand };
-        spawn_local_connector(address, session, settings, Arc::clone(&cancel), sender, sharedPlayState.clone(), playPacketReceiver);
-        Self { GuiScreen: GuiScreen::default(), cancel, receiver, pendingEvents: VecDeque::new(), sharedPlayState, playPacketSender, authorizing:false, terminal:false, connectingText:String::new(), authorizingText:String::new() }
+        let settings = ClientSettingsSnapshot {
+            language,
+            renderDistanceChunks,
+            chatVisibility,
+            chatColours,
+            modelPartFlags,
+            mainHand,
+        };
+        spawn_local_connector(
+            address,
+            session,
+            settings,
+            Arc::clone(&cancel),
+            sender,
+            sharedPlayState.clone(),
+            playPacketReceiver,
+        );
+        Self {
+            GuiScreen: GuiScreen::default(),
+            cancel,
+            receiver,
+            pendingEvents: VecDeque::new(),
+            sharedPlayState,
+            playPacketSender,
+            authorizing: false,
+            terminal: false,
+            connectingText: String::new(),
+            authorizingText: String::new(),
+        }
     }
 
     pub fn initGui(&mut self, width: i32, height: i32, locale: &Locale) {
@@ -197,7 +231,9 @@ impl GuiConnecting {
                 | GuiConnectingEvent::Disconnected(_)
                 | GuiConnectingEvent::Failed { .. }
                 | GuiConnectingEvent::Cancelled => true,
-                GuiConnectingEvent::Respawn { dimensionChanged, .. } => *dimensionChanged,
+                GuiConnectingEvent::Respawn {
+                    dimensionChanged, ..
+                } => *dimensionChanged,
                 _ => false,
             };
             match &event {
@@ -208,7 +244,7 @@ impl GuiConnecting {
                 GuiConnectingEvent::Respawn { .. }
                 | GuiConnectingEvent::PlayerDied(_)
                 | GuiConnectingEvent::Sound { .. }
-                | GuiConnectingEvent::WorldEffect { .. } => {},
+                | GuiConnectingEvent::WorldEffect { .. } => {}
                 GuiConnectingEvent::JoinGame(_)
                 | GuiConnectingEvent::Disconnected(_)
                 | GuiConnectingEvent::Failed { .. }
@@ -278,8 +314,12 @@ impl GuiConnecting {
         self.terminal = true;
     }
 
-    pub const fn isTerminal(&self) -> bool { self.terminal }
-    pub fn getSharedPlayState(&self) -> SharedPlayClientState { self.sharedPlayState.clone() }
+    pub const fn isTerminal(&self) -> bool {
+        self.terminal
+    }
+    pub fn getSharedPlayState(&self) -> SharedPlayClientState {
+        self.sharedPlayState.clone()
+    }
 
     pub fn sendPlayPackets(&self, packets: Vec<RawPacket>) -> Result<(), String> {
         for packet in packets {
@@ -292,7 +332,9 @@ impl GuiConnecting {
 }
 
 impl Drop for GuiConnecting {
-    fn drop(&mut self) { self.cancel.store(true, Ordering::Release); }
+    fn drop(&mut self) {
+        self.cancel.store(true, Ordering::Release);
+    }
 }
 
 fn spawn_connector(
@@ -323,26 +365,24 @@ fn spawn_connector(
             }
 
             log::info!("Connecting to {}, {}", host, address.getPort());
-            let mut network = match NetworkManager::createNetworkManagerAndConnect(
-                &host,
-                address.getPort(),
-            ) {
-                Ok(network) => network,
-                Err(NetworkManagerError::UnknownHost) => {
-                    let _ = sender.send(GuiConnectingEvent::Failed {
-                        reasonKey: "connect.failed",
-                        message: "Unknown host".to_owned(),
-                    });
-                    return;
-                }
-                Err(error) => {
-                    let _ = sender.send(GuiConnectingEvent::Failed {
-                        reasonKey: "connect.failed",
-                        message: error.to_string(),
-                    });
-                    return;
-                }
-            };
+            let mut network =
+                match NetworkManager::createNetworkManagerAndConnect(&host, address.getPort()) {
+                    Ok(network) => network,
+                    Err(NetworkManagerError::UnknownHost) => {
+                        let _ = sender.send(GuiConnectingEvent::Failed {
+                            reasonKey: "connect.failed",
+                            message: "Unknown host".to_owned(),
+                        });
+                        return;
+                    }
+                    Err(error) => {
+                        let _ = sender.send(GuiConnectingEvent::Failed {
+                            reasonKey: "connect.failed",
+                            message: error.to_string(),
+                        });
+                        return;
+                    }
+                };
 
             if cancel.load(Ordering::Acquire) {
                 network.closeChannel();
@@ -351,22 +391,19 @@ fn spawn_connector(
             }
 
             let _ = sender.send(GuiConnectingEvent::Authorizing);
-            let handshake = match C00Handshake::new(
-                &host,
-                address.getPort(),
-                ConnectionState::Login,
-            )
-            .writePacketData()
-            {
-                Ok(packet) => packet,
-                Err(error) => {
-                    let _ = sender.send(GuiConnectingEvent::Failed {
-                        reasonKey: "connect.failed",
-                        message: error.to_string(),
-                    });
-                    return;
-                }
-            };
+            let handshake =
+                match C00Handshake::new(&host, address.getPort(), ConnectionState::Login)
+                    .writePacketData()
+                {
+                    Ok(packet) => packet,
+                    Err(error) => {
+                        let _ = sender.send(GuiConnectingEvent::Failed {
+                            reasonKey: "connect.failed",
+                            message: error.to_string(),
+                        });
+                        return;
+                    }
+                };
             if let Err(error) = network.sendPacket(&handshake) {
                 let _ = sender.send(GuiConnectingEvent::Failed {
                     reasonKey: "connect.failed",
@@ -436,19 +473,28 @@ fn spawn_connector(
 
                 if let Some(handler) = playHandler.as_mut() {
                     match handler.processPacket(&mut network, &packet) {
-                        Ok(PlayHandlerEvent::None | PlayHandlerEvent::IgnoredPacket(_)
+                        Ok(
+                            PlayHandlerEvent::None
+                            | PlayHandlerEvent::IgnoredPacket(_)
                             | PlayHandlerEvent::ChunkLoaded { .. }
                             | PlayHandlerEvent::ChunkUnloaded { .. }
                             | PlayHandlerEvent::BlockChanged
                             | PlayHandlerEvent::TimeUpdated { .. }
                             | PlayHandlerEvent::SignEditorOpened { .. }
-                            | PlayHandlerEvent::MapUpdated { .. }) => {}
+                            | PlayHandlerEvent::MapUpdated { .. },
+                        ) => {}
                         Ok(PlayHandlerEvent::TileEntityUpdated { .. }) => {}
                         Ok(PlayHandlerEvent::JoinGame(joinGame)) => {
                             let _ = sender.send(GuiConnectingEvent::JoinGame(joinGame));
                         }
-                        Ok(PlayHandlerEvent::Respawn { dimension, dimensionChanged }) => {
-                            let _ = sender.send(GuiConnectingEvent::Respawn { dimension, dimensionChanged });
+                        Ok(PlayHandlerEvent::Respawn {
+                            dimension,
+                            dimensionChanged,
+                        }) => {
+                            let _ = sender.send(GuiConnectingEvent::Respawn {
+                                dimension,
+                                dimensionChanged,
+                            });
                         }
                         Ok(PlayHandlerEvent::TerrainReady) => {
                             let _ = sender.send(GuiConnectingEvent::TerrainReady);
@@ -456,14 +502,36 @@ fn spawn_connector(
                         Ok(PlayHandlerEvent::PlayerDied { message }) => {
                             let _ = sender.send(GuiConnectingEvent::PlayerDied(message));
                         }
-                        Ok(PlayHandlerEvent::Sound { sound, category, x, y, z, volume, pitch }) => {
+                        Ok(PlayHandlerEvent::Sound {
+                            sound,
+                            category,
+                            x,
+                            y,
+                            z,
+                            volume,
+                            pitch,
+                        }) => {
                             let _ = sender.send(GuiConnectingEvent::Sound {
-                                sound, category, x, y, z, volume, pitch,
+                                sound,
+                                category,
+                                x,
+                                y,
+                                z,
+                                volume,
+                                pitch,
                             });
                         }
-                        Ok(PlayHandlerEvent::WorldEffect { effectType, position, data, serverWide }) => {
+                        Ok(PlayHandlerEvent::WorldEffect {
+                            effectType,
+                            position,
+                            data,
+                            serverWide,
+                        }) => {
                             let _ = sender.send(GuiConnectingEvent::WorldEffect {
-                                effectType, position, data, serverWide,
+                                effectType,
+                                position,
+                                data,
+                                serverWide,
                             });
                         }
                         Ok(PlayHandlerEvent::Disconnected(reason)) => {
@@ -545,45 +613,211 @@ fn spawn_local_connector(
     sharedPlayState: SharedPlayClientState,
     playPacketReceiver: Receiver<RawPacket>,
 ) {
-    thread::Builder::new().name(next_connector_name()).spawn(move || {
-        let mut network = match NetworkManager::provideLocalClient(&address) {
-            Ok(network) => network,
-            Err(error) => { let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:error.to_string()}); return; }
-        };
-        if cancel.load(Ordering::Acquire) { network.closeChannel(); let _=sender.send(GuiConnectingEvent::Cancelled); return; }
-        let _=sender.send(GuiConnectingEvent::Authorizing);
-        let handshake=match C00Handshake::new(address.to_string(),0,ConnectionState::Login).writePacketData(){Ok(p)=>p,Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}};
-        if let Err(e)=network.sendPacket(&handshake){let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}
-        network.setConnectionState(ConnectionState::Login);
-        let login=match CPacketLoginStart::new(session.getProfile()).writePacketData(){Ok(p)=>p,Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}};
-        if let Err(e)=network.sendPacket(&login){let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}
-        let loginHandler=NetHandlerLoginClient::new(session,false);
-        let mut playHandler:Option<NetHandlerPlayClient>=None;
-        loop {
-            if cancel.load(Ordering::Acquire){network.closeChannel();let _=sender.send(GuiConnectingEvent::Cancelled);return;}
-            if playHandler.is_some(){while let Ok(outbound)=playPacketReceiver.try_recv(){if let Err(e)=network.sendPacket(&outbound){let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}}}
-            let packet=match network.readPacket(){Ok(p)=>p,Err(NetworkManagerError::Timeout)=>continue,Err(NetworkManagerError::Closed)=>{let _=sender.send(GuiConnectingEvent::Disconnected("Connection closed".to_owned()));return;},Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}};
-            if let Some(handler)=playHandler.as_mut(){
-                match handler.processPacket(&mut network,&packet){
-                    Ok(PlayHandlerEvent::None|PlayHandlerEvent::IgnoredPacket(_)|PlayHandlerEvent::ChunkLoaded{..}|PlayHandlerEvent::ChunkUnloaded{..}|PlayHandlerEvent::BlockChanged|PlayHandlerEvent::TimeUpdated{..}|PlayHandlerEvent::SignEditorOpened{..}|PlayHandlerEvent::MapUpdated{..}|PlayHandlerEvent::TileEntityUpdated{..})=>{},
-                    Ok(PlayHandlerEvent::JoinGame(v))=>{let _=sender.send(GuiConnectingEvent::JoinGame(v));},
-                    Ok(PlayHandlerEvent::Respawn{dimension,dimensionChanged})=>{let _=sender.send(GuiConnectingEvent::Respawn{dimension,dimensionChanged});},
-                    Ok(PlayHandlerEvent::TerrainReady)=>{let _=sender.send(GuiConnectingEvent::TerrainReady);},
-                    Ok(PlayHandlerEvent::PlayerDied{message})=>{let _=sender.send(GuiConnectingEvent::PlayerDied(message));},
-                    Ok(PlayHandlerEvent::Sound{sound,category,x,y,z,volume,pitch})=>{let _=sender.send(GuiConnectingEvent::Sound{sound,category,x,y,z,volume,pitch});},
-                    Ok(PlayHandlerEvent::WorldEffect{effectType,position,data,serverWide})=>{let _=sender.send(GuiConnectingEvent::WorldEffect{effectType,position,data,serverWide});},
-                    Ok(PlayHandlerEvent::Disconnected(reason))=>{let _=sender.send(GuiConnectingEvent::Disconnected(reason.getFormattedText().to_owned()));return;},
-                    Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}
+    thread::Builder::new()
+        .name(next_connector_name())
+        .spawn(move || {
+            let mut network = match NetworkManager::provideLocalClient(&address) {
+                Ok(network) => network,
+                Err(error) => {
+                    let _ = sender.send(GuiConnectingEvent::Failed {
+                        reasonKey: "connect.failed",
+                        message: error.to_string(),
+                    });
+                    return;
                 }
-                continue;
+            };
+            if cancel.load(Ordering::Acquire) {
+                network.closeChannel();
+                let _ = sender.send(GuiConnectingEvent::Cancelled);
+                return;
             }
-            match loginHandler.processPacket(&mut network,&packet){
-                Ok(LoginHandlerEvent::Authorizing)=>{let _=sender.send(GuiConnectingEvent::Authorizing);},
-                Ok(LoginHandlerEvent::CompressionEnabled(t))=>{let _=sender.send(GuiConnectingEvent::CompressionEnabled(t));},
-                Ok(LoginHandlerEvent::LoginSuccess(profile))=>{network.setConnectionState(ConnectionState::Play);sharedPlayState.withWrite(|state|state.networkEncrypted=network.isEncrypted());let _=network.setReadTimeout(Duration::from_millis(25));playHandler=Some(NetHandlerPlayClient::new(profile.clone(),settings.clone(),sharedPlayState.clone()));let _=sender.send(GuiConnectingEvent::LoginSuccess(profile));},
-                Ok(LoginHandlerEvent::Disconnected(reason))=>{let _=sender.send(GuiConnectingEvent::Disconnected(reason.getFormattedText().to_owned()));return;},
-                Err(e)=>{let _=sender.send(GuiConnectingEvent::Failed{reasonKey:"connect.failed",message:e.to_string()});return;}
+            let _ = sender.send(GuiConnectingEvent::Authorizing);
+            let handshake = match C00Handshake::new(address.to_string(), 0, ConnectionState::Login)
+                .writePacketData()
+            {
+                Ok(p) => p,
+                Err(e) => {
+                    let _ = sender.send(GuiConnectingEvent::Failed {
+                        reasonKey: "connect.failed",
+                        message: e.to_string(),
+                    });
+                    return;
+                }
+            };
+            if let Err(e) = network.sendPacket(&handshake) {
+                let _ = sender.send(GuiConnectingEvent::Failed {
+                    reasonKey: "connect.failed",
+                    message: e.to_string(),
+                });
+                return;
             }
-        }
-    }).expect("failed spawning Local Server Connector thread");
+            network.setConnectionState(ConnectionState::Login);
+            let login = match CPacketLoginStart::new(session.getProfile()).writePacketData() {
+                Ok(p) => p,
+                Err(e) => {
+                    let _ = sender.send(GuiConnectingEvent::Failed {
+                        reasonKey: "connect.failed",
+                        message: e.to_string(),
+                    });
+                    return;
+                }
+            };
+            if let Err(e) = network.sendPacket(&login) {
+                let _ = sender.send(GuiConnectingEvent::Failed {
+                    reasonKey: "connect.failed",
+                    message: e.to_string(),
+                });
+                return;
+            }
+            let loginHandler = NetHandlerLoginClient::new(session, false);
+            let mut playHandler: Option<NetHandlerPlayClient> = None;
+            loop {
+                if cancel.load(Ordering::Acquire) {
+                    network.closeChannel();
+                    let _ = sender.send(GuiConnectingEvent::Cancelled);
+                    return;
+                }
+                if playHandler.is_some() {
+                    while let Ok(outbound) = playPacketReceiver.try_recv() {
+                        if let Err(e) = network.sendPacket(&outbound) {
+                            let _ = sender.send(GuiConnectingEvent::Failed {
+                                reasonKey: "connect.failed",
+                                message: e.to_string(),
+                            });
+                            return;
+                        }
+                    }
+                }
+                let packet = match network.readPacket() {
+                    Ok(p) => p,
+                    Err(NetworkManagerError::Timeout) => continue,
+                    Err(NetworkManagerError::Closed) => {
+                        let _ = sender.send(GuiConnectingEvent::Disconnected(
+                            "Connection closed".to_owned(),
+                        ));
+                        return;
+                    }
+                    Err(e) => {
+                        let _ = sender.send(GuiConnectingEvent::Failed {
+                            reasonKey: "connect.failed",
+                            message: e.to_string(),
+                        });
+                        return;
+                    }
+                };
+                if let Some(handler) = playHandler.as_mut() {
+                    match handler.processPacket(&mut network, &packet) {
+                        Ok(
+                            PlayHandlerEvent::None
+                            | PlayHandlerEvent::IgnoredPacket(_)
+                            | PlayHandlerEvent::ChunkLoaded { .. }
+                            | PlayHandlerEvent::ChunkUnloaded { .. }
+                            | PlayHandlerEvent::BlockChanged
+                            | PlayHandlerEvent::TimeUpdated { .. }
+                            | PlayHandlerEvent::SignEditorOpened { .. }
+                            | PlayHandlerEvent::MapUpdated { .. }
+                            | PlayHandlerEvent::TileEntityUpdated { .. },
+                        ) => {}
+                        Ok(PlayHandlerEvent::JoinGame(v)) => {
+                            let _ = sender.send(GuiConnectingEvent::JoinGame(v));
+                        }
+                        Ok(PlayHandlerEvent::Respawn {
+                            dimension,
+                            dimensionChanged,
+                        }) => {
+                            let _ = sender.send(GuiConnectingEvent::Respawn {
+                                dimension,
+                                dimensionChanged,
+                            });
+                        }
+                        Ok(PlayHandlerEvent::TerrainReady) => {
+                            let _ = sender.send(GuiConnectingEvent::TerrainReady);
+                        }
+                        Ok(PlayHandlerEvent::PlayerDied { message }) => {
+                            let _ = sender.send(GuiConnectingEvent::PlayerDied(message));
+                        }
+                        Ok(PlayHandlerEvent::Sound {
+                            sound,
+                            category,
+                            x,
+                            y,
+                            z,
+                            volume,
+                            pitch,
+                        }) => {
+                            let _ = sender.send(GuiConnectingEvent::Sound {
+                                sound,
+                                category,
+                                x,
+                                y,
+                                z,
+                                volume,
+                                pitch,
+                            });
+                        }
+                        Ok(PlayHandlerEvent::WorldEffect {
+                            effectType,
+                            position,
+                            data,
+                            serverWide,
+                        }) => {
+                            let _ = sender.send(GuiConnectingEvent::WorldEffect {
+                                effectType,
+                                position,
+                                data,
+                                serverWide,
+                            });
+                        }
+                        Ok(PlayHandlerEvent::Disconnected(reason)) => {
+                            let _ = sender.send(GuiConnectingEvent::Disconnected(
+                                reason.getFormattedText().to_owned(),
+                            ));
+                            return;
+                        }
+                        Err(e) => {
+                            let _ = sender.send(GuiConnectingEvent::Failed {
+                                reasonKey: "connect.failed",
+                                message: e.to_string(),
+                            });
+                            return;
+                        }
+                    }
+                    continue;
+                }
+                match loginHandler.processPacket(&mut network, &packet) {
+                    Ok(LoginHandlerEvent::Authorizing) => {
+                        let _ = sender.send(GuiConnectingEvent::Authorizing);
+                    }
+                    Ok(LoginHandlerEvent::CompressionEnabled(t)) => {
+                        let _ = sender.send(GuiConnectingEvent::CompressionEnabled(t));
+                    }
+                    Ok(LoginHandlerEvent::LoginSuccess(profile)) => {
+                        network.setConnectionState(ConnectionState::Play);
+                        sharedPlayState
+                            .withWrite(|state| state.networkEncrypted = network.isEncrypted());
+                        let _ = network.setReadTimeout(Duration::from_millis(25));
+                        playHandler = Some(NetHandlerPlayClient::new(
+                            profile.clone(),
+                            settings.clone(),
+                            sharedPlayState.clone(),
+                        ));
+                        let _ = sender.send(GuiConnectingEvent::LoginSuccess(profile));
+                    }
+                    Ok(LoginHandlerEvent::Disconnected(reason)) => {
+                        let _ = sender.send(GuiConnectingEvent::Disconnected(
+                            reason.getFormattedText().to_owned(),
+                        ));
+                        return;
+                    }
+                    Err(e) => {
+                        let _ = sender.send(GuiConnectingEvent::Failed {
+                            reasonKey: "connect.failed",
+                            message: e.to_string(),
+                        });
+                        return;
+                    }
+                }
+            }
+        })
+        .expect("failed spawning Local Server Connector thread");
 }

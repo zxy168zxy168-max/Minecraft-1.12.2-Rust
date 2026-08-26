@@ -4,7 +4,9 @@ use crate::net::minecraft::util::datafix::IFixableData::IFixableData;
 /// MCP 1.12.2 `TileEntityId` (DataVersion 704).
 pub struct TileEntityId;
 impl IFixableData for TileEntityId {
-    fn getFixVersion(&self) -> i32 { 704 }
+    fn getFixVersion(&self) -> i32 {
+        704
+    }
     fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
         let replacement = match compound.getString("id").as_str() {
             "Airportal" => Some("minecraft:end_portal"),
@@ -32,7 +34,9 @@ impl IFixableData for TileEntityId {
             "Trap" => Some("minecraft:dispenser"),
             _ => None,
         };
-        if let Some(id) = replacement { compound.setString("id", id); }
+        if let Some(id) = replacement {
+            compound.setString("id", id);
+        }
         compound
     }
 }

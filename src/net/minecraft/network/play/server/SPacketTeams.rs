@@ -1,5 +1,7 @@
 use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::{read_i8, read_string, read_var_i32, CodecError};
+use crate::net::minecraft::network::PacketBuffer::{
+    read_i8, read_string, read_var_i32, CodecError,
+};
 
 /// Protocol 340 clientbound 0x44, matching MCP 1.12.2 `SPacketTeams`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,20 +46,44 @@ impl SPacketTeams {
         }
         if action == 0 || action == 3 || action == 4 {
             let count = read_var_i32(&mut input)?;
-            if count < 0 { return Err(CodecError::NegativeLength(count)); }
-            for _ in 0..count { result.players.push(read_string(&mut input, 40)?); }
+            if count < 0 {
+                return Err(CodecError::NegativeLength(count));
+            }
+            for _ in 0..count {
+                result.players.push(read_string(&mut input, 40)?);
+            }
         }
         Ok(result)
     }
 
-    pub fn getName(&self) -> &str { &self.name }
-    pub fn getDisplayName(&self) -> &str { &self.displayName }
-    pub fn getPrefix(&self) -> &str { &self.prefix }
-    pub fn getSuffix(&self) -> &str { &self.suffix }
-    pub fn getPlayers(&self) -> &[String] { &self.players }
-    pub const fn getAction(&self) -> i32 { self.action }
-    pub const fn getFriendlyFlags(&self) -> i32 { self.friendlyFlags }
-    pub const fn getColor(&self) -> i32 { self.color }
-    pub fn getNameTagVisibility(&self) -> &str { &self.nameTagVisibility }
-    pub fn getCollisionRule(&self) -> &str { &self.collisionRule }
+    pub fn getName(&self) -> &str {
+        &self.name
+    }
+    pub fn getDisplayName(&self) -> &str {
+        &self.displayName
+    }
+    pub fn getPrefix(&self) -> &str {
+        &self.prefix
+    }
+    pub fn getSuffix(&self) -> &str {
+        &self.suffix
+    }
+    pub fn getPlayers(&self) -> &[String] {
+        &self.players
+    }
+    pub const fn getAction(&self) -> i32 {
+        self.action
+    }
+    pub const fn getFriendlyFlags(&self) -> i32 {
+        self.friendlyFlags
+    }
+    pub const fn getColor(&self) -> i32 {
+        self.color
+    }
+    pub fn getNameTagVisibility(&self) -> &str {
+        &self.nameTagVisibility
+    }
+    pub fn getCollisionRule(&self) -> &str {
+        &self.collisionRule
+    }
 }

@@ -11,9 +11,15 @@ pub enum EnumActionResult {
 }
 
 impl EnumActionResult {
-    pub const fn isSuccess(self) -> bool { matches!(self, Self::Success) }
-    pub const fn isPass(self) -> bool { matches!(self, Self::Pass) }
-    pub const fn isFail(self) -> bool { matches!(self, Self::Fail) }
+    pub const fn isSuccess(self) -> bool {
+        matches!(self, Self::Success)
+    }
+    pub const fn isPass(self) -> bool {
+        matches!(self, Self::Pass)
+    }
+    pub const fn isFail(self) -> bool {
+        matches!(self, Self::Fail)
+    }
 }
 
 #[cfg(test)]

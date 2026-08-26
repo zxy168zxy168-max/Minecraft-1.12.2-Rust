@@ -1,13 +1,17 @@
-use crate::net::minecraft::block::Block::Block;
-use crate::net::minecraft::block::{BlockAnvil, BlockButton, BlockEndPortalFrame, BlockGlazedTerracotta, BlockLadder, BlockLever, BlockLog, BlockPumpkin, BlockQuartz, BlockRailBase, BlockRotatedPillar, BlockStairs, BlockTorch, BlockTrapDoor, BlockEndRod, BlockVine};
-use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::Block::Block;
+use crate::net::minecraft::block::{
+    BlockAnvil, BlockButton, BlockEndPortalFrame, BlockEndRod, BlockGlazedTerracotta, BlockLadder,
+    BlockLever, BlockLog, BlockPumpkin, BlockQuartz, BlockRailBase, BlockRotatedPillar,
+    BlockStairs, BlockTorch, BlockTrapDoor, BlockVine,
+};
+use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::item::ItemRegistryData::definition;
 use crate::net::minecraft::item::ItemStack::ItemStack;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::EnumActionResult::EnumActionResult;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 /// Source-owned Minecraft 1.12.2 `ItemBlock` client interaction path. The
@@ -35,7 +39,9 @@ impl ItemBlock {
             return false;
         }
         let block = Block::getBlockById(stack.itemId as i32);
-        if block.isAir() { return false; }
+        if block.isAir() {
+            return false;
+        }
         let itemName = definition(stack.itemId).registryName;
         itemName.strip_prefix("minecraft:") == Some(block.getRegistryPath())
     }
@@ -53,7 +59,9 @@ impl ItemBlock {
         player: &EntityPlayerSP,
         stack: &ItemStack,
     ) -> bool {
-        let Some(blockToPlace) = Self::getBlock(stack) else { return false; };
+        let Some(blockToPlace) = Self::getBlock(stack) else {
+            return false;
+        };
         let clicked = world.getBlockState(pos);
         let target = if clicked.getBlockId() == 78 {
             // `Blocks.SNOW_LAYER` forces UP before the replaceable test.
@@ -125,9 +133,7 @@ impl ItemBlock {
             // These IDs are the conservative source-audited subset whose
             // concrete block class does not replace onBlockPlaced or add a
             // multi-block onBlockPlacedBy sequence.
-            IBlockState::fromGlobalStateId(
-                (blockId << 4) | itemBlockMetadata(stack, blockId),
-            )
+            IBlockState::fromGlobalStateId((blockId << 4) | itemBlockMetadata(stack, blockId))
         } else {
             return None;
         };
@@ -138,7 +144,6 @@ impl ItemBlock {
             sourceItemDamage: stack.itemDamage,
         })
     }
-
 
     /// Server-authoritative counterpart of the source-backed placement preview.
     /// This uses only placement rules already ported from MCP; unsupported
@@ -166,13 +171,19 @@ impl ItemBlock {
         let blockId = Block::getIdFromBlock(block);
         let base = IBlockState::fromGlobalStateId(blockId << 4);
         let state = if BlockTorch::isBlockTorch(base) {
-            if !BlockTorch::canPlaceBlockAt(world, target) { return None; }
+            if !BlockTorch::canPlaceBlockAt(world, target) {
+                return None;
+            }
             BlockTorch::onBlockPlacedState(blockId, world, target, side)
         } else if BlockLadder::isBlockLadder(base) {
-            if !BlockLadder::canPlaceBlockOnSide(world, target, side) { return None; }
+            if !BlockLadder::canPlaceBlockOnSide(world, target, side) {
+                return None;
+            }
             BlockLadder::onBlockPlacedState(world, target, side)
         } else if BlockRailBase::isRailBlock(base) {
-            if !BlockRailBase::canPlaceBlockAt(world, target) { return None; }
+            if !BlockRailBase::canPlaceBlockAt(world, target) {
+                return None;
+            }
             BlockRailBase::onBlockPlacedState(blockId, stack.itemDamage as i32)
         } else if BlockStairs::isBlockStairs(base) {
             BlockStairs::onBlockPlacedState(blockId, side, hitY, placerYaw)
@@ -191,13 +202,22 @@ impl ItemBlock {
         } else if BlockAnvil::isBlockAnvil(base) {
             BlockAnvil::onBlockPlacedState(placerYaw, stack.itemDamage)
         } else if BlockButton::isBlockButton(base) {
-            if !BlockButton::canPlaceBlock(world,target,side) { return None; }
-            BlockButton::onBlockPlacedState(blockId,world,target,side)
+            if !BlockButton::canPlaceBlock(world, target, side) {
+                return None;
+            }
+            BlockButton::onBlockPlacedState(blockId, world, target, side)
         } else if BlockLever::isBlockLever(base) {
-            if !EnumFacing::VALUES.into_iter().any(|f|BlockButton::canPlaceBlock(world,target,f)){return None;}
-            BlockLever::onBlockPlacedState(world,target,side,placerYaw)
+            if !EnumFacing::VALUES
+                .into_iter()
+                .any(|f| BlockButton::canPlaceBlock(world, target, f))
+            {
+                return None;
+            }
+            BlockLever::onBlockPlacedState(world, target, side, placerYaw)
         } else if BlockVine::isBlockVine(base) {
-            if !BlockVine::canPlaceBlockOnSide(world,target,side){return None;}
+            if !BlockVine::canPlaceBlockOnSide(world, target, side) {
+                return None;
+            }
             BlockVine::onBlockPlacedState(side)
         } else if BlockEndPortalFrame::BlockEndPortalFrame::isBlockEndPortalFrame(base) {
             let facing = EnumFacing::fromAngle(placerYaw as f64).opposite();
@@ -212,7 +232,12 @@ impl ItemBlock {
         } else {
             return None;
         };
-        Some(ItemBlockPlacement { pos: target, state, sourceItemId: stack.itemId, sourceItemDamage: stack.itemDamage })
+        Some(ItemBlockPlacement {
+            pos: target,
+            state,
+            sourceItemId: stack.itemId,
+            sourceItemDamage: stack.itemDamage,
+        })
     }
 
     /// `ItemBlock#onItemUse` returns SUCCESS after all edit/may-place checks,
@@ -236,7 +261,6 @@ impl ItemBlock {
         }
     }
 }
-
 
 /// MCP `Block#isReplaceable` for the source-confirmed vanilla overrides used
 /// by ItemBlock placement. Shared by client prediction and server authority.
@@ -314,14 +338,21 @@ mod tests {
     use super::*;
 
     fn stack(id: i16) -> ItemStack {
-        ItemStack { itemId: id, count: 1, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]
     fn torch_preview_uses_clicked_face_and_resolved_target() {
         let mut world = WorldClient::new(0);
         let clicked = BlockPos::new(0, 64, 0);
-        world.invalidateRegionAndSetBlock(clicked, IBlockState::fromGlobalStateId(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(clicked, IBlockState::fromGlobalStateId(1 << 4))
+            .unwrap();
         let preview = ItemBlock::placementPreview(
             &world,
             &EntityPlayerSP::new(1),
@@ -329,7 +360,8 @@ mod tests {
             EnumFacing::Up,
             1.0,
             &stack(50),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(preview.pos, clicked.up(1));
         assert_eq!(preview.state.getMetadata(), 5);
     }
@@ -349,15 +381,25 @@ mod tests {
         let world = WorldClient::new(0);
         let player = EntityPlayerSP::new(1);
         let target = BlockPos::new(0, 64, 0);
-        let stone = ItemStack { itemId: 1, count: 1, itemDamage: 3, tagCompound: None };
-        let cobblestone = ItemStack { itemId: 4, count: 1, itemDamage: 9, tagCompound: None };
+        let stone = ItemStack {
+            itemId: 1,
+            count: 1,
+            itemDamage: 3,
+            tagCompound: None,
+        };
+        let cobblestone = ItemStack {
+            itemId: 4,
+            count: 1,
+            itemDamage: 9,
+            tagCompound: None,
+        };
 
-        let stonePreview = ItemBlock::placementPreview(
-            &world, &player, target, EnumFacing::Up, 0.5, &stone,
-        ).unwrap();
-        let cobblePreview = ItemBlock::placementPreview(
-            &world, &player, target, EnumFacing::Up, 0.5, &cobblestone,
-        ).unwrap();
+        let stonePreview =
+            ItemBlock::placementPreview(&world, &player, target, EnumFacing::Up, 0.5, &stone)
+                .unwrap();
+        let cobblePreview =
+            ItemBlock::placementPreview(&world, &player, target, EnumFacing::Up, 0.5, &cobblestone)
+                .unwrap();
         assert_eq!(stonePreview.state.getMetadata(), 3);
         assert_eq!(cobblePreview.state.getMetadata(), 0);
     }
@@ -372,8 +414,14 @@ mod tests {
             BlockPos::new(0, 64, 0),
             EnumFacing::Up,
             0.5,
-            &ItemStack { itemId: 18, count: 1, itemDamage: 2, tagCompound: None },
-        ).unwrap();
+            &ItemStack {
+                itemId: 18,
+                count: 1,
+                itemDamage: 2,
+                tagCompound: None,
+            },
+        )
+        .unwrap();
         assert_eq!(preview.state.getMetadata(), 6);
     }
 

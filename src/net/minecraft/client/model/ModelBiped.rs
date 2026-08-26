@@ -1,4 +1,6 @@
-use crate::net::minecraft::util::math::MathHelper::{cos as minecraft_cos, sin as minecraft_sin, DEG_2_RAD};
+use crate::net::minecraft::util::math::MathHelper::{
+    cos as minecraft_cos, sin as minecraft_sin, DEG_2_RAD,
+};
 
 /// Rotation/translation state used by the Rust equivalent of MCP 1.12.2
 /// `ModelBiped.setRotationAngles`. Units are model pixels and radians.
@@ -28,7 +30,6 @@ pub enum ArmPose {
     BowAndArrow,
 }
 
-
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct BipedMotionInput {
     pub ticksElytraFlying: i32,
@@ -36,7 +37,9 @@ pub struct BipedMotionInput {
 }
 
 impl BipedMotionInput {
-    pub const fn isElytraFlying(self) -> bool { self.ticksElytraFlying > 4 }
+    pub const fn isElytraFlying(self) -> bool {
+        self.ticksElytraFlying > 4
+    }
 
     pub fn swingDivisor(self) -> f32 {
         if !self.isElytraFlying() {
@@ -122,8 +125,7 @@ impl ModelBiped {
             rightArm: PartPose {
                 pivot: [-5.0, if slimArms { 2.5 } else { 2.0 }, 0.0],
                 rotation: [
-                    minecraft_cos(limbSwing * 0.6662 + std::f32::consts::PI)
-                        * limbSwingAmount
+                    minecraft_cos(limbSwing * 0.6662 + std::f32::consts::PI) * limbSwingAmount
                         / swingDivisor,
                     0.0,
                     0.0,
@@ -132,9 +134,7 @@ impl ModelBiped {
             leftArm: PartPose {
                 pivot: [5.0, if slimArms { 2.5 } else { 2.0 }, 0.0],
                 rotation: [
-                    minecraft_cos(limbSwing * 0.6662)
-                        * limbSwingAmount
-                        / swingDivisor,
+                    minecraft_cos(limbSwing * 0.6662) * limbSwingAmount / swingDivisor,
                     0.0,
                     0.0,
                 ],
@@ -142,10 +142,7 @@ impl ModelBiped {
             rightLeg: PartPose {
                 pivot: [-1.9, 12.0, 0.1],
                 rotation: [
-                    minecraft_cos(limbSwing * 0.6662)
-                        * 1.4
-                        * limbSwingAmount
-                        / swingDivisor,
+                    minecraft_cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount / swingDivisor,
                     0.0,
                     0.0,
                 ],
@@ -284,7 +281,6 @@ mod tests {
         assert!((result.rightArm.rotation[1] + 0.5235988).abs() < 1.0e-6);
     }
 
-
     #[test]
     fn riding_pose_matches_mcp_arm_and_leg_angles() {
         let result = ModelBiped::setRotationAngles(
@@ -316,11 +312,25 @@ mod tests {
     #[test]
     fn bow_pose_tracks_head_rotation_for_both_arms() {
         let result = ModelBiped::setRotationAngles(
-            0.0, 0.0, 0.0, 20.0, 10.0, 0.0, false, false, false, false,
-            ArmPose::Empty, ArmPose::BowAndArrow,
+            0.0,
+            0.0,
+            0.0,
+            20.0,
+            10.0,
+            0.0,
+            false,
+            false,
+            false,
+            false,
+            ArmPose::Empty,
+            ArmPose::BowAndArrow,
         );
         assert!((result.rightArm.rotation[1] - (20.0_f32.to_radians() - 0.1)).abs() < 1.0e-6);
-        assert!((result.leftArm.rotation[0] - (10.0_f32.to_radians() - std::f32::consts::FRAC_PI_2)).abs() < 1.0e-6);
+        assert!(
+            (result.leftArm.rotation[0] - (10.0_f32.to_radians() - std::f32::consts::FRAC_PI_2))
+                .abs()
+                < 1.0e-6
+        );
     }
 
     #[test]
@@ -341,21 +351,32 @@ mod tests {
             ArmPose::Empty,
             ArmPose::Empty,
         );
-        let expected = minecraft_cos(limb_swing * 0.6662 + std::f32::consts::PI)
-            * limb_amount;
+        let expected = minecraft_cos(limb_swing * 0.6662 + std::f32::consts::PI) * limb_amount;
         assert!((result.rightArm.rotation[0] - expected).abs() < 1.0e-7);
     }
 
     #[test]
     fn elytra_flight_uses_vanilla_head_pitch_and_speed_damping() {
         let normal = ModelBiped::setRotationAnglesWithMotion(
-            1.0, 1.0, 0.0, 0.0, 30.0, 0.0, false, false, false, false,
-            ArmPose::Empty, ArmPose::Empty,
-            BipedMotionInput { ticksElytraFlying: 5, motion: [1.0, 0.0, 0.0] },
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            30.0,
+            0.0,
+            false,
+            false,
+            false,
+            false,
+            ArmPose::Empty,
+            ArmPose::Empty,
+            BipedMotionInput {
+                ticksElytraFlying: 5,
+                motion: [1.0, 0.0, 0.0],
+            },
         );
         assert!((normal.head.rotation[0] + std::f32::consts::FRAC_PI_4).abs() < 1.0e-6);
         let undamped = (1.0_f32 * 0.6662 + std::f32::consts::PI).cos();
         assert!(normal.rightArm.rotation[0].abs() < undamped.abs());
     }
-
 }

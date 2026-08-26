@@ -41,7 +41,9 @@ impl RenderBackend {
 }
 
 impl Default for RenderBackend {
-    fn default() -> Self { Self::Vulkan }
+    fn default() -> Self {
+        Self::Vulkan
+    }
 }
 
 #[cfg(test)]

@@ -22,7 +22,11 @@ impl GuiCrafting {
 
     pub fn new() -> Self {
         let mut slots = Vec::with_capacity(46);
-        slots.push(GuiSlot { slotNumber: 0, xPos: 124, yPos: 35 });
+        slots.push(GuiSlot {
+            slotNumber: 0,
+            xPos: 124,
+            yPos: 35,
+        });
         for row in 0..3 {
             for column in 0..3 {
                 slots.push(GuiSlot {
@@ -47,7 +51,8 @@ impl GuiCrafting {
     pub fn initGuiWithRecipeBook(&mut self, width: i32, height: i32, book: &RecipeBook) {
         self.container.initGui(width, height);
         self.widthTooNarrow = width < 379;
-        self.recipeBook.init(width, height, self.widthTooNarrow, book);
+        self.recipeBook
+            .init(width, height, self.widthTooNarrow, book);
         self.container.guiLeft = self.recipeBook.containerLeft(Self::X_SIZE);
     }
 
@@ -59,12 +64,15 @@ impl GuiCrafting {
         resetPage: bool,
         locale: &Locale,
     ) {
-        self.recipeBook.rebuild(book, inventory, craftingStacks, 3, 3, resetPage, locale);
+        self.recipeBook
+            .rebuild(book, inventory, craftingStacks, 3, 3, resetPage, locale);
         self.container.guiLeft = self.recipeBook.containerLeft(Self::X_SIZE);
     }
 
     pub fn craftingSlotPositions(&self) -> Vec<(i32, i32)> {
-        (0..=9).filter_map(|slot| self.container.slotPosition(slot)).collect()
+        (0..=9)
+            .filter_map(|slot| self.container.slotPosition(slot))
+            .collect()
     }
 
     pub fn craftingBackground() -> ResourceLocation {
@@ -73,7 +81,9 @@ impl GuiCrafting {
 }
 
 impl Default for GuiCrafting {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 pub(crate) fn append_player_slots(slots: &mut Vec<GuiSlot>, lowerSlotCount: i32) {

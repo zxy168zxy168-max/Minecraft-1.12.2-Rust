@@ -1,7 +1,7 @@
 use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::PacketBuffer::{write_i64_be, write_var_i32};
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
 /// Protocol-340 port of MCP 1.12.2 `CPacketPlayerDigging`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,7 +38,11 @@ pub struct CPacketPlayerDigging {
 
 impl CPacketPlayerDigging {
     pub const fn new(actionIn: Action, posIn: BlockPos, facingIn: EnumFacing) -> Self {
-        Self { action: actionIn, position: posIn, facing: facingIn }
+        Self {
+            action: actionIn,
+            position: posIn,
+            facing: facingIn,
+        }
     }
 
     pub fn writePacketData(self) -> RawPacket {
@@ -56,7 +60,12 @@ mod tests {
 
     #[test]
     fn protocol_340_id_and_mcp_enum_order_match() {
-        let packet = CPacketPlayerDigging::new(Action::StopDestroyBlock, BlockPos::new(1, 2, 3), EnumFacing::West).writePacketData();
+        let packet = CPacketPlayerDigging::new(
+            Action::StopDestroyBlock,
+            BlockPos::new(1, 2, 3),
+            EnumFacing::West,
+        )
+        .writePacketData();
         assert_eq!(packet.id, 0x14);
         assert_eq!(packet.payload[0], 2);
         assert_eq!(*packet.payload.last().unwrap(), 4);

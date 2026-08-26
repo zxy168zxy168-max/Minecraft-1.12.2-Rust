@@ -17,8 +17,16 @@ impl GuiScreenHorseInventory {
     pub fn new(spec: HorseInventorySpec) -> Self {
         let lower = spec.lowerSlotCount() as i32;
         let mut slots = Vec::with_capacity(lower as usize + 36);
-        slots.push(GuiSlot { slotNumber: 0, xPos: 8, yPos: 18 });
-        slots.push(GuiSlot { slotNumber: 1, xPos: 8, yPos: 36 });
+        slots.push(GuiSlot {
+            slotNumber: 0,
+            xPos: 8,
+            yPos: 18,
+        });
+        slots.push(GuiSlot {
+            slotNumber: 1,
+            xPos: 8,
+            yPos: 36,
+        });
         if spec.chested {
             let columns = spec.chestColumns.clamp(1, 5);
             for row in 0..3 {
@@ -69,7 +77,9 @@ impl GuiScreenHorseInventory {
         self.spec.kind.hasEquipmentSlot()
     }
 
-    pub const fn isLlama(&self) -> bool { self.spec.kind.isLlama() }
+    pub const fn isLlama(&self) -> bool {
+        self.spec.kind.isLlama()
+    }
 
     pub fn chestOverlayWidth(&self) -> i32 {
         if self.spec.chested {

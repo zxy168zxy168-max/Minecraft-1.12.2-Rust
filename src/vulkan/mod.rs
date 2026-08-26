@@ -1,15 +1,30 @@
-#[path = "CpuFrame.rs"] pub mod CpuFrame;
-#[path = "DeviceSelection.rs"] pub mod DeviceSelection;
-#[path = "GuiCompiler.rs"] pub mod GuiCompiler;
-#[path = "GuiDrawList.rs"] pub mod GuiDrawList;
-#[path = "GuiRenderFrame.rs"] pub mod GuiRenderFrame;
-#[path = "NativeImage.rs"] pub mod NativeImage;
-#[path = "PanoramaRenderer.rs"] pub mod PanoramaRenderer;
-#[path = "SoftwareGuiRenderer.rs"] pub mod SoftwareGuiRenderer;
-#[path = "SwapchainPolicy.rs"] pub mod SwapchainPolicy;
-#[path = "TextureSource.rs"] pub mod TextureSource;
-#[path = "VulkanBackend.rs"] pub mod VulkanBackend;
-#[path = "VulkanGuiPipeline.rs"] pub mod VulkanGuiPipeline;
-#[path = "VulkanWindow.rs"] pub mod VulkanWindow;
-#[path = "VulkanWorldRenderer.rs"] pub mod VulkanWorldRenderer;
-#[path = "WorldGpuPipeline.rs"] pub mod WorldGpuPipeline;
+#[path = "CpuFrame.rs"]
+pub mod CpuFrame;
+#[path = "DeviceSelection.rs"]
+pub mod DeviceSelection;
+#[path = "GuiCompiler.rs"]
+pub mod GuiCompiler;
+#[path = "GuiDrawList.rs"]
+pub mod GuiDrawList;
+#[path = "GuiRenderFrame.rs"]
+pub mod GuiRenderFrame;
+#[path = "NativeImage.rs"]
+pub mod NativeImage;
+#[path = "PanoramaRenderer.rs"]
+pub mod PanoramaRenderer;
+#[path = "SoftwareGuiRenderer.rs"]
+pub mod SoftwareGuiRenderer;
+#[path = "SwapchainPolicy.rs"]
+pub mod SwapchainPolicy;
+#[path = "TextureSource.rs"]
+pub mod TextureSource;
+#[path = "VulkanBackend.rs"]
+pub mod VulkanBackend;
+#[path = "VulkanGuiPipeline.rs"]
+pub mod VulkanGuiPipeline;
+#[path = "VulkanWindow.rs"]
+pub mod VulkanWindow;
+#[path = "VulkanWorldRenderer.rs"]
+pub mod VulkanWorldRenderer;
+#[path = "WorldGpuPipeline.rs"]
+pub mod WorldGpuPipeline;

@@ -1,8 +1,14 @@
-#[path = "ClippingHelperShadow.rs"] pub mod ClippingHelperShadow;
-#[path = "IShaderPack.rs"] pub mod IShaderPack;
-#[path = "ShaderPackNone.rs"] pub mod ShaderPackNone;
-#[path = "ShaderPackDefault.rs"] pub mod ShaderPackDefault;
-#[path = "ShaderPackFolder.rs"] pub mod ShaderPackFolder;
-#[path = "Shaders.rs"] pub mod Shaders;
+#[path = "ClippingHelperShadow.rs"]
+pub mod ClippingHelperShadow;
+#[path = "IShaderPack.rs"]
+pub mod IShaderPack;
+#[path = "ShaderPackDefault.rs"]
+pub mod ShaderPackDefault;
+#[path = "ShaderPackFolder.rs"]
+pub mod ShaderPackFolder;
+#[path = "ShaderPackNone.rs"]
+pub mod ShaderPackNone;
+#[path = "Shaders.rs"]
+pub mod Shaders;
 pub mod config;
 pub mod gui;

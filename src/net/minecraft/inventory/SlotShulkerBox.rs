@@ -26,7 +26,12 @@ mod tests {
     use super::*;
 
     const fn stack(id: i16) -> ItemStack {
-        ItemStack { itemId: id, count: 1, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]

@@ -6,57 +6,60 @@ use crate::compat::Java::JavaRandom;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::block::BlockLiquid::{self, LiquidMaterial};
 use crate::net::minecraft::block::{
-    BlockButton, BlockDoor, BlockEndPortalFrame, BlockEndRod, BlockFence, BlockFenceGate, BlockLadder, BlockLever,
-    BlockPane, BlockPistonBase, BlockPistonExtension, BlockRailBase, BlockSign, BlockSkull, BlockSlime, BlockStairs, BlockTorch, BlockTrapDoor, BlockVine, BlockWall, BlockWeb,
+    BlockButton, BlockDoor, BlockEndPortalFrame, BlockEndRod, BlockFence, BlockFenceGate,
+    BlockLadder, BlockLever, BlockPane, BlockPistonBase, BlockPistonExtension, BlockRailBase,
+    BlockSign, BlockSkull, BlockSlime, BlockStairs, BlockTorch, BlockTrapDoor, BlockVine,
+    BlockWall, BlockWeb,
+};
+use crate::net::minecraft::client::audio::LocalSoundEvent::LocalSoundEvent;
+use crate::net::minecraft::client::entity::EntityOtherClient::{
+    ClientEntityKind, EntityOtherClient, ObjectSpawnType,
 };
 use crate::net::minecraft::client::entity::EntityOtherPlayerMP::EntityOtherPlayerMP;
-use crate::net::minecraft::client::entity::EntityOtherClient::{ClientEntityKind, EntityOtherClient, ObjectSpawnType};
+use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::client::network::NetworkPlayerInfo::NetworkPlayerInfo;
 use crate::net::minecraft::client::particle::ParticleEmitter::ParticleEmitter;
 use crate::net::minecraft::client::particle::ParticleSpawnRequest::ParticleSpawnRequest;
-use crate::net::minecraft::client::audio::LocalSoundEvent::LocalSoundEvent;
-use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
-use crate::net::minecraft::util::SoundCategory::SoundCategory;
-use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
 use crate::net::minecraft::entity::effect::EntityLightningBolt::EntityLightningBolt;
 use crate::net::minecraft::entity::Entity::Entity;
 use crate::net::minecraft::entity::IJumpingMount::IJumpingMount;
+use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
 use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::network::datasync::DataSerializers::DataValue;
-use crate::net::minecraft::network::PacketBuffer::CodecError;
 use crate::net::minecraft::network::play::server::SPacketBlockAction::SPacketBlockAction;
 use crate::net::minecraft::network::play::server::SPacketBlockChange::SPacketBlockChange;
 use crate::net::minecraft::network::play::server::SPacketChunkData::SPacketChunkData;
 use crate::net::minecraft::network::play::server::SPacketMultiBlockChange::SPacketMultiBlockChange;
 use crate::net::minecraft::network::play::server::SPacketUpdateTileEntity::SPacketUpdateTileEntity;
+use crate::net::minecraft::network::PacketBuffer::CodecError;
+use crate::net::minecraft::tileentity::TileEntityBeacon::TileEntityBeacon;
+use crate::net::minecraft::tileentity::TileEntityBed::TileEntityBed;
+use crate::net::minecraft::tileentity::TileEntityChest::TileEntityChest;
+use crate::net::minecraft::tileentity::TileEntityEnchantmentTable::TileEntityEnchantmentTable;
+use crate::net::minecraft::tileentity::TileEntityEndPortal::TileEntityEndPortal;
+use crate::net::minecraft::tileentity::TileEntityEnderChest::TileEntityEnderChest;
+use crate::net::minecraft::tileentity::TileEntityFlowerPot::TileEntityFlowerPot;
+use crate::net::minecraft::tileentity::TileEntityPiston::TileEntityPiston;
+use crate::net::minecraft::tileentity::TileEntityShulkerBox::TileEntityShulkerBox;
+use crate::net::minecraft::tileentity::TileEntitySign::TileEntitySign;
+use crate::net::minecraft::tileentity::TileEntitySkull::TileEntitySkull;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::math::RayTraceResult::RayTraceResult;
 use crate::net::minecraft::util::math::Vec3d::Vec3d;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::EnumParticleTypes::EnumParticleTypes;
-use crate::net::minecraft::tileentity::TileEntityBeacon::TileEntityBeacon;
-use crate::net::minecraft::tileentity::TileEntityBed::TileEntityBed;
-use crate::net::minecraft::tileentity::TileEntityChest::TileEntityChest;
-use crate::net::minecraft::tileentity::TileEntityEnderChest::TileEntityEnderChest;
-use crate::net::minecraft::tileentity::TileEntityEnchantmentTable::TileEntityEnchantmentTable;
-use crate::net::minecraft::tileentity::TileEntityEndPortal::TileEntityEndPortal;
-use crate::net::minecraft::tileentity::TileEntityFlowerPot::TileEntityFlowerPot;
-use crate::net::minecraft::tileentity::TileEntityPiston::TileEntityPiston;
-use crate::net::minecraft::tileentity::TileEntityShulkerBox::TileEntityShulkerBox;
-use crate::net::minecraft::tileentity::TileEntitySign::TileEntitySign;
-use crate::net::minecraft::tileentity::TileEntitySkull::TileEntitySkull;
-use crate::net::minecraft::world::EnumDifficulty::EnumDifficulty;
-use crate::net::minecraft::world::GameRules::GameRules;
-use crate::net::minecraft::world::EnumSkyBlock::EnumSkyBlock;
-use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
+use crate::net::minecraft::util::SoundCategory::SoundCategory;
 use crate::net::minecraft::world::biome::BiomeColorHelper::BiomeAccess;
-use crate::net::minecraft::world::WorldProvider::WorldProvider;
+use crate::net::minecraft::world::chunk::storage::ExtendedBlockStorage::ExtendedBlockStorage;
 use crate::net::minecraft::world::chunk::BlockStateContainer::BlockStateContainer;
 use crate::net::minecraft::world::chunk::Chunk::Chunk;
 use crate::net::minecraft::world::chunk::NibbleArray::NibbleArray;
-use crate::net::minecraft::world::chunk::storage::ExtendedBlockStorage::ExtendedBlockStorage;
-
+use crate::net::minecraft::world::EnumDifficulty::EnumDifficulty;
+use crate::net::minecraft::world::EnumSkyBlock::EnumSkyBlock;
+use crate::net::minecraft::world::GameRules::GameRules;
+use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
+use crate::net::minecraft::world::WorldProvider::WorldProvider;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EntityRayTraceHit {
@@ -149,8 +152,13 @@ impl WorldClient {
         }
     }
 
-    pub const fn getSpawnPoint(&self) -> BlockPos { self.spawnPoint }
-    pub fn setSpawnPoint(&mut self, pos: BlockPos) { self.spawnPoint = pos; self.revision = self.revision.wrapping_add(1); }
+    pub const fn getSpawnPoint(&self) -> BlockPos {
+        self.spawnPoint
+    }
+    pub fn setSpawnPoint(&mut self, pos: BlockPos) {
+        self.spawnPoint = pos;
+        self.revision = self.revision.wrapping_add(1);
+    }
 
     pub const fn providerHasSkyLight(&self) -> bool {
         self.provider.hasSkyLight()
@@ -197,11 +205,7 @@ impl WorldClient {
         localPlayerEntityId: Option<i32>,
         localPlayerState: Option<([f64; 3], f32)>,
     ) {
-        self.tickEntitiesWithPlayerContext(
-            closestPlayer,
-            localPlayerEntityId,
-            localPlayerState,
-        );
+        self.tickEntitiesWithPlayerContext(closestPlayer, localPlayerEntityId, localPlayerState);
         self.tickTileEntitiesAfterPlayers(closestPlayer, None);
     }
 
@@ -228,14 +232,17 @@ impl WorldClient {
                 self.lastLightningBolt = 2;
             }
         }
-        self.weatherEffects.retain(|_, effect| !effect.entity.isDead);
+        self.weatherEffects
+            .retain(|_, effect| !effect.entity.isDead);
         for player in self.remotePlayers.values_mut() {
             player.entity.ticksExisted = player.entity.ticksExisted.wrapping_add(1);
             player.onUpdate();
         }
         let entityIds: Vec<i32> = self.nonPlayerEntities.keys().copied().collect();
         for entityId in entityIds {
-            let Some(mut entity) = self.nonPlayerEntities.remove(&entityId) else { continue; };
+            let Some(mut entity) = self.nonPlayerEntities.remove(&entityId) else {
+                continue;
+            };
             entity.onUpdateWithLocalPlayerState(
                 self,
                 closestPlayer,
@@ -266,21 +273,31 @@ impl WorldClient {
         // the world available as the immutable IBlockAccess.
         let beaconPositions = self.beaconTileEntities.keys().copied().collect::<Vec<_>>();
         for pos in beaconPositions {
-            let Some(mut beacon) = self.beaconTileEntities.remove(&pos) else { continue; };
+            let Some(mut beacon) = self.beaconTileEntities.remove(&pos) else {
+                continue;
+            };
             beacon.update(self.totalWorldTime, |sample| self.getBlockState(sample));
             self.beaconTileEntities.insert(pos, beacon);
         }
         for skull in self.skullTileEntities.values_mut() {
             skull.tick();
         }
-        for chest in self.chestTileEntities.values_mut() { chest.update(); }
-        for chest in self.enderChestTileEntities.values_mut() { chest.update(); }
+        for chest in self.chestTileEntities.values_mut() {
+            chest.update();
+        }
+        for chest in self.enderChestTileEntities.values_mut() {
+            chest.update();
+        }
 
         // `TileEntityPiston#update`: move intersecting entities using the old
         // progress, then advance by 0.5. Clone the small tile state so entities
         // can be removed from their owner maps while WorldClient remains the
         // immutable collision provider used by `Entity#moveEntity`.
-        let pistonTicks = self.pistonTileEntities.values().cloned().collect::<Vec<_>>();
+        let pistonTicks = self
+            .pistonTileEntities
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
         let mut completedPistons = Vec::new();
         for piston in pistonTicks {
             if piston.progress >= 1.0 {
@@ -289,23 +306,38 @@ impl WorldClient {
             }
             let nextProgress = piston.nextProgress();
             if let Some(candidateBounds) = piston.sweptEntityBounds(nextProgress) {
-                let remoteIds = self.remotePlayers.iter()
-                    .filter_map(|(&entityId, player)| player.entity.boundingBox.intersects(candidateBounds).then_some(entityId))
+                let remoteIds = self
+                    .remotePlayers
+                    .iter()
+                    .filter_map(|(&entityId, player)| {
+                        player
+                            .entity
+                            .boundingBox
+                            .intersects(candidateBounds)
+                            .then_some(entityId)
+                    })
                     .collect::<Vec<_>>();
                 for entityId in remoteIds {
-                    let Some(mut player) = self.remotePlayers.remove(&entityId) else { continue; };
+                    let Some(mut player) = self.remotePlayers.remove(&entityId) else {
+                        continue;
+                    };
                     self.moveEntityByPiston(&piston, &mut player.entity, nextProgress);
                     self.remotePlayers.insert(entityId, player);
                 }
 
-                let otherIds = self.nonPlayerEntities.iter()
+                let otherIds = self
+                    .nonPlayerEntities
+                    .iter()
                     .filter_map(|(&entityId, entity)| {
-                        (!entity.ignoresShulkerBoxPush() && entity.entity.boundingBox.intersects(candidateBounds))
-                            .then_some(entityId)
+                        (!entity.ignoresShulkerBoxPush()
+                            && entity.entity.boundingBox.intersects(candidateBounds))
+                        .then_some(entityId)
                     })
                     .collect::<Vec<_>>();
                 for entityId in otherIds {
-                    let Some(mut entity) = self.nonPlayerEntities.remove(&entityId) else { continue; };
+                    let Some(mut entity) = self.nonPlayerEntities.remove(&entityId) else {
+                        continue;
+                    };
                     self.moveEntityByPiston(&piston, &mut entity.entity, nextProgress);
                     self.nonPlayerEntities.insert(entityId, entity);
                 }
@@ -328,27 +360,35 @@ impl WorldClient {
             }
         }
 
-        for shulker in self.shulkerBoxTileEntities.values_mut() { shulker.update(); }
+        for shulker in self.shulkerBoxTileEntities.values_mut() {
+            shulker.update();
+        }
 
         // `TileEntityShulkerBox#func_190589_G` runs once per animated tile and
         // moves every ordinary entity intersecting that lid's newly occupied
         // sweep. Preserve tile-first ordering rather than applying every box
         // to one entity at a time.
-        let pushes = self.shulkerBoxTileEntities.values().filter_map(|shulker| {
-            if !shulker.pushesEntitiesThisTick() {
-                return None;
-            }
-            let state = self.getBlockState(shulker.pos);
-            (219..=234).contains(&state.getBlockId()).then_some((
-                shulker.clone(),
-                EnumFacing::getFront(state.getMetadata()),
-            ))
-        }).collect::<Vec<_>>();
+        let pushes = self
+            .shulkerBoxTileEntities
+            .values()
+            .filter_map(|shulker| {
+                if !shulker.pushesEntitiesThisTick() {
+                    return None;
+                }
+                let state = self.getBlockState(shulker.pos);
+                (219..=234)
+                    .contains(&state.getBlockId())
+                    .then_some((shulker.clone(), EnumFacing::getFront(state.getMetadata())))
+            })
+            .collect::<Vec<_>>();
         for (shulker, facing) in pushes {
             let remoteIds = self.remotePlayers.keys().copied().collect::<Vec<_>>();
             for entityId in remoteIds {
-                let Some(mut player) = self.remotePlayers.remove(&entityId) else { continue; };
-                if let Some([x, y, z]) = shulker.pushDisplacement(facing, player.entity.boundingBox) {
+                let Some(mut player) = self.remotePlayers.remove(&entityId) else {
+                    continue;
+                };
+                if let Some([x, y, z]) = shulker.pushDisplacement(facing, player.entity.boundingBox)
+                {
                     player.entity.moveEntity(self, x, y, z);
                 }
                 self.remotePlayers.insert(entityId, player);
@@ -356,9 +396,13 @@ impl WorldClient {
 
             let otherIds = self.nonPlayerEntities.keys().copied().collect::<Vec<_>>();
             for entityId in otherIds {
-                let Some(mut entity) = self.nonPlayerEntities.remove(&entityId) else { continue; };
+                let Some(mut entity) = self.nonPlayerEntities.remove(&entityId) else {
+                    continue;
+                };
                 if !entity.ignoresShulkerBoxPush() {
-                    if let Some([x, y, z]) = shulker.pushDisplacement(facing, entity.entity.boundingBox) {
+                    if let Some([x, y, z]) =
+                        shulker.pushDisplacement(facing, entity.entity.boundingBox)
+                    {
                         entity.entity.moveEntity(self, x, y, z);
                     }
                 }
@@ -372,11 +416,10 @@ impl WorldClient {
             }
         }
 
-        let localPosition = localPlayerEntity.as_deref().map(|entity| [
-            entity.posX,
-            entity.posY,
-            entity.posZ,
-        ]).or(closestPlayer);
+        let localPosition = localPlayerEntity
+            .as_deref()
+            .map(|entity| [entity.posX, entity.posY, entity.posZ])
+            .or(closestPlayer);
         let mut playerPositions = Vec::with_capacity(
             self.remotePlayers.len() + if localPosition.is_some() { 1 } else { 0 },
         );
@@ -411,7 +454,8 @@ impl WorldClient {
             table.update(nearest);
         }
 
-        let deadIds: Vec<i32> = self.remotePlayers
+        let deadIds: Vec<i32> = self
+            .remotePlayers
             .iter()
             .filter_map(|(&entityId, entity)| entity.entity.isDead.then_some(entityId))
             .chain(
@@ -424,7 +468,6 @@ impl WorldClient {
             self.removeEntityFromWorld(entityId);
         }
     }
-
 
     fn moveEntityByPiston(
         &self,
@@ -482,11 +525,8 @@ impl WorldClient {
         if self.getBaseEntityByID(entity_id).is_none() {
             return false;
         }
-        self.particleEmitters.push(ParticleEmitter::new(
-            entity_id,
-            particle_type,
-            lifetime,
-        ));
+        self.particleEmitters
+            .push(ParticleEmitter::new(entity_id, particle_type, lifetime));
         true
     }
 
@@ -508,11 +548,18 @@ impl WorldClient {
         core::mem::take(&mut self.pendingParticles)
     }
 
-    pub fn queueParticleSpawns(&mut self, requests: impl IntoIterator<Item = ParticleSpawnRequest>) {
+    pub fn queueParticleSpawns(
+        &mut self,
+        requests: impl IntoIterator<Item = ParticleSpawnRequest>,
+    ) {
         self.pendingParticles.extend(requests);
     }
 
-    pub fn addEntityToWorld(&mut self, entityId: i32, entity: EntityOtherPlayerMP) -> Option<EntityOtherPlayerMP> {
+    pub fn addEntityToWorld(
+        &mut self,
+        entityId: i32,
+        entity: EntityOtherPlayerMP,
+    ) -> Option<EntityOtherPlayerMP> {
         self.nonPlayerEntities.remove(&entityId);
         self.revision = self.revision.wrapping_add(1);
         self.remotePlayers.insert(entityId, entity)
@@ -530,8 +577,12 @@ impl WorldClient {
         self.weatherEffects.values()
     }
 
-    pub fn weatherEffectCount(&self) -> usize { self.weatherEffects.len() }
-    pub const fn getLastLightningBolt(&self) -> i32 { self.lastLightningBolt }
+    pub fn weatherEffectCount(&self) -> usize {
+        self.weatherEffects.len()
+    }
+    pub const fn getLastLightningBolt(&self) -> i32 {
+        self.lastLightningBolt
+    }
 
     pub fn addNonPlayerEntityToWorld(
         &mut self,
@@ -569,11 +620,7 @@ impl WorldClient {
     /// visible while the entry exists. Replacing the Rust clone preserves that
     /// behavior; REMOVE_PLAYER does not call this method, leaving the last
     /// resolved object on short-lived NPC/Bot entities.
-    pub fn cachePlayerInfo(
-        &mut self,
-        uniqueId: uuid::Uuid,
-        playerInfo: NetworkPlayerInfo,
-    ) -> bool {
+    pub fn cachePlayerInfo(&mut self, uniqueId: uuid::Uuid, playerInfo: NetworkPlayerInfo) -> bool {
         let Some(player) = self
             .remotePlayers
             .values_mut()
@@ -633,11 +680,14 @@ impl WorldClient {
         forward: bool,
         back: bool,
     ) -> bool {
-        let Some(vehicle) = self.nonPlayerEntities.get_mut(&vehicleId) else { return false; };
+        let Some(vehicle) = self.nonPlayerEntities.get_mut(&vehicleId) else {
+            return false;
+        };
         if !matches!(
             &vehicle.kind,
             crate::net::minecraft::client::entity::EntityOtherClient::ClientEntityKind::Object {
-                objectType: crate::net::minecraft::client::entity::EntityOtherClient::ObjectSpawnType::Boat,
+                objectType:
+                    crate::net::minecraft::client::entity::EntityOtherClient::ObjectSpawnType::Boat,
                 ..
             }
         ) {
@@ -657,8 +707,12 @@ impl WorldClient {
         moveStrafing: f32,
         moveForward: f32,
     ) -> bool {
-        let Some(vehicle) = self.nonPlayerEntities.get_mut(&vehicleId) else { return false; };
-        if !vehicle.isHorseFamily() { return false; }
+        let Some(vehicle) = self.nonPlayerEntities.get_mut(&vehicleId) else {
+            return false;
+        };
+        if !vehicle.isHorseFamily() {
+            return false;
+        }
         vehicle.updateHorseInputs(riderYaw, riderPitch, moveStrafing, moveForward);
         true
     }
@@ -666,8 +720,12 @@ impl WorldClient {
     /// Client half of `IJumpingMount#setJumpPower`, invoked immediately when
     /// EntityPlayerSP releases the charged jump key.
     pub fn setHorseJumpPower(&mut self, vehicleId: i32, jumpPower: i32) -> bool {
-        let Some(vehicle) = self.nonPlayerEntities.get_mut(&vehicleId) else { return false; };
-        if !vehicle.isHorseFamily() || !IJumpingMount::canJump(vehicle) { return false; }
+        let Some(vehicle) = self.nonPlayerEntities.get_mut(&vehicleId) else {
+            return false;
+        };
+        if !vehicle.isHorseFamily() || !IJumpingMount::canJump(vehicle) {
+            return false;
+        }
         IJumpingMount::setJumpPower(vehicle, jumpPower);
         true
     }
@@ -690,7 +748,9 @@ impl WorldClient {
         yaw: f32,
         pitch: f32,
     ) -> bool {
-        let Some(entity) = self.baseEntityMut(entityId) else { return false; };
+        let Some(entity) = self.baseEntityMut(entityId) else {
+            return false;
+        };
         entity.setPositionAndRotation(x, y, z, yaw, pitch);
         true
     }
@@ -703,7 +763,9 @@ impl WorldClient {
         self.nonPlayerEntities.values()
     }
 
-    pub fn nonPlayerEntityCount(&self) -> usize { self.nonPlayerEntities.len() }
+    pub fn nonPlayerEntityCount(&self) -> usize {
+        self.nonPlayerEntities.len()
+    }
 
     pub fn setEntityVelocity(&mut self, entityId: i32, x: f64, y: f64, z: f64) -> bool {
         if let Some(player) = self.remotePlayers.get_mut(&entityId) {
@@ -767,7 +829,9 @@ impl WorldClient {
     pub fn updateAttachedFireworksForLocalPlayer(&mut self, player: &mut EntityPlayerSP) {
         let ids = self.nonPlayerEntities.keys().copied().collect::<Vec<_>>();
         for entityId in ids {
-            let Some(entity) = self.nonPlayerEntities.get_mut(&entityId) else { continue; };
+            let Some(entity) = self.nonPlayerEntities.get_mut(&entityId) else {
+                continue;
+            };
             entity.updateAttachedFireworkForLocalPlayer(player);
         }
     }
@@ -780,7 +844,14 @@ impl WorldClient {
         pitch: f32,
     ) -> bool {
         let (position, category) = if let Some(player) = self.remotePlayers.get(&entityId) {
-            ([player.entity.posX as f32, player.entity.posY as f32, player.entity.posZ as f32], SoundCategory::Players)
+            (
+                [
+                    player.entity.posX as f32,
+                    player.entity.posY as f32,
+                    player.entity.posZ as f32,
+                ],
+                SoundCategory::Players,
+            )
         } else if let Some(entity) = self.nonPlayerEntities.get(&entityId) {
             let category = match &entity.kind {
                 crate::net::minecraft::client::entity::EntityOtherClient::ClientEntityKind::Mob { entityType }
@@ -789,11 +860,20 @@ impl WorldClient {
                     if matches!(entityType.id, 4..=6 | 23 | 27 | 34..=37 | 50..=69) => SoundCategory::Hostile,
                 _ => SoundCategory::Neutral,
             };
-            ([entity.entity.posX as f32, entity.entity.posY as f32, entity.entity.posZ as f32], category)
+            (
+                [
+                    entity.entity.posX as f32,
+                    entity.entity.posY as f32,
+                    entity.entity.posZ as f32,
+                ],
+                category,
+            )
         } else {
             return false;
         };
-        self.pendingSounds.push(LocalSoundEvent::positioned(sound, category, position, volume, pitch));
+        self.pendingSounds.push(LocalSoundEvent::positioned(
+            sound, category, position, volume, pitch,
+        ));
         true
     }
 
@@ -857,8 +937,13 @@ impl WorldClient {
     /// MCP `handleEntityAttach` is the leash relation, not riding. Only
     /// `EntityLiving` subclasses consume this packet.
     pub fn attachEntity(&mut self, entityId: i32, leashHolderId: i32) -> bool {
-        let Some(entity) = self.nonPlayerEntities.get_mut(&entityId) else { return false; };
-        if !matches!(&entity.kind, crate::net::minecraft::client::entity::EntityOtherClient::ClientEntityKind::Mob { .. }) {
+        let Some(entity) = self.nonPlayerEntities.get_mut(&entityId) else {
+            return false;
+        };
+        if !matches!(
+            &entity.kind,
+            crate::net::minecraft::client::entity::EntityOtherClient::ClientEntityKind::Mob { .. }
+        ) {
             return false;
         }
         entity.setLeashHolderId((leashHolderId >= 0).then_some(leashHolderId));
@@ -866,7 +951,10 @@ impl WorldClient {
         true
     }
 
-    pub fn getBaseEntityByID(&self, entityId: i32) -> Option<&crate::net::minecraft::entity::Entity::Entity> {
+    pub fn getBaseEntityByID(
+        &self,
+        entityId: i32,
+    ) -> Option<&crate::net::minecraft::entity::Entity::Entity> {
         self.baseEntity(entityId)
     }
 
@@ -874,23 +962,34 @@ impl WorldClient {
         if let Some(player) = self.remotePlayers.get(&entityId) {
             return Some(&player.entity);
         }
-        self.nonPlayerEntities.get(&entityId).map(|entity| &entity.entity)
+        self.nonPlayerEntities
+            .get(&entityId)
+            .map(|entity| &entity.entity)
     }
 
-    fn baseEntityMut(&mut self, entityId: i32) -> Option<&mut crate::net::minecraft::entity::Entity::Entity> {
+    fn baseEntityMut(
+        &mut self,
+        entityId: i32,
+    ) -> Option<&mut crate::net::minecraft::entity::Entity::Entity> {
         if let Some(player) = self.remotePlayers.get_mut(&entityId) {
             return Some(&mut player.entity);
         }
-        self.nonPlayerEntities.get_mut(&entityId).map(|entity| &mut entity.entity)
+        self.nonPlayerEntities
+            .get_mut(&entityId)
+            .map(|entity| &mut entity.entity)
     }
 
     fn clearRidingRelations(&mut self, entityId: i32) {
         for player in self.remotePlayers.values_mut() {
-            if player.entity.ridingEntityId == Some(entityId) { player.entity.ridingEntityId = None; }
+            if player.entity.ridingEntityId == Some(entityId) {
+                player.entity.ridingEntityId = None;
+            }
             player.entity.passengerIds.retain(|id| *id != entityId);
         }
         for entity in self.nonPlayerEntities.values_mut() {
-            if entity.entity.ridingEntityId == Some(entityId) { entity.entity.ridingEntityId = None; }
+            if entity.entity.ridingEntityId == Some(entityId) {
+                entity.entity.ridingEntityId = None;
+            }
             entity.entity.passengerIds.retain(|id| *id != entityId);
         }
     }
@@ -917,8 +1016,13 @@ impl WorldClient {
         let mut nearest = blockDistance;
         let mut selected = None;
 
-        let mut consider = |entityId: i32, bounds: AxisAlignedBB, collisionBorder: f64, ridingEntityId: Option<i32>| {
-            if entityId == viewerEntityId || !bounds.intersects(search) { return; }
+        let mut consider = |entityId: i32,
+                            bounds: AxisAlignedBB,
+                            collisionBorder: f64,
+                            ridingEntityId: Option<i32>| {
+            if entityId == viewerEntityId || !bounds.intersects(search) {
+                return;
+            }
             let bounds = bounds.expand_xyz(collisionBorder);
             let intercept = bounds.calculate_intercept(eye, end);
             let (hit, distance) = if bounds.contains(eye) {
@@ -932,11 +1036,19 @@ impl WorldClient {
                 let targetRoot = self.lowestRidingEntityId(entityId, ridingEntityId);
                 if targetRoot == viewerRoot {
                     if nearest == 0.0 {
-                        selected = Some(EntityRayTraceHit { entityId, hitVec: hit, distance });
+                        selected = Some(EntityRayTraceHit {
+                            entityId,
+                            hitVec: hit,
+                            distance,
+                        });
                     }
                 } else {
                     nearest = distance;
-                    selected = Some(EntityRayTraceHit { entityId, hitVec: hit, distance });
+                    selected = Some(EntityRayTraceHit {
+                        entityId,
+                        hitVec: hit,
+                        distance,
+                    });
                 }
             }
         };
@@ -962,7 +1074,11 @@ impl WorldClient {
             }
         }
 
-        if !extendedReach && selected.is_some_and(|hit| hit.distance > 3.0) { None } else { selected }
+        if !extendedReach && selected.is_some_and(|hit| hit.distance > 3.0) {
+            None
+        } else {
+            selected
+        }
     }
 
     pub fn lowestRidingEntityId(&self, entityId: i32, initialRiding: Option<i32>) -> i32 {
@@ -970,16 +1086,21 @@ impl WorldClient {
         let mut riding = initialRiding;
         let mut remaining = self.remotePlayers.len() + self.nonPlayerEntities.len() + 1;
         while let Some(parent) = riding {
-            if remaining == 0 { break; }
+            if remaining == 0 {
+                break;
+            }
             remaining -= 1;
             current = parent;
-            riding = self.baseEntity(parent).and_then(|entity| entity.ridingEntityId);
+            riding = self
+                .baseEntity(parent)
+                .and_then(|entity| entity.ridingEntityId);
         }
         current
     }
 
     pub fn entityPosition(&self, entityId: i32) -> Option<[f64; 3]> {
-        self.baseEntity(entityId).map(|entity| [entity.posX, entity.posY, entity.posZ])
+        self.baseEntity(entityId)
+            .map(|entity| [entity.posX, entity.posY, entity.posZ])
     }
 
     pub fn setTotalWorldTime(&mut self, time: i64) {
@@ -1015,7 +1136,9 @@ impl WorldClient {
     }
 
     /// MCP `World#rand` primitive used by source-equivalent client effects.
-    pub fn nextWorldRandomF32(&mut self) -> f32 { self.random.next_f32() }
+    pub fn nextWorldRandomF32(&mut self) -> f32 {
+        self.random.next_f32()
+    }
 
     pub fn getCelestialAngle(&self, partialTicks: f32) -> f32 {
         self.provider
@@ -1054,8 +1177,7 @@ impl WorldClient {
     /// thunder modulation. The renderer consumes this value unchanged.
     pub fn getCloudColour(&self, partialTicks: f32) -> [f32; 3] {
         let angle = self.getCelestialAngle(partialTicks);
-        let daylight = ((angle * std::f32::consts::TAU).cos() * 2.0 + 0.5)
-            .clamp(0.0, 1.0);
+        let daylight = ((angle * std::f32::consts::TAU).cos() * 2.0 + 0.5).clamp(0.0, 1.0);
         let mut red = 1.0;
         let mut green = 1.0;
         let mut blue = 1.0;
@@ -1091,17 +1213,28 @@ impl WorldClient {
             self.chunks.insert((x, z), Chunk::new(x, z));
         } else {
             self.chunks.remove(&(x, z));
-            self.skullTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.bedTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.chestTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.enderChestTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.enchantmentTableTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.beaconTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.endPortalTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.flowerPotTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.pistonTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.shulkerBoxTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
-            self.signTileEntities.retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.skullTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.bedTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.chestTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.enderChestTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.enchantmentTableTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.beaconTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.endPortalTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.flowerPotTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.pistonTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.shulkerBoxTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
+            self.signTileEntities
+                .retain(|pos, _| pos.x.div_euclid(16) != x || pos.z.div_euclid(16) != z);
         }
         self.revision = self.revision.wrapping_add(1);
     }
@@ -1116,8 +1249,13 @@ impl WorldClient {
 
     /// `World#setTileEntity` subset for `TileEntitySkull`, used by both full
     /// chunk NBT and `SPacketUpdateTileEntity` action 4.
-    pub fn applySkullTileEntityTag(&mut self, tag: &crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound) -> bool {
-        let Some(skull) = TileEntitySkull::fromNbt(tag) else { return false; };
+    pub fn applySkullTileEntityTag(
+        &mut self,
+        tag: &crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound,
+    ) -> bool {
+        let Some(skull) = TileEntitySkull::fromNbt(tag) else {
+            return false;
+        };
         // `NetHandlerPlayClient#handleUpdateTileEntity` only applies action 4
         // when the loaded TileEntity at the packet position is a skull. The
         // compact world represents that TileEntity through the block state,
@@ -1137,29 +1275,38 @@ impl WorldClient {
         tag.setInteger("z", packet.getPos().z);
         match packet.getTileEntityType() {
             4 => {
-                if !tag.hasKey("id") { tag.setString("id", "minecraft:skull"); }
+                if !tag.hasKey("id") {
+                    tag.setString("id", "minecraft:skull");
+                }
                 self.applySkullTileEntityTag(&tag)
             }
             5 => {
-                if !tag.hasKey("id") { tag.setString("id", "minecraft:flower_pot"); }
+                if !tag.hasKey("id") {
+                    tag.setString("id", "minecraft:flower_pot");
+                }
                 self.applySpecialTileEntityTag(&tag)
             }
             11 => {
-                if !tag.hasKey("id") { tag.setString("id", "minecraft:bed"); }
+                if !tag.hasKey("id") {
+                    tag.setString("id", "minecraft:bed");
+                }
                 self.applySpecialTileEntityTag(&tag)
             }
             10 => {
-                if !tag.hasKey("id") { tag.setString("id", "minecraft:shulker_box"); }
+                if !tag.hasKey("id") {
+                    tag.setString("id", "minecraft:shulker_box");
+                }
                 self.applySpecialTileEntityTag(&tag)
             }
             9 => {
-                if !tag.hasKey("id") { tag.setString("id", "minecraft:sign"); }
+                if !tag.hasKey("id") {
+                    tag.setString("id", "minecraft:sign");
+                }
                 self.applySpecialTileEntityTag(&tag)
             }
             _ => self.applySpecialTileEntityTag(&tag),
         }
     }
-
 
     pub fn beaconTileEntities(&self) -> impl Iterator<Item = &TileEntityBeacon> {
         self.beaconTileEntities.values()
@@ -1185,7 +1332,9 @@ impl WorldClient {
         self.enderChestTileEntities.get(&pos)
     }
 
-    pub fn enchantmentTableTileEntities(&self) -> impl Iterator<Item = &TileEntityEnchantmentTable> {
+    pub fn enchantmentTableTileEntities(
+        &self,
+    ) -> impl Iterator<Item = &TileEntityEnchantmentTable> {
         self.enchantmentTableTileEntities.values()
     }
 
@@ -1198,12 +1347,18 @@ impl WorldClient {
         self.difficulty = difficulty;
     }
 
-    pub const fn getDifficulty(&self) -> EnumDifficulty { self.difficulty }
+    pub const fn getDifficulty(&self) -> EnumDifficulty {
+        self.difficulty
+    }
 
     /// MCP `World#getGameRules`.
-    pub fn getGameRules(&self) -> &GameRules { &self.gameRules }
+    pub fn getGameRules(&self) -> &GameRules {
+        &self.gameRules
+    }
 
-    pub fn getGameRulesMut(&mut self) -> &mut GameRules { &mut self.gameRules }
+    pub fn getGameRulesMut(&mut self) -> &mut GameRules {
+        &mut self.gameRules
+    }
 
     pub fn flowerPotTileEntities(&self) -> impl Iterator<Item = &TileEntityFlowerPot> {
         self.flowerPotTileEntities.values()
@@ -1237,9 +1392,10 @@ impl WorldClient {
     /// Vanilla creates a temporary `TileEntitySign` when the server asks to
     /// edit a position whose tile entity has not arrived yet.
     pub fn getOrCreateSignTileEntity(&mut self, pos: BlockPos) -> &mut TileEntitySign {
-        self.signTileEntities.entry(pos).or_insert_with(|| TileEntitySign::new(pos))
+        self.signTileEntities
+            .entry(pos)
+            .or_insert_with(|| TileEntitySign::new(pos))
     }
-
 
     /// `World#setTileEntity` subset for bed/chest/piston special renderers.
     pub fn applySpecialTileEntityTag(
@@ -1247,20 +1403,28 @@ impl WorldClient {
         tag: &crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound,
     ) -> bool {
         let id = tag.getString("id");
-        let pos = BlockPos::new(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"));
+        let pos = BlockPos::new(
+            tag.getInteger("x"),
+            tag.getInteger("y"),
+            tag.getInteger("z"),
+        );
         let blockId = self.getBlockState(pos).getBlockId();
         let applied = match id.as_str() {
             "minecraft:beacon" | "Beacon" if blockId == TileEntityBeacon::BLOCK_ID => {
                 if let Some(tile) = TileEntityBeacon::fromNbt(tag) {
                     self.beaconTileEntities.insert(pos, tile);
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             "minecraft:bed" | "Bed" if blockId == 26 => {
                 if let Some(tile) = TileEntityBed::fromNbt(tag) {
                     self.bedTileEntities.insert(pos, tile);
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             "minecraft:chest" | "Chest" | "minecraft:trapped_chest"
                 if matches!(blockId, 54 | 146) =>
@@ -1268,31 +1432,38 @@ impl WorldClient {
                 if let Some(tile) = TileEntityChest::fromNbt(tag) {
                     self.chestTileEntities.insert(pos, tile);
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             "minecraft:enchanting_table" | "EnchantTable" if blockId == 116 => {
                 if let Some(tile) = TileEntityEnchantmentTable::fromNbt(tag) {
                     self.enchantmentTableTileEntities.insert(pos, tile);
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             "minecraft:end_portal" | "Airportal" if blockId == 119 => {
                 if let Some(tile) = TileEntityEndPortal::fromNbt(tag) {
                     self.endPortalTileEntities.insert(pos, tile);
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             "minecraft:flower_pot" | "FlowerPot" if blockId == 140 => {
                 if let Some(tile) = TileEntityFlowerPot::fromNbt(tag) {
                     self.flowerPotTileEntities.insert(pos, tile);
-                    if let Some(chunk) = self.getChunkFromChunkCoordsMut(
-                        pos.x.div_euclid(16),
-                        pos.z.div_euclid(16),
-                    ) {
+                    if let Some(chunk) =
+                        self.getChunkFromChunkCoordsMut(pos.x.div_euclid(16), pos.z.div_euclid(16))
+                    {
                         chunk.markSectionDirty(pos.y.div_euclid(16) as usize);
                     }
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             "minecraft:ender_chest" | "EnderChest" if blockId == 130 => {
                 self.enderChestTileEntities
@@ -1304,23 +1475,31 @@ impl WorldClient {
                 if let Some(tile) = TileEntityPiston::fromNbt(tag) {
                     self.pistonTileEntities.insert(pos, tile);
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             "minecraft:sign" | "Sign" if matches!(blockId, 63 | 68) => {
                 if let Some(tile) = TileEntitySign::fromNbt(tag) {
                     self.signTileEntities.insert(pos, tile);
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             "minecraft:shulker_box" | "ShulkerBox" if (219..=234).contains(&blockId) => {
                 if let Some(tile) = TileEntityShulkerBox::fromNbt(tag, blockId - 219) {
                     self.shulkerBoxTileEntities.insert(pos, tile);
                     true
-                } else { false }
+                } else {
+                    false
+                }
             }
             _ => false,
         };
-        if applied { self.revision = self.revision.wrapping_add(1); }
+        if applied {
+            self.revision = self.revision.wrapping_add(1);
+        }
         applied
     }
 
@@ -1328,26 +1507,32 @@ impl WorldClient {
     pub fn handleBlockAction(&mut self, packet: &SPacketBlockAction) -> bool {
         let pos = packet.getBlockPosition();
         let currentId = self.getBlockState(pos).getBlockId();
-        if currentId != packet.getBlockTypeId() { return false; }
+        if currentId != packet.getBlockTypeId() {
+            return false;
+        }
         let handled = match currentId {
-            54 | 146 => self.chestTileEntities
+            54 | 146 => self
+                .chestTileEntities
                 .entry(pos)
                 .or_insert_with(|| TileEntityChest::new(pos))
                 .receiveClientEvent(packet.getData1(), packet.getData2()),
-            130 => self.enderChestTileEntities
+            130 => self
+                .enderChestTileEntities
                 .entry(pos)
                 .or_insert_with(|| TileEntityEnderChest::new(pos))
                 .receiveClientEvent(packet.getData1(), packet.getData2()),
-            219..=234 => self.shulkerBoxTileEntities
+            219..=234 => self
+                .shulkerBoxTileEntities
                 .entry(pos)
                 .or_insert_with(|| TileEntityShulkerBox::new(pos, currentId - 219))
                 .receiveClientEvent(packet.getData1(), packet.getData2()),
             _ => false,
         };
-        if handled { self.revision = self.revision.wrapping_add(1); }
+        if handled {
+            self.revision = self.revision.wrapping_add(1);
+        }
         handled
     }
-
 
     pub fn getChunkFromChunkCoords(&self, x: i32, z: i32) -> Option<&Chunk> {
         self.chunks.get(&(x, z))
@@ -1386,18 +1571,15 @@ impl WorldClient {
             }
             let (blockLight, rest) = input.split_at(2048);
             input = rest;
-            let blocklightArray = NibbleArray::fromStorage(blockLight.to_vec())
-                .map_err(CodecError::InvalidData)?;
+            let blocklightArray =
+                NibbleArray::fromStorage(blockLight.to_vec()).map_err(CodecError::InvalidData)?;
             let skylightArray = if hasSkyLight {
                 if input.len() < 2048 {
                     return Err(CodecError::UnexpectedEof);
                 }
                 let (sky, rest) = input.split_at(2048);
                 input = rest;
-                Some(
-                    NibbleArray::fromStorage(sky.to_vec())
-                        .map_err(CodecError::InvalidData)?,
-                )
+                Some(NibbleArray::fromStorage(sky.to_vec()).map_err(CodecError::InvalidData)?)
             } else {
                 None
             };
@@ -1430,16 +1612,36 @@ impl WorldClient {
             self.skullTileEntities.retain(|pos, _| {
                 pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
             });
-            self.beaconTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.bedTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.chestTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.enderChestTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.enchantmentTableTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.endPortalTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.flowerPotTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.pistonTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.shulkerBoxTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
-            self.signTileEntities.retain(|pos, _| pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z);
+            self.beaconTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.bedTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.chestTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.enderChestTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.enchantmentTableTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.endPortalTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.flowerPotTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.pistonTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.shulkerBoxTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
+            self.signTileEntities.retain(|pos, _| {
+                pos.x.div_euclid(16) != chunk_x || pos.z.div_euclid(16) != chunk_z
+            });
         }
         self.putChunk(chunk);
         for tag in packet.getTileEntityTags() {
@@ -1477,17 +1679,23 @@ impl WorldClient {
         }
         let block_id = state.getBlockId();
         if block_id == TileEntityBeacon::BLOCK_ID {
-            self.beaconTileEntities.entry(pos).or_insert_with(|| TileEntityBeacon::new(pos));
+            self.beaconTileEntities
+                .entry(pos)
+                .or_insert_with(|| TileEntityBeacon::new(pos));
         } else {
             self.beaconTileEntities.remove(&pos);
         }
         if block_id == 26 {
-            self.bedTileEntities.entry(pos).or_insert_with(|| TileEntityBed::new(pos));
+            self.bedTileEntities
+                .entry(pos)
+                .or_insert_with(|| TileEntityBed::new(pos));
         } else {
             self.bedTileEntities.remove(&pos);
         }
         if matches!(block_id, 54 | 146) {
-            self.chestTileEntities.entry(pos).or_insert_with(|| TileEntityChest::new(pos));
+            self.chestTileEntities
+                .entry(pos)
+                .or_insert_with(|| TileEntityChest::new(pos));
         } else {
             self.chestTileEntities.remove(&pos);
         }
@@ -1517,7 +1725,9 @@ impl WorldClient {
             self.flowerPotTileEntities.remove(&pos);
         }
         if block_id == 130 {
-            self.enderChestTileEntities.entry(pos).or_insert_with(|| TileEntityEnderChest::new(pos));
+            self.enderChestTileEntities
+                .entry(pos)
+                .or_insert_with(|| TileEntityEnderChest::new(pos));
         } else {
             self.enderChestTileEntities.remove(&pos);
         }
@@ -1563,7 +1773,7 @@ impl WorldClient {
     pub fn isBlockReplaceable(&self, pos: BlockPos) -> bool {
         let state = self.getBlockState(pos);
         match state.getBlockId() {
-            0 | 31 | 32 | 106 => true, // air, tall grass, dead bush, vine
+            0 | 31 | 32 | 106 => true,          // air, tall grass, dead bush, vine
             78 => state.getMetadata() & 7 == 0, // one-layer snow only
             _ => false,
         }
@@ -1591,13 +1801,19 @@ impl WorldClient {
             );
             for local in block.getCollisionBoxes(state) {
                 let placed = local.offset(pos.x as f64, pos.y as f64, pos.z as f64);
-                if player.is_some_and(|player| !player.entity.isDead && placed.intersects(player.entity.boundingBox)) {
+                if player.is_some_and(|player| {
+                    !player.entity.isDead && placed.intersects(player.entity.boundingBox)
+                }) {
                     return false;
                 }
-                if self.remotePlayers.values().any(|entity| !entity.entity.isDead && placed.intersects(entity.entity.boundingBox)) {
+                if self.remotePlayers.values().any(|entity| {
+                    !entity.entity.isDead && placed.intersects(entity.entity.boundingBox)
+                }) {
                     return false;
                 }
-                if self.nonPlayerEntities.values().any(|entity| !entity.entity.isDead && placed.intersects(entity.entity.boundingBox)) {
+                if self.nonPlayerEntities.values().any(|entity| {
+                    !entity.entity.isDead && placed.intersects(entity.entity.boundingBox)
+                }) {
                     return false;
                 }
             }
@@ -1675,10 +1891,9 @@ impl WorldClient {
             let mut result = 0;
             for facing in crate::net::minecraft::util::EnumFacing::EnumFacing::VALUES {
                 let (dx, dy, dz) = facing.offsets();
-                result = result.max(self.getLightFor(
-                    lightType,
-                    BlockPos::new(pos.x + dx, pos.y + dy, pos.z + dz),
-                ));
+                result = result.max(
+                    self.getLightFor(lightType, BlockPos::new(pos.x + dx, pos.y + dy, pos.z + dz)),
+                );
                 if result >= 15 {
                     break;
                 }
@@ -1846,10 +2061,14 @@ impl WorldClient {
                 continue;
             }
             let targetRoot = self.lowestRidingEntityId(entityId, player.entity.ridingEntityId);
-            if targetRoot == movingRoot { continue; }
+            if targetRoot == movingRoot {
+                continue;
+            }
             if movingCollidesWithPushableEntities && !player.entity.isDead {
                 let bounds = player.entity.boundingBox;
-                if bounds.intersects(aabb) { collisions.push(bounds); }
+                if bounds.intersects(aabb) {
+                    collisions.push(bounds);
+                }
             }
         }
 
@@ -1858,7 +2077,9 @@ impl WorldClient {
                 continue;
             }
             let targetRoot = self.lowestRidingEntityId(entityId, entity.entity.ridingEntityId);
-            if targetRoot == movingRoot { continue; }
+            if targetRoot == movingRoot {
+                continue;
+            }
 
             // Only EntityBoat and EntityShulker override
             // `getCollisionBoundingBox` in 1.12.2. EntityMinecart explicitly
@@ -1876,14 +2097,18 @@ impl WorldClient {
             );
             if targetOwnsCollisionBox {
                 let bounds = entity.entity.boundingBox;
-                if bounds.intersects(aabb) { collisions.push(bounds); }
+                if bounds.intersects(aabb) {
+                    collisions.push(bounds);
+                }
             }
 
             // EntityBoat/EntityMinecart#getCollisionBox returns the other
             // entity's box only when that other entity can be pushed.
             if movingCollidesWithPushableEntities && entity.canBePushed() {
                 let bounds = entity.entity.boundingBox;
-                if bounds.intersects(aabb) { collisions.push(bounds); }
+                if bounds.intersects(aabb) {
+                    collisions.push(bounds);
+                }
             }
         }
         collisions
@@ -1957,7 +2182,8 @@ impl WorldClient {
             // TileEntityPiston. The moving block therefore occupies a swept,
             // progress-dependent shape instead of the static one-block cube
             // that caused client standing and server correction divergence.
-            self.pistonTileEntities.get(&pos)
+            self.pistonTileEntities
+                .get(&pos)
                 .map(TileEntityPiston::collisionBoxesLocal)
                 .unwrap_or_default()
         } else if BlockDoor::isBlockDoor(state) {
@@ -2102,9 +2328,8 @@ impl WorldClient {
     /// Exact world-space selected box used by `RenderGlobal.drawSelectionBox`.
     pub fn getSelectedBoundingBox(&self, pos: BlockPos) -> Option<AxisAlignedBB> {
         let state = self.getBlockState(pos);
-        self.getBlockSelectionBoundingBoxLocal(pos, state).map(|bounds| {
-            bounds.offset(pos.x as f64, pos.y as f64, pos.z as f64)
-        })
+        self.getBlockSelectionBoundingBoxLocal(pos, state)
+            .map(|bounds| bounds.offset(pos.x as f64, pos.y as f64, pos.z as f64))
     }
 
     fn getNonCollidingSelectionBoxesLocal(
@@ -2131,7 +2356,9 @@ impl WorldClient {
             )],
             83 => vec![AxisAlignedBB::new(0.125, 0.0, 0.125, 0.875, 1.0, 0.875)],
             90 | 119 | 209 => vec![AxisAlignedBB::new(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)],
-            111 => vec![AxisAlignedBB::new(0.0625, 0.0, 0.0625, 0.9375, 0.09375, 0.9375)],
+            111 => vec![AxisAlignedBB::new(
+                0.0625, 0.0, 0.0625, 0.9375, 0.09375, 0.9375,
+            )],
             132 => vec![AxisAlignedBB::new(0.25, 0.0, 0.25, 0.75, 1.0, 0.75)],
             _ => Vec::new(),
         }
@@ -2205,7 +2432,11 @@ impl WorldClient {
         let mut y = start.y.floor() as i32;
         let mut z = start.z.floor() as i32;
         let initial = BlockPos::new(x, y, z);
-        if !ignoreBlockWithoutBoundingBox || !self.getBlockCollisionBoxesLocal(initial, self.getBlockState(initial)).is_empty() {
+        if !ignoreBlockWithoutBoundingBox
+            || !self
+                .getBlockCollisionBoxesLocal(initial, self.getBlockState(initial))
+                .is_empty()
+        {
             if let Some(hit) = self.collisionRayTrace(initial, start, end, stopOnLiquid) {
                 return Some(hit);
             }
@@ -2213,7 +2444,10 @@ impl WorldClient {
 
         let mut last_miss = None;
         for _ in 0..=200 {
-            if [start.x, start.y, start.z].iter().any(|value| value.is_nan()) {
+            if [start.x, start.y, start.z]
+                .iter()
+                .any(|value| value.is_nan())
+            {
                 return None;
             }
             if x == end_x && y == end_y && z == end_z {
@@ -2245,22 +2479,52 @@ impl WorldClient {
             let dx = end.x - start.x;
             let dy = end.y - start.y;
             let dz = end.z - start.z;
-            let mut tx = if step_x { (boundary_x - start.x) / dx } else { 999.0 };
-            let mut ty = if step_y { (boundary_y - start.y) / dy } else { 999.0 };
-            let mut tz = if step_z { (boundary_z - start.z) / dz } else { 999.0 };
-            if tx == -0.0 { tx = -1.0E-4; }
-            if ty == -0.0 { ty = -1.0E-4; }
-            if tz == -0.0 { tz = -1.0E-4; }
+            let mut tx = if step_x {
+                (boundary_x - start.x) / dx
+            } else {
+                999.0
+            };
+            let mut ty = if step_y {
+                (boundary_y - start.y) / dy
+            } else {
+                999.0
+            };
+            let mut tz = if step_z {
+                (boundary_z - start.z) / dz
+            } else {
+                999.0
+            };
+            if tx == -0.0 {
+                tx = -1.0E-4;
+            }
+            if ty == -0.0 {
+                ty = -1.0E-4;
+            }
+            if tz == -0.0 {
+                tz = -1.0E-4;
+            }
 
             let side;
             if tx < ty && tx < tz {
-                side = if end_x > x { EnumFacing::West } else { EnumFacing::East };
+                side = if end_x > x {
+                    EnumFacing::West
+                } else {
+                    EnumFacing::East
+                };
                 start = Vec3d::new(boundary_x, start.y + dy * tx, start.z + dz * tx);
             } else if ty < tz {
-                side = if end_y > y { EnumFacing::Down } else { EnumFacing::Up };
+                side = if end_y > y {
+                    EnumFacing::Down
+                } else {
+                    EnumFacing::Up
+                };
                 start = Vec3d::new(start.x + dx * ty, boundary_y, start.z + dz * ty);
             } else {
-                side = if end_z > z { EnumFacing::North } else { EnumFacing::South };
+                side = if end_z > z {
+                    EnumFacing::North
+                } else {
+                    EnumFacing::South
+                };
                 start = Vec3d::new(start.x + dx * tz, start.y + dy * tz, boundary_z);
             }
 
@@ -2270,37 +2534,58 @@ impl WorldClient {
             let pos = BlockPos::new(x, y, z);
             let state = self.getBlockState(pos);
             let has_box = !self.getBlockCollisionBoxesLocal(pos, state).is_empty();
-            if !ignoreBlockWithoutBoundingBox || has_box || matches!(crate::net::minecraft::block::Block::Block::getIdFromBlock(state.getBlock()), 90) {
+            if !ignoreBlockWithoutBoundingBox
+                || has_box
+                || matches!(
+                    crate::net::minecraft::block::Block::Block::getIdFromBlock(state.getBlock()),
+                    90
+                )
+            {
                 if let Some(hit) = self.collisionRayTrace(pos, start, end, stopOnLiquid) {
                     return Some(hit);
                 }
                 last_miss = Some(RayTraceResult::miss(start, side, pos));
             }
         }
-        if returnLastUncollidableBlock { last_miss } else { None }
+        if returnLastUncollidableBlock {
+            last_miss
+        } else {
+            None
+        }
     }
 
     pub fn isBlockLoaded(&self, pos: BlockPos) -> bool {
-        self.chunks.contains_key(&(pos.x.div_euclid(16), pos.z.div_euclid(16)))
+        self.chunks
+            .contains_key(&(pos.x.div_euclid(16), pos.z.div_euclid(16)))
     }
 
     pub fn getSlipperiness(&self, pos: BlockPos) -> f32 {
         self.getBlockState(pos).getBlock().getSlipperiness()
     }
 
-    pub fn loadedChunkCount(&self) -> usize { self.chunks.len() }
-    pub const fn getDimension(&self) -> i32 { self.provider.getDimension() }
-    pub const fn revision(&self) -> u64 { self.revision }
-    pub fn loadedChunks(&self) -> impl Iterator<Item = &Chunk> { self.chunks.values() }
+    pub fn loadedChunkCount(&self) -> usize {
+        self.chunks.len()
+    }
+    pub const fn getDimension(&self) -> i32 {
+        self.provider.getDimension()
+    }
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+    pub fn loadedChunks(&self) -> impl Iterator<Item = &Chunk> {
+        self.chunks.values()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::com::mojang::authlib::GameProfile::GameProfile;
-    use crate::net::minecraft::network::Packet::RawPacket;
-    use crate::net::minecraft::network::PacketBuffer::{write_bool,write_i32_be,write_i64_be,write_var_i32};
     use crate::net::minecraft::network::play::server::SPacketChunkData::SPacketChunkData;
+    use crate::net::minecraft::network::Packet::RawPacket;
+    use crate::net::minecraft::network::PacketBuffer::{
+        write_bool, write_i32_be, write_i64_be, write_var_i32,
+    };
     use crate::net::minecraft::world::GameType::GameType;
     use uuid::Uuid;
 
@@ -2309,10 +2594,7 @@ mod tests {
         let mut world = WorldClient::new(0);
         let uniqueId = Uuid::parse_str("12345678-1234-5678-9abc-def012345678").unwrap();
         let profile = GameProfile::new(Some(uniqueId), "LateBot");
-        world.addEntityToWorld(
-            9,
-            EntityOtherPlayerMP::new(9, uniqueId, profile.clone()),
-        );
+        world.addEntityToWorld(9, EntityOtherPlayerMP::new(9, uniqueId, profile.clone()));
         let info = NetworkPlayerInfo::new(profile, GameType::Survival, 0, None);
 
         assert!(world.cachePlayerInfo(uniqueId, info));
@@ -2334,15 +2616,22 @@ mod tests {
     #[test]
     fn full_pre_chunk_load_replaces_existing_chunk_like_chunk_provider_client() {
         let mut world = WorldClient::new(0);
-        world.invalidateRegionAndSetBlock(
-            BlockPos::new(1, 32, 1),
-            IBlockState::fromGlobalStateId(16),
-        ).unwrap();
+        world
+            .invalidateRegionAndSetBlock(
+                BlockPos::new(1, 32, 1),
+                IBlockState::fromGlobalStateId(16),
+            )
+            .unwrap();
         let old_revision = world
             .getChunkFromChunkCoords(0, 0)
             .unwrap()
             .sectionRevision(2);
-        assert_eq!(world.getBlockState(BlockPos::new(1, 32, 1)).getGlobalStateId(), 16);
+        assert_eq!(
+            world
+                .getBlockState(BlockPos::new(1, 32, 1))
+                .getGlobalStateId(),
+            16
+        );
 
         world.doPreChunk(0, 0, true);
 
@@ -2353,27 +2642,37 @@ mod tests {
 
     #[test]
     fn full_chunk_load_decodes_palette_light_and_biomes() {
-        let mut section=Vec::new();
-        section.push(4); write_var_i32(1,&mut section); write_var_i32(5,&mut section); write_var_i32(256,&mut section);
-        for _ in 0..256 { write_i64_be(0,&mut section); }
+        let mut section = Vec::new();
+        section.push(4);
+        write_var_i32(1, &mut section);
+        write_var_i32(5, &mut section);
+        write_var_i32(256, &mut section);
+        for _ in 0..256 {
+            write_i64_be(0, &mut section);
+        }
         section.extend(std::iter::repeat(0x21).take(2048));
         section.extend(std::iter::repeat(0x43).take(2048));
         section.extend(0_u8..=255_u8);
-        let mut payload=Vec::new();
-        write_i32_be(2,&mut payload); write_i32_be(-3,&mut payload); write_bool(true,&mut payload);
-        write_var_i32(1,&mut payload); write_var_i32(section.len() as i32,&mut payload); payload.extend_from_slice(&section); write_var_i32(0,&mut payload);
-        let packet=SPacketChunkData::readPacketData(&RawPacket::new(0x20,payload)).unwrap();
-        let mut world=WorldClient::new(0); world.applyChunkData(&packet).unwrap();
-        let chunk=world.getChunkFromChunkCoords(2,-3).unwrap();
-        assert_eq!(chunk.getGlobalStateId(0,0,0),5);
-        let storage=chunk.getBlockStorageArray()[0].as_ref().unwrap();
-        assert_eq!(storage.getExtBlocklightValue(0,0,0),1);
-        assert_eq!(storage.getExtBlocklightValue(1,0,0),2);
-        assert_eq!(storage.getExtSkylightValue(0,0,0),3);
-        assert_eq!(storage.getExtSkylightValue(1,0,0),4);
-        assert_eq!(chunk.getBiomeArray()[255],255);
+        let mut payload = Vec::new();
+        write_i32_be(2, &mut payload);
+        write_i32_be(-3, &mut payload);
+        write_bool(true, &mut payload);
+        write_var_i32(1, &mut payload);
+        write_var_i32(section.len() as i32, &mut payload);
+        payload.extend_from_slice(&section);
+        write_var_i32(0, &mut payload);
+        let packet = SPacketChunkData::readPacketData(&RawPacket::new(0x20, payload)).unwrap();
+        let mut world = WorldClient::new(0);
+        world.applyChunkData(&packet).unwrap();
+        let chunk = world.getChunkFromChunkCoords(2, -3).unwrap();
+        assert_eq!(chunk.getGlobalStateId(0, 0, 0), 5);
+        let storage = chunk.getBlockStorageArray()[0].as_ref().unwrap();
+        assert_eq!(storage.getExtBlocklightValue(0, 0, 0), 1);
+        assert_eq!(storage.getExtBlocklightValue(1, 0, 0), 2);
+        assert_eq!(storage.getExtSkylightValue(0, 0, 0), 3);
+        assert_eq!(storage.getExtSkylightValue(1, 0, 0), 4);
+        assert_eq!(chunk.getBiomeArray()[255], 255);
     }
-
 
     #[test]
     fn end_full_chunk_omits_skylight_and_consumes_packet_exactly() {
@@ -2382,7 +2681,9 @@ mod tests {
         write_var_i32(1, &mut section);
         write_var_i32(5, &mut section);
         write_var_i32(256, &mut section);
-        for _ in 0..256 { write_i64_be(0, &mut section); }
+        for _ in 0..256 {
+            write_i64_be(0, &mut section);
+        }
         section.extend(std::iter::repeat(0x21).take(2048));
         section.extend(0_u8..=255_u8);
 
@@ -2411,8 +2712,12 @@ mod tests {
     fn selected_fence_box_uses_visible_height_not_collision_height() {
         let mut world = WorldClient::new(0);
         let pos = BlockPos::new(0, 64, 0);
-        world.invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(85 << 4)).unwrap();
-        let selected = world.getSelectedBoundingBox(pos).expect("fence selected box");
+        world
+            .invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(85 << 4))
+            .unwrap();
+        let selected = world
+            .getSelectedBoundingBox(pos)
+            .expect("fence selected box");
         assert_eq!(selected.max_y, 65.0);
         let collision = world.getCollisionBoxes(AxisAlignedBB::new(0.4, 64.0, 0.4, 0.6, 66.0, 0.6));
         assert!(collision.iter().any(|bounds| bounds.max_y == 65.5));
@@ -2422,9 +2727,15 @@ mod tests {
     fn selected_double_chest_expands_only_toward_same_chest_type() {
         let mut world = WorldClient::new(0);
         let left = BlockPos::new(0, 64, 0);
-        world.invalidateRegionAndSetBlock(left, IBlockState::fromGlobalStateId(54 << 4)).unwrap();
-        world.invalidateRegionAndSetBlock(left.east(1), IBlockState::fromGlobalStateId(54 << 4)).unwrap();
-        let selected = world.getSelectedBoundingBox(left).expect("double chest selected box");
+        world
+            .invalidateRegionAndSetBlock(left, IBlockState::fromGlobalStateId(54 << 4))
+            .unwrap();
+        world
+            .invalidateRegionAndSetBlock(left.east(1), IBlockState::fromGlobalStateId(54 << 4))
+            .unwrap();
+        let selected = world
+            .getSelectedBoundingBox(left)
+            .expect("double chest selected box");
         assert_eq!((selected.min_x, selected.max_x), (0.0625, 1.0));
         assert_eq!((selected.min_z, selected.max_z), (0.0625, 0.9375));
     }
@@ -2433,8 +2744,13 @@ mod tests {
     fn stair_selected_box_is_full_model_block() {
         let mut world = WorldClient::new(0);
         let pos = BlockPos::new(2, 64, 2);
-        world.invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(53 << 4)).unwrap();
-        assert_eq!(world.getSelectedBoundingBox(pos), Some(AxisAlignedBB::from_block(pos)));
+        world
+            .invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(53 << 4))
+            .unwrap();
+        assert_eq!(
+            world.getSelectedBoundingBox(pos),
+            Some(AxisAlignedBB::from_block(pos))
+        );
     }
 
     #[test]
@@ -2503,10 +2819,15 @@ mod tests {
         let pos = BlockPos::new(0, 64, 0);
         let eye_state = IBlockState::fromGlobalStateId((120 << 4) | 4);
         world.invalidateRegionAndSetBlock(pos, eye_state).unwrap();
-        let selected = world.getSelectedBoundingBox(pos).expect("portal frame selection");
+        let selected = world
+            .getSelectedBoundingBox(pos)
+            .expect("portal frame selection");
         assert_eq!((selected.min_y, selected.max_y), (64.0, 64.8125));
-        let collisions = world.getCollisionBoxes(AxisAlignedBB::new(0.4, 64.0, 0.4, 0.6, 65.1, 0.6));
-        assert!(collisions.iter().any(|bounds| bounds.min_y == 64.8125 && bounds.max_y == 65.0));
+        let collisions =
+            world.getCollisionBoxes(AxisAlignedBB::new(0.4, 64.0, 0.4, 0.6, 65.1, 0.6));
+        assert!(collisions
+            .iter()
+            .any(|bounds| bounds.min_y == 64.8125 && bounds.max_y == 65.0));
     }
 
     #[test]
@@ -2518,8 +2839,12 @@ mod tests {
         assert!(world.getTileEntitySkull(pos).is_some());
         let selected = world.getSelectedBoundingBox(pos).expect("skull selection");
         assert_eq!((selected.min_z, selected.max_z), (1.5, 2.0));
-        assert!(world.getCollisionBoxes(AxisAlignedBB::from_block(pos)).is_empty());
-        world.invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(0)).unwrap();
+        assert!(world
+            .getCollisionBoxes(AxisAlignedBB::from_block(pos))
+            .is_empty());
+        world
+            .invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(0))
+            .unwrap();
         assert!(world.getTileEntitySkull(pos).is_none());
     }
 
@@ -2529,61 +2854,108 @@ mod tests {
         let pos = BlockPos::new(3, 70, -2);
         let mut tag = crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
         tag.setString("id", "minecraft:skull");
-        tag.setInteger("x", pos.x); tag.setInteger("y", pos.y); tag.setInteger("z", pos.z);
-        tag.setByte("SkullType", 4); tag.setByte("Rot", 9);
+        tag.setInteger("x", pos.x);
+        tag.setInteger("y", pos.y);
+        tag.setInteger("z", pos.z);
+        tag.setByte("SkullType", 4);
+        tag.setByte("Rot", 9);
         assert!(!world.applySkullTileEntityTag(&tag));
-        world.invalidateRegionAndSetBlock(pos, BlockSkull::BlockSkull::stateForFacing(EnumFacing::Up)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(
+                pos,
+                BlockSkull::BlockSkull::stateForFacing(EnumFacing::Up),
+            )
+            .unwrap();
         assert!(world.applySkullTileEntityTag(&tag));
         let skull = world.getTileEntitySkull(pos).unwrap();
         assert_eq!(skull.getSkullType(), 4);
         assert_eq!(skull.getSkullRotation(), 9);
     }
 
-
     #[test]
     fn entity_mouse_over_targets_living_mobs_and_ignores_dropped_items() {
-        use crate::net::minecraft::client::entity::EntityOtherClient::{ClientEntityKind, EntityOtherClient, MobEntityType, ObjectSpawnType};
+        use crate::net::minecraft::client::entity::EntityOtherClient::{
+            ClientEntityKind, EntityOtherClient, MobEntityType, ObjectSpawnType,
+        };
         let mut world = WorldClient::new(0);
         let item = EntityOtherClient::new(
-            2, None,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Item, data: 0, spawnVelocity: [0.0; 3] },
-            0.0, 64.0, 1.0, 0.0, 0.0,
+            2,
+            None,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Item,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            },
+            0.0,
+            64.0,
+            1.0,
+            0.0,
+            0.0,
         );
         world.addNonPlayerEntityToWorld(2, item);
         let cow = EntityOtherClient::new(
-            3, None,
-            ClientEntityKind::Mob { entityType: MobEntityType::fromId(92).unwrap() },
-            0.0, 64.0, 2.0, 0.0, 0.0,
+            3,
+            None,
+            ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(92).unwrap(),
+            },
+            0.0,
+            64.0,
+            2.0,
+            0.0,
+            0.0,
         );
         world.addNonPlayerEntityToWorld(3, cow);
-        let hit = world.rayTraceEntities(
-            1, None,
-            AxisAlignedBB::new(-0.3, 64.0, -0.3, 0.3, 65.8, 0.3),
-            Vec3d::new(0.0, 64.7, 0.0),
-            Vec3d::new(0.0, 0.0, 1.0),
-            4.5, 4.5, false,
-        ).expect("cow should be targetable through non-collidable item");
+        let hit = world
+            .rayTraceEntities(
+                1,
+                None,
+                AxisAlignedBB::new(-0.3, 64.0, -0.3, 0.3, 65.8, 0.3),
+                Vec3d::new(0.0, 64.7, 0.0),
+                Vec3d::new(0.0, 0.0, 1.0),
+                4.5,
+                4.5,
+                false,
+            )
+            .expect("cow should be targetable through non-collidable item");
         assert_eq!(hit.entityId, 3);
     }
 
     #[test]
     fn marker_armor_stand_is_not_mouse_over_target() {
-        use crate::net::minecraft::client::entity::EntityOtherClient::{ClientEntityKind, EntityOtherClient, ObjectSpawnType};
+        use crate::net::minecraft::client::entity::EntityOtherClient::{
+            ClientEntityKind, EntityOtherClient, ObjectSpawnType,
+        };
         use crate::net::minecraft::network::datasync::DataSerializers::DataValue;
         let mut world = WorldClient::new(0);
         let mut stand = EntityOtherClient::new(
-            4, None,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::ArmorStand, data: 0, spawnVelocity: [0.0; 3] },
-            0.0, 64.0, 2.0, 0.0, 0.0,
+            4,
+            None,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ArmorStand,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            },
+            0.0,
+            64.0,
+            2.0,
+            0.0,
+            0.0,
         );
         stand.applyMetadata([(11, DataValue::Byte(0x10))]);
         world.addNonPlayerEntityToWorld(4, stand);
-        assert!(world.rayTraceEntities(
-            1, None,
-            AxisAlignedBB::new(-0.3, 64.0, -0.3, 0.3, 65.8, 0.3),
-            Vec3d::new(0.0, 64.7, 0.0), Vec3d::new(0.0, 0.0, 1.0),
-            4.5, 4.5, false,
-        ).is_none());
+        assert!(world
+            .rayTraceEntities(
+                1,
+                None,
+                AxisAlignedBB::new(-0.3, 64.0, -0.3, 0.3, 65.8, 0.3),
+                Vec3d::new(0.0, 64.7, 0.0),
+                Vec3d::new(0.0, 0.0, 1.0),
+                4.5,
+                4.5,
+                false,
+            )
+            .is_none());
     }
 
     #[test]
@@ -2607,10 +2979,12 @@ mod tests {
 
     #[test]
     fn block_changes_mutate_the_packed_section() {
-        let mut world=WorldClient::new(0);
-        let pos=BlockPos::new(-1,64,17);
-        world.invalidateRegionAndSetBlock(pos,IBlockState::fromGlobalStateId(16)).unwrap();
-        assert_eq!(world.getBlockState(pos).getGlobalStateId(),16);
+        let mut world = WorldClient::new(0);
+        let pos = BlockPos::new(-1, 64, 17);
+        world
+            .invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(16))
+            .unwrap();
+        assert_eq!(world.getBlockState(pos).getGlobalStateId(), 16);
     }
 }
 

@@ -11,9 +11,15 @@ pub struct Enchantment {
 }
 
 impl Enchantment {
-    pub const fn getEnchantmentID(self) -> i32 { self.id }
-    pub const fn getName(self) -> &'static str { self.translationKey }
-    pub const fn getMaxLevel(self) -> i32 { self.maxLevel }
+    pub const fn getEnchantmentID(self) -> i32 {
+        self.id
+    }
+    pub const fn getName(self) -> &'static str {
+        self.translationKey
+    }
+    pub const fn getMaxLevel(self) -> i32 {
+        self.maxLevel
+    }
 
     pub fn getTranslatedName(self, level: i32, locale: &Locale) -> String {
         let mut name = locale.translate_key(self.translationKey).to_owned();
@@ -59,7 +65,11 @@ impl Enchantment {
             71 => ("enchantment.vanishing_curse", 1),
             _ => return None,
         };
-        Some(Self { id, translationKey, maxLevel })
+        Some(Self {
+            id,
+            translationKey,
+            maxLevel,
+        })
     }
 }
 
@@ -69,8 +79,14 @@ mod tests {
 
     #[test]
     fn registry_ids_match_1122_enchantment_registration() {
-        assert_eq!(Enchantment::getEnchantmentByID(22).unwrap().getName(), "enchantment.sweeping");
-        assert_eq!(Enchantment::getEnchantmentByID(48).unwrap().getMaxLevel(), 5);
+        assert_eq!(
+            Enchantment::getEnchantmentByID(22).unwrap().getName(),
+            "enchantment.sweeping"
+        );
+        assert_eq!(
+            Enchantment::getEnchantmentByID(48).unwrap().getMaxLevel(),
+            5
+        );
         assert!(Enchantment::getEnchantmentByID(15).is_none());
     }
 }

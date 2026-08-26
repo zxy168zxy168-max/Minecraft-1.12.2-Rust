@@ -1,12 +1,14 @@
 use std::collections::{HashMap, HashSet};
 use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 use crate::net::minecraft::block::Block::Block;
 use crate::net::minecraft::nbt::CompressedStreamTools;
-use crate::net::minecraft::nbt::NBTBase::{NBTBase, TAG_BYTE_ARRAY, TAG_COMPOUND, TAG_LIST, TAG_STRING};
+use crate::net::minecraft::nbt::NBTBase::{
+    NBTBase, TAG_BYTE_ARRAY, TAG_COMPOUND, TAG_LIST, TAG_STRING,
+};
 use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 use crate::net::minecraft::nbt::NBTTagList::NBTTagList;
 use crate::net::minecraft::util::datafix::DataFixer::DataFixer;
@@ -16,15 +18,15 @@ use crate::net::minecraft::util::datafix::IDataFixer::IDataFixer;
 use crate::net::minecraft::util::datafix::IDataWalker::IDataWalker;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::math::ChunkPos::ChunkPos;
-use crate::net::minecraft::world::NextTickListEntry::NextTickListEntry;
-use crate::net::minecraft::world::chunk::Chunk::Chunk;
-use crate::net::minecraft::world::chunk::NibbleArray::NibbleArray;
 use crate::net::minecraft::world::chunk::storage::ExtendedBlockStorage::ExtendedBlockStorage;
 use crate::net::minecraft::world::chunk::storage::IChunkLoader::IChunkLoader;
 use crate::net::minecraft::world::chunk::storage::RegionFileCache;
+use crate::net::minecraft::world::chunk::Chunk::Chunk;
+use crate::net::minecraft::world::chunk::NibbleArray::NibbleArray;
 use crate::net::minecraft::world::storage::IThreadedFileIO::IThreadedFileIO;
 use crate::net::minecraft::world::storage::SaveHandler::SaveHandler;
 use crate::net::minecraft::world::storage::ThreadedFileIOBase::ThreadedFileIOBase;
+use crate::net::minecraft::world::NextTickListEntry::NextTickListEntry;
 
 #[derive(Debug, Default)]
 struct PendingChunkIO {
@@ -68,7 +70,10 @@ impl AnvilChunkLoader {
         // MCP `DataFixesManager#createFixer` is the composition root. Keeping
         // the loader on that shared registration path prevents Chunk loads
         // from silently skipping legacy entity/tile migrations.
-        Self::newWithDataFixer(chunkSaveLocationIn, Arc::new(DataFixesManager::createFixer()))
+        Self::newWithDataFixer(
+            chunkSaveLocationIn,
+            Arc::new(DataFixesManager::createFixer()),
+        )
     }
 
     pub fn newWithDataFixer(
@@ -95,7 +100,9 @@ impl AnvilChunkLoader {
     /// MCP `func_191063_a`: queued data counts as generated before disk flush.
     pub fn isChunkGeneratedAt(&self, x: i32, z: i32) -> io::Result<bool> {
         let pos = ChunkPos::new(x, z);
-        if self.pending().chunksToRemove.contains_key(&pos) { return Ok(true); }
+        if self.pending().chunksToRemove.contains_key(&pos) {
+            return Ok(true);
+        }
         RegionFileCache::isChunkSaved(&self.inner.chunkSaveLocation, x, z)
     }
 
@@ -107,7 +114,8 @@ impl AnvilChunkLoader {
         let root = if let Some(root) = pending {
             root
         } else {
-            let Some(bytes) = RegionFileCache::readChunkData(&self.inner.chunkSaveLocation, x, z)? else {
+            let Some(bytes) = RegionFileCache::readChunkData(&self.inner.chunkSaveLocation, x, z)?
+            else {
                 return Ok(None);
             };
             let mut input = bytes.as_slice();
@@ -133,11 +141,17 @@ impl AnvilChunkLoader {
         currentWorldTime: i64,
     ) -> io::Result<LoadedChunk> {
         if !root.hasKeyWithType("Level", TAG_COMPOUND) {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, format!("Chunk file at {x},{z} is missing level data, skipping")));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Chunk file at {x},{z} is missing level data, skipping"),
+            ));
         }
         let mut level = root.getCompoundTag("Level");
         if !level.hasKeyWithType("Sections", TAG_LIST) {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, format!("Chunk file at {x},{z} is missing block data, skipping")));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Chunk file at {x},{z} is missing block data, skipping"),
+            ));
         }
         let mut loaded = Self::readChunkFromNBT(&level, hasSkyLight, currentWorldTime)?;
         if !loaded.chunk.isAtLocation(x, z) {
@@ -164,8 +178,11 @@ impl AnvilChunkLoader {
         hasSkyLight: bool,
         currentWorldTime: i64,
     ) -> io::Result<Option<LoadedChunk>> {
-        let Some(root) = self.loadChunkNBT(x, z)? else { return Ok(None); };
-        self.checkedReadChunkFromNBT(x, z, root, hasSkyLight, currentWorldTime).map(Some)
+        let Some(root) = self.loadChunkNBT(x, z)? else {
+            return Ok(None);
+        };
+        self.checkedReadChunkFromNBT(x, z, root, hasSkyLight, currentWorldTime)
+            .map(Some)
     }
 
     /// MCP `saveChunk` storage contract. `World#checkSessionLock` is supplied
@@ -204,19 +221,30 @@ impl AnvilChunkLoader {
     }
 
     /// Public source method used by `ThreadedFileIOBase` and `saveExtraData`.
-    pub fn writeNextIO(&self) -> bool { self.writeNextIOImpl() }
+    pub fn writeNextIO(&self) -> bool {
+        self.writeNextIOImpl()
+    }
 
     fn writeNextIOImpl(&self) -> bool {
         let (pos, compound) = {
             let mut pending = self.pending();
             if pending.chunksToRemove.is_empty() {
                 if self.inner.savingExtraData.load(Ordering::Acquire) {
-                    let name = self.inner.chunkSaveLocation.file_name().and_then(|s| s.to_str()).unwrap_or("");
+                    let name = self
+                        .inner
+                        .chunkSaveLocation
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("");
                     log::info!("ThreadedAnvilChunkStorage ({}): All chunks are saved", name);
                 }
                 return false;
             }
-            let pos = *pending.chunksToRemove.keys().next().expect("non-empty pending chunk map");
+            let pos = *pending
+                .chunksToRemove
+                .keys()
+                .next()
+                .expect("non-empty pending chunk map");
             pending.chunksBeingWritten.insert(pos);
             let compound = pending.chunksToRemove.remove(&pos);
             (pos, compound)
@@ -243,7 +271,9 @@ impl AnvilChunkLoader {
     }
 
     /// MCP methods are deliberately empty in 1.12.2.
-    pub fn saveExtraChunkData(&self, _chunk: &Chunk) -> io::Result<()> { Ok(()) }
+    pub fn saveExtraChunkData(&self, _chunk: &Chunk) -> io::Result<()> {
+        Ok(())
+    }
     pub fn chunkTick(&self) {}
 
     /// MCP `saveExtraData`: synchronously drain all pending chunks while
@@ -254,8 +284,12 @@ impl AnvilChunkLoader {
         self.inner.savingExtraData.store(false, Ordering::Release);
     }
 
-    pub fn pendingChunkCount(&self) -> usize { self.pending().chunksToRemove.len() }
-    pub fn writingChunkCount(&self) -> usize { self.pending().chunksBeingWritten.len() }
+    pub fn pendingChunkCount(&self) -> usize {
+        self.pending().chunksToRemove.len()
+    }
+    pub fn writingChunkCount(&self) -> usize {
+        self.pending().chunksBeingWritten.len()
+    }
 
     /// MCP `readChunkFromNBT` block/section half.
     pub fn readChunkCoreFromNBT(level: &NBTTagCompound, hasSkyLight: bool) -> io::Result<Chunk> {
@@ -275,22 +309,43 @@ impl AnvilChunkLoader {
             let sectionTag = sections.getCompoundTagAt(sectionIndex);
             let yIndex = sectionTag.getByte("Y") as i32;
             if !(0..16).contains(&yIndex) {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, format!("Anvil section Y out of range: {yIndex}")));
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Anvil section Y out of range: {yIndex}"),
+                ));
             }
             let blocks = sectionTag.getByteArray("Blocks");
             if blocks.len() != 4096 {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, format!("Anvil Blocks should be 4096 bytes not: {}", blocks.len())));
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Anvil Blocks should be 4096 bytes not: {}", blocks.len()),
+                ));
             }
-            let data = NibbleArray::fromStorage(sectionTag.getByteArray("Data")).map_err(invalid_data)?;
+            let data =
+                NibbleArray::fromStorage(sectionTag.getByteArray("Data")).map_err(invalid_data)?;
             let add = if sectionTag.hasKeyWithType("Add", TAG_BYTE_ARRAY) {
-                Some(NibbleArray::fromStorage(sectionTag.getByteArray("Add")).map_err(invalid_data)?)
-            } else { None };
+                Some(
+                    NibbleArray::fromStorage(sectionTag.getByteArray("Add"))
+                        .map_err(invalid_data)?,
+                )
+            } else {
+                None
+            };
 
             let mut storage = ExtendedBlockStorage::new(yIndex << 4, hasSkyLight);
-            storage.getDataMut().setDataFromNBT(&blocks, &data, add.as_ref()).map_err(invalid_data)?;
-            storage.setBlocklightArray(NibbleArray::fromStorage(sectionTag.getByteArray("BlockLight")).map_err(invalid_data)?);
+            storage
+                .getDataMut()
+                .setDataFromNBT(&blocks, &data, add.as_ref())
+                .map_err(invalid_data)?;
+            storage.setBlocklightArray(
+                NibbleArray::fromStorage(sectionTag.getByteArray("BlockLight"))
+                    .map_err(invalid_data)?,
+            );
             if hasSkyLight {
-                storage.setSkylightArray(NibbleArray::fromStorage(sectionTag.getByteArray("SkyLight")).map_err(invalid_data)?);
+                storage.setSkylightArray(
+                    NibbleArray::fromStorage(sectionTag.getByteArray("SkyLight"))
+                        .map_err(invalid_data)?,
+                );
             }
             storage.removeInvalidBlocks();
             storageArrays[yIndex as usize] = Some(storage);
@@ -327,10 +382,18 @@ impl AnvilChunkLoader {
             let add = storage.getData().getDataForNBT(&mut blocks, &mut data);
             sectionTag.setByteArray("Blocks", blocks.to_vec());
             sectionTag.setByteArray("Data", data.getData().to_vec());
-            if let Some(add) = add { sectionTag.setByteArray("Add", add.getData().to_vec()); }
-            sectionTag.setByteArray("BlockLight", storage.getBlocklightArray().getData().to_vec());
+            if let Some(add) = add {
+                sectionTag.setByteArray("Add", add.getData().to_vec());
+            }
+            sectionTag.setByteArray(
+                "BlockLight",
+                storage.getBlocklightArray().getData().to_vec(),
+            );
             if hasSkyLight {
-                let skylight = storage.getSkylightArray().cloned().unwrap_or_else(NibbleArray::new);
+                let skylight = storage
+                    .getSkylightArray()
+                    .cloned()
+                    .unwrap_or_else(NibbleArray::new);
                 sectionTag.setByteArray("SkyLight", skylight.getData().to_vec());
             } else {
                 sectionTag.setByteArray("SkyLight", vec![0; 2048]);
@@ -380,23 +443,36 @@ impl AnvilChunkLoader {
     }
 
     /// MCP TileTicks decoder. `t` is relative to current total world time.
-    pub fn readTileTicks(level: &NBTTagCompound, currentWorldTime: i64) -> io::Result<Vec<NextTickListEntry>> {
-        if !level.hasKeyWithType("TileTicks", TAG_LIST) { return Ok(Vec::new()); }
+    pub fn readTileTicks(
+        level: &NBTTagCompound,
+        currentWorldTime: i64,
+    ) -> io::Result<Vec<NextTickListEntry>> {
+        if !level.hasKeyWithType("TileTicks", TAG_LIST) {
+            return Ok(Vec::new());
+        }
         let tags = level.getTagList("TileTicks", TAG_COMPOUND);
         let mut result = Vec::with_capacity(tags.tagCount());
         for index in 0..tags.tagCount() {
             let tag = tags.getCompoundTagAt(index);
             let block = if tag.hasKeyWithType("i", TAG_STRING) {
                 Block::getBlockFromName(&tag.getString("i")).ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::InvalidData, format!("Unknown block in TileTicks: {}", tag.getString("i")))
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!("Unknown block in TileTicks: {}", tag.getString("i")),
+                    )
                 })?
             } else {
                 Block::getBlockById(tag.getInteger("i"))
             };
             let mut entry = NextTickListEntry::new(
-                BlockPos::new(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z")),
+                BlockPos::new(
+                    tag.getInteger("x"),
+                    tag.getInteger("y"),
+                    tag.getInteger("z"),
+                ),
                 block,
-            ).setScheduledTime(currentWorldTime.wrapping_add(tag.getInteger("t") as i64));
+            )
+            .setScheduledTime(currentWorldTime.wrapping_add(tag.getInteger("t") as i64));
             entry.setPriority(tag.getInteger("p"));
             result.push(entry);
         }
@@ -406,12 +482,22 @@ impl AnvilChunkLoader {
     /// Batch-122 helper semantics retained: an empty slice does not erase an
     /// opaque pre-existing TileTicks tag. Full `writeChunkToNBT` uses the exact
     /// Option-based source branch below.
-    pub fn writeTileTicks(level: &mut NBTTagCompound, currentWorldTime: i64, entries: &[NextTickListEntry]) {
-        if entries.is_empty() { return; }
+    pub fn writeTileTicks(
+        level: &mut NBTTagCompound,
+        currentWorldTime: i64,
+        entries: &[NextTickListEntry],
+    ) {
+        if entries.is_empty() {
+            return;
+        }
         Self::writeTileTicksList(level, currentWorldTime, entries);
     }
 
-    fn writeTileTicksList(level: &mut NBTTagCompound, currentWorldTime: i64, entries: &[NextTickListEntry]) {
+    fn writeTileTicksList(
+        level: &mut NBTTagCompound,
+        currentWorldTime: i64,
+        entries: &[NextTickListEntry],
+    ) {
         let mut tags = NBTTagList::new();
         for entry in entries {
             let mut tag = NBTTagCompound::new();
@@ -419,7 +505,10 @@ impl AnvilChunkLoader {
             tag.setInteger("x", entry.position.x);
             tag.setInteger("y", entry.position.y);
             tag.setInteger("z", entry.position.z);
-            tag.setInteger("t", entry.scheduledTime.wrapping_sub(currentWorldTime) as i32);
+            tag.setInteger(
+                "t",
+                entry.scheduledTime.wrapping_sub(currentWorldTime) as i32,
+            );
             tag.setInteger("p", entry.priority);
             tags.appendTag(NBTBase::Compound(tag));
         }
@@ -434,7 +523,10 @@ impl AnvilChunkLoader {
         let mut chunk = Self::readChunkCoreFromNBT(level, hasSkyLight)?;
         Self::readChunkObjectDataFromNBT(&mut chunk, level);
         let scheduledTicks = Self::readTileTicks(level, currentWorldTime)?;
-        Ok(LoadedChunk { chunk, scheduledTicks })
+        Ok(LoadedChunk {
+            chunk,
+            scheduledTicks,
+        })
     }
 
     pub fn writeChunkToNBT(
@@ -454,31 +546,55 @@ impl AnvilChunkLoader {
     /// Compatibility helper retained for code that only needs the complete
     /// static/object Chunk without scheduling ticks into a World yet.
     pub fn loadChunkCore(&self, x: i32, z: i32, hasSkyLight: bool) -> io::Result<Option<Chunk>> {
-        Ok(self.loadChunk(x, z, hasSkyLight, 0)?.map(|loaded| loaded.chunk))
+        Ok(self
+            .loadChunk(x, z, hasSkyLight, 0)?
+            .map(|loaded| loaded.chunk))
     }
 
-    pub fn chunkSaveLocation(&self) -> &Path { &self.inner.chunkSaveLocation }
-    pub fn dataFixer(&self) -> &DataFixer { self.inner.dataFixer.as_ref() }
+    pub fn chunkSaveLocation(&self) -> &Path {
+        &self.inner.chunkSaveLocation
+    }
+    pub fn dataFixer(&self) -> &DataFixer {
+        self.inner.dataFixer.as_ref()
+    }
 
     fn pending(&self) -> std::sync::MutexGuard<'_, PendingChunkIO> {
-        self.inner.pending.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.inner
+            .pending
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
 impl IThreadedFileIO for AnvilChunkLoader {
-    fn writeNextIO(&self) -> bool { self.writeNextIOImpl() }
-    fn ioIdentity(&self) -> usize { Arc::as_ptr(&self.inner) as usize }
+    fn writeNextIO(&self) -> bool {
+        self.writeNextIOImpl()
+    }
+    fn ioIdentity(&self) -> usize {
+        Arc::as_ptr(&self.inner) as usize
+    }
 }
 
 impl IChunkLoader for AnvilChunkLoader {
-    fn loadChunk(&self, worldIn: &mut crate::net::minecraft::world::WorldServer::WorldServer, x: i32, z: i32) -> io::Result<Option<Chunk>> {
+    fn loadChunk(
+        &self,
+        worldIn: &mut crate::net::minecraft::world::WorldServer::WorldServer,
+        x: i32,
+        z: i32,
+    ) -> io::Result<Option<Chunk>> {
         let currentWorldTime = worldIn.getTotalWorldTime();
         let hasSkyLight = worldIn.provider.hasSkyLight();
-        Ok(AnvilChunkLoader::loadChunk(self, x, z, hasSkyLight, currentWorldTime)?
-            .map(|loaded| worldIn.acceptLoadedChunk(loaded)))
+        Ok(
+            AnvilChunkLoader::loadChunk(self, x, z, hasSkyLight, currentWorldTime)?
+                .map(|loaded| worldIn.acceptLoadedChunk(loaded)),
+        )
     }
 
-    fn saveChunk(&self, worldIn: &mut crate::net::minecraft::world::WorldServer::WorldServer, chunkIn: &mut Chunk) -> io::Result<()> {
+    fn saveChunk(
+        &self,
+        worldIn: &mut crate::net::minecraft::world::WorldServer::WorldServer,
+        chunkIn: &mut Chunk,
+    ) -> io::Result<()> {
         let pending = worldIn.getPendingBlockUpdates(chunkIn, false);
         AnvilChunkLoader::saveChunk(
             self,
@@ -490,24 +606,45 @@ impl IChunkLoader for AnvilChunkLoader {
         )
     }
 
-    fn saveExtraChunkData(&self, _worldIn: &mut crate::net::minecraft::world::WorldServer::WorldServer, chunkIn: &Chunk) -> io::Result<()> {
+    fn saveExtraChunkData(
+        &self,
+        _worldIn: &mut crate::net::minecraft::world::WorldServer::WorldServer,
+        chunkIn: &Chunk,
+    ) -> io::Result<()> {
         AnvilChunkLoader::saveExtraChunkData(self, chunkIn)
     }
 
-    fn chunkTick(&self) { AnvilChunkLoader::chunkTick(self); }
-    fn saveExtraData(&self) { AnvilChunkLoader::saveExtraData(self); }
-    fn func_191063_a(&self, x: i32, z: i32) -> io::Result<bool> { AnvilChunkLoader::isChunkGeneratedAt(self, x, z) }
+    fn chunkTick(&self) {
+        AnvilChunkLoader::chunkTick(self);
+    }
+    fn saveExtraData(&self) {
+        AnvilChunkLoader::saveExtraData(self);
+    }
+    fn func_191063_a(&self, x: i32, z: i32) -> io::Result<bool> {
+        AnvilChunkLoader::isChunkGeneratedAt(self, x, z)
+    }
 }
 
 struct ChunkDataWalker;
 impl IDataWalker for ChunkDataWalker {
-    fn process(&self, fixer: &dyn IDataFixer, mut compound: NBTTagCompound, versionIn: i32) -> NBTTagCompound {
-        if !compound.hasKeyWithType("Level", TAG_COMPOUND) { return compound; }
+    fn process(
+        &self,
+        fixer: &dyn IDataFixer,
+        mut compound: NBTTagCompound,
+        versionIn: i32,
+    ) -> NBTTagCompound {
+        if !compound.hasKeyWithType("Level", TAG_COMPOUND) {
+            return compound;
+        }
         let mut level = compound.getCompoundTag("Level");
         if level.hasKeyWithType("Entities", TAG_LIST) {
             let mut entities = level.getTagList("Entities", TAG_COMPOUND);
             for index in 0..entities.tagCount() {
-                let fixed = fixer.processVersioned(FixTypes::Entity, entities.getCompoundTagAt(index), versionIn);
+                let fixed = fixer.processVersioned(
+                    FixTypes::Entity,
+                    entities.getCompoundTagAt(index),
+                    versionIn,
+                );
                 entities.set(index, NBTBase::Compound(fixed));
             }
             level.setTagList("Entities", entities);
@@ -515,7 +652,11 @@ impl IDataWalker for ChunkDataWalker {
         if level.hasKeyWithType("TileEntities", TAG_LIST) {
             let mut tileEntities = level.getTagList("TileEntities", TAG_COMPOUND);
             for index in 0..tileEntities.tagCount() {
-                let fixed = fixer.processVersioned(FixTypes::BlockEntity, tileEntities.getCompoundTagAt(index), versionIn);
+                let fixed = fixer.processVersioned(
+                    FixTypes::BlockEntity,
+                    tileEntities.getCompoundTagAt(index),
+                    versionIn,
+                );
                 tileEntities.set(index, NBTBase::Compound(fixed));
             }
             level.setTagList("TileEntities", tileEntities);
@@ -568,7 +709,10 @@ mod tests {
         assert!(loader.isChunkGeneratedAt(2, -3).unwrap());
         let decoded = loader.loadChunkNBT(2, -3).unwrap().unwrap();
         assert_eq!(decoded.getInteger("DataVersion"), 1343);
-        assert_eq!(decoded.getCompoundTag("Level").getLong("InhabitedTime"), 12345);
+        assert_eq!(
+            decoded.getCompoundTag("Level").getLong("InhabitedTime"),
+            12345
+        );
         RegionFileCache::clearRegionFileReferences();
         let _ = std::fs::remove_dir_all(rootDir);
     }
@@ -582,8 +726,12 @@ mod tests {
         chunk.setLightPopulated(true);
         chunk.setInhabitedTime(987654321);
         chunk.setBiomeArray(&vec![4_u8; 256]);
-        chunk.setBlockState(1, 34, 3, IBlockState::fromGlobalStateId(2 << 4), true).unwrap();
-        chunk.setBlockState(2, 34, 3, IBlockState::fromGlobalStateId(1 << 4), true).unwrap();
+        chunk
+            .setBlockState(1, 34, 3, IBlockState::fromGlobalStateId(2 << 4), true)
+            .unwrap();
+        chunk
+            .setBlockState(2, 34, 3, IBlockState::fromGlobalStateId(1 << 4), true)
+            .unwrap();
 
         let mut entity = NBTTagCompound::new();
         entity.setString("id", "minecraft:pig");
@@ -596,20 +744,38 @@ mod tests {
 
         let mut tile = NBTTagCompound::new();
         tile.setString("id", "minecraft:chest");
-        tile.setInteger("x", 65); tile.setInteger("y", 35); tile.setInteger("z", -111);
+        tile.setInteger("x", 65);
+        tile.setInteger("y", 35);
+        tile.setInteger("z", -111);
         chunk.addTileEntityData(tile.clone());
 
         let mut level = NBTTagCompound::new();
         AnvilChunkLoader::writeChunkToNBT(&mut chunk, 1234, true, Some(&[]), &mut level);
-        assert_eq!(level.getTagList("Entities", TAG_COMPOUND).getCompoundTagAt(0), entity);
-        assert_eq!(level.getTagList("TileEntities", TAG_COMPOUND).getCompoundTagAt(0), tile);
+        assert_eq!(
+            level
+                .getTagList("Entities", TAG_COMPOUND)
+                .getCompoundTagAt(0),
+            entity
+        );
+        assert_eq!(
+            level
+                .getTagList("TileEntities", TAG_COMPOUND)
+                .getCompoundTagAt(0),
+            tile
+        );
         assert!(level.hasKeyWithType("TileTicks", TAG_LIST));
 
         let loaded = AnvilChunkLoader::readChunkFromNBT(&level, true, 1234).unwrap();
         assert_eq!(loaded.chunk.getHeightMap(), chunk.getHeightMap());
         assert!(loaded.chunk.hasEntities());
         assert_eq!(loaded.chunk.getEntityListsData()[2][0], entity);
-        assert_eq!(loaded.chunk.getTileEntityMapData().get(&BlockPos::new(65, 35, -111)), Some(&tile));
+        assert_eq!(
+            loaded
+                .chunk
+                .getTileEntityMapData()
+                .get(&BlockPos::new(65, 35, -111)),
+            Some(&tile)
+        );
         assert_eq!(loaded.chunk.getGlobalStateId(1, 34, 3), 2 << 4);
         assert_eq!(loaded.chunk.getGlobalStateId(2, 34, 3), 1 << 4);
         let section = loaded.chunk.getBlockStorageArray()[2].as_ref().unwrap();
@@ -634,10 +800,26 @@ mod tests {
         level.setLong("InhabitedTime", 99);
         newRoot.setCompoundTag("Level", level);
         loader.addChunkToPending(ChunkPos::new(8, 9), newRoot);
-        assert_eq!(loader.loadChunkNBT(8, 9).unwrap().unwrap().getCompoundTag("Level").getLong("InhabitedTime"), 99);
+        assert_eq!(
+            loader
+                .loadChunkNBT(8, 9)
+                .unwrap()
+                .unwrap()
+                .getCompoundTag("Level")
+                .getLong("InhabitedTime"),
+            99
+        );
         loader.saveExtraData();
         ThreadedFileIOBase::getThreadedIOInstance().waitForFinish();
-        assert_eq!(loader.loadChunkNBT(8, 9).unwrap().unwrap().getCompoundTag("Level").getLong("InhabitedTime"), 99);
+        assert_eq!(
+            loader
+                .loadChunkNBT(8, 9)
+                .unwrap()
+                .unwrap()
+                .getCompoundTag("Level")
+                .getLong("InhabitedTime"),
+            99
+        );
         RegionFileCache::clearRegionFileReferences();
         let _ = std::fs::remove_dir_all(rootDir);
     }
@@ -661,7 +843,9 @@ mod tests {
         let loader = AnvilChunkLoader::new(handler.getWorldDirectory()).unwrap();
         let mut chunk = Chunk::new(0, 0);
         chunk.setBiomeArray(&vec![1; 256]);
-        loader.saveChunk(&handler, &mut chunk, 77, true, None).unwrap();
+        loader
+            .saveChunk(&handler, &mut chunk, 77, true, None)
+            .unwrap();
         assert!(loader.isChunkGeneratedAt(0, 0).unwrap());
         let queued = loader.loadChunkNBT(0, 0).unwrap().unwrap();
         assert_eq!(queued.getInteger("DataVersion"), 1343);
@@ -675,22 +859,34 @@ mod tests {
     #[test]
     fn nether_chunk_core_writes_zero_skylight_like_anvil_chunk_loader() {
         let mut chunk = Chunk::new(0, 0);
-        chunk.setBlockState(0, 0, 0, IBlockState::fromGlobalStateId(1 << 4), false).unwrap();
+        chunk
+            .setBlockState(0, 0, 0, IBlockState::fromGlobalStateId(1 << 4), false)
+            .unwrap();
         let mut level = NBTTagCompound::new();
         AnvilChunkLoader::writeChunkCoreToNBT(&chunk, 0, false, &mut level);
         let sections = level.getTagList("Sections", TAG_COMPOUND);
-        assert_eq!(sections.getCompoundTagAt(0).getByteArray("SkyLight"), vec![0; 2048]);
+        assert_eq!(
+            sections.getCompoundTagAt(0).getByteArray("SkyLight"),
+            vec![0; 2048]
+        );
         let loaded = AnvilChunkLoader::readChunkCoreFromNBT(&level, false).unwrap();
-        assert!(loaded.getBlockStorageArray()[0].as_ref().unwrap().getSkylightArray().is_none());
+        assert!(loaded.getBlockStorageArray()[0]
+            .as_ref()
+            .unwrap()
+            .getSkylightArray()
+            .is_none());
     }
 
     #[test]
     fn tile_ticks_use_registry_names_relative_delay_and_priority() {
         let mut level = NBTTagCompound::new();
-        let mut first = NextTickListEntry::new(BlockPos::new(3, 64, -5), Block::getBlockById(2)).setScheduledTime(1230);
+        let mut first = NextTickListEntry::new(BlockPos::new(3, 64, -5), Block::getBlockById(2))
+            .setScheduledTime(1230);
         first.setPriority(2);
         AnvilChunkLoader::writeTileTicks(&mut level, 1200, &[first.clone()]);
-        let tag = level.getTagList("TileTicks", TAG_COMPOUND).getCompoundTagAt(0);
+        let tag = level
+            .getTagList("TileTicks", TAG_COMPOUND)
+            .getCompoundTagAt(0);
         assert_eq!(tag.getString("i"), "minecraft:grass");
         assert_eq!(tag.getInteger("t"), 30);
         assert_eq!(tag.getInteger("p"), 2);

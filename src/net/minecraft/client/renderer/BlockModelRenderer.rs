@@ -1,6 +1,6 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
 /// Four-corner result produced by MCP 1.12.2
 /// `BlockModelRenderer.AmbientOcclusionFace`.
@@ -68,25 +68,37 @@ impl BlockModelRenderer {
             (f, i)
         } else {
             let diagonal = offset(p1, corners[2]);
-            (ambient_occlusion_light(getState(diagonal)), getPackedLight(diagonal))
+            (
+                ambient_occlusion_light(getState(diagonal)),
+                getPackedLight(diagonal),
+            )
         };
         let (f26, j1) = if !flag3 && !flag {
             (f, i)
         } else {
             let diagonal = offset(p1, corners[3]);
-            (ambient_occlusion_light(getState(diagonal)), getPackedLight(diagonal))
+            (
+                ambient_occlusion_light(getState(diagonal)),
+                getPackedLight(diagonal),
+            )
         };
         let (f27, k1) = if !flag2 && !flag1 {
             (f1, j)
         } else {
             let diagonal = offset(p2, corners[2]);
-            (ambient_occlusion_light(getState(diagonal)), getPackedLight(diagonal))
+            (
+                ambient_occlusion_light(getState(diagonal)),
+                getPackedLight(diagonal),
+            )
         };
         let (f28, l1) = if !flag3 && !flag1 {
             (f1, j)
         } else {
             let diagonal = offset(p2, corners[3]);
-            (ambient_occlusion_light(getState(diagonal)), getPackedLight(diagonal))
+            (
+                ambient_occlusion_light(getState(diagonal)),
+                getPackedLight(diagonal),
+            )
         };
 
         let adjacent = offset(centerPos, direction);
@@ -131,12 +143,7 @@ impl BlockModelRenderer {
         let mut result = AmbientOcclusionResult::flat(1.0, i3);
         for vertex in 0..4 {
             let (u, v) = face_coordinates(direction, positions[vertex]);
-            let weights = [
-                (1.0 - u) * (1.0 - v),
-                u * (1.0 - v),
-                u * v,
-                (1.0 - u) * v,
-            ];
+            let weights = [(1.0 - u) * (1.0 - v), u * (1.0 - v), u * v, (1.0 - u) * v];
             result.vertexColorMultiplier[vertex] = translatedAo
                 .iter()
                 .zip(weights)
@@ -149,7 +156,11 @@ impl BlockModelRenderer {
 }
 
 fn ambient_occlusion_light(state: IBlockState) -> f32 {
-    if state.getBlock().isOpaqueCube() { 0.2 } else { 1.0 }
+    if state.getBlock().isOpaqueCube() {
+        0.2
+    } else {
+        1.0
+    }
 }
 
 fn is_translucent(state: IBlockState) -> bool {
@@ -157,15 +168,31 @@ fn is_translucent(state: IBlockState) -> bool {
 }
 
 fn get_ao_brightness(mut br1: u32, mut br2: u32, mut br3: u32, br4: u32) -> u32 {
-    if br1 == 0 { br1 = br4; }
-    if br2 == 0 { br2 = br4; }
-    if br3 == 0 { br3 = br4; }
+    if br1 == 0 {
+        br1 = br4;
+    }
+    if br2 == 0 {
+        br2 = br4;
+    }
+    if br3 == 0 {
+        br3 = br4;
+    }
     br1.wrapping_add(br2).wrapping_add(br3).wrapping_add(br4) >> 2 & 0x00FF00FF
 }
 
 fn weighted_brightness(values: [u32; 4], weights: [f32; 4]) -> u32 {
-    let sky = values.iter().zip(weights).map(|(value, weight)| ((value >> 16) & 255) as f32 * weight).sum::<f32>() as u32 & 255;
-    let block = values.iter().zip(weights).map(|(value, weight)| (value & 255) as f32 * weight).sum::<f32>() as u32 & 255;
+    let sky = values
+        .iter()
+        .zip(weights)
+        .map(|(value, weight)| ((value >> 16) & 255) as f32 * weight)
+        .sum::<f32>() as u32
+        & 255;
+    let block = values
+        .iter()
+        .zip(weights)
+        .map(|(value, weight)| (value & 255) as f32 * weight)
+        .sum::<f32>() as u32
+        & 255;
     sky << 16 | block
 }
 
@@ -176,12 +203,42 @@ fn offset(pos: BlockPos, facing: EnumFacing) -> BlockPos {
 
 fn neighbour_corners(direction: EnumFacing) -> [EnumFacing; 4] {
     match direction {
-        EnumFacing::Down => [EnumFacing::West, EnumFacing::East, EnumFacing::North, EnumFacing::South],
-        EnumFacing::Up => [EnumFacing::East, EnumFacing::West, EnumFacing::North, EnumFacing::South],
-        EnumFacing::North => [EnumFacing::Up, EnumFacing::Down, EnumFacing::East, EnumFacing::West],
-        EnumFacing::South => [EnumFacing::West, EnumFacing::East, EnumFacing::Down, EnumFacing::Up],
-        EnumFacing::West => [EnumFacing::Up, EnumFacing::Down, EnumFacing::North, EnumFacing::South],
-        EnumFacing::East => [EnumFacing::Down, EnumFacing::Up, EnumFacing::North, EnumFacing::South],
+        EnumFacing::Down => [
+            EnumFacing::West,
+            EnumFacing::East,
+            EnumFacing::North,
+            EnumFacing::South,
+        ],
+        EnumFacing::Up => [
+            EnumFacing::East,
+            EnumFacing::West,
+            EnumFacing::North,
+            EnumFacing::South,
+        ],
+        EnumFacing::North => [
+            EnumFacing::Up,
+            EnumFacing::Down,
+            EnumFacing::East,
+            EnumFacing::West,
+        ],
+        EnumFacing::South => [
+            EnumFacing::West,
+            EnumFacing::East,
+            EnumFacing::Down,
+            EnumFacing::Up,
+        ],
+        EnumFacing::West => [
+            EnumFacing::Up,
+            EnumFacing::Down,
+            EnumFacing::North,
+            EnumFacing::South,
+        ],
+        EnumFacing::East => [
+            EnumFacing::Down,
+            EnumFacing::Up,
+            EnumFacing::North,
+            EnumFacing::South,
+        ],
     }
 }
 
@@ -216,9 +273,24 @@ fn is_full_face(positions: [[f32; 3]; 4], direction: EnumFacing) -> bool {
     }
     let eps = 1.0e-4;
     match direction {
-        EnumFacing::Down | EnumFacing::Up => minimum[0] <= eps && maximum[0] >= 1.0 - eps && minimum[2] <= eps && maximum[2] >= 1.0 - eps,
-        EnumFacing::North | EnumFacing::South => minimum[0] <= eps && maximum[0] >= 1.0 - eps && minimum[1] <= eps && maximum[1] >= 1.0 - eps,
-        EnumFacing::West | EnumFacing::East => minimum[2] <= eps && maximum[2] >= 1.0 - eps && minimum[1] <= eps && maximum[1] >= 1.0 - eps,
+        EnumFacing::Down | EnumFacing::Up => {
+            minimum[0] <= eps
+                && maximum[0] >= 1.0 - eps
+                && minimum[2] <= eps
+                && maximum[2] >= 1.0 - eps
+        }
+        EnumFacing::North | EnumFacing::South => {
+            minimum[0] <= eps
+                && maximum[0] >= 1.0 - eps
+                && minimum[1] <= eps
+                && maximum[1] >= 1.0 - eps
+        }
+        EnumFacing::West | EnumFacing::East => {
+            minimum[2] <= eps
+                && maximum[2] >= 1.0 - eps
+                && minimum[1] <= eps
+                && maximum[1] >= 1.0 - eps
+        }
     }
 }
 
@@ -235,6 +307,9 @@ mod tests {
 
     #[test]
     fn packed_ao_brightness_averages_channels_independently() {
-        assert_eq!(get_ao_brightness(0x000F000F, 0x000D000D, 0x000B000B, 0x00090009), 0x000C000C);
+        assert_eq!(
+            get_ao_brightness(0x000F000F, 0x000D000D, 0x000B000B, 0x00090009),
+            0x000C000C
+        );
     }
 }

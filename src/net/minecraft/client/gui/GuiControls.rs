@@ -61,39 +61,71 @@ impl Default for GuiControls {
 }
 
 impl GuiControls {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
-    pub fn initGui(&mut self, width: i32, height: i32, locale: &Locale, settings: &GameSettings, font: &FontRenderer) {
+    pub fn initGui(
+        &mut self,
+        width: i32,
+        height: i32,
+        locale: &Locale,
+        settings: &GameSettings,
+        font: &FontRenderer,
+    ) {
         self.GuiScreen.width = width;
         self.GuiScreen.height = height;
         self.GuiScreen.buttonList.clear();
         self.screenTitle = translated_or(locale, "controls.title", "Controls");
         self.sensitivitySlider.GuiButton.x = width / 2 + 5;
         self.sensitivitySlider.GuiButton.y = 18;
-        self.sensitivitySlider.setSliderValue(settings.mouseSensitivity.clamp(0.0, 1.0));
-        self.sensitivitySlider.setDisplayString(sensitivity_label(locale, settings.mouseSensitivity));
+        self.sensitivitySlider
+            .setSliderValue(settings.mouseSensitivity.clamp(0.0, 1.0));
+        self.sensitivitySlider
+            .setDisplayString(sensitivity_label(locale, settings.mouseSensitivity));
 
         self.GuiScreen.buttonList.push(GuiButton::newWithSize(
-            INVERT_ID, width / 2 - 155, 18, 150, 20,
+            INVERT_ID,
+            width / 2 - 155,
+            18,
+            150,
+            20,
             bool_label(locale, "options.invertMouse", settings.invertMouse),
         ));
         self.GuiScreen.buttonList.push(GuiButton::newWithSize(
-            TOUCHSCREEN_ID, width / 2 - 155, 42, 150, 20,
+            TOUCHSCREEN_ID,
+            width / 2 - 155,
+            42,
+            150,
+            20,
             bool_label(locale, "options.touchscreen", settings.touchscreen),
         ));
         self.GuiScreen.buttonList.push(GuiButton::newWithSize(
-            AUTO_JUMP_ID, width / 2 + 5, 42, 150, 20,
+            AUTO_JUMP_ID,
+            width / 2 + 5,
+            42,
+            150,
+            20,
             bool_label(locale, "options.autoJump", settings.autoJump),
         ));
         self.GuiScreen.buttonList.push(GuiButton::newWithSize(
-            201, width / 2 - 155, height - 29, 150, 20,
+            201,
+            width / 2 - 155,
+            height - 29,
+            150,
+            20,
             translated_or(locale, "controls.resetAll", "Reset All"),
         ));
         self.GuiScreen.buttonList.push(GuiButton::newWithSize(
-            200, width / 2 + 5, height - 29, 150, 20,
+            200,
+            width / 2 + 5,
+            height - 29,
+            150,
+            20,
             translated_or(locale, "gui.done", "Done"),
         ));
-        self.keyBindingList.initGui(width, height, locale, settings, font);
+        self.keyBindingList
+            .initGui(width, height, locale, settings, font);
     }
 
     pub fn drawScreen(
@@ -107,23 +139,60 @@ impl GuiControls {
         partialTicks: f32,
         worldLoaded: bool,
     ) {
-        if worldLoaded { self.GuiScreen.drawDefaultBackgroundInWorld(draw); }
-        else { self.GuiScreen.drawDefaultBackground(draw); }
-        self.keyBindingList.drawScreen(draw, font, locale, settings, self.buttonId, mouseX, mouseY, partialTicks);
+        if worldLoaded {
+            self.GuiScreen.drawDefaultBackgroundInWorld(draw);
+        } else {
+            self.GuiScreen.drawDefaultBackground(draw);
+        }
+        self.keyBindingList.drawScreen(
+            draw,
+            font,
+            locale,
+            settings,
+            self.buttonId,
+            mouseX,
+            mouseY,
+            partialTicks,
+        );
 
         // MCP GuiControls draws its title after GuiKeyBindingList so the list's
         // top overlay cannot cover the title.
-        self.GuiScreen.Gui.drawCenteredString(font, draw, &self.screenTitle, self.GuiScreen.width / 2, 8, 0x00FF_FFFF);
-        self.sensitivitySlider.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        if let Some(resetAll) = self.GuiScreen.buttonList.iter_mut().find(|button| button.id == 201) {
-            resetAll.enabled = settings.keyBindings.iter().any(|binding| !binding.isDefault());
+        self.GuiScreen.Gui.drawCenteredString(
+            font,
+            draw,
+            &self.screenTitle,
+            self.GuiScreen.width / 2,
+            8,
+            0x00FF_FFFF,
+        );
+        self.sensitivitySlider
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        if let Some(resetAll) = self
+            .GuiScreen
+            .buttonList
+            .iter_mut()
+            .find(|button| button.id == 201)
+        {
+            resetAll.enabled = settings
+                .keyBindings
+                .iter()
+                .any(|binding| !binding.isDefault());
         }
         for button in &mut self.GuiScreen.buttonList {
-            if button.id == INVERT_ID { button.displayString = bool_label(locale, "options.invertMouse", settings.invertMouse); }
-            if button.id == TOUCHSCREEN_ID { button.displayString = bool_label(locale, "options.touchscreen", settings.touchscreen); }
-            if button.id == AUTO_JUMP_ID { button.displayString = bool_label(locale, "options.autoJump", settings.autoJump); }
+            if button.id == INVERT_ID {
+                button.displayString =
+                    bool_label(locale, "options.invertMouse", settings.invertMouse);
+            }
+            if button.id == TOUCHSCREEN_ID {
+                button.displayString =
+                    bool_label(locale, "options.touchscreen", settings.touchscreen);
+            }
+            if button.id == AUTO_JUMP_ID {
+                button.displayString = bool_label(locale, "options.autoJump", settings.autoJump);
+            }
         }
-        self.GuiScreen.drawScreen(draw, font, mouseX, mouseY, partialTicks);
+        self.GuiScreen
+            .drawScreen(draw, font, mouseX, mouseY, partialTicks);
     }
 
     pub fn mouseClicked(
@@ -137,11 +206,16 @@ impl GuiControls {
         if let Some(binding) = self.buttonId {
             if let Some(code) = mouse_code(button) {
                 self.buttonId = None;
-                return Some(GuiControlsInteraction { action: GuiControlsAction::SetKeyBinding { binding, code }, sound: None });
+                return Some(GuiControlsInteraction {
+                    action: GuiControlsAction::SetKeyBinding { binding, code },
+                    sound: None,
+                });
             }
             return None;
         }
-        if button != MouseButton::Left { return None; }
+        if button != MouseButton::Left {
+            return None;
+        }
 
         if let Some(interaction) = self.keyBindingList.mouseClicked(mouseX, mouseY, settings) {
             let action = match interaction.action {
@@ -152,15 +226,24 @@ impl GuiControls {
                 }
                 GuiKeyBindingListAction::Reset(id) => GuiControlsAction::ResetKeyBinding(id),
             };
-            return Some(GuiControlsInteraction { action, sound: interaction.sound });
+            return Some(GuiControlsInteraction {
+                action,
+                sound: interaction.sound,
+            });
         }
 
         if let Some(value) = self.sensitivitySlider.mousePressed(mouseX, mouseY) {
-            self.sensitivitySlider.setDisplayString(sensitivity_label(locale, value));
-            return Some(GuiControlsInteraction { action: GuiControlsAction::SetSensitivity(value), sound: None });
+            self.sensitivitySlider
+                .setDisplayString(sensitivity_label(locale, value));
+            return Some(GuiControlsInteraction {
+                action: GuiControlsAction::SetSensitivity(value),
+                sound: None,
+            });
         }
         for guiButton in &self.GuiScreen.buttonList {
-            if !guiButton.mousePressed(mouseX, mouseY) { continue; }
+            if !guiButton.mousePressed(mouseX, mouseY) {
+                continue;
+            }
             let action = match guiButton.id {
                 INVERT_ID => GuiControlsAction::ToggleInvertMouse,
                 TOUCHSCREEN_ID => GuiControlsAction::ToggleTouchscreen,
@@ -169,18 +252,33 @@ impl GuiControls {
                 200 => GuiControlsAction::Done,
                 _ => continue,
             };
-            return Some(GuiControlsInteraction { action, sound: Some(guiButton.playPressSound()) });
+            return Some(GuiControlsInteraction {
+                action,
+                sound: Some(guiButton.playPressSound()),
+            });
         }
         None
     }
 
-    pub fn mouseDragged(&mut self, mouseX: i32, mouseY: i32, locale: &Locale) -> Option<GuiControlsInteraction> {
+    pub fn mouseDragged(
+        &mut self,
+        mouseX: i32,
+        mouseY: i32,
+        locale: &Locale,
+    ) -> Option<GuiControlsInteraction> {
         if self.keyBindingList.mouseDragged(mouseY) {
-            return Some(GuiControlsInteraction { action: GuiControlsAction::None, sound: None });
+            return Some(GuiControlsInteraction {
+                action: GuiControlsAction::None,
+                sound: None,
+            });
         }
         self.sensitivitySlider.mouseDragged(mouseX).map(|value| {
-            self.sensitivitySlider.setDisplayString(sensitivity_label(locale, value));
-            GuiControlsInteraction { action: GuiControlsAction::SetSensitivity(value), sound: None }
+            self.sensitivitySlider
+                .setDisplayString(sensitivity_label(locale, value));
+            GuiControlsInteraction {
+                action: GuiControlsAction::SetSensitivity(value),
+                sound: None,
+            }
         })
     }
 
@@ -189,7 +287,11 @@ impl GuiControls {
         self.sensitivitySlider.mouseReleased(mouseX, mouseY);
     }
 
-    pub fn keyPressed(&mut self, key: KeyCode, eventText: Option<&str>) -> Option<GuiControlsInteraction> {
+    pub fn keyPressed(
+        &mut self,
+        key: KeyCode,
+        eventText: Option<&str>,
+    ) -> Option<GuiControlsInteraction> {
         let binding = self.buttonId?;
         // MCP GuiControls#keyTyped stores Escape as NONE (0). When LWJGL
         // reports keyCode == 0 but supplies a typed character, vanilla stores
@@ -200,24 +302,39 @@ impl GuiControls {
             code
         } else {
             let unit = eventText?.encode_utf16().next()?;
-            if unit == 0 { return None; }
+            if unit == 0 {
+                return None;
+            }
             unit as i32 + 256
         };
         self.buttonId = None;
-        Some(GuiControlsInteraction { action: GuiControlsAction::SetKeyBinding { binding, code }, sound: None })
+        Some(GuiControlsInteraction {
+            action: GuiControlsAction::SetKeyBinding { binding, code },
+            sound: None,
+        })
     }
 
-    pub fn scroll(&mut self, lines: f32) -> bool { self.keyBindingList.handleMouseWheel(lines) }
+    pub fn scroll(&mut self, lines: f32) -> bool {
+        self.keyBindingList.handleMouseWheel(lines)
+    }
 }
 
 fn translated_or(locale: &Locale, key: &str, fallback: &str) -> String {
     let value = locale.translate_key(key);
-    if value == key { fallback.to_owned() } else { value.to_owned() }
+    if value == key {
+        fallback.to_owned()
+    } else {
+        value.to_owned()
+    }
 }
 
 fn bool_label(locale: &Locale, key: &str, value: bool) -> String {
     let name = translated_or(locale, key, key);
-    let state = translated_or(locale, if value { "options.on" } else { "options.off" }, if value { "ON" } else { "OFF" });
+    let state = translated_or(
+        locale,
+        if value { "options.on" } else { "options.off" },
+        if value { "ON" } else { "OFF" },
+    );
     format!("{name}: {state}")
 }
 
@@ -225,9 +342,15 @@ fn sensitivity_label(locale: &Locale, value: f32) -> String {
     let prefix = translated_or(locale, "options.sensitivity", "Sensitivity");
     let normalized = value.clamp(0.0, 1.0);
     if normalized == 0.0 {
-        format!("{prefix}: {}", translated_or(locale, "options.sensitivity.min", "*yawn*"))
+        format!(
+            "{prefix}: {}",
+            translated_or(locale, "options.sensitivity.min", "*yawn*")
+        )
     } else if normalized == 1.0 {
-        format!("{prefix}: {}", translated_or(locale, "options.sensitivity.max", "HYPERSPEED!!!"))
+        format!(
+            "{prefix}: {}",
+            translated_or(locale, "options.sensitivity.max", "HYPERSPEED!!!")
+        )
     } else {
         format!("{prefix}: {}%", (normalized * 200.0) as i32)
     }

@@ -9,7 +9,9 @@ pub struct CPacketPlayerTryUseItem {
 }
 
 impl CPacketPlayerTryUseItem {
-    pub const fn new(handIn: EnumHand) -> Self { Self { hand: handIn } }
+    pub const fn new(handIn: EnumHand) -> Self {
+        Self { hand: handIn }
+    }
 
     pub fn writePacketData(self) -> RawPacket {
         let mut payload = Vec::with_capacity(1);
@@ -24,6 +26,11 @@ mod tests {
 
     #[test]
     fn protocol_340_use_item_packet_id_matches_registry() {
-        assert_eq!(CPacketPlayerTryUseItem::new(EnumHand::OffHand).writePacketData().id, 0x20);
+        assert_eq!(
+            CPacketPlayerTryUseItem::new(EnumHand::OffHand)
+                .writePacketData()
+                .id,
+            0x20
+        );
     }
 }

@@ -4,7 +4,9 @@ use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 pub struct RenderVillager;
 
 impl RenderVillager {
-    pub fn supports(entityType: MobEntityType) -> bool { entityType.registryName == "villager" }
+    pub fn supports(entityType: MobEntityType) -> bool {
+        entityType.registryName == "villager"
+    }
 
     pub fn texture(entity: &EntityOtherClient) -> ResourceLocation {
         let path = match entity.villagerProfession() {
@@ -19,7 +21,11 @@ impl RenderVillager {
     }
 
     pub fn preScale(entity: &EntityOtherClient) -> f32 {
-        if entity.isChild() { 0.9375 * 0.5 } else { 0.9375 }
+        if entity.isChild() {
+            0.9375 * 0.5
+        } else {
+            0.9375
+        }
     }
 
     pub fn allTextures() -> [ResourceLocation; 6] {

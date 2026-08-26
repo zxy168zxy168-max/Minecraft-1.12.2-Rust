@@ -1,4 +1,7 @@
-use std::{path::Path, time::{Duration, Instant}};
+use std::{
+    path::Path,
+    time::{Duration, Instant},
+};
 
 use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
 use crate::net::minecraft::client::gui::GuiButton::{GuiButton, GuiSoundCommand};
@@ -83,11 +86,9 @@ impl GuiShaderOptions {
         // the selected pack. Reuse it before touching the ZIP. Only a cold GUI
         // open (before the renderer has loaded the pack) performs the exact
         // world-128..world128 discovery and source scan.
-        let options = if let Some(options) = ShaderPackOptions::tryLoadCachedForLanguage(
-            gameDir,
-            pack,
-            language,
-        )? {
+        let options = if let Some(options) =
+            ShaderPackOptions::tryLoadCachedForLanguage(gameDir, pack, language)?
+        {
             options
         } else {
             let dimensions = shaderPackDimensions(pack);
@@ -135,7 +136,9 @@ impl GuiShaderOptions {
         partialTicks: f32,
     ) {
         self.updateMouseStill(mouseX, mouseY);
-        let heading = self.screenName.as_deref()
+        let heading = self
+            .screenName
+            .as_deref()
             .map(|name| self.options.screenText(name))
             .unwrap_or(&self.title);
         self.GuiScreen.Gui.drawCenteredString(
@@ -152,15 +155,19 @@ impl GuiShaderOptions {
             let slider = self.controls[index].slider;
             {
                 let control = &mut self.controls[index];
-                control.button.drawButton(drawList, font, mouseX, mouseY, partialTicks);
+                control
+                    .button
+                    .drawButton(drawList, font, mouseX, mouseY, partialTicks);
             }
             if slider {
                 let control = &self.controls[index];
                 self.drawSliderKnob(drawList, control);
             }
         }
-        self.resetButton.drawButton(drawList, font, mouseX, mouseY, partialTicks);
-        self.doneButton.drawButton(drawList, font, mouseX, mouseY, partialTicks);
+        self.resetButton
+            .drawButton(drawList, font, mouseX, mouseY, partialTicks);
+        self.doneButton
+            .drawButton(drawList, font, mouseX, mouseY, partialTicks);
         self.drawTooltip(drawList, font, mouseX, mouseY);
     }
 
@@ -189,9 +196,10 @@ impl GuiShaderOptions {
             });
         }
 
-        let controlIndex = self.controls.iter().position(|control| {
-            control.button.mousePressed(mouseX, mouseY)
-        })?;
+        let controlIndex = self
+            .controls
+            .iter()
+            .position(|control| control.button.mousePressed(mouseX, mouseY))?;
         let sound = self.controls[controlIndex].button.playPressSound();
         let entry = self.controls[controlIndex].entry.clone();
         let slider = self.controls[controlIndex].slider;
@@ -211,12 +219,8 @@ impl GuiShaderOptions {
                     ((mouseX - (button.x + 4)) as f32 / (button.getButtonWidth() - 8).max(1) as f32)
                         .clamp(0.0, 1.0)
                 });
-                self.changed |= self.changeOption(
-                    optionIndex,
-                    shiftDown,
-                    mouseButton == 1,
-                    normalized,
-                );
+                self.changed |=
+                    self.changeOption(optionIndex, shiftDown, mouseButton == 1, normalized);
                 if slider && mouseButton == 0 && !shiftDown {
                     self.dragging = Some(controlIndex);
                 }
@@ -230,15 +234,25 @@ impl GuiShaderOptions {
     }
 
     pub fn mouseDragged(&mut self, mouseX: i32) -> bool {
-        let Some(controlIndex) = self.dragging else { return false; };
-        let Some(control) = self.controls.get(controlIndex) else { return false; };
-        let OptionEntry::Option(optionIndex) = &control.entry else { return false; };
+        let Some(controlIndex) = self.dragging else {
+            return false;
+        };
+        let Some(control) = self.controls.get(controlIndex) else {
+            return false;
+        };
+        let OptionEntry::Option(optionIndex) = &control.entry else {
+            return false;
+        };
         let optionIndex = *optionIndex;
         let normalized = ((mouseX - (control.button.x + 4)) as f32
             / (control.button.getButtonWidth() - 8).max(1) as f32)
             .clamp(0.0, 1.0);
-        let Some(option) = self.options.options.get_mut(optionIndex) else { return false; };
-        if !option.enabled { return false; }
+        let Some(option) = self.options.options.get_mut(optionIndex) else {
+            return false;
+        };
+        if !option.enabled {
+            return false;
+        }
         let changed = option.setIndexNormalized(normalized);
         self.changed |= changed;
         changed
@@ -252,7 +266,9 @@ impl GuiShaderOptions {
         self.finishOrReturn()
     }
 
-    pub fn options(&self) -> &ShaderPackOptions { &self.options }
+    pub fn options(&self) -> &ShaderPackOptions {
+        &self.options
+    }
 
     fn finishOrReturn(&mut self) -> GuiShaderOptionsAction {
         let reload = self.saveChangedOptions();
@@ -285,7 +301,9 @@ impl GuiShaderOptions {
     }
 
     fn changeProfile(&mut self, reset: bool, previous: bool) -> bool {
-        if self.options.profiles.is_empty() { return false; }
+        if self.options.profiles.is_empty() {
+            return false;
+        }
         let next = if reset {
             self.options.defaultProfileIndex().unwrap_or(0)
         } else {
@@ -308,8 +326,12 @@ impl GuiShaderOptions {
         previous: bool,
         normalized: Option<f32>,
     ) -> bool {
-        let Some(option) = self.options.options.get_mut(optionIndex) else { return false; };
-        if !option.enabled { return false; }
+        let Some(option) = self.options.options.get_mut(optionIndex) else {
+            return false;
+        };
+        if !option.enabled {
+            return false;
+        }
         let before = option.value.clone();
         if reset {
             option.resetValue();
@@ -327,10 +349,14 @@ impl GuiShaderOptions {
         self.controls.clear();
         let tokens = self.options.screenTokens(self.screenName.as_deref());
         self.slotCount = tokens.len();
-        let configured = self.options.screenColumnCount(self.screenName.as_deref(), 2);
+        let configured = self
+            .options
+            .screenColumnCount(self.screenName.as_deref(), 2);
         let required = (self.slotCount + MAX_ROWS - 1) / MAX_ROWS;
         self.columns = configured.max(required).max(1);
-        let columnWidth = (self.GuiScreen.width / self.columns as i32).min(200).max(10);
+        let columnWidth = (self.GuiScreen.width / self.columns as i32)
+            .min(200)
+            .max(10);
         let startX = (self.GuiScreen.width - columnWidth * self.columns as i32) / 2;
 
         for (slotIndex, token) in tokens.into_iter().enumerate() {
@@ -338,9 +364,17 @@ impl GuiShaderOptions {
                 OptionEntry::Profile
             } else if token == "<empty>" {
                 OptionEntry::Empty
-            } else if let Some(name) = token.strip_prefix('[').and_then(|value| value.strip_suffix(']')) {
+            } else if let Some(name) = token
+                .strip_prefix('[')
+                .and_then(|value| value.strip_suffix(']'))
+            {
                 OptionEntry::Screen(name.to_owned())
-            } else if let Some(index) = self.options.options.iter().position(|option| option.name == token) {
+            } else if let Some(index) = self
+                .options
+                .options
+                .iter()
+                .position(|option| option.name == token)
+            {
                 OptionEntry::Option(index)
             } else {
                 OptionEntry::Empty
@@ -349,7 +383,12 @@ impl GuiShaderOptions {
                 continue;
             }
             if let OptionEntry::Option(index) = &entry {
-                if !self.options.options.get(*index).is_some_and(|option| option.visible) {
+                if !self
+                    .options
+                    .options
+                    .get(*index)
+                    .is_some_and(|option| option.visible)
+                {
                     continue;
                 }
             }
@@ -372,26 +411,40 @@ impl GuiShaderOptions {
                 OptionEntry::Option(index) => self.options.options[*index].enabled,
                 _ => true,
             };
-            self.controls.push(OptionControl { slotIndex, entry, button, slider });
+            self.controls.push(OptionControl {
+                slotIndex,
+                entry,
+                button,
+                slider,
+            });
         }
     }
 
     fn updateControlText(&mut self, controlIndex: usize, font: &FontRenderer) {
-        let Some(control) = self.controls.get(controlIndex) else { return; };
+        let Some(control) = self.controls.get(controlIndex) else {
+            return;
+        };
         let width = control.button.getButtonWidth();
         let text = match &control.entry {
             OptionEntry::Profile => {
-                let value = self.options.activeProfileIndex()
+                let value = self
+                    .options
+                    .activeProfileIndex()
                     .and_then(|index| self.options.profiles.get(index))
-                    .map(|profile| self.options.translate(
-                        &format!("profile.{}", profile.name),
-                        &profile.name,
-                    ).to_owned())
+                    .map(|profile| {
+                        self.options
+                            .translate(&format!("profile.{}", profile.name), &profile.name)
+                            .to_owned()
+                    })
                     .unwrap_or_else(|| "<custom>".to_owned());
-                let default = self.options.defaultProfileIndex()
+                let default = self
+                    .options
+                    .defaultProfileIndex()
                     .and_then(|index| self.options.profiles.get(index))
                     .map(|profile| profile.name.as_str());
-                let active = self.options.activeProfileIndex()
+                let active = self
+                    .options
+                    .activeProfileIndex()
                     .and_then(|index| self.options.profiles.get(index))
                     .map(|profile| profile.name.as_str());
                 let changed = active != default;
@@ -399,7 +452,9 @@ impl GuiShaderOptions {
                 fit_button_text(font, "Profile", &value, width, changed.then_some(color))
             }
             OptionEntry::Option(index) => {
-                let Some(option) = self.options.options.get(*index) else { return; };
+                let Some(option) = self.options.options.get(*index) else {
+                    return;
+                };
                 let name = self.options.optionNameText(option);
                 let value = self.options.optionValueText(option);
                 let color = option.isChanged().then_some(option_value_color(option));
@@ -414,29 +469,17 @@ impl GuiShaderOptions {
     }
 
     fn drawSliderKnob(&self, drawList: &mut GuiDrawList, control: &OptionControl) {
-        let OptionEntry::Option(optionIndex) = &control.entry else { return; };
-        let Some(option) = self.options.options.get(*optionIndex) else { return; };
+        let OptionEntry::Option(optionIndex) = &control.entry else {
+            return;
+        };
+        let Some(option) = self.options.options.get(*optionIndex) else {
+            return;
+        };
         let knobX = control.button.x
             + (option.indexNormalized() * (control.button.getButtonWidth() - 8) as f32) as i32;
         let texture = ResourceLocation::parse("textures/gui/widgets.png");
-        drawList.draw_textured_modal_rect(
-            texture.clone(),
-            knobX,
-            control.button.y,
-            0,
-            66,
-            4,
-            20,
-        );
-        drawList.draw_textured_modal_rect(
-            texture,
-            knobX + 4,
-            control.button.y,
-            196,
-            66,
-            4,
-            20,
-        );
+        drawList.draw_textured_modal_rect(texture.clone(), knobX, control.button.y, 0, 66, 4, 20);
+        drawList.draw_textured_modal_rect(texture, knobX + 4, control.button.y, 196, 66, 4, 20);
     }
 
     fn updateMouseStill(&mut self, mouseX: i32, mouseY: i32) {
@@ -457,20 +500,30 @@ impl GuiShaderOptions {
         if self.mouseStillSince.elapsed() < TOOLTIP_DELAY {
             return;
         }
-        let Some(control) = self.controls.iter().find(|control| {
-            control.button.visible && control.button.contains(mouseX, mouseY)
-        }) else { return; };
+        let Some(control) = self
+            .controls
+            .iter()
+            .find(|control| control.button.visible && control.button.contains(mouseX, mouseY))
+        else {
+            return;
+        };
         let (title, description, paths, defaultValue, enabled) = match &control.entry {
             OptionEntry::Option(index) => {
-                let Some(option) = self.options.options.get(*index) else { return; };
+                let Some(option) = self.options.options.get(*index) else {
+                    return;
+                };
                 (
                     self.options.optionNameText(option).to_owned(),
                     self.options.optionDescriptionText(option),
                     Some(option.paths.join(", ")),
-                    Some(self.options.translate(
-                        &format!("value.{}.{}", option.name, option.valueDefault),
-                        &option.valueDefault,
-                    ).to_owned()),
+                    Some(
+                        self.options
+                            .translate(
+                                &format!("value.{}.{}", option.name, option.valueDefault),
+                                &option.valueDefault,
+                            )
+                            .to_owned(),
+                    ),
                     option.enabled,
                 )
             }
@@ -504,7 +557,11 @@ impl GuiShaderOptions {
             if let Some(defaultValue) = defaultValue {
                 lines.push(format!(
                     "§8Default: {}",
-                    if enabled { defaultValue } else { "Ambiguous".to_owned() },
+                    if enabled {
+                        defaultValue
+                    } else {
+                        "Ambiguous".to_owned()
+                    },
                 ));
             }
         }
@@ -561,7 +618,11 @@ fn fit_button_text(
 fn option_value_color(option: &ShaderOption) -> &'static str {
     match option.kind {
         ShaderOptionKind::Switch | ShaderOptionKind::ConstSwitch => {
-            if option.value.eq_ignore_ascii_case("true") { "§a" } else { "§c" }
+            if option.value.eq_ignore_ascii_case("true") {
+                "§a"
+            } else {
+                "§c"
+            }
         }
         ShaderOptionKind::Variable | ShaderOptionKind::ConstVariable => {
             if option.value.eq_ignore_ascii_case("false")
@@ -606,21 +667,26 @@ mod tests {
     #[test]
     fn original_layout_expands_columns_to_keep_nine_rows() {
         let options = ShaderPackOptions {
-            screens: [("screen".to_owned(), (0..19).map(|index| format!("O{index}")).collect())]
-                .into_iter()
+            screens: [(
+                "screen".to_owned(),
+                (0..19).map(|index| format!("O{index}")).collect(),
+            )]
+            .into_iter()
+            .collect(),
+            options: (0..19)
+                .map(|index| ShaderOption {
+                    name: format!("O{index}"),
+                    description: String::new(),
+                    value: "true".to_owned(),
+                    values: vec!["false".to_owned(), "true".to_owned()],
+                    valueDefault: "true".to_owned(),
+                    paths: vec!["test.fsh".to_owned()],
+                    enabled: true,
+                    visible: true,
+                    kind: ShaderOptionKind::Switch,
+                    constType: None,
+                })
                 .collect(),
-            options: (0..19).map(|index| ShaderOption {
-                name: format!("O{index}"),
-                description: String::new(),
-                value: "true".to_owned(),
-                values: vec!["false".to_owned(), "true".to_owned()],
-                valueDefault: "true".to_owned(),
-                paths: vec!["test.fsh".to_owned()],
-                enabled: true,
-                visible: true,
-                kind: ShaderOptionKind::Switch,
-                constType: None,
-            }).collect(),
             ..ShaderPackOptions::default()
         };
         let mut screen = GuiShaderOptions::new(options, false);
@@ -632,9 +698,12 @@ mod tests {
     #[test]
     fn empty_screen_tokens_reserve_layout_without_drawing_buttons() {
         let options = ShaderPackOptions {
-            screens: [("screen".to_owned(), vec!["<empty>".to_owned(), "A".to_owned()])]
-                .into_iter()
-                .collect(),
+            screens: [(
+                "screen".to_owned(),
+                vec!["<empty>".to_owned(), "A".to_owned()],
+            )]
+            .into_iter()
+            .collect(),
             options: vec![ShaderOption {
                 name: "A".to_owned(),
                 description: String::new(),

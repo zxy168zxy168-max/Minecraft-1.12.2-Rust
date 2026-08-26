@@ -1,13 +1,13 @@
-use std::sync::Arc;
+use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::nbt::NBTBase::{NBTBase, TAG_COMPOUND, TAG_LIST};
 use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 use crate::net::minecraft::util::datafix::DataFixer::DataFixer;
 use crate::net::minecraft::util::datafix::FixTypes::FixTypes;
 use crate::net::minecraft::util::datafix::IDataFixer::IDataFixer;
 use crate::net::minecraft::util::datafix::IDataWalker::IDataWalker;
-use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::MathHelper::{cos as minecraft_cos, sin as minecraft_sin};
+use std::sync::Arc;
 
 /// First gameplay-bearing subset of MCP `net.minecraft.entity.Entity`.
 /// Field names and the collision/step algorithm follow 1.12.2 so additional
@@ -103,11 +103,20 @@ impl Default for Entity {
 
 struct EntityPassengersDataWalker;
 impl IDataWalker for EntityPassengersDataWalker {
-    fn process(&self, fixer: &dyn IDataFixer, mut compound: NBTTagCompound, versionIn: i32) -> NBTTagCompound {
+    fn process(
+        &self,
+        fixer: &dyn IDataFixer,
+        mut compound: NBTTagCompound,
+        versionIn: i32,
+    ) -> NBTTagCompound {
         if compound.hasKeyWithType("Passengers", TAG_LIST) {
             let mut passengers = compound.getTagList("Passengers", TAG_COMPOUND);
             for index in 0..passengers.tagCount() {
-                let fixed = fixer.processVersioned(FixTypes::Entity, passengers.getCompoundTagAt(index), versionIn);
+                let fixed = fixer.processVersioned(
+                    FixTypes::Entity,
+                    passengers.getCompoundTagAt(index),
+                    versionIn,
+                );
                 passengers.set(index, NBTBase::Compound(fixed));
             }
             compound.setTagList("Passengers", passengers);
@@ -194,16 +203,22 @@ impl Entity {
         let old_pitch = self.rotationPitch;
         let old_yaw = self.rotationYaw;
         self.rotationYaw = (self.rotationYaw as f64 + yaw as f64 * 0.15) as f32;
-        self.rotationPitch = (self.rotationPitch as f64 - pitch as f64 * 0.15)
-            .clamp(-90.0, 90.0) as f32;
-        self.prevRotationPitch = (self.prevRotationPitch as f64
-            + (self.rotationPitch - old_pitch) as f64) as f32;
-        self.prevRotationYaw = (self.prevRotationYaw as f64
-            + (self.rotationYaw - old_yaw) as f64) as f32;
+        self.rotationPitch =
+            (self.rotationPitch as f64 - pitch as f64 * 0.15).clamp(-90.0, 90.0) as f32;
+        self.prevRotationPitch =
+            (self.prevRotationPitch as f64 + (self.rotationPitch - old_pitch) as f64) as f32;
+        self.prevRotationYaw =
+            (self.prevRotationYaw as f64 + (self.rotationYaw - old_yaw) as f64) as f32;
     }
 
     /// Port of MCP `Entity.func_191958_b` (`moveRelative`).
-    pub fn func_191958_b(&mut self, mut strafe: f32, mut vertical: f32, mut forward: f32, friction: f32) {
+    pub fn func_191958_b(
+        &mut self,
+        mut strafe: f32,
+        mut vertical: f32,
+        mut forward: f32,
+        friction: f32,
+    ) {
         let mut length = strafe * strafe + vertical * vertical + forward * forward;
         if length < 1.0e-4 {
             return;
@@ -340,20 +355,38 @@ impl Entity {
             let below = -(self.stepHeight as f64);
 
             while x != 0.0
-                && self.collisionBoxes(world, collisionContext, self.boundingBox.offset(x, below, 0.0)).is_empty()
+                && self
+                    .collisionBoxes(
+                        world,
+                        collisionContext,
+                        self.boundingBox.offset(x, below, 0.0),
+                    )
+                    .is_empty()
             {
                 x = reduce_towards_zero(x, ledge_step);
             }
 
             while z != 0.0
-                && self.collisionBoxes(world, collisionContext, self.boundingBox.offset(0.0, below, z)).is_empty()
+                && self
+                    .collisionBoxes(
+                        world,
+                        collisionContext,
+                        self.boundingBox.offset(0.0, below, z),
+                    )
+                    .is_empty()
             {
                 z = reduce_towards_zero(z, ledge_step);
             }
 
             while x != 0.0
                 && z != 0.0
-                && self.collisionBoxes(world, collisionContext, self.boundingBox.offset(x, below, z)).is_empty()
+                && self
+                    .collisionBoxes(
+                        world,
+                        collisionContext,
+                        self.boundingBox.offset(x, below, z),
+                    )
+                    .is_empty()
             {
                 x = reduce_towards_zero(x, ledge_step);
                 z = reduce_towards_zero(z, ledge_step);
@@ -364,7 +397,8 @@ impl Entity {
         let requested_y = y;
         let requested_z = z;
         let original_box = self.boundingBox;
-        let collisions = self.collisionBoxes(world, collisionContext, self.boundingBox.add_coord(x, y, z));
+        let collisions =
+            self.collisionBoxes(world, collisionContext, self.boundingBox.add_coord(x, y, z));
 
         for collision in &collisions {
             y = collision.calculate_y_offset(self.boundingBox, y);
@@ -435,8 +469,7 @@ impl Entity {
             }
             path_b_box = path_b_box.offset(0.0, 0.0, path_b_z);
 
-            if path_a_x * path_a_x + path_a_z * path_a_z
-                > path_b_x * path_b_x + path_b_z * path_b_z
+            if path_a_x * path_a_x + path_a_z * path_a_z > path_b_x * path_b_x + path_b_z * path_b_z
             {
                 x = path_a_x;
                 z = path_a_z;
@@ -497,9 +530,7 @@ impl Entity {
             }
         }
 
-        if self.onGround
-            && crate::net::minecraft::block::BlockSlime::isBlockSlime(groundState)
-        {
+        if self.onGround && crate::net::minecraft::block::BlockSlime::isBlockSlime(groundState) {
             crate::net::minecraft::block::BlockSlime::onEntityWalk(self);
         }
 
@@ -513,7 +544,8 @@ impl Entity {
     /// entity. Splash particles and sound remain owned by the pending effects
     /// and sound systems; the material volume and flow acceleration are exact.
     pub fn handleWaterMovement(&mut self, world: &WorldClient) -> bool {
-        let test_box = self.boundingBox
+        let test_box = self
+            .boundingBox
             .expand(0.0, -0.4000000059604645, 0.0)
             .expand_xyz(-0.001);
         if world.handleMaterialAcceleration(
@@ -533,7 +565,9 @@ impl Entity {
         self.inWater
     }
 
-    pub const fn isInWater(&self) -> bool { self.inWater }
+    pub const fn isInWater(&self) -> bool {
+        self.inWater
+    }
 
     /// MCP `Entity#isPushedByWater`. The base entity implementation returns
     /// true; concrete non-pushable entities can override this contract when
@@ -555,7 +589,9 @@ impl Entity {
     }
 
     /// their entity classes are ported.
-    pub const fn isPushedByWater(&self) -> bool { true }
+    pub const fn isPushedByWater(&self) -> bool {
+        true
+    }
 
     /// Direct port of `Entity#isInLava`.
     pub fn isInLava(&self, world: &WorldClient) -> bool {
@@ -595,7 +631,9 @@ impl Entity {
         self.passengerIds = passengerIds;
     }
 
-    pub const fn isRiding(&self) -> bool { self.ridingEntityId.is_some() }
+    pub const fn isRiding(&self) -> bool {
+        self.ridingEntityId.is_some()
+    }
 
     pub fn resetPositionToBB(&mut self) {
         self.posX = (self.boundingBox.min_x + self.boundingBox.max_x) / 2.0;
@@ -675,7 +713,10 @@ mod tests {
         assert!((entity.posX - 0.75).abs() < 1.0e-9);
         assert!((entity.posY - 64.05000000074506).abs() < 1.0e-9);
         assert!((entity.posZ - 0.75).abs() < 1.0e-9);
-        assert_eq!((entity.motionX, entity.motionY, entity.motionZ), (0.0, 0.0, 0.0));
+        assert_eq!(
+            (entity.motionX, entity.motionY, entity.motionZ),
+            (0.0, 0.0, 0.0)
+        );
         assert!(!entity.isInWeb);
     }
 

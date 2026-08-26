@@ -3,24 +3,35 @@ use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::PacketBuffer::{read_string, write_string, CodecError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CPacketLoginStart { profile: GameProfile }
+pub struct CPacketLoginStart {
+    profile: GameProfile,
+}
 
 impl CPacketLoginStart {
-    pub fn new(profile: GameProfile) -> Self { Self { profile } }
+    pub fn new(profile: GameProfile) -> Self {
+        Self { profile }
+    }
     pub fn readPacketData(packet: &RawPacket) -> Result<Self, CodecError> {
         let mut input = packet.payload.as_slice();
         let name = read_string(&mut input, 16)?;
         if !input.is_empty() {
-            return Err(CodecError::InvalidData(format!("{} unread login-start bytes", input.len())));
+            return Err(CodecError::InvalidData(format!(
+                "{} unread login-start bytes",
+                input.len()
+            )));
         }
-        Ok(Self { profile: GameProfile::new(None, name) })
+        Ok(Self {
+            profile: GameProfile::new(None, name),
+        })
     }
     pub fn writePacketData(&self) -> Result<RawPacket, CodecError> {
         let mut payload = Vec::new();
         write_string(self.profile.getName(), 16, &mut payload)?;
         Ok(RawPacket::new(0, payload))
     }
-    pub fn getProfile(&self) -> &GameProfile { &self.profile }
+    pub fn getProfile(&self) -> &GameProfile {
+        &self.profile
+    }
 }
 
 #[cfg(test)]

@@ -15,14 +15,20 @@ pub struct ShaderPackDefault {
 }
 
 impl ShaderPackDefault {
-    pub fn new(classPathRoot: Option<PathBuf>) -> Self { Self { classPathRoot } }
+    pub fn new(classPathRoot: Option<PathBuf>) -> Self {
+        Self { classPathRoot }
+    }
 }
 
 impl IShaderPack for ShaderPackDefault {
-    fn getName(&self) -> &str { packNameDefault }
+    fn getName(&self) -> &str {
+        packNameDefault
+    }
 
     fn getResourceAsStream(&mut self, resName: &str) -> io::Result<Option<Vec<u8>>> {
-        let Some(root) = self.classPathRoot.as_ref() else { return Ok(None); };
+        let Some(root) = self.classPathRoot.as_ref() else {
+            return Ok(None);
+        };
         let relative = resName.trim_start_matches('/');
         match fs::read(root.join(relative)) {
             Ok(bytes) => Ok(Some(bytes)),
@@ -31,6 +37,8 @@ impl IShaderPack for ShaderPackDefault {
         }
     }
 
-    fn hasDirectory(&mut self, _name: &str) -> bool { false }
+    fn hasDirectory(&mut self, _name: &str) -> bool {
+        false
+    }
     fn close(&mut self) {}
 }

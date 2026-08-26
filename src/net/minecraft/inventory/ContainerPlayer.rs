@@ -74,7 +74,6 @@ impl ContainerPlayer {
         &self.inventorySlots
     }
 
-
     /// Resets the protocol-visible `Container` quick-craft state. Vanilla does
     /// this whenever a non-QUICK_CRAFT click interrupts an active drag.
     pub fn resetQuickCraft(&mut self) {
@@ -96,7 +95,8 @@ impl ContainerPlayer {
         let previousEvent = self.base.dragEvent;
         self.base.dragEvent = Container::getDragEvent(dragType);
 
-        if (previousEvent != 1 || self.base.dragEvent != 2) && previousEvent != self.base.dragEvent {
+        if (previousEvent != 1 || self.base.dragEvent != 2) && previousEvent != self.base.dragEvent
+        {
             self.resetQuickCraft();
             return false;
         }
@@ -118,11 +118,16 @@ impl ContainerPlayer {
                 }
             }
             1 => {
-                let Ok(index) = usize::try_from(slotId) else { return false; };
-                let Some(slotStack) = self.inventorySlots.get(index) else { return false; };
+                let Ok(index) = usize::try_from(slotId) else {
+                    return false;
+                };
+                let Some(slotStack) = self.inventorySlots.get(index) else {
+                    return false;
+                };
                 if Container::canAddItemToSlot(slotStack, cursor, true)
                     && playerContainerSlotAccepts(slotId, cursor)
-                    && (self.base.dragMode == 2 || cursor.getCount() > self.base.dragSlots.len() as i32)
+                    && (self.base.dragMode == 2
+                        || cursor.getCount() > self.base.dragSlots.len() as i32)
                 {
                     self.base.dragSlots.insert(index)
                 } else {
@@ -144,9 +149,18 @@ impl ContainerPlayer {
                         {
                             continue;
                         }
-                        let oldCount = if existing.isEmpty() { 0 } else { existing.getCount() };
+                        let oldCount = if existing.isEmpty() {
+                            0
+                        } else {
+                            existing.getCount()
+                        };
                         let mut placed = source.clone();
-                        Container::computeStackSize(slotCount, self.base.dragMode, &mut placed, oldCount);
+                        Container::computeStackSize(
+                            slotCount,
+                            self.base.dragMode,
+                            &mut placed,
+                            oldCount,
+                        );
                         let limit = placed
                             .getMaxStackSize()
                             .min(playerContainerSlotLimit(index as i32, &placed));
@@ -191,13 +205,19 @@ impl ContainerPlayer {
 
         if stack.getMaxStackSize() > 1 {
             for &index in &indices {
-                if stack.isEmpty() { break; }
+                if stack.isEmpty() {
+                    break;
+                }
                 let existing = self.inventorySlots[index].clone();
-                if existing.isEmpty() || !existing.canStackWith(stack) { continue; }
-                let limit = playerContainerSlotLimit(index as i32, stack)
-                    .min(stack.getMaxStackSize());
+                if existing.isEmpty() || !existing.canStackWith(stack) {
+                    continue;
+                }
+                let limit =
+                    playerContainerSlotLimit(index as i32, stack).min(stack.getMaxStackSize());
                 let capacity = limit - existing.getCount();
-                if capacity <= 0 { continue; }
+                if capacity <= 0 {
+                    continue;
+                }
                 let moved = capacity.min(stack.getCount());
                 let mut merged = existing;
                 merged.grow(moved);
@@ -208,7 +228,9 @@ impl ContainerPlayer {
         }
 
         for &index in &indices {
-            if stack.isEmpty() { break; }
+            if stack.isEmpty() {
+                break;
+            }
             if !self.inventorySlots[index].isEmpty()
                 || !playerContainerSlotAccepts(index as i32, stack)
             {
@@ -217,7 +239,9 @@ impl ContainerPlayer {
             let moved = playerContainerSlotLimit(index as i32, stack)
                 .min(stack.getMaxStackSize())
                 .min(stack.getCount());
-            if moved <= 0 { continue; }
+            if moved <= 0 {
+                continue;
+            }
             self.inventorySlots[index] = stack.splitStack(moved);
             changed = true;
         }
@@ -228,16 +252,21 @@ impl ContainerPlayer {
     /// (recipe unlock/stat/drop) remain server-owned, but all slot ranges and
     /// merge directions match the 1.12.2 method.
     pub fn transferStackInSlot(&mut self, index: usize) -> ItemStack {
-        if index >= Self::SLOT_COUNT { return ItemStack::EMPTY; }
+        if index >= Self::SLOT_COUNT {
+            return ItemStack::EMPTY;
+        }
         let original = self.inventorySlots[index].clone();
-        if original.isEmpty() { return ItemStack::EMPTY; }
+        if original.isEmpty() {
+            return ItemStack::EMPTY;
+        }
         let mut moving = original.clone();
         let equipmentSlot = playerEquipmentContainerSlot(&moving);
         let merged = if index == 0 {
             self.mergeItemStack(&mut moving, 9, 45, true)
         } else if (1..9).contains(&index) {
             self.mergeItemStack(&mut moving, 9, 45, false)
-        } else if let Some(slot) = equipmentSlot.filter(|slot| self.inventorySlots[*slot].isEmpty()) {
+        } else if let Some(slot) = equipmentSlot.filter(|slot| self.inventorySlots[*slot].isEmpty())
+        {
             self.mergeItemStack(&mut moving, slot, slot + 1, false)
         } else if moving.itemId == 442 && self.inventorySlots[45].isEmpty() {
             self.mergeItemStack(&mut moving, 45, 46, false)
@@ -257,9 +286,13 @@ impl ContainerPlayer {
 
     /// MCP `Container.slotClick` SWAP branch for hotbar buttons 0..8.
     pub fn swapWithHotbar(&mut self, slotId: usize, hotbarIndex: usize) -> bool {
-        if slotId >= Self::SLOT_COUNT || hotbarIndex >= 9 { return false; }
+        if slotId >= Self::SLOT_COUNT || hotbarIndex >= 9 {
+            return false;
+        }
         let hotbarSlot = 36 + hotbarIndex;
-        if slotId == hotbarSlot { return false; }
+        if slotId == hotbarSlot {
+            return false;
+        }
         let mut hotbar = self.inventorySlots[hotbarSlot].clone();
         let target = self.inventorySlots[slotId].clone();
         if hotbar.isEmpty() {
@@ -268,13 +301,17 @@ impl ContainerPlayer {
             return true;
         }
         if target.isEmpty() {
-            if !playerContainerSlotAccepts(slotId as i32, &hotbar) { return false; }
+            if !playerContainerSlotAccepts(slotId as i32, &hotbar) {
+                return false;
+            }
             let limit = playerContainerSlotLimit(slotId as i32, &hotbar);
             self.inventorySlots[slotId] = hotbar.splitStack(limit);
             self.inventorySlots[hotbarSlot] = hotbar;
             return true;
         }
-        if !playerContainerSlotAccepts(slotId as i32, &hotbar) { return false; }
+        if !playerContainerSlotAccepts(slotId as i32, &hotbar) {
+            return false;
+        }
         let limit = playerContainerSlotLimit(slotId as i32, &hotbar);
         if hotbar.getCount() <= limit {
             self.inventorySlots[slotId] = hotbar;
@@ -290,8 +327,14 @@ impl ContainerPlayer {
 
     /// MCP THROW branch. Returns whether a non-empty stack was removed.
     pub fn throwFromSlot(&mut self, slotId: usize, wholeStack: bool) -> bool {
-        if slotId >= Self::SLOT_COUNT || self.inventorySlots[slotId].isEmpty() { return false; }
-        let amount = if wholeStack { self.inventorySlots[slotId].getCount() } else { 1 };
+        if slotId >= Self::SLOT_COUNT || self.inventorySlots[slotId].isEmpty() {
+            return false;
+        }
+        let amount = if wholeStack {
+            self.inventorySlots[slotId].getCount()
+        } else {
+            1
+        };
         let removed = self.inventorySlots[slotId].splitStack(amount);
         !removed.isEmpty()
     }
@@ -299,7 +342,9 @@ impl ContainerPlayer {
     /// MCP PICKUP_ALL two-pass collection. The cursor stack is updated in
     /// place; crafting-result slot 0 is excluded by ContainerPlayer.canMergeSlot.
     pub fn pickupAll(&mut self, cursor: &mut ItemStack, reverse: bool) -> bool {
-        if cursor.isEmpty() || cursor.getCount() >= cursor.getMaxStackSize() { return false; }
+        if cursor.isEmpty() || cursor.getCount() >= cursor.getMaxStackSize() {
+            return false;
+        }
         let indices: Vec<usize> = if reverse {
             (0..Self::SLOT_COUNT).rev().collect()
         } else {
@@ -308,13 +353,23 @@ impl ContainerPlayer {
         let mut changed = false;
         for pass in 0..2 {
             for &index in &indices {
-                if cursor.getCount() >= cursor.getMaxStackSize() { break; }
-                if index == 0 { continue; }
+                if cursor.getCount() >= cursor.getMaxStackSize() {
+                    break;
+                }
+                if index == 0 {
+                    continue;
+                }
                 let stack = self.inventorySlots[index].clone();
-                if stack.isEmpty() || !stack.canStackWith(cursor) { continue; }
-                if pass == 0 && stack.getCount() == stack.getMaxStackSize() { continue; }
+                if stack.isEmpty() || !stack.canStackWith(cursor) {
+                    continue;
+                }
+                if pass == 0 && stack.getCount() == stack.getMaxStackSize() {
+                    continue;
+                }
                 let moved = (cursor.getMaxStackSize() - cursor.getCount()).min(stack.getCount());
-                if moved <= 0 { continue; }
+                if moved <= 0 {
+                    continue;
+                }
                 let mut remaining = stack;
                 remaining.shrink(moved);
                 cursor.grow(moved);
@@ -326,13 +381,18 @@ impl ContainerPlayer {
     }
 }
 
-
 pub fn playerContainerSlotLimit(slotId: i32, stack: &ItemStack) -> i32 {
-    if (5..=8).contains(&slotId) { 1 } else { stack.getMaxStackSize().max(1) }
+    if (5..=8).contains(&slotId) {
+        1
+    } else {
+        stack.getMaxStackSize().max(1)
+    }
 }
 
 pub fn playerContainerSlotAccepts(slotId: i32, stack: &ItemStack) -> bool {
-    if stack.isEmpty() { return true; }
+    if stack.isEmpty() {
+        return true;
+    }
     match slotId {
         0 => false,
         5 => matches!(stack.itemId, 86 | 298 | 302 | 306 | 310 | 314 | 397),
@@ -344,11 +404,17 @@ pub fn playerContainerSlotAccepts(slotId: i32, stack: &ItemStack) -> bool {
 }
 
 fn playerEquipmentContainerSlot(stack: &ItemStack) -> Option<usize> {
-    if playerContainerSlotAccepts(5, stack) { Some(5) }
-    else if playerContainerSlotAccepts(6, stack) { Some(6) }
-    else if playerContainerSlotAccepts(7, stack) { Some(7) }
-    else if playerContainerSlotAccepts(8, stack) { Some(8) }
-    else { None }
+    if playerContainerSlotAccepts(5, stack) {
+        Some(5)
+    } else if playerContainerSlotAccepts(6, stack) {
+        Some(6)
+    } else if playerContainerSlotAccepts(7, stack) {
+        Some(7)
+    } else if playerContainerSlotAccepts(8, stack) {
+        Some(8)
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]
@@ -356,7 +422,12 @@ mod tests {
     use super::*;
 
     fn stack(id: i16, count: u8) -> ItemStack {
-        ItemStack { itemId: id, count, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]
@@ -395,7 +466,12 @@ mod tests {
         let mut cursor = stack(339, 10);
         assert!(container.quickCraft(-999, Container::getQuickcraftMask(0, 0), &mut cursor, false));
         for slot in [9, 10, 11] {
-            assert!(container.quickCraft(slot, Container::getQuickcraftMask(1, 0), &mut cursor, false));
+            assert!(container.quickCraft(
+                slot,
+                Container::getQuickcraftMask(1, 0),
+                &mut cursor,
+                false
+            ));
         }
         assert!(container.quickCraft(-999, Container::getQuickcraftMask(2, 0), &mut cursor, false));
         assert_eq!(cursor.getCount(), 1);
@@ -432,7 +508,12 @@ mod tests {
     fn creative_fill_mode_is_rejected_for_survival() {
         let mut container = ContainerPlayer::default();
         let mut cursor = stack(339, 1);
-        assert!(!container.quickCraft(-999, Container::getQuickcraftMask(0, 2), &mut cursor, false));
+        assert!(!container.quickCraft(
+            -999,
+            Container::getQuickcraftMask(0, 2),
+            &mut cursor,
+            false
+        ));
         assert!(container.base.dragSlots.is_empty());
     }
 

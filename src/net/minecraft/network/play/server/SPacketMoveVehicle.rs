@@ -22,16 +22,29 @@ impl SPacketMoveVehicle {
             pitch: read_f32_be(&mut input)?,
         };
         if !input.is_empty() {
-            return Err(CodecError::InvalidData(format!("{} unread move-vehicle bytes", input.len())));
+            return Err(CodecError::InvalidData(format!(
+                "{} unread move-vehicle bytes",
+                input.len()
+            )));
         }
         Ok(result)
     }
 
-    pub const fn getX(&self) -> f64 { self.x }
-    pub const fn getY(&self) -> f64 { self.y }
-    pub const fn getZ(&self) -> f64 { self.z }
-    pub const fn getYaw(&self) -> f32 { self.yaw }
-    pub const fn getPitch(&self) -> f32 { self.pitch }
+    pub const fn getX(&self) -> f64 {
+        self.x
+    }
+    pub const fn getY(&self) -> f64 {
+        self.y
+    }
+    pub const fn getZ(&self) -> f64 {
+        self.z
+    }
+    pub const fn getYaw(&self) -> f32 {
+        self.yaw
+    }
+    pub const fn getPitch(&self) -> f32 {
+        self.pitch
+    }
 }
 
 #[cfg(test)]
@@ -48,7 +61,10 @@ mod tests {
         write_f32_be(4.0, &mut payload);
         write_f32_be(5.0, &mut payload);
         let packet = SPacketMoveVehicle::readPacketData(&RawPacket::new(0x29, payload)).unwrap();
-        assert_eq!((packet.getX(), packet.getY(), packet.getZ()), (1.0, 2.0, 3.0));
+        assert_eq!(
+            (packet.getX(), packet.getY(), packet.getZ()),
+            (1.0, 2.0, 3.0)
+        );
         assert_eq!((packet.getYaw(), packet.getPitch()), (4.0, 5.0));
     }
 }

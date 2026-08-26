@@ -15,16 +15,27 @@ fn random() -> &'static Mutex<JavaRandom> {
     // exact 48-bit LCG through `JavaRandom`.
     static RANDOM: OnceLock<Mutex<JavaRandom>> = OnceLock::new();
     RANDOM.get_or_init(|| {
-        let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as i64;
+        let seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as i64;
         Mutex::new(JavaRandom::new(seed))
     })
 }
 
 impl ZombieProfToType {
-    fn professionToType(value: i32) -> i32 { if (0..6).contains(&value) { value } else { -1 } }
+    fn professionToType(value: i32) -> i32 {
+        if (0..6).contains(&value) {
+            value
+        } else {
+            -1
+        }
+    }
 }
 impl IFixableData for ZombieProfToType {
-    fn getFixVersion(&self) -> i32 { 502 }
+    fn getFixVersion(&self) -> i32 {
+        502
+    }
     fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
         if compound.getString("id") == "Zombie" && compound.getBoolean("IsVillager") {
             if !compound.hasKeyWithType("ZombieType", 99) {
@@ -33,7 +44,10 @@ impl IFixableData for ZombieProfToType {
                     value = Self::professionToType(compound.getInteger("VillagerProfession"));
                 }
                 if value == -1 {
-                    let roll = random().lock().unwrap_or_else(|poisoned| poisoned.into_inner()).next_i32_bound(6);
+                    let roll = random()
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .next_i32_bound(6);
                     value = Self::professionToType(roll);
                 }
                 compound.setInteger("ZombieType", value);
@@ -49,8 +63,12 @@ mod tests {
     use super::*;
     #[test]
     fn villager_profession_is_preserved_as_zombie_type() {
-        let mut zombie = NBTTagCompound::new(); zombie.setString("id", "Zombie"); zombie.setBoolean("IsVillager", true); zombie.setInteger("VillagerProfession", 4);
+        let mut zombie = NBTTagCompound::new();
+        zombie.setString("id", "Zombie");
+        zombie.setBoolean("IsVillager", true);
+        zombie.setInteger("VillagerProfession", 4);
         let fixed = ZombieProfToType.fixTagCompound(zombie);
-        assert_eq!(fixed.getInteger("ZombieType"), 4); assert!(!fixed.hasKey("IsVillager"));
+        assert_eq!(fixed.getInteger("ZombieType"), 4);
+        assert!(!fixed.hasKey("IsVillager"));
     }
 }

@@ -1,4 +1,6 @@
-use crate::net::minecraft::client::model::ModelVehicleBox::{append_box, VehicleBox, VehicleModelMesh};
+use crate::net::minecraft::client::model::ModelVehicleBox::{
+    append_box, VehicleBox, VehicleModelMesh,
+};
 
 /// Exact box definitions owned by MCP 1.12.2 `ModelEnderCrystal`.
 pub struct ModelEnderCrystal;
@@ -26,14 +28,17 @@ impl ModelEnderCrystal {
 
     fn boxMesh(texture: [i32; 2], origin: [f32; 3], size: [i32; 3]) -> VehicleModelMesh {
         let mut mesh = VehicleModelMesh::default();
-        append_box(&mut mesh, VehicleBox {
-            texture,
-            textureSize: Self::TEXTURE_SIZE,
-            origin,
-            size,
-            pivot: [0.0; 3],
-            rotation: [0.0; 3],
-        });
+        append_box(
+            &mut mesh,
+            VehicleBox {
+                texture,
+                textureSize: Self::TEXTURE_SIZE,
+                origin,
+                size,
+                pivot: [0.0; 3],
+                rotation: [0.0; 3],
+            },
+        );
         mesh
     }
 }

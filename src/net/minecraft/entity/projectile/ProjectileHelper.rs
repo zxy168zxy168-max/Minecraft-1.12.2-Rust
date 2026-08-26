@@ -16,10 +16,18 @@ impl ProjectileHelper {
         let targetYaw = motionZ.atan2(motionX).to_degrees() as f32 + 90.0;
         let targetPitch = horizontal.atan2(motionY).to_degrees() as f32 - 90.0;
 
-        while targetPitch - *previousPitch < -180.0 { *previousPitch -= 360.0; }
-        while targetPitch - *previousPitch >= 180.0 { *previousPitch += 360.0; }
-        while targetYaw - *previousYaw < -180.0 { *previousYaw -= 360.0; }
-        while targetYaw - *previousYaw >= 180.0 { *previousYaw += 360.0; }
+        while targetPitch - *previousPitch < -180.0 {
+            *previousPitch -= 360.0;
+        }
+        while targetPitch - *previousPitch >= 180.0 {
+            *previousPitch += 360.0;
+        }
+        while targetYaw - *previousYaw < -180.0 {
+            *previousYaw -= 360.0;
+        }
+        while targetYaw - *previousYaw >= 180.0 {
+            *previousYaw += 360.0;
+        }
 
         (
             *previousYaw + (targetYaw - *previousYaw) * interpolation,
@@ -37,7 +45,12 @@ mod tests {
         let mut previousYaw = 0.0;
         let mut previousPitch = 0.0;
         let (yaw, pitch) = ProjectileHelper::rotateTowardsMovement(
-            1.0, 0.0, 0.0, &mut previousYaw, &mut previousPitch, 0.5,
+            1.0,
+            0.0,
+            0.0,
+            &mut previousYaw,
+            &mut previousPitch,
+            0.5,
         );
         assert!((yaw - 45.0).abs() < 1.0e-5);
         assert!(pitch.abs() < 1.0e-5);
@@ -48,7 +61,12 @@ mod tests {
         let mut previousYaw = 350.0;
         let mut previousPitch = 0.0;
         let (yaw, _) = ProjectileHelper::rotateTowardsMovement(
-            0.0, 0.0, -1.0, &mut previousYaw, &mut previousPitch, 0.5,
+            0.0,
+            0.0,
+            -1.0,
+            &mut previousYaw,
+            &mut previousPitch,
+            0.5,
         );
         assert!((yaw - 360.0).abs() < 1.0e-5);
     }

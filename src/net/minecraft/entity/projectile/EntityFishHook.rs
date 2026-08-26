@@ -1,7 +1,11 @@
 use crate::net::minecraft::entity::projectile::ProjectileHelper::ProjectileHelper;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FishHookState { Flying, HookedInEntity, Bobbing }
+pub enum FishHookState {
+    Flying,
+    HookedInEntity,
+    Bobbing,
+}
 
 /// Client-owned constants and source equations from MCP 1.12.2 `EntityFishHook`.
 pub struct EntityFishHook;
@@ -20,7 +24,11 @@ impl EntityFishHook {
     pub const ROTATION_INTERPOLATION: f32 = 0.2;
 
     pub const fn hookedEntityId(dataValue: i32) -> Option<i32> {
-        if dataValue > 0 { Some(dataValue - 1) } else { None }
+        if dataValue > 0 {
+            Some(dataValue - 1)
+        } else {
+            None
+        }
     }
 
     pub const fn isInRangeToRenderDist(distanceSquared: f64) -> bool {
@@ -52,7 +60,10 @@ mod tests {
     use super::*;
     #[test]
     fn source_contract() {
-        assert_eq!((EntityFishHook::WIDTH, EntityFishHook::HEIGHT), (0.25, 0.25));
+        assert_eq!(
+            (EntityFishHook::WIDTH, EntityFishHook::HEIGHT),
+            (0.25, 0.25)
+        );
         assert_eq!(EntityFishHook::hookedEntityId(0), None);
         assert_eq!(EntityFishHook::hookedEntityId(42), Some(41));
         assert!(EntityFishHook::isInRangeToRenderDist(4095.999));

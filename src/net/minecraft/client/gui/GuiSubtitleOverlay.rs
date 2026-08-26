@@ -22,7 +22,9 @@ pub struct GuiSubtitleOverlay {
 }
 
 impl GuiSubtitleOverlay {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn soundPlay(
         &mut self,
@@ -31,14 +33,20 @@ impl GuiSubtitleOverlay {
         systemTimeMillis: u64,
     ) {
         let subtitle = subtitle.into();
-        if let Some(existing) = self.subtitles.iter_mut()
+        if let Some(existing) = self
+            .subtitles
+            .iter_mut()
             .find(|entry| entry.subtitle == subtitle)
         {
             existing.location = location;
             existing.startTime = systemTimeMillis;
             return;
         }
-        self.subtitles.push(Subtitle { subtitle, startTime: systemTimeMillis, location });
+        self.subtitles.push(Subtitle {
+            subtitle,
+            startTime: systemTimeMillis,
+            location,
+        });
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -58,9 +66,8 @@ impl GuiSubtitleOverlay {
             return SubtitleFrame::default();
         }
 
-        self.subtitles.retain(|subtitle| {
-            subtitle.startTime.saturating_add(3_000) > systemTimeMillis
-        });
+        self.subtitles
+            .retain(|subtitle| subtitle.startTime.saturating_add(3_000) > systemTimeMillis);
         if self.subtitles.is_empty() {
             return SubtitleFrame::default();
         }
@@ -71,7 +78,9 @@ impl GuiSubtitleOverlay {
         let up = rotate_yaw(rotate_pitch([0.0, 1.0, 0.0], pitch), yaw);
         let side = cross(forward, up);
 
-        let widest = self.subtitles.iter()
+        let widest = self
+            .subtitles
+            .iter()
             .map(|subtitle| fontRenderer.get_string_width(&subtitle.subtitle))
             .max()
             .unwrap_or(0);
@@ -158,7 +167,9 @@ fn rotate_yaw(value: [f32; 3], yaw: f32) -> [f32; 3] {
     ]
 }
 
-fn dot(a: [f32; 3], b: [f32; 3]) -> f32 { a[0] * b[0] + a[1] * b[1] + a[2] * b[2] }
+fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
 fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
     [
         a[1] * b[2] - a[2] * b[1],
@@ -168,8 +179,11 @@ fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
 }
 fn normalize(value: [f32; 3]) -> [f32; 3] {
     let length = dot(value, value).sqrt();
-    if length <= f32::EPSILON { [0.0; 3] }
-    else { [value[0] / length, value[1] / length, value[2] / length] }
+    if length <= f32::EPSILON {
+        [0.0; 3]
+    } else {
+        [value[0] / length, value[1] / length, value[2] / length]
+    }
 }
 
 #[cfg(test)]

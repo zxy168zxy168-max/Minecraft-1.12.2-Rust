@@ -14,7 +14,9 @@ impl SPacketCooldown {
         let rawItemId = read_var_i32(&mut input)?;
         let ticks = read_var_i32(&mut input)?;
         if !(0..=i16::MAX as i32).contains(&rawItemId) {
-            return Err(CodecError::InvalidData(format!("invalid cooldown item id {rawItemId}")));
+            return Err(CodecError::InvalidData(format!(
+                "invalid cooldown item id {rawItemId}"
+            )));
         }
         if !input.is_empty() {
             return Err(CodecError::InvalidData(format!(
@@ -22,11 +24,18 @@ impl SPacketCooldown {
                 input.len()
             )));
         }
-        Ok(Self { itemId: rawItemId as i16, ticks })
+        Ok(Self {
+            itemId: rawItemId as i16,
+            ticks,
+        })
     }
 
-    pub const fn getItemId(&self) -> i16 { self.itemId }
-    pub const fn getTicks(&self) -> i32 { self.ticks }
+    pub const fn getItemId(&self) -> i16 {
+        self.itemId
+    }
+    pub const fn getTicks(&self) -> i32 {
+        self.ticks
+    }
 }
 
 #[cfg(test)]

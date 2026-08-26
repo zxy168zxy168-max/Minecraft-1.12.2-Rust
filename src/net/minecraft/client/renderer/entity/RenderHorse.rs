@@ -11,7 +11,13 @@ pub struct RenderHorse;
 
 impl RenderHorse {
     const COATS: [&'static str; 7] = [
-        "white", "creamy", "chestnut", "brown", "black", "gray", "darkbrown",
+        "white",
+        "creamy",
+        "chestnut",
+        "brown",
+        "black",
+        "gray",
+        "darkbrown",
     ];
     const MARKINGS: [Option<&'static str>; 5] = [
         None,
@@ -22,7 +28,9 @@ impl RenderHorse {
     ];
     const ARMOR: [Option<&'static str>; 4] = [None, Some("iron"), Some("gold"), Some("diamond")];
 
-    pub fn supports(entityType: MobEntityType) -> bool { entityType.registryName == "horse" }
+    pub fn supports(entityType: MobEntityType) -> bool {
+        entityType.registryName == "horse"
+    }
 
     pub fn coatIndex(entity: &EntityOtherClient) -> usize {
         ((entity.horseVariant() & 255).rem_euclid(7)) as usize
@@ -33,7 +41,11 @@ impl RenderHorse {
     }
 
     pub fn texture(entity: &EntityOtherClient) -> ResourceLocation {
-        Self::generatedTexture(Self::coatIndex(entity), Self::markingIndex(entity), entity.horseArmorOrdinal() as usize)
+        Self::generatedTexture(
+            Self::coatIndex(entity),
+            Self::markingIndex(entity),
+            entity.horseArmorOrdinal() as usize,
+        )
     }
 
     pub fn generatedTexture(coat: usize, marking: usize, armor: usize) -> ResourceLocation {

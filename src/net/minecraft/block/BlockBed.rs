@@ -1,6 +1,6 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 /// Client-visible state helpers from Minecraft 1.12.2 `BlockBed`.
@@ -39,7 +39,11 @@ impl BlockBed {
     }
 
     /// MCP `BlockBed#getSafeExitLocation` and `hasRoomForPlayer`.
-    pub fn getSafeExitLocation<A: IBlockAccess>(world: &A, pos: BlockPos, mut tries: i32) -> Option<BlockPos> {
+    pub fn getSafeExitLocation<A: IBlockAccess>(
+        world: &A,
+        pos: BlockPos,
+        mut tries: i32,
+    ) -> Option<BlockPos> {
         let facing = Self::getFacing(world.getBlockState(pos));
         let (front_x, _, front_z) = facing.offsets();
         for layer in 0..=1 {
@@ -49,7 +53,9 @@ impl BlockBed {
                 for z in min_z..=min_z + 2 {
                     let candidate = BlockPos::new(x, pos.y, z);
                     if Self::hasRoomForPlayer(world, candidate) {
-                        if tries <= 0 { return Some(candidate); }
+                        if tries <= 0 {
+                            return Some(candidate);
+                        }
                         tries -= 1;
                     }
                 }

@@ -1,5 +1,7 @@
-use crate::net::minecraft::block::BlockRailBase::{direction, isAscending, isRailBlock, EnumRailDirection};
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::BlockRailBase::{
+    direction, isAscending, isRailBlock, EnumRailDirection,
+};
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 /// MCP 1.12.2 `EntityMinecart.Type`, which is also SPacketSpawnObject data.
@@ -128,9 +130,13 @@ impl EntityMinecart {
         let i = x.floor() as i32;
         let mut j = y.floor() as i32;
         let k = z.floor() as i32;
-        if isRailBlock(stateAt(BlockPos::new(i, j - 1, k))) { j -= 1; }
+        if isRailBlock(stateAt(BlockPos::new(i, j - 1, k))) {
+            j -= 1;
+        }
         let state = stateAt(BlockPos::new(i, j, k));
-        if !isRailBlock(state) { return None; }
+        if !isRailBlock(state) {
+            return None;
+        }
         let railDirection = direction(state);
         let matrix = Self::MATRIX[Self::directionIndex(railDirection)];
         let d0 = i as f64 + 0.5 + matrix[0][0] as f64 * 0.5;
@@ -154,24 +160,40 @@ impl EntityMinecart {
         x = d0 + d6 * d9;
         y = d1 + d7 * d9;
         z = d2 + d8 * d9;
-        if d7 < 0.0 { y += 1.0; }
-        if d7 > 0.0 { y += 0.5; }
+        if d7 < 0.0 {
+            y += 1.0;
+        }
+        if d7 > 0.0 {
+            y += 0.5;
+        }
         Some([x, y, z])
     }
 
-    pub fn getPosOffset<F>(mut x: f64, mut y: f64, mut z: f64, offset: f64, mut stateAt: F) -> Option<[f64; 3]>
+    pub fn getPosOffset<F>(
+        mut x: f64,
+        mut y: f64,
+        mut z: f64,
+        offset: f64,
+        mut stateAt: F,
+    ) -> Option<[f64; 3]>
     where
         F: FnMut(BlockPos) -> IBlockState,
     {
         let i = x.floor() as i32;
         let mut j = y.floor() as i32;
         let k = z.floor() as i32;
-        if isRailBlock(stateAt(BlockPos::new(i, j - 1, k))) { j -= 1; }
+        if isRailBlock(stateAt(BlockPos::new(i, j - 1, k))) {
+            j -= 1;
+        }
         let state = stateAt(BlockPos::new(i, j, k));
-        if !isRailBlock(state) { return None; }
+        if !isRailBlock(state) {
+            return None;
+        }
         let railDirection = direction(state);
         y = j as f64;
-        if isAscending(railDirection) { y = (j + 1) as f64; }
+        if isAscending(railDirection) {
+            y = (j + 1) as f64;
+        }
         let matrix = Self::MATRIX[Self::directionIndex(railDirection)];
         let mut dx = (matrix[1][0] - matrix[0][0]) as f64;
         let mut dz = (matrix[1][2] - matrix[0][2]) as f64;
@@ -180,9 +202,15 @@ impl EntityMinecart {
         dz /= length;
         x += dx * offset;
         z += dz * offset;
-        if matrix[0][1] != 0 && x.floor() as i32 - i == matrix[0][0] && z.floor() as i32 - k == matrix[0][2] {
+        if matrix[0][1] != 0
+            && x.floor() as i32 - i == matrix[0][0]
+            && z.floor() as i32 - k == matrix[0][2]
+        {
             y += matrix[0][1] as f64;
-        } else if matrix[1][1] != 0 && x.floor() as i32 - i == matrix[1][0] && z.floor() as i32 - k == matrix[1][2] {
+        } else if matrix[1][1] != 0
+            && x.floor() as i32 - i == matrix[1][0]
+            && z.floor() as i32 - k == matrix[1][2]
+        {
             y += matrix[1][1] as f64;
         }
         Self::getPos(x, y, z, stateAt)
@@ -204,11 +232,20 @@ mod tests {
     #[test]
     fn type_fallback_and_default_contents_match_mcp() {
         assert_eq!(MinecartType::byId(99), MinecartType::Rideable);
-        assert_eq!(MinecartType::Chest.defaultDisplayStateId(false), (54 << 4) | 2);
+        assert_eq!(
+            MinecartType::Chest.defaultDisplayStateId(false),
+            (54 << 4) | 2
+        );
         assert_eq!(MinecartType::Hopper.defaultDisplayOffset(), 1);
         let mcpChestNorth = 54 | (2 << 12);
-        assert_eq!(EntityMinecart::fromMcpBlockStateId(mcpChestNorth), (54 << 4) | 2);
-        assert_eq!(EntityMinecart::toMcpBlockStateId((54 << 4) | 2), mcpChestNorth);
+        assert_eq!(
+            EntityMinecart::fromMcpBlockStateId(mcpChestNorth),
+            (54 << 4) | 2
+        );
+        assert_eq!(
+            EntityMinecart::toMcpBlockStateId((54 << 4) | 2),
+            mcpChestNorth
+        );
     }
 
     #[test]

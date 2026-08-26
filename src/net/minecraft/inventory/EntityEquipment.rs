@@ -9,7 +9,11 @@ pub struct EntityEquipment {
 }
 
 impl Default for EntityEquipment {
-    fn default() -> Self { Self { slots: vec![ItemStack::EMPTY; 6] } }
+    fn default() -> Self {
+        Self {
+            slots: vec![ItemStack::EMPTY; 6],
+        }
+    }
 }
 
 impl EntityEquipment {
@@ -21,5 +25,7 @@ impl EntityEquipment {
         &self.slots[slot.getSlotIndex()]
     }
 
-    pub fn slots(&self) -> &[ItemStack] { &self.slots }
+    pub fn slots(&self) -> &[ItemStack] {
+        &self.slots
+    }
 }

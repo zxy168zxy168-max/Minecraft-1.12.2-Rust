@@ -79,7 +79,9 @@ enum AvatarEvent {
         location: ResourceLocation,
         image: NativeImage,
     },
-    Failed { key: String },
+    Failed {
+        key: String,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -226,7 +228,11 @@ impl GuiAccountManager {
     }
 
     pub fn updateScreen(&mut self, config: &mut AccountConfig) -> Option<Session> {
-        if self.notification.as_ref().is_some_and(Notification::expired) {
+        if self
+            .notification
+            .as_ref()
+            .is_some_and(Notification::expired)
+        {
             self.notification = None;
         }
 
@@ -258,15 +264,12 @@ impl GuiAccountManager {
                         clearTask = true;
                     }
                     AccountTaskEvent::SkinSuccess => {
-                        self.notification =
-                            Some(Notification::new("Skin changed!", 2_000));
+                        self.notification = Some(Notification::new("Skin changed!", 2_000));
                         clearTask = true;
                     }
                     AccountTaskEvent::Failure(message) => {
-                        self.notification = Some(Notification::new(
-                            format!("§c{message}§r"),
-                            5_000,
-                        ));
+                        self.notification =
+                            Some(Notification::new(format!("§c{message}§r"), 5_000));
                         clearTask = true;
                     }
                     AccountTaskEvent::Cancelled => {
@@ -357,7 +360,13 @@ impl GuiAccountManager {
 
         // GuiSlot#drawContainerBackground covers the full slot viewport while
         // the actual entries remain centered inside the 220-pixel list width.
-        drawList.draw_rect(0, LIST_TOP, self.GuiScreen.width, bottom, 0xFF20_2020_u32 as i32);
+        drawList.draw_rect(
+            0,
+            LIST_TOP,
+            self.GuiScreen.width,
+            bottom,
+            0xFF20_2020_u32 as i32,
+        );
         for (index, account) in config.iter().enumerate() {
             let y = LIST_TOP + 4 + index as i32 * SLOT_HEIGHT - self.scrollOffset;
             let slotBodyHeight = SLOT_HEIGHT - 4;
@@ -416,13 +425,7 @@ impl GuiAccountManager {
 
         // GuiSlot#overlayBackground hides partially scrolled entries above
         // and below the viewport before the title and buttons are drawn.
-        drawList.draw_rect(
-            0,
-            0,
-            self.GuiScreen.width,
-            LIST_TOP,
-            0xFF20_2020_u32 as i32,
-        );
+        drawList.draw_rect(0, 0, self.GuiScreen.width, LIST_TOP, 0xFF20_2020_u32 as i32);
         drawList.draw_rect(
             0,
             bottom,
@@ -451,14 +454,7 @@ impl GuiAccountManager {
         self.drawScrollBar(drawList, config.len());
     }
 
-    fn drawHead(
-        &self,
-        drawList: &mut GuiDrawList,
-        x: i32,
-        y: i32,
-        size: i32,
-        account: &Account,
-    ) {
+    fn drawHead(&self, drawList: &mut GuiDrawList, x: i32, y: i32, size: i32, account: &Account) {
         let key = avatarKey(account);
         if let Some(location) = self.avatarLocations.get(&key) {
             drawList.draw_modal_rect_with_custom_sized_texture(
@@ -645,8 +641,7 @@ impl GuiAccountManager {
 
     pub fn scroll(&mut self, lines: f32, accountCount: usize) -> bool {
         let old = self.scrollOffset;
-        self.scrollOffset =
-            (self.scrollOffset - (lines * SLOT_HEIGHT as f32 / 3.0) as i32).max(0);
+        self.scrollOffset = (self.scrollOffset - (lines * SLOT_HEIGHT as f32 / 3.0) as i32).max(0);
         self.clampScroll(accountCount);
         old != self.scrollOffset
     }
@@ -698,9 +693,7 @@ impl GuiAccountManager {
         };
         if account.refreshToken.trim().is_empty() && account.accessToken.trim().is_empty() {
             self.notification = Some(Notification::new(
-                format!(
-                    "§cCannot login: Account {originalUsername} has no token information.§r"
-                ),
+                format!("§cCannot login: Account {originalUsername} has no token information.§r"),
                 5_000,
             ));
             return;
@@ -769,7 +762,10 @@ impl GuiAccountManager {
                     }
                 }
             });
-        self.task = Some(AccountTask { receiver, cancelled });
+        self.task = Some(AccountTask {
+            receiver,
+            cancelled,
+        });
         self.updateButtons(config.len());
     }
 
@@ -796,9 +792,8 @@ impl GuiAccountManager {
                         let _ = sender.send(AccountTaskEvent::Cancelled);
                         return;
                     }
-                    let _ = sender.send(AccountTaskEvent::Status(
-                        "§7Uploading skin...§r".to_owned(),
-                    ));
+                    let _ =
+                        sender.send(AccountTaskEvent::Status("§7Uploading skin...§r".to_owned()));
                     match upload_skin(&path, variant, &token) {
                         Ok(()) => {
                             let _ = sender.send(AccountTaskEvent::SkinSuccess);
@@ -817,7 +812,10 @@ impl GuiAccountManager {
                     let _ = sender.send(AccountTaskEvent::Failure(error));
                 }
             });
-        self.task = Some(AccountTask { receiver, cancelled });
+        self.task = Some(AccountTask {
+            receiver,
+            cancelled,
+        });
         self.updateButtons(usize::MAX);
     }
 
@@ -906,8 +904,20 @@ impl GuiAccountManager {
         let left = self.GuiScreen.width / 2 + 124;
         let right = left + 6;
         drawList.draw_rect(left, top, right, bottom, 0xFF00_0000_u32 as i32);
-        drawList.draw_rect(left, thumbY, right, thumbY + thumbHeight, 0xFF80_8080_u32 as i32);
-        drawList.draw_rect(left, thumbY, right - 1, thumbY + thumbHeight - 1, 0xFFC0_C0C0_u32 as i32);
+        drawList.draw_rect(
+            left,
+            thumbY,
+            right,
+            thumbY + thumbHeight,
+            0xFF80_8080_u32 as i32,
+        );
+        drawList.draw_rect(
+            left,
+            thumbY,
+            right - 1,
+            thumbY + thumbHeight - 1,
+            0xFFC0_C0C0_u32 as i32,
+        );
     }
 
     fn clampScroll(&mut self, accountCount: usize) {
@@ -1140,7 +1150,9 @@ fn localTimeParts(seconds: i64) -> Option<(i64, i64, i64, u64, u64, u64)> {
 
     let mut value = MaybeUninit::<Tm>::uninit();
     let result = unsafe { _localtime64_s(value.as_mut_ptr(), &seconds) };
-    if result != 0 { return None; }
+    if result != 0 {
+        return None;
+    }
     let value = unsafe { value.assume_init() };
     Some((
         i64::from(value.tm_year + 1900),
@@ -1153,7 +1165,9 @@ fn localTimeParts(seconds: i64) -> Option<(i64, i64, i64, u64, u64, u64)> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn localTimeParts(_seconds: i64) -> Option<(i64, i64, i64, u64, u64, u64)> { None }
+fn localTimeParts(_seconds: i64) -> Option<(i64, i64, i64, u64, u64, u64)> {
+    None
+}
 
 fn civilFromDays(daysSinceEpoch: i64) -> (i64, i64, i64) {
     let z = daysSinceEpoch + 719_468;
@@ -1200,8 +1214,16 @@ mod tests {
             (3, 511, 456, "Back"),
         ];
         for (id, x, y, text) in expected {
-            let button = screen.GuiScreen.buttonList.iter().find(|button| button.id == id).unwrap();
-            assert_eq!((button.x, button.y, button.displayString.as_str()), (x, y, text));
+            let button = screen
+                .GuiScreen
+                .buttonList
+                .iter()
+                .find(|button| button.id == id)
+                .unwrap();
+            assert_eq!(
+                (button.x, button.y, button.displayString.as_str()),
+                (x, y, text)
+            );
         }
     }
 
@@ -1224,10 +1246,15 @@ mod tests {
 
     #[test]
     fn up_does_not_select_last_account_from_minus_one_state() {
-        let root = std::env::temp_dir().join(format!("mc112-account-key-test-{}", current_time_millis()));
+        let root =
+            std::env::temp_dir().join(format!("mc112-account-key-test-{}", current_time_millis()));
         let mut config = AccountConfig::load(&root);
-        config.add(Account::new("r", "a", "First", 1, "u1")).unwrap();
-        config.add(Account::new("r", "a", "Second", 2, "u2")).unwrap();
+        config
+            .add(Account::new("r", "a", "First", 1, "u1"))
+            .unwrap();
+        config
+            .add(Account::new("r", "a", "Second", 2, "u2"))
+            .unwrap();
         let mut screen = GuiAccountManager::new();
         screen.initGui(854, 480, &config);
         screen.keyPressed(AccountManagerKey::Up, false, &mut config);
@@ -1239,11 +1266,20 @@ mod tests {
 
     #[test]
     fn scrollbar_drag_scales_to_gui_slot_max_scroll() {
-        let root = std::env::temp_dir().join(format!("mc112-account-scroll-test-{}", current_time_millis()));
+        let root = std::env::temp_dir().join(format!(
+            "mc112-account-scroll-test-{}",
+            current_time_millis()
+        ));
         let mut config = AccountConfig::load(&root);
         for index in 0..40 {
             config
-                .add(Account::new("r", "a", format!("P{index}"), index, format!("u{index}")))
+                .add(Account::new(
+                    "r",
+                    "a",
+                    format!("P{index}"),
+                    index,
+                    format!("u{index}"),
+                ))
                 .unwrap();
         }
         let mut screen = GuiAccountManager::new();

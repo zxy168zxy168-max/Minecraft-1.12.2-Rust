@@ -14,10 +14,10 @@ use sha1::Sha1;
 use thiserror::Error;
 use url::Url;
 
-use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::com::mojang::authlib::minecraft::MinecraftProfileTexture::{
     MinecraftProfileTexture, TextureType,
 };
+use crate::com::mojang::authlib::GameProfile::GameProfile;
 
 const JOIN_URL: &str = "https://sessionserver.mojang.com/session/minecraft/join";
 const PROFILE_REPOSITORY_URL: &str = "https://api.mojang.com/profiles/minecraft";
@@ -96,7 +96,9 @@ struct RawProfileTexture {
 pub struct MinecraftSessionService;
 
 impl MinecraftSessionService {
-    pub const fn new() -> Self { Self }
+    pub const fn new() -> Self {
+        Self
+    }
 
     /// Authlib `MinecraftSessionService.joinServer` request used by
     /// `NetHandlerLoginClient.handleEncryptionRequest`.
@@ -106,9 +108,13 @@ impl MinecraftSessionService {
         authenticationToken: &str,
         serverId: &str,
     ) -> Result<(), JoinServerError> {
-        let profileId = profile.getId().ok_or_else(|| JoinServerError::InvalidCredentials("session profile has no UUID".to_owned()))?;
+        let profileId = profile.getId().ok_or_else(|| {
+            JoinServerError::InvalidCredentials("session profile has no UUID".to_owned())
+        })?;
         if authenticationToken.is_empty() {
-            return Err(JoinServerError::InvalidCredentials("session access token is empty".to_owned()));
+            return Err(JoinServerError::InvalidCredentials(
+                "session access token is empty".to_owned(),
+            ));
         }
         let body = json!({
             "accessToken": authenticationToken,
@@ -120,13 +126,17 @@ impl MinecraftSessionService {
             .send_json(body)
         {
             Ok(response) if matches!(response.status(), 200 | 204) => Ok(()),
-            Ok(response) => Err(classify_status(response.status(), response.into_string().unwrap_or_default())),
-            Err(ureq::Error::Status(status, response)) => {
-                Err(classify_status(status, response.into_string().unwrap_or_default()))
-            }
-            Err(ureq::Error::Transport(error)) => {
-                Err(JoinServerError::AuthenticationUnavailable(error.to_string()))
-            }
+            Ok(response) => Err(classify_status(
+                response.status(),
+                response.into_string().unwrap_or_default(),
+            )),
+            Err(ureq::Error::Status(status, response)) => Err(classify_status(
+                status,
+                response.into_string().unwrap_or_default(),
+            )),
+            Err(ureq::Error::Transport(error)) => Err(JoinServerError::AuthenticationUnavailable(
+                error.to_string(),
+            )),
         }
     }
 
@@ -140,7 +150,10 @@ impl MinecraftSessionService {
         requireSecure: bool,
     ) -> Result<GameProfile, ProfileLookupError> {
         if profile.isComplete()
-            && profile.getProperties().iter().any(|property| property.getName() == "textures")
+            && profile
+                .getProperties()
+                .iter()
+                .any(|property| property.getName() == "textures")
         {
             return Ok(profile.clone());
         }
@@ -164,14 +177,16 @@ impl MinecraftSessionService {
             Ok(response) => response,
             Err(ureq::Error::Status(status, response)) => {
                 return Err(ProfileLookupError::Unavailable(format!(
-                    "HTTP {status}: {}", response.into_string().unwrap_or_default(),
+                    "HTTP {status}: {}",
+                    response.into_string().unwrap_or_default(),
                 )));
             }
             Err(ureq::Error::Transport(error)) => {
                 return Err(ProfileLookupError::Unavailable(error.to_string()));
             }
         };
-        let raw: Vec<RawProfileLookup> = response.into_json()
+        let raw: Vec<RawProfileLookup> = response
+            .into_json()
             .map_err(|error| ProfileLookupError::InvalidResponse(error.to_string()))?;
         let Some(raw) = raw.into_iter().next() else {
             return Err(ProfileLookupError::NotFound(name.to_owned()));
@@ -186,9 +201,9 @@ impl MinecraftSessionService {
         profile: &GameProfile,
         requireSecure: bool,
     ) -> Result<GameProfile, ProfileLookupError> {
-        let id = profile.getId().ok_or_else(|| {
-            ProfileLookupError::InvalidResponse("profile has no UUID".to_owned())
-        })?;
+        let id = profile
+            .getId()
+            .ok_or_else(|| ProfileLookupError::InvalidResponse("profile has no UUID".to_owned()))?;
         let unsigned = if requireSecure { "false" } else { "true" };
         let url = format!(
             "{PROFILE_PROPERTIES_URL}/{}?unsigned={unsigned}",
@@ -201,21 +216,25 @@ impl MinecraftSessionService {
             }
             Err(ureq::Error::Status(status, response)) => {
                 return Err(ProfileLookupError::Unavailable(format!(
-                    "HTTP {status}: {}", response.into_string().unwrap_or_default(),
+                    "HTTP {status}: {}",
+                    response.into_string().unwrap_or_default(),
                 )));
             }
             Err(ureq::Error::Transport(error)) => {
                 return Err(ProfileLookupError::Unavailable(error.to_string()));
             }
         };
-        let raw: RawProfileProperties = response.into_json()
+        let raw: RawProfileProperties = response
+            .into_json()
             .map_err(|error| ProfileLookupError::InvalidResponse(error.to_string()))?;
         let rawId = Uuid::parse_str(&raw.id)
             .map_err(|error| ProfileLookupError::InvalidResponse(error.to_string()))?;
         let mut completed = GameProfile::new(Some(rawId), raw.name);
         for property in raw.properties {
             completed.addProperty(Property::new(
-                property.name, property.value, property.signature,
+                property.name,
+                property.value,
+                property.signature,
             ));
         }
         Ok(completed)
@@ -239,7 +258,9 @@ impl MinecraftSessionService {
         };
 
         if requireSecure {
-            let signature = property.getSignature().ok_or(ProfileTextureError::MissingSignature)?;
+            let signature = property
+                .getSignature()
+                .ok_or(ProfileTextureError::MissingSignature)?;
             if !verify_texture_signature(property.getValue().as_bytes(), signature) {
                 return Err(ProfileTextureError::InvalidSignature);
             }
@@ -274,7 +295,8 @@ fn verify_texture_signature(value: &[u8], signature_base64: &str) -> bool {
     let Ok(public_key) = RsaPublicKey::from_public_key_der(YGGDRASIL_PUBLIC_KEY_DER) else {
         return false;
     };
-    let Ok(signature_bytes) = base64::engine::general_purpose::STANDARD.decode(signature_base64) else {
+    let Ok(signature_bytes) = base64::engine::general_purpose::STANDARD.decode(signature_base64)
+    else {
         return false;
     };
     let Ok(signature) = RsaSignature::try_from(signature_bytes.as_slice()) else {
@@ -293,8 +315,15 @@ fn is_whitelisted_domain(raw_url: &str) -> bool {
 }
 
 fn classify_status(status: u16, response: String) -> JoinServerError {
-    let message = serde_json::from_str::<serde_json::Value>(&response).ok()
-        .and_then(|value| value.get("errorMessage").or_else(|| value.get("error")).and_then(|value| value.as_str()).map(str::to_owned))
+    let message = serde_json::from_str::<serde_json::Value>(&response)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("errorMessage")
+                .or_else(|| value.get("error"))
+                .and_then(|value| value.as_str())
+                .map(str::to_owned)
+        })
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| format!("HTTP {status}"));
     match status {
@@ -318,8 +347,13 @@ mod tests {
             base64::engine::general_purpose::STANDARD.encode(payload),
             None,
         ));
-        let textures = MinecraftSessionService::new().getTextures(&profile, false).unwrap();
-        assert_eq!(textures[&TextureType::Skin].getMetadata("model"), Some("slim"));
+        let textures = MinecraftSessionService::new()
+            .getTextures(&profile, false)
+            .unwrap();
+        assert_eq!(
+            textures[&TextureType::Skin].getMetadata("model"),
+            Some("slim")
+        );
         assert_eq!(textures[&TextureType::Cape].getHash(), "def");
     }
 
@@ -335,8 +369,12 @@ mod tests {
 
     #[test]
     fn texture_domain_whitelist_matches_authlib_suffixes() {
-        assert!(is_whitelisted_domain("https://textures.minecraft.net/texture/a"));
+        assert!(is_whitelisted_domain(
+            "https://textures.minecraft.net/texture/a"
+        ));
         assert!(is_whitelisted_domain("https://assets.mojang.com/a"));
-        assert!(!is_whitelisted_domain("https://minecraft.net.evil.invalid/a"));
+        assert!(!is_whitelisted_domain(
+            "https://minecraft.net.evil.invalid/a"
+        ));
     }
 }

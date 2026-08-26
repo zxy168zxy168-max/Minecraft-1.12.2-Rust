@@ -29,7 +29,13 @@ mod tests {
 
     #[test]
     fn source_scales_are_not_entity_dimensions() {
-        assert_eq!(RenderFireball::scale(ObjectSpawnType::LargeFireball), Some(2.0));
-        assert_eq!(RenderFireball::scale(ObjectSpawnType::SmallFireball), Some(0.5));
+        assert_eq!(
+            RenderFireball::scale(ObjectSpawnType::LargeFireball),
+            Some(2.0)
+        );
+        assert_eq!(
+            RenderFireball::scale(ObjectSpawnType::SmallFireball),
+            Some(0.5)
+        );
     }
 }

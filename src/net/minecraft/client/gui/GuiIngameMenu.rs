@@ -45,7 +45,9 @@ impl Default for GuiIngameMenu {
 }
 
 impl GuiIngameMenu {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn initGui(&mut self, width: i32, height: i32, locale: &Locale) {
         self.saveStep = 0;
@@ -130,7 +132,8 @@ impl GuiIngameMenu {
             40,
             0x00FF_FFFF,
         );
-        self.GuiScreen.drawScreen(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.GuiScreen
+            .drawScreen(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
     }
 
     pub fn mouseClicked(
@@ -139,9 +142,13 @@ impl GuiIngameMenu {
         mouseY: i32,
         mouseButton: i32,
     ) -> Option<GuiIngameMenuInteraction> {
-        if mouseButton != 0 { return None; }
+        if mouseButton != 0 {
+            return None;
+        }
         self.GuiScreen.buttonList.iter().find_map(|button| {
-            if !button.mousePressed(mouseX, mouseY) { return None; }
+            if !button.mousePressed(mouseX, mouseY) {
+                return None;
+            }
             let action = match button.id {
                 1 => GuiIngameMenuAction::Disconnect,
                 4 => GuiIngameMenuAction::ReturnToGame,
@@ -151,7 +158,10 @@ impl GuiIngameMenu {
                 7 => GuiIngameMenuAction::ShareToLan,
                 _ => return None,
             };
-            Some(GuiIngameMenuInteraction { action, sound: button.playPressSound() })
+            Some(GuiIngameMenuInteraction {
+                action,
+                sound: button.playPressSound(),
+            })
         })
     }
 }
@@ -163,21 +173,42 @@ mod tests {
     #[test]
     fn remote_pause_menu_keeps_vanilla_ids_and_coordinates() {
         let mut locale = Locale::default();
-        locale.load_bytes(concat!(
-            "menu.game=Game menu\n",
-            "menu.disconnect=Disconnect\n",
-            "menu.returnToGame=Back to Game\n",
-            "menu.options=Options...\n",
-            "menu.shareToLan=Open to LAN\n",
-            "gui.advancements=Advancements\n",
-            "gui.stats=Statistics\n",
-        ).as_bytes());
+        locale.load_bytes(
+            concat!(
+                "menu.game=Game menu\n",
+                "menu.disconnect=Disconnect\n",
+                "menu.returnToGame=Back to Game\n",
+                "menu.options=Options...\n",
+                "menu.shareToLan=Open to LAN\n",
+                "gui.advancements=Advancements\n",
+                "gui.stats=Statistics\n",
+            )
+            .as_bytes(),
+        );
         let mut menu = GuiIngameMenu::new();
         menu.initGui(854, 480, &locale);
-        let return_to_game = menu.GuiScreen.buttonList.iter().find(|button| button.id == 4).unwrap();
+        let return_to_game = menu
+            .GuiScreen
+            .buttonList
+            .iter()
+            .find(|button| button.id == 4)
+            .unwrap();
         assert_eq!((return_to_game.x, return_to_game.y), (327, 128));
-        let disconnect = menu.GuiScreen.buttonList.iter().find(|button| button.id == 1).unwrap();
+        let disconnect = menu
+            .GuiScreen
+            .buttonList
+            .iter()
+            .find(|button| button.id == 1)
+            .unwrap();
         assert_eq!((disconnect.x, disconnect.y), (327, 224));
-        assert!(!menu.GuiScreen.buttonList.iter().find(|button| button.id == 7).unwrap().enabled);
+        assert!(
+            !menu
+                .GuiScreen
+                .buttonList
+                .iter()
+                .find(|button| button.id == 7)
+                .unwrap()
+                .enabled
+        );
     }
 }

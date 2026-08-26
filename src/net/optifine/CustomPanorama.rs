@@ -31,21 +31,32 @@ pub fn select_custom_panorama(
         .iter()
         .enumerate()
         .map(|(index, folder)| {
-            let property_folder = if index == 0 { "optifine/gui" } else { folder.as_str() };
-            read_properties(resources, &ResourceLocation::parse(format!(
-                "{property_folder}/background.properties"
-            )))
+            let property_folder = if index == 0 {
+                "optifine/gui"
+            } else {
+                folder.as_str()
+            };
+            read_properties(
+                resources,
+                &ResourceLocation::parse(format!("{property_folder}/background.properties")),
+            )
         })
         .collect::<Vec<_>>();
 
     let weights = properties
         .iter()
         .map(|candidate| {
-            let effective = candidate.as_ref().or(properties.first().and_then(Option::as_ref));
-            effective.map(|values| parse_i32(values.get("weight"), 1)).unwrap_or(1)
+            let effective = candidate
+                .as_ref()
+                .or(properties.first().and_then(Option::as_ref));
+            effective
+                .map(|values| parse_i32(values.get("weight"), 1))
+                .unwrap_or(1)
         })
         .collect::<Vec<_>>();
-    let total = weights.iter().fold(0_i32, |sum, value| sum.wrapping_add(*value));
+    let total = weights
+        .iter()
+        .fold(0_i32, |sum, value| sum.wrapping_add(*value));
     if total <= 0 {
         return Err(CustomPanoramaError::InvalidWeightSum(total));
     }
@@ -95,7 +106,7 @@ fn parse_properties(bytes: &[u8]) -> HashMap<String, String> {
 }
 
 fn parse_i32(value: Option<&String>, default: i32) -> i32 {
-    value.and_then(|value| value.trim().parse().ok()).unwrap_or(default)
+    value
+        .and_then(|value| value.trim().parse().ok())
+        .unwrap_or(default)
 }
-
-

@@ -26,7 +26,13 @@ impl SPacketSetSlot {
         Ok(result)
     }
 
-    pub const fn getWindowId(&self) -> i8 { self.windowId }
-    pub const fn getSlot(&self) -> i16 { self.slot }
-    pub fn getStack(&self) -> &ItemStack { &self.item }
+    pub const fn getWindowId(&self) -> i8 {
+        self.windowId
+    }
+    pub const fn getSlot(&self) -> i16 {
+        self.slot
+    }
+    pub fn getStack(&self) -> &ItemStack {
+        &self.item
+    }
 }

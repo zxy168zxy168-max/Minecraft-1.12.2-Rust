@@ -59,9 +59,7 @@ impl RenderItem {
         Self { resourceManager }
     }
 
-    pub fn loadRegisteredModels(
-        &self,
-    ) -> HashMap<(i16, i16), Arc<ResolvedItemModel>> {
+    pub fn loadRegisteredModels(&self) -> HashMap<(i16, i16), Arc<ResolvedItemModel>> {
         let mut byLocation = HashMap::<(String, String), Arc<ResolvedItemModel>>::new();
         let mut models = HashMap::new();
         for &(itemId, metadata, location, variant) in registeredItemModels() {
@@ -166,7 +164,8 @@ fn bake_part(model: &ModelBlock, part: &BlockPart, output: &mut Vec<ResolvedItem
             format!("textures/{}.png", textureName.getPath()),
         );
         let faceUv = BlockFaceUV::new(
-            face.uv.unwrap_or_else(|| default_face_uv(part, sourceFacing)),
+            face.uv
+                .unwrap_or_else(|| default_face_uv(part, sourceFacing)),
             face.rotation.rem_euclid(360),
         );
         let baked = FaceBakery::makeBakedQuad(
@@ -202,12 +201,37 @@ fn face_name(name: &str) -> Option<EnumFacing> {
 
 fn default_face_uv(part: &BlockPart, facing: EnumFacing) -> [f32; 4] {
     match facing {
-        EnumFacing::Down => [part.from[0], 16.0 - part.to[2], part.to[0], 16.0 - part.from[2]],
+        EnumFacing::Down => [
+            part.from[0],
+            16.0 - part.to[2],
+            part.to[0],
+            16.0 - part.from[2],
+        ],
         EnumFacing::Up => [part.from[0], part.from[2], part.to[0], part.to[2]],
-        EnumFacing::North => [16.0 - part.to[0], 16.0 - part.to[1], 16.0 - part.from[0], 16.0 - part.from[1]],
-        EnumFacing::South => [part.from[0], 16.0 - part.to[1], part.to[0], 16.0 - part.from[1]],
-        EnumFacing::West => [part.from[2], 16.0 - part.to[1], part.to[2], 16.0 - part.from[1]],
-        EnumFacing::East => [16.0 - part.to[2], 16.0 - part.to[1], 16.0 - part.from[2], 16.0 - part.from[1]],
+        EnumFacing::North => [
+            16.0 - part.to[0],
+            16.0 - part.to[1],
+            16.0 - part.from[0],
+            16.0 - part.from[1],
+        ],
+        EnumFacing::South => [
+            part.from[0],
+            16.0 - part.to[1],
+            part.to[0],
+            16.0 - part.from[1],
+        ],
+        EnumFacing::West => [
+            part.from[2],
+            16.0 - part.to[1],
+            part.to[2],
+            16.0 - part.from[1],
+        ],
+        EnumFacing::East => [
+            16.0 - part.to[2],
+            16.0 - part.to[1],
+            16.0 - part.from[2],
+            16.0 - part.from[1],
+        ],
     }
 }
 
@@ -217,12 +241,10 @@ fn missing_item_model() -> ResolvedItemModel {
         to: [16.0, 16.0, 16.0],
         rotation: None,
         shade: true,
-        faces: [
-            "down", "up", "north", "south", "west", "east",
-        ]
-        .into_iter()
-        .map(|name| {
-            (
+        faces: ["down", "up", "north", "south", "west", "east"]
+            .into_iter()
+            .map(|name| {
+                (
                 name.to_owned(),
                 crate::net::minecraft::client::renderer::block::model::ModelBlock::BlockPartFace {
                     texture: "minecraft:missingno".to_owned(),
@@ -232,8 +254,8 @@ fn missing_item_model() -> ResolvedItemModel {
                     rotation: 0,
                 },
             )
-        })
-        .collect(),
+            })
+            .collect(),
     };
     let model = ModelBlock {
         textures: HashMap::new(),
@@ -270,7 +292,9 @@ mod tests {
     #[test]
     fn legacy_unbaked_item_models_match_mcp_model_bakery() {
         assert!(is_expected_unbaked_item_model("minecraft:old_wood_slab"));
-        assert!(is_expected_unbaked_item_model("minecraft:purpur_double_slab"));
+        assert!(is_expected_unbaked_item_model(
+            "minecraft:purpur_double_slab"
+        ));
         assert!(!is_expected_unbaked_item_model("minecraft:stone_slab"));
     }
 }

@@ -1,19 +1,23 @@
+#[path = "Minecraft.rs"]
+pub mod Minecraft;
 pub mod account;
+pub mod audio;
 pub mod entity;
-pub mod main;
 pub mod gui;
+pub mod main;
 pub mod model;
 pub mod renderer;
 pub mod resources;
 pub mod settings;
-pub mod audio;
-#[path = "Minecraft.rs"] pub mod Minecraft;
 
 pub mod multiplayer;
 
+#[path = "ClientBrandRetriever.rs"]
+pub mod ClientBrandRetriever;
 pub mod network;
-#[path = "ClientBrandRetriever.rs"] pub mod ClientBrandRetriever;
 
-#[path = "particle/mod.rs"] pub mod particle;
+#[path = "particle/mod.rs"]
+pub mod particle;
 
-#[path = "util/mod.rs"] pub mod util;
+#[path = "util/mod.rs"]
+pub mod util;

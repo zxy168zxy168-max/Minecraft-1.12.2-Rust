@@ -67,48 +67,130 @@ impl MinecraftServer {
     /// it only clears the server-running flag. Full `tick`/`stopServer` are
     /// intentionally not exposed until WorldServer and PlayerList exist, so a
     /// partial implementation cannot masquerade as the source lifecycle.
-    pub fn initiateShutdown(&mut self) { self.serverRunning = false; }
+    pub fn initiateShutdown(&mut self) {
+        self.serverRunning = false;
+    }
 
-    pub fn getActiveAnvilConverter(&self) -> &AnvilSaveConverter { &self.anvilConverterForAnvilFile }
-    pub fn getNetworkSystem(&self) -> &NetworkSystem { &self.networkSystem }
-    pub fn getNetworkSystemMut(&mut self) -> &mut NetworkSystem { &mut self.networkSystem }
-    pub fn getAnvilFile(&self) -> &Path { &self.anvilFile }
-    pub const fn getServerPort(&self) -> i32 { self.serverPort }
-    pub fn setServerPort(&mut self, port: i32) { self.serverPort = port; }
-    pub const fn isServerRunning(&self) -> bool { self.serverRunning }
-    pub const fn isServerStopped(&self) -> bool { self.serverStopped }
-    pub const fn getTickCounter(&self) -> i32 { self.tickCounter }
-    pub const fn isServerInOnlineMode(&self) -> bool { self.onlineMode }
-    pub fn setOnlineMode(&mut self, online: bool) { self.onlineMode = online; }
-    pub const fn getCanSpawnAnimals(&self) -> bool { self.canSpawnAnimals }
-    pub fn setCanSpawnAnimals(&mut self, enabled: bool) { self.canSpawnAnimals = enabled; }
-    pub const fn getCanSpawnNPCs(&self) -> bool { self.canSpawnNPCs }
-    pub fn setCanSpawnNPCs(&mut self, enabled: bool) { self.canSpawnNPCs = enabled; }
-    pub const fn isPVPEnabled(&self) -> bool { self.pvpEnabled }
-    pub fn setAllowPvp(&mut self, enabled: bool) { self.pvpEnabled = enabled; }
-    pub const fn isFlightAllowed(&self) -> bool { self.allowFlight }
-    pub fn setAllowFlight(&mut self, enabled: bool) { self.allowFlight = enabled; }
-    pub fn getMOTD(&self) -> &str { &self.motd }
-    pub fn setMOTD(&mut self, motd: impl Into<String>) { self.motd = motd.into(); }
-    pub const fn getBuildLimit(&self) -> i32 { self.buildLimit }
-    pub fn setBuildLimit(&mut self, height: i32) { self.buildLimit = height; }
-    pub fn getKeyPair(&self) -> Option<&KeyPair> { self.serverKeyPair.as_ref() }
-    pub fn setKeyPair(&mut self, keyPair: KeyPair) { self.serverKeyPair = Some(keyPair); }
-    pub fn getServerOwner(&self) -> Option<&str> { self.serverOwner.as_deref() }
-    pub fn setServerOwner(&mut self, owner: impl Into<String>) { self.serverOwner = Some(owner.into()); }
-    pub const fn isSinglePlayer(&self) -> bool { self.serverOwner.is_some() }
-    pub fn getFolderName(&self) -> &str { &self.folderName }
-    pub fn setFolderName(&mut self, name: impl Into<String>) { self.folderName = name.into(); }
-    pub fn getWorldName(&self) -> &str { &self.worldName }
-    pub fn setWorldName(&mut self, name: impl Into<String>) { self.worldName = name.into(); }
-    pub const fn isDemo(&self) -> bool { self.isDemo }
-    pub fn setDemo(&mut self, demo: bool) { self.isDemo = demo; }
-    pub const fn getEnableBonusChest(&self) -> bool { self.enableBonusChest }
-    pub fn canCreateBonusChest(&mut self, enable: bool) { self.enableBonusChest = enable; }
-    pub const fn serverIsInRunLoop(&self) -> bool { self.serverIsRunning }
-    pub fn setServerInRunLoop(&mut self, running: bool) { self.serverIsRunning = running; }
-    pub fn incrementTickCounter(&mut self) { self.tickCounter = self.tickCounter.wrapping_add(1); }
-    pub fn getUserMessage(&self) -> Option<&str> { self.userMessage.as_deref() }
+    pub fn getActiveAnvilConverter(&self) -> &AnvilSaveConverter {
+        &self.anvilConverterForAnvilFile
+    }
+    pub fn getNetworkSystem(&self) -> &NetworkSystem {
+        &self.networkSystem
+    }
+    pub fn getNetworkSystemMut(&mut self) -> &mut NetworkSystem {
+        &mut self.networkSystem
+    }
+    pub fn getAnvilFile(&self) -> &Path {
+        &self.anvilFile
+    }
+    pub const fn getServerPort(&self) -> i32 {
+        self.serverPort
+    }
+    pub fn setServerPort(&mut self, port: i32) {
+        self.serverPort = port;
+    }
+    pub const fn isServerRunning(&self) -> bool {
+        self.serverRunning
+    }
+    pub const fn isServerStopped(&self) -> bool {
+        self.serverStopped
+    }
+    pub const fn getTickCounter(&self) -> i32 {
+        self.tickCounter
+    }
+    pub const fn isServerInOnlineMode(&self) -> bool {
+        self.onlineMode
+    }
+    pub fn setOnlineMode(&mut self, online: bool) {
+        self.onlineMode = online;
+    }
+    pub const fn getCanSpawnAnimals(&self) -> bool {
+        self.canSpawnAnimals
+    }
+    pub fn setCanSpawnAnimals(&mut self, enabled: bool) {
+        self.canSpawnAnimals = enabled;
+    }
+    pub const fn getCanSpawnNPCs(&self) -> bool {
+        self.canSpawnNPCs
+    }
+    pub fn setCanSpawnNPCs(&mut self, enabled: bool) {
+        self.canSpawnNPCs = enabled;
+    }
+    pub const fn isPVPEnabled(&self) -> bool {
+        self.pvpEnabled
+    }
+    pub fn setAllowPvp(&mut self, enabled: bool) {
+        self.pvpEnabled = enabled;
+    }
+    pub const fn isFlightAllowed(&self) -> bool {
+        self.allowFlight
+    }
+    pub fn setAllowFlight(&mut self, enabled: bool) {
+        self.allowFlight = enabled;
+    }
+    pub fn getMOTD(&self) -> &str {
+        &self.motd
+    }
+    pub fn setMOTD(&mut self, motd: impl Into<String>) {
+        self.motd = motd.into();
+    }
+    pub const fn getBuildLimit(&self) -> i32 {
+        self.buildLimit
+    }
+    pub fn setBuildLimit(&mut self, height: i32) {
+        self.buildLimit = height;
+    }
+    pub fn getKeyPair(&self) -> Option<&KeyPair> {
+        self.serverKeyPair.as_ref()
+    }
+    pub fn setKeyPair(&mut self, keyPair: KeyPair) {
+        self.serverKeyPair = Some(keyPair);
+    }
+    pub fn getServerOwner(&self) -> Option<&str> {
+        self.serverOwner.as_deref()
+    }
+    pub fn setServerOwner(&mut self, owner: impl Into<String>) {
+        self.serverOwner = Some(owner.into());
+    }
+    pub const fn isSinglePlayer(&self) -> bool {
+        self.serverOwner.is_some()
+    }
+    pub fn getFolderName(&self) -> &str {
+        &self.folderName
+    }
+    pub fn setFolderName(&mut self, name: impl Into<String>) {
+        self.folderName = name.into();
+    }
+    pub fn getWorldName(&self) -> &str {
+        &self.worldName
+    }
+    pub fn setWorldName(&mut self, name: impl Into<String>) {
+        self.worldName = name.into();
+    }
+    pub const fn isDemo(&self) -> bool {
+        self.isDemo
+    }
+    pub fn setDemo(&mut self, demo: bool) {
+        self.isDemo = demo;
+    }
+    pub const fn getEnableBonusChest(&self) -> bool {
+        self.enableBonusChest
+    }
+    pub fn canCreateBonusChest(&mut self, enable: bool) {
+        self.enableBonusChest = enable;
+    }
+    pub const fn serverIsInRunLoop(&self) -> bool {
+        self.serverIsRunning
+    }
+    pub fn setServerInRunLoop(&mut self, running: bool) {
+        self.serverIsRunning = running;
+    }
+    pub fn incrementTickCounter(&mut self) {
+        self.tickCounter = self.tickCounter.wrapping_add(1);
+    }
+    pub fn getUserMessage(&self) -> Option<&str> {
+        self.userMessage.as_deref()
+    }
     pub fn setUserMessage(&mut self, message: Option<impl Into<String>>) {
         self.userMessage = message.map(Into::into);
     }

@@ -13,7 +13,11 @@ use crate::net::minecraft::util::Session::Session;
 use crate::vulkan::GuiDrawList::GuiDrawList;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum GuiMicrosoftAuthAction { Cancel, Authenticated(Session), None }
+pub enum GuiMicrosoftAuthAction {
+    Cancel,
+    Authenticated(Session),
+    None,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GuiMicrosoftAuthInteraction {
@@ -54,8 +58,15 @@ impl GuiMicrosoftAuth {
         self.GuiScreen.width = width;
         self.GuiScreen.height = height;
         self.GuiScreen.buttonList.clear();
-        self.GuiScreen.buttonList.push(GuiButton::new(0, width / 2 - 100, height / 2 + 13, "Cancel"));
-        if self.receiver.is_none() && self.finishedSession.is_none() { self.start(); }
+        self.GuiScreen.buttonList.push(GuiButton::new(
+            0,
+            width / 2 - 100,
+            height / 2 + 13,
+            "Cancel",
+        ));
+        if self.receiver.is_none() && self.finishedSession.is_none() {
+            self.start();
+        }
     }
 
     fn start(&mut self) {
@@ -63,22 +74,30 @@ impl GuiMicrosoftAuth {
         let cancelled = Arc::clone(&self.cancelled);
         let (sender, receiver) = mpsc::channel();
         let statusSender = sender.clone();
-        let _ = thread::Builder::new().name("Exhibition Microsoft Auth".to_owned()).spawn(move || {
-            let (uiSender, uiReceiver) = mpsc::channel::<String>();
-            let relay = sender.clone();
-            let relayThread = thread::spawn(move || {
-                while let Ok(status) = uiReceiver.recv() {
-                    if relay.send(AuthEvent::Status(status)).is_err() { break; }
+        let _ = thread::Builder::new()
+            .name("Exhibition Microsoft Auth".to_owned())
+            .spawn(move || {
+                let (uiSender, uiReceiver) = mpsc::channel::<String>();
+                let relay = sender.clone();
+                let relayThread = thread::spawn(move || {
+                    while let Ok(status) = uiReceiver.recv() {
+                        if relay.send(AuthEvent::Status(status)).is_err() {
+                            break;
+                        }
+                    }
+                });
+                let result = interactive_login(Some(&uiSender), Some(cancelled.as_ref()));
+                drop(uiSender);
+                let _ = relayThread.join();
+                match result {
+                    Ok(login) => {
+                        let _ = statusSender.send(AuthEvent::Success(login));
+                    }
+                    Err(error) => {
+                        let _ = statusSender.send(AuthEvent::Failure(error.to_string()));
+                    }
                 }
             });
-            let result = interactive_login(Some(&uiSender), Some(cancelled.as_ref()));
-            drop(uiSender);
-            let _ = relayThread.join();
-            match result {
-                Ok(login) => { let _ = statusSender.send(AuthEvent::Success(login)); }
-                Err(error) => { let _ = statusSender.send(AuthEvent::Failure(error.to_string())); }
-            }
-        });
         self.receiver = Some(receiver);
     }
 
@@ -103,7 +122,8 @@ impl GuiMicrosoftAuth {
                             self.status = "§cFailed saving Microsoft account§r".to_owned();
                             self.cause = Some(format!("§c{error}§r"));
                         } else {
-                            self.status = format!("§aSuccessful login! ({})§r", login.session.getUsername());
+                            self.status =
+                                format!("§aSuccessful login! ({})§r", login.session.getUsername());
                             self.finishedSession = Some(login.session);
                         }
                         clear = true;
@@ -116,20 +136,58 @@ impl GuiMicrosoftAuth {
                 }
             }
         }
-        if clear { self.receiver = None; }
-        self.finishedSession.take().map(GuiMicrosoftAuthAction::Authenticated)
+        if clear {
+            self.receiver = None;
+        }
+        self.finishedSession
+            .take()
+            .map(GuiMicrosoftAuthAction::Authenticated)
     }
 
-    pub fn drawScreen(&mut self, drawList: &mut GuiDrawList, font: &mut FontRenderer, mouseX: i32, mouseY: i32, partialTicks: f32) {
+    pub fn drawScreen(
+        &mut self,
+        drawList: &mut GuiDrawList,
+        font: &mut FontRenderer,
+        mouseX: i32,
+        mouseY: i32,
+        partialTicks: f32,
+    ) {
         self.GuiScreen.drawDefaultBackground(drawList);
-        self.GuiScreen.Gui.drawCenteredString(font, drawList, "Microsoft Authentication", self.GuiScreen.width / 2, self.GuiScreen.height / 2 - 22, 11_184_810);
-        self.GuiScreen.Gui.drawCenteredString(font, drawList, &self.status, self.GuiScreen.width / 2, self.GuiScreen.height / 2 - 4, -1);
+        self.GuiScreen.Gui.drawCenteredString(
+            font,
+            drawList,
+            "Microsoft Authentication",
+            self.GuiScreen.width / 2,
+            self.GuiScreen.height / 2 - 22,
+            11_184_810,
+        );
+        self.GuiScreen.Gui.drawCenteredString(
+            font,
+            drawList,
+            &self.status,
+            self.GuiScreen.width / 2,
+            self.GuiScreen.height / 2 - 4,
+            -1,
+        );
         if let Some(cause) = &self.cause {
             let width = font.get_string_width(cause);
-            drawList.draw_rect(0, self.GuiScreen.height - font.font_height - 5, width + 6, self.GuiScreen.height, 0x6400_0000_u32 as i32);
-            font.draw_string_with_shadow(drawList, cause, 3.0, (self.GuiScreen.height - font.font_height - 2) as f32, -1);
+            drawList.draw_rect(
+                0,
+                self.GuiScreen.height - font.font_height - 5,
+                width + 6,
+                self.GuiScreen.height,
+                0x6400_0000_u32 as i32,
+            );
+            font.draw_string_with_shadow(
+                drawList,
+                cause,
+                3.0,
+                (self.GuiScreen.height - font.font_height - 2) as f32,
+                -1,
+            );
         }
-        self.GuiScreen.drawScreen(drawList, font, mouseX, mouseY, partialTicks);
+        self.GuiScreen
+            .drawScreen(drawList, font, mouseX, mouseY, partialTicks);
     }
 
     pub fn cancel(&mut self) {
@@ -137,11 +195,26 @@ impl GuiMicrosoftAuth {
         self.receiver = None;
     }
 
-    pub fn mouseClicked(&mut self, mouseX: i32, mouseY: i32, mouseButton: i32) -> Option<GuiMicrosoftAuthInteraction> {
-        if mouseButton != 0 { return None; }
-        let button = self.GuiScreen.buttonList.iter().find(|button| button.mousePressed(mouseX, mouseY))?.clone();
+    pub fn mouseClicked(
+        &mut self,
+        mouseX: i32,
+        mouseY: i32,
+        mouseButton: i32,
+    ) -> Option<GuiMicrosoftAuthInteraction> {
+        if mouseButton != 0 {
+            return None;
+        }
+        let button = self
+            .GuiScreen
+            .buttonList
+            .iter()
+            .find(|button| button.mousePressed(mouseX, mouseY))?
+            .clone();
         self.cancel();
-        Some(GuiMicrosoftAuthInteraction { action: GuiMicrosoftAuthAction::Cancel, sound: Some(button.playPressSound()) })
+        Some(GuiMicrosoftAuthInteraction {
+            action: GuiMicrosoftAuthAction::Cancel,
+            sound: Some(button.playPressSound()),
+        })
     }
 }
 

@@ -27,6 +27,9 @@ mod tests {
         let subtractPowered = onBlockActivatedState(comparePowered).unwrap();
         assert_eq!(subtractPowered.getBlockId(), 150);
         assert_eq!(subtractPowered.getMetadata(), 14);
-        assert_eq!(onBlockActivatedState(subtractPowered).unwrap(), comparePowered);
+        assert_eq!(
+            onBlockActivatedState(subtractPowered).unwrap(),
+            comparePowered
+        );
     }
 }

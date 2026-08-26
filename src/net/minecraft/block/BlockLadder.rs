@@ -1,11 +1,13 @@
 use crate::net::minecraft::block::state::BlockFaceShape::BlockFaceShape;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
-pub const fn isBlockLadder(state: IBlockState) -> bool { state.getBlockId() == 65 }
+pub const fn isBlockLadder(state: IBlockState) -> bool {
+    state.getBlockId() == 65
+}
 
 pub const fn facing(state: IBlockState) -> EnumFacing {
     match state.getMetadata() % 6 {
@@ -51,11 +53,22 @@ pub fn canPlaceBlockOnSide<A: IBlockAccess>(world: &A, pos: BlockPos, side: Enum
         || canAttachTo(world, pos.south(1), side)
 }
 
-pub fn placementFacing<A: IBlockAccess>(world: &A, pos: BlockPos, requested: EnumFacing) -> EnumFacing {
-    if requested.axis() != Axis::Y && canAttachTo(world, pos.offset(requested.opposite(), 1), requested) {
+pub fn placementFacing<A: IBlockAccess>(
+    world: &A,
+    pos: BlockPos,
+    requested: EnumFacing,
+) -> EnumFacing {
+    if requested.axis() != Axis::Y
+        && canAttachTo(world, pos.offset(requested.opposite(), 1), requested)
+    {
         return requested;
     }
-    for facing in [EnumFacing::North, EnumFacing::East, EnumFacing::South, EnumFacing::West] {
+    for facing in [
+        EnumFacing::North,
+        EnumFacing::East,
+        EnumFacing::South,
+        EnumFacing::West,
+    ] {
         if canAttachTo(world, pos.offset(facing.opposite(), 1), facing) {
             return facing;
         }
@@ -68,7 +81,9 @@ pub fn onBlockPlacedState<A: IBlockAccess>(
     pos: BlockPos,
     requested: EnumFacing,
 ) -> IBlockState {
-    IBlockState::fromGlobalStateId((65 << 4) | metadataForFacing(placementFacing(world, pos, requested)))
+    IBlockState::fromGlobalStateId(
+        (65 << 4) | metadataForFacing(placementFacing(world, pos, requested)),
+    )
 }
 
 #[cfg(test)]
@@ -80,7 +95,9 @@ mod tests {
         use std::collections::HashMap;
         struct Access(HashMap<BlockPos, IBlockState>);
         impl IBlockAccess for Access {
-            fn getBlockState(&self, pos: BlockPos) -> IBlockState { self.0.get(&pos).copied().unwrap_or_default() }
+            fn getBlockState(&self, pos: BlockPos) -> IBlockState {
+                self.0.get(&pos).copied().unwrap_or_default()
+            }
         }
         let pos = BlockPos::new(0, 64, 0);
         let mut blocks = HashMap::new();

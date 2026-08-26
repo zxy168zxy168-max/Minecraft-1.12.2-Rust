@@ -1,1 +1,2 @@
-#[path = "AbstractHorse.rs"] pub mod AbstractHorse;
+#[path = "AbstractHorse.rs"]
+pub mod AbstractHorse;

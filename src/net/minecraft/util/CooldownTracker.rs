@@ -39,7 +39,8 @@ impl CooldownTracker {
     pub fn tick(&mut self) {
         self.ticks = self.ticks.saturating_add(1);
         let ticks = self.ticks;
-        self.cooldowns.retain(|_, cooldown| cooldown.expireTicks > ticks);
+        self.cooldowns
+            .retain(|_, cooldown| cooldown.expireTicks > ticks);
     }
 
     /// MCP `CooldownTracker#setCooldown`.

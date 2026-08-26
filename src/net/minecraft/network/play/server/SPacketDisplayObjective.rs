@@ -16,6 +16,10 @@ impl SPacketDisplayObjective {
             scoreName: read_string(&mut input, 16)?,
         })
     }
-    pub const fn getPosition(&self) -> i32 { self.position }
-    pub fn getName(&self) -> &str { &self.scoreName }
+    pub const fn getPosition(&self) -> i32 {
+        self.position
+    }
+    pub fn getName(&self) -> &str {
+        &self.scoreName
+    }
 }

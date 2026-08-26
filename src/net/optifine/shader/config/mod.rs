@@ -1,3 +1,6 @@
-#[path = "ShaderPackZip.rs"] pub mod ShaderPackZip;
-#[path = "ShaderPackSource.rs"] pub mod ShaderPackSource;
-#[path = "ShaderPackOptions.rs"] pub mod ShaderPackOptions;
+#[path = "ShaderPackOptions.rs"]
+pub mod ShaderPackOptions;
+#[path = "ShaderPackSource.rs"]
+pub mod ShaderPackSource;
+#[path = "ShaderPackZip.rs"]
+pub mod ShaderPackZip;

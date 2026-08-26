@@ -28,6 +28,9 @@ mod tests {
         let delayFourNorth = IBlockState::fromGlobalStateId((93 << 4) | 14);
         let delayOneNorth = onBlockActivatedState(delayFourNorth).unwrap();
         assert_eq!(delayOneNorth.getMetadata(), 2);
-        assert_eq!(delayOneNorth.getMetadata() & 3, delayFourNorth.getMetadata() & 3);
+        assert_eq!(
+            delayOneNorth.getMetadata() & 3,
+            delayFourNorth.getMetadata() & 3
+        );
     }
 }

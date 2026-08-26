@@ -54,7 +54,12 @@ mod tests {
     use super::*;
 
     fn stack(id: i16) -> ItemStack {
-        ItemStack { itemId: id, count: 1, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]
@@ -62,28 +67,25 @@ mod tests {
         let main = stack(339);
         let off = stack(442);
         assert_eq!(
-            LayerHeldItem::stackForSide(
-                EnumHandSide::Right, &main, &off, EnumHandSide::Right,
-            ),
+            LayerHeldItem::stackForSide(EnumHandSide::Right, &main, &off, EnumHandSide::Right,),
             &main,
         );
         assert_eq!(
-            LayerHeldItem::stackForSide(
-                EnumHandSide::Right, &main, &off, EnumHandSide::Left,
-            ),
+            LayerHeldItem::stackForSide(EnumHandSide::Right, &main, &off, EnumHandSide::Left,),
             &off,
         );
         assert_eq!(
-            LayerHeldItem::stackForSide(
-                EnumHandSide::Left, &main, &off, EnumHandSide::Right,
-            ),
+            LayerHeldItem::stackForSide(EnumHandSide::Left, &main, &off, EnumHandSide::Right,),
             &off,
         );
     }
 
     #[test]
     fn left_hand_uses_mirrored_translation_and_transform() {
-        assert_eq!(LayerHeldItem::handTranslation(EnumHandSide::Left), [-0.0625, 0.125, -0.625]);
+        assert_eq!(
+            LayerHeldItem::handTranslation(EnumHandSide::Left),
+            [-0.0625, 0.125, -0.625]
+        );
         assert_eq!(
             LayerHeldItem::transformType(EnumHandSide::Left),
             TransformType::ThirdPersonLeftHand,

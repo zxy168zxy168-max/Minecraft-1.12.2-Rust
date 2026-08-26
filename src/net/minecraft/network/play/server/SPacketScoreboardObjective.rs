@@ -24,11 +24,24 @@ impl SPacketScoreboardObjective {
         } else {
             (String::new(), EnumRenderType::Integer)
         };
-        Ok(Self { objectiveName, objectiveValue, type_, action })
+        Ok(Self {
+            objectiveName,
+            objectiveValue,
+            type_,
+            action,
+        })
     }
 
-    pub fn getObjectiveName(&self) -> &str { &self.objectiveName }
-    pub fn getObjectiveValue(&self) -> &str { &self.objectiveValue }
-    pub const fn getAction(&self) -> i32 { self.action }
-    pub const fn getRenderType(&self) -> EnumRenderType { self.type_ }
+    pub fn getObjectiveName(&self) -> &str {
+        &self.objectiveName
+    }
+    pub fn getObjectiveValue(&self) -> &str {
+        &self.objectiveValue
+    }
+    pub const fn getAction(&self) -> i32 {
+        self.action
+    }
+    pub const fn getRenderType(&self) -> EnumRenderType {
+        self.type_
+    }
 }

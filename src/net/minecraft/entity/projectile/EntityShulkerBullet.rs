@@ -17,7 +17,9 @@ impl EntityShulkerBullet {
     }
 
     /// MCP `EntityShulkerBullet#getBrightnessForRender`.
-    pub const fn getBrightnessForRender() -> u32 { Self::FULL_BRIGHT_LIGHT }
+    pub const fn getBrightnessForRender() -> u32 {
+        Self::FULL_BRIGHT_LIGHT
+    }
 }
 
 #[cfg(test)]
@@ -26,7 +28,10 @@ mod tests {
 
     #[test]
     fn source_dimensions_brightness_and_render_range_are_exact() {
-        assert_eq!((EntityShulkerBullet::WIDTH, EntityShulkerBullet::HEIGHT), (0.3125, 0.3125));
+        assert_eq!(
+            (EntityShulkerBullet::WIDTH, EntityShulkerBullet::HEIGHT),
+            (0.3125, 0.3125)
+        );
         assert_eq!(EntityShulkerBullet::getBrightnessForRender(), 15_728_880);
         assert!(EntityShulkerBullet::isInRangeToRenderDist(16_383.999));
         assert!(!EntityShulkerBullet::isInRangeToRenderDist(16_384.0));

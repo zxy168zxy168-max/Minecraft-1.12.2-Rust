@@ -14,7 +14,6 @@ pub struct GuiSoundCommand {
     pub pitch: f32,
 }
 
-
 /// Semantic port of `net.minecraft.client.gui.GuiButton`.
 ///
 /// Rendering is recorded as an ordered GUI draw list. The Vulkan backend must
@@ -61,7 +60,13 @@ impl GuiButton {
 
     /// Returns the MCP hover-state row: disabled=0, normal=1, hovered=2.
     pub const fn getHoverState(&self, mouse_over: bool) -> i32 {
-        if !self.enabled { 0 } else if mouse_over { 2 } else { 1 }
+        if !self.enabled {
+            0
+        } else if mouse_over {
+            2
+        } else {
+            1
+        }
     }
 
     pub fn drawButton(
@@ -133,10 +138,18 @@ impl GuiButton {
 
     pub fn mouseDragged(&mut self, _mouse_x: i32, _mouse_y: i32) {}
 
-    pub const fn isMouseOver(&self) -> bool { self.hovered }
-    pub const fn getButtonWidth(&self) -> i32 { self.width }
-    pub const fn getButtonHeight(&self) -> i32 { self.height }
-    pub fn setWidth(&mut self, width: i32) { self.width = width; }
+    pub const fn isMouseOver(&self) -> bool {
+        self.hovered
+    }
+    pub const fn getButtonWidth(&self) -> i32 {
+        self.width
+    }
+    pub const fn getButtonHeight(&self) -> i32 {
+        self.height
+    }
+    pub fn setWidth(&mut self, width: i32) {
+        self.width = width;
+    }
 
     pub(crate) fn contains(&self, mouse_x: i32, mouse_y: i32) -> bool {
         mouse_x >= self.x
@@ -167,7 +180,6 @@ mod tests {
         button.enabled = false;
         assert_eq!(button.getHoverState(true), 0);
     }
-
 
     #[test]
     fn playPressSound_matches_sound_events_registration() {

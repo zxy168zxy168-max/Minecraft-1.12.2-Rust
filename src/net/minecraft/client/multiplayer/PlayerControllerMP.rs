@@ -1,7 +1,4 @@
-use crate::net::minecraft::client::audio::LocalSoundEvent::LocalSoundEvent;
-use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
-use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
-use crate::net::minecraft::client::renderer::DestroyBlockProgress::DestroyBlockProgress;
+use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::block::BlockButton;
 use crate::net::minecraft::block::BlockDoor;
 use crate::net::minecraft::block::BlockFenceGate;
@@ -9,8 +6,11 @@ use crate::net::minecraft::block::BlockJukebox;
 use crate::net::minecraft::block::BlockRedstoneComparator;
 use crate::net::minecraft::block::BlockRedstoneRepeater;
 use crate::net::minecraft::block::BlockTrapDoor;
-use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::block::SoundType::SoundType;
+use crate::net::minecraft::client::audio::LocalSoundEvent::LocalSoundEvent;
+use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
+use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
+use crate::net::minecraft::client::renderer::DestroyBlockProgress::DestroyBlockProgress;
 use crate::net::minecraft::item::Item::Item;
 use crate::net::minecraft::item::ItemBlock::{ItemBlock, ItemBlockPlacement};
 use crate::net::minecraft::item::ItemBucket::ItemBucket;
@@ -19,7 +19,6 @@ use crate::net::minecraft::item::ItemHoe::ItemHoe;
 use crate::net::minecraft::item::ItemSign::ItemSign;
 use crate::net::minecraft::item::ItemSkull::ItemSkull;
 use crate::net::minecraft::item::ItemStack::ItemStack;
-use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::play::client::CPacketEnchantItem::CPacketEnchantItem;
 use crate::net::minecraft::network::play::client::CPacketHeldItemChange::CPacketHeldItemChange;
 use crate::net::minecraft::network::play::client::CPacketPlayerDigging::{
@@ -27,13 +26,14 @@ use crate::net::minecraft::network::play::client::CPacketPlayerDigging::{
 };
 use crate::net::minecraft::network::play::client::CPacketPlayerTryUseItem::CPacketPlayerTryUseItem;
 use crate::net::minecraft::network::play::client::CPacketPlayerTryUseItemOnBlock::CPacketPlayerTryUseItemOnBlock;
+use crate::net::minecraft::network::Packet::RawPacket;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::math::RayTraceResult::RayTraceResult;
+use crate::net::minecraft::util::math::Vec3d::Vec3d;
 use crate::net::minecraft::util::EnumActionResult::EnumActionResult;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::EnumHand::EnumHand;
 use crate::net::minecraft::util::SoundCategory::SoundCategory;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
-use crate::net::minecraft::util::math::RayTraceResult::RayTraceResult;
-use crate::net::minecraft::util::math::Vec3d::Vec3d;
 use crate::net::minecraft::world::GameType::GameType;
 
 /// Multiplayer interaction controller following MCP 1.12.2
@@ -78,7 +78,6 @@ impl BlockRightClickResult {
         }
     }
 
-
     fn withSound(mut self, sound: Option<(&'static str, f32, f32)>) -> Self {
         self.sound = sound;
         self
@@ -117,7 +116,13 @@ pub struct AirRightClickResult {
 
 impl AirRightClickResult {
     pub fn new(packet: Option<RawPacket>, result: EnumActionResult) -> Self {
-        Self { packet, result, fillBucket: None, emptyBucket: None, thrown: None }
+        Self {
+            packet,
+            result,
+            fillBucket: None,
+            emptyBucket: None,
+            thrown: None,
+        }
     }
 }
 
@@ -160,19 +165,29 @@ impl Default for PlayerControllerMP {
 }
 
 impl PlayerControllerMP {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn setGameType(&mut self, typeIn: GameType) {
         self.currentGameType = typeIn;
     }
 
-    pub const fn getCurrentGameType(&self) -> GameType { self.currentGameType }
-
-    pub const fn getBlockReachDistance(&self) -> f64 {
-        if self.currentGameType.isCreative() { 5.0 } else { 4.5 }
+    pub const fn getCurrentGameType(&self) -> GameType {
+        self.currentGameType
     }
 
-    pub const fn extendedReach(&self) -> bool { self.currentGameType.isCreative() }
+    pub const fn getBlockReachDistance(&self) -> f64 {
+        if self.currentGameType.isCreative() {
+            5.0
+        } else {
+            4.5
+        }
+    }
+
+    pub const fn extendedReach(&self) -> bool {
+        self.currentGameType.isCreative()
+    }
 
     /// MCP `PlayerControllerMP#sendEnchantPacket`. Network ownership remains
     /// with the caller in this Rust port, so the controller returns the exact
@@ -208,11 +223,10 @@ impl PlayerControllerMP {
 
         let mut packets = Vec::with_capacity(2);
         if self.currentGameType.isCreative() {
-            packets.push(CPacketPlayerDigging::new(
-                DiggingAction::StartDestroyBlock,
-                loc,
-                face,
-            ).writePacketData());
+            packets.push(
+                CPacketPlayerDigging::new(DiggingAction::StartDestroyBlock, loc, face)
+                    .writePacketData(),
+            );
             let held = player.inventory.getCurrentItem();
             if !is_creative_sword(held) {
                 self.pendingDestroyEffect = Some((loc, world.getBlockState(loc)));
@@ -224,18 +238,20 @@ impl PlayerControllerMP {
         let held = player.inventory.getCurrentItem();
         if !self.isHittingBlock || !self.isHittingPosition(loc, held) {
             if self.isHittingBlock {
-                packets.push(CPacketPlayerDigging::new(
-                    DiggingAction::AbortDestroyBlock,
-                    self.currentBlock,
-                    face,
-                ).writePacketData());
+                packets.push(
+                    CPacketPlayerDigging::new(
+                        DiggingAction::AbortDestroyBlock,
+                        self.currentBlock,
+                        face,
+                    )
+                    .writePacketData(),
+                );
             }
             let state = world.getBlockState(loc);
-            packets.push(CPacketPlayerDigging::new(
-                DiggingAction::StartDestroyBlock,
-                loc,
-                face,
-            ).writePacketData());
+            packets.push(
+                CPacketPlayerDigging::new(DiggingAction::StartDestroyBlock, loc, face)
+                    .writePacketData(),
+            );
 
             // Vanilla destroys hardness>=1 blocks locally after START and does
             // not emit a synthetic STOP packet. The caller consumes this exact
@@ -265,7 +281,8 @@ impl PlayerControllerMP {
             DiggingAction::AbortDestroyBlock,
             self.currentBlock,
             EnumFacing::Down,
-        ).writePacketData();
+        )
+        .writePacketData();
         self.isHittingBlock = false;
         self.curBlockDamageMP = 0.0;
         self.currentItemHittingBlock = ItemStack::EMPTY;
@@ -289,17 +306,23 @@ impl PlayerControllerMP {
 
         if self.currentGameType.isCreative() {
             let state = world.getBlockState(posBlock);
-            if state.isAir() { return (Vec::new(), false); }
+            if state.isAir() {
+                return (Vec::new(), false);
+            }
             let held = player.inventory.getCurrentItem();
             if !is_creative_sword(held) {
                 self.pendingDestroyEffect = Some((posBlock, state));
             }
             self.blockHitDelay = 5;
-            return (vec![CPacketPlayerDigging::new(
-                DiggingAction::StartDestroyBlock,
-                posBlock,
-                directionFacing,
-            ).writePacketData()], true);
+            return (
+                vec![CPacketPlayerDigging::new(
+                    DiggingAction::StartDestroyBlock,
+                    posBlock,
+                    directionFacing,
+                )
+                .writePacketData()],
+                true,
+            );
         }
 
         let held = player.inventory.getCurrentItem();
@@ -335,11 +358,15 @@ impl PlayerControllerMP {
                 self.stepSoundTickCounter = 0.0;
                 self.blockHitDelay = 5;
                 self.currentItemHittingBlock = ItemStack::EMPTY;
-                return (vec![CPacketPlayerDigging::new(
-                    DiggingAction::StopDestroyBlock,
-                    posBlock,
-                    directionFacing,
-                ).writePacketData()], true);
+                return (
+                    vec![CPacketPlayerDigging::new(
+                        DiggingAction::StopDestroyBlock,
+                        posBlock,
+                        directionFacing,
+                    )
+                    .writePacketData()],
+                    true,
+                );
             }
             (Vec::new(), true)
         } else {
@@ -360,7 +387,9 @@ impl PlayerControllerMP {
         pos == self.currentBlock && (both_empty || same_item)
     }
 
-    pub const fn getCurBlockDamageMP(&self) -> f32 { self.curBlockDamageMP }
+    pub const fn getCurBlockDamageMP(&self) -> f32 {
+        self.curBlockDamageMP
+    }
 
     /// Source-backed client result path for MCP
     /// `PlayerControllerMP#processRightClickBlock`. The serverbound packet is
@@ -410,7 +439,8 @@ impl PlayerControllerMP {
             (hit.hitVec.x - pos.x as f64) as f32,
             (hit.hitVec.y - pos.y as f64) as f32,
             (hit.hitVec.z - pos.z as f64) as f32,
-        ).writePacketData();
+        )
+        .writePacketData();
 
         if activated || self.currentGameType == GameType::Spectator {
             return BlockRightClickResult::new(Some(packet), EnumActionResult::Success, false)
@@ -450,7 +480,8 @@ impl PlayerControllerMP {
                 Some(packet),
                 result,
                 result == EnumActionResult::Success,
-            ).withPredictedPlacement(placement);
+            )
+            .withPredictedPlacement(placement);
         }
 
         if ItemDoor::isItemDoor(stack) {
@@ -529,14 +560,22 @@ impl PlayerControllerMP {
                         let blockPos = hit.getBlockPos();
                         // MCP ItemBucket empty-bucket branch checks editing the
                         // adjacent side before consuming a liquid source.
-                        if !player.canPlayerEdit(world, blockPos.offset(hit.sideHit, 1), hit.sideHit, &stack) {
+                        if !player.canPlayerEdit(
+                            world,
+                            blockPos.offset(hit.sideHit, 1),
+                            hit.sideHit,
+                            &stack,
+                        ) {
                             return AirRightClickResult::new(Some(packet), EnumActionResult::Fail);
                         }
                         let target = (blockPos, world.getBlockState(blockPos));
                         match ItemBucket::predictFill(Some(target)) {
                             Some(fill) => AirRightClickResult {
-                                packet: Some(packet), result: EnumActionResult::Success,
-                                fillBucket: Some(fill), emptyBucket: None, thrown: None,
+                                packet: Some(packet),
+                                result: EnumActionResult::Success,
+                                fillBucket: Some(fill),
+                                emptyBucket: None,
+                                thrown: None,
                             },
                             None => AirRightClickResult::new(Some(packet), EnumActionResult::Fail),
                         }
@@ -548,17 +587,24 @@ impl PlayerControllerMP {
                 match itemRayTrace(world, player, false) {
                     None => AirRightClickResult::new(Some(packet), EnumActionResult::Pass),
                     Some(hit) => match ItemBucket::predictEmpty(
-                        world, hit.getBlockPos(), hit.sideHit, stack.itemId,
+                        world,
+                        hit.getBlockPos(),
+                        hit.sideHit,
+                        stack.itemId,
                     ) {
                         Some(empty) => {
                             // MCP full-bucket branch checks the actual liquid
                             // destination, not merely the originally hit block.
-                            if !player.canPlayerEdit(world, empty.destination, hit.sideHit, &stack) {
+                            if !player.canPlayerEdit(world, empty.destination, hit.sideHit, &stack)
+                            {
                                 AirRightClickResult::new(Some(packet), EnumActionResult::Fail)
                             } else {
                                 AirRightClickResult {
-                                    packet: Some(packet), result: EnumActionResult::Success,
-                                    fillBucket: None, emptyBucket: Some(empty), thrown: None,
+                                    packet: Some(packet),
+                                    result: EnumActionResult::Success,
+                                    fillBucket: None,
+                                    emptyBucket: Some(empty),
+                                    thrown: None,
                                 }
                             }
                         }
@@ -580,9 +626,15 @@ impl PlayerControllerMP {
                     player.getCooldownTrackerMut().setCooldown(368, 20);
                 }
                 AirRightClickResult {
-                    packet: Some(packet), result: EnumActionResult::Success,
-                    fillBucket: None, emptyBucket: None,
-                    thrown: Some(Thrown { sound, category, pitch }),
+                    packet: Some(packet),
+                    result: EnumActionResult::Success,
+                    fillBucket: None,
+                    emptyBucket: None,
+                    thrown: Some(Thrown {
+                        sound,
+                        category,
+                        pitch,
+                    }),
                 }
             }
             _ => AirRightClickResult::new(Some(packet), EnumActionResult::Pass),
@@ -592,7 +644,11 @@ impl PlayerControllerMP {
     /// MCP `World.sendBlockBreakProgress` value for the local breaker. Stage
     /// `-1` is deliberately represented as `None`, so no destroy texture is
     /// drawn before the first positive hardness increment.
-    pub fn getDestroyBlockProgress(&self, breakerId: i32, cloudTick: i32) -> Option<DestroyBlockProgress> {
+    pub fn getDestroyBlockProgress(
+        &self,
+        breakerId: i32,
+        cloudTick: i32,
+    ) -> Option<DestroyBlockProgress> {
         if !self.isHittingBlock {
             return None;
         }
@@ -614,7 +670,9 @@ impl PlayerControllerMP {
         self.pendingHitSound.take()
     }
 
-    pub const fn getIsHittingBlock(&self) -> bool { self.isHittingBlock }
+    pub const fn getIsHittingBlock(&self) -> bool {
+        self.isHittingBlock
+    }
 }
 
 /// Source-equivalent client-world state changes for concrete activation
@@ -700,7 +758,11 @@ fn itemRayTrace(
     let look = player.getLook(1.0);
     world.rayTraceBlocks(
         eyes,
-        Vec3d::new(eyes.x + look.x * 5.0, eyes.y + look.y * 5.0, eyes.z + look.z * 5.0),
+        Vec3d::new(
+            eyes.x + look.x * 5.0,
+            eyes.y + look.y * 5.0,
+            eyes.z + look.z * 5.0,
+        ),
         useLiquids,
         !useLiquids,
         false,
@@ -719,10 +781,15 @@ mod tests {
     #[test]
     fn held_item_sync_only_emits_on_change() {
         let mut controller = PlayerControllerMP::new();
-        let first = controller.syncCurrentPlayItem(0).expect("initial slot sync");
+        let first = controller
+            .syncCurrentPlayItem(0)
+            .expect("initial slot sync");
         assert_eq!(first.id, 0x1A);
         assert!(controller.syncCurrentPlayItem(0).is_none());
-        assert_eq!(controller.syncCurrentPlayItem(8).unwrap().payload, vec![0, 8]);
+        assert_eq!(
+            controller.syncCurrentPlayItem(8).unwrap().payload,
+            vec![0, 8]
+        );
     }
 
     #[test]
@@ -748,7 +815,9 @@ mod tests {
             ),
             EnumHand::MainHand,
         );
-        let packet = interaction.packet.expect("air block hit still sends the use-on-block packet");
+        let packet = interaction
+            .packet
+            .expect("air block hit still sends the use-on-block packet");
         assert_eq!(interaction.result, EnumActionResult::Pass);
         assert_eq!(packet.id, 0x1F);
         assert_eq!(packet.payload.len(), 22);
@@ -763,7 +832,9 @@ mod tests {
         let lower = IBlockState::fromGlobalStateId((64 << 4) | 1);
         let upper = IBlockState::fromGlobalStateId((64 << 4) | 8);
         world.invalidateRegionAndSetBlock(lowerPos, lower).unwrap();
-        world.invalidateRegionAndSetBlock(lowerPos.up(1), upper).unwrap();
+        world
+            .invalidateRegionAndSetBlock(lowerPos.up(1), upper)
+            .unwrap();
 
         let result = controller.processRightClickBlock(
             &world,
@@ -775,7 +846,9 @@ mod tests {
             ),
             EnumHand::MainHand,
         );
-        let prediction = result.predictedBlockState.expect("wood door predicts client toggle");
+        let prediction = result
+            .predictedBlockState
+            .expect("wood door predicts client toggle");
         assert_eq!(prediction.pos, lowerPos);
         assert_eq!(prediction.expectedState, lower);
         assert_eq!(prediction.state.getMetadata(), lower.getMetadata() ^ 4);
@@ -789,7 +862,9 @@ mod tests {
         player.entity.rotationYaw = 0.0; // SOUTH
         let pos = BlockPos::new(0, 64, 0);
         let northFacingClosed = IBlockState::fromGlobalStateId((107 << 4) | 2);
-        world.invalidateRegionAndSetBlock(pos, northFacingClosed).unwrap();
+        world
+            .invalidateRegionAndSetBlock(pos, northFacingClosed)
+            .unwrap();
 
         let result = controller.processRightClickBlock(
             &world,
@@ -797,7 +872,9 @@ mod tests {
             RayTraceResult::block(Vec3d::new(0.5, 64.5, 0.5), EnumFacing::North, pos),
             EnumHand::MainHand,
         );
-        let prediction = result.predictedBlockState.expect("gate predicts client toggle");
+        let prediction = result
+            .predictedBlockState
+            .expect("gate predicts client toggle");
         assert_eq!(prediction.state.getMetadata() & 3, 0); // SOUTH
         assert_ne!(prediction.state.getMetadata() & 4, 0);
     }
@@ -811,36 +888,40 @@ mod tests {
         let repeaterPos = BlockPos::new(1, 64, 0);
         let comparator = IBlockState::fromGlobalStateId((149 << 4) | 10);
         let repeater = IBlockState::fromGlobalStateId((93 << 4) | 14);
-        world.invalidateRegionAndSetBlock(comparatorPos, comparator).unwrap();
-        world.invalidateRegionAndSetBlock(repeaterPos, repeater).unwrap();
+        world
+            .invalidateRegionAndSetBlock(comparatorPos, comparator)
+            .unwrap();
+        world
+            .invalidateRegionAndSetBlock(repeaterPos, repeater)
+            .unwrap();
 
         let comparatorResult = controller.processRightClickBlock(
             &world,
             &player,
-            RayTraceResult::block(
-                Vec3d::new(0.5, 64.5, 0.5),
-                EnumFacing::Up,
-                comparatorPos,
-            ),
+            RayTraceResult::block(Vec3d::new(0.5, 64.5, 0.5), EnumFacing::Up, comparatorPos),
             EnumHand::MainHand,
         );
         assert_eq!(
-            comparatorResult.predictedBlockState.unwrap().state.getMetadata(),
+            comparatorResult
+                .predictedBlockState
+                .unwrap()
+                .state
+                .getMetadata(),
             14,
         );
 
         let repeaterResult = controller.processRightClickBlock(
             &world,
             &player,
-            RayTraceResult::block(
-                Vec3d::new(1.5, 64.5, 0.5),
-                EnumFacing::Up,
-                repeaterPos,
-            ),
+            RayTraceResult::block(Vec3d::new(1.5, 64.5, 0.5), EnumFacing::Up, repeaterPos),
             EnumHand::MainHand,
         );
         assert_eq!(
-            repeaterResult.predictedBlockState.unwrap().state.getMetadata(),
+            repeaterResult
+                .predictedBlockState
+                .unwrap()
+                .state
+                .getMetadata(),
             2,
         );
     }

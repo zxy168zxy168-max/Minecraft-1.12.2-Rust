@@ -27,8 +27,12 @@ impl CPacketUpdateSign {
         Ok(RawPacket::new(0x1C, payload))
     }
 
-    pub const fn getPosition(&self) -> BlockPos { self.position }
-    pub const fn getLines(&self) -> &[String; 4] { &self.lines }
+    pub const fn getPosition(&self) -> BlockPos {
+        self.position
+    }
+    pub const fn getLines(&self) -> &[String; 4] {
+        &self.lines
+    }
 }
 
 fn truncate_utf16(value: &str, maximum: usize) -> String {
@@ -45,13 +49,21 @@ mod tests {
         let position = BlockPos::new(-17, 72, 300);
         let packet = CPacketUpdateSign::new(
             position,
-            ["one".to_owned(), "two".to_owned(), "三".to_owned(), "".to_owned()],
+            [
+                "one".to_owned(),
+                "two".to_owned(),
+                "三".to_owned(),
+                "".to_owned(),
+            ],
         )
         .writePacketData()
         .unwrap();
         assert_eq!(packet.id, 0x1C);
         let mut input = packet.payload.as_slice();
-        assert_eq!(BlockPos::from_long(read_i64_be(&mut input).unwrap()), position);
+        assert_eq!(
+            BlockPos::from_long(read_i64_be(&mut input).unwrap()),
+            position
+        );
         assert_eq!(read_string(&mut input, 384).unwrap(), "one");
         assert_eq!(read_string(&mut input, 384).unwrap(), "two");
         assert_eq!(read_string(&mut input, 384).unwrap(), "三");

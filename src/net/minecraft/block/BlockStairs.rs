@@ -1,8 +1,8 @@
 use crate::net::minecraft::block::state::BlockFaceShape::BlockFaceShape;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::{EnumFacing};
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -57,11 +57,22 @@ pub const fn isTop(state: IBlockState) -> bool {
 /// MCP `BlockStairs#onBlockPlaced`: FACING follows the placer; HALF is top
 /// only for a DOWN click or a horizontal click above 0.5. SHAPE is an
 /// unpersisted actual/property state and starts STRAIGHT.
-pub fn onBlockPlacedState(blockId:i32, clickedFace:EnumFacing, hitY:f32, placerYaw:f32)->IBlockState {
-    let facing=EnumFacing::fromAngle(placerYaw as f64);
-    let facingBits=match facing{EnumFacing::East=>0,EnumFacing::West=>1,EnumFacing::South=>2,_=>3};
-    let top=clickedFace==EnumFacing::Down || (clickedFace!=EnumFacing::Up && (hitY as f64)>0.5);
-    IBlockState::fromGlobalStateId((blockId<<4)|facingBits|if top{4}else{0})
+pub fn onBlockPlacedState(
+    blockId: i32,
+    clickedFace: EnumFacing,
+    hitY: f32,
+    placerYaw: f32,
+) -> IBlockState {
+    let facing = EnumFacing::fromAngle(placerYaw as f64);
+    let facingBits = match facing {
+        EnumFacing::East => 0,
+        EnumFacing::West => 1,
+        EnumFacing::South => 2,
+        _ => 3,
+    };
+    let top =
+        clickedFace == EnumFacing::Down || (clickedFace != EnumFacing::Up && (hitY as f64) > 0.5);
+    IBlockState::fromGlobalStateId((blockId << 4) | facingBits | if top { 4 } else { 0 })
 }
 
 /// Port of `BlockStairs.func_193383_a` / `getBlockFaceShape`, including
@@ -91,7 +102,11 @@ pub fn getBlockFaceShape<A: IBlockAccess>(
         EnumShape::Straight => stairFacing == face,
         EnumShape::OuterLeft | EnumShape::OuterRight => false,
     };
-    if solid { BlockFaceShape::SOLID } else { BlockFaceShape::UNDEFINED }
+    if solid {
+        BlockFaceShape::SOLID
+    } else {
+        BlockFaceShape::UNDEFINED
+    }
 }
 
 pub fn getCollisionBoxList(state: IBlockState, shape: EnumShape) -> Vec<AxisAlignedBB> {
@@ -102,7 +117,10 @@ pub fn getCollisionBoxList(state: IBlockState, shape: EnumShape) -> Vec<AxisAlig
         AxisAlignedBB::new(0.0, 0.0, 0.0, 1.0, 0.5, 1.0)
     }];
 
-    if matches!(shape, EnumShape::Straight | EnumShape::InnerLeft | EnumShape::InnerRight) {
+    if matches!(
+        shape,
+        EnumShape::Straight | EnumShape::InnerLeft | EnumShape::InnerRight
+    ) {
         boxes.push(quarter_box(state));
     }
     if shape != EnumShape::Straight {
@@ -215,7 +233,10 @@ mod tests {
 
     #[test]
     fn straight_without_neighbour_stair() {
-        assert_eq!(getStairsShape(stair(0), &Access(HashMap::new()), BlockPos::new(0, 0, 0)), EnumShape::Straight);
+        assert_eq!(
+            getStairsShape(stair(0), &Access(HashMap::new()), BlockPos::new(0, 0, 0)),
+            EnumShape::Straight
+        );
     }
 
     #[test]
@@ -223,7 +244,10 @@ mod tests {
         let pos = BlockPos::new(0, 64, 0);
         let mut blocks = HashMap::new();
         blocks.insert(pos.east(1), stair(3)); // north-facing stair in front of east-facing stair
-        assert_eq!(getStairsShape(stair(0), &Access(blocks), pos), EnumShape::OuterLeft);
+        assert_eq!(
+            getStairsShape(stair(0), &Access(blocks), pos),
+            EnumShape::OuterLeft
+        );
     }
 
     #[test]
@@ -231,7 +255,10 @@ mod tests {
         let pos = BlockPos::new(0, 64, 0);
         let mut blocks = HashMap::new();
         blocks.insert(pos.west(1), stair(3)); // north-facing stair behind east-facing stair
-        assert_eq!(getStairsShape(stair(0), &Access(blocks), pos), EnumShape::InnerLeft);
+        assert_eq!(
+            getStairsShape(stair(0), &Access(blocks), pos),
+            EnumShape::InnerLeft
+        );
     }
 
     #[test]

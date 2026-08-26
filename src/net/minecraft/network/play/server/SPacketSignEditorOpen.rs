@@ -20,7 +20,9 @@ impl SPacketSignEditorOpen {
         Ok(Self { signPosition })
     }
 
-    pub const fn getSignPosition(&self) -> BlockPos { self.signPosition }
+    pub const fn getSignPosition(&self) -> BlockPos {
+        self.signPosition
+    }
 }
 
 #[cfg(test)]
@@ -30,7 +32,15 @@ mod tests {
     #[test]
     fn packed_block_position_round_trips() {
         let pos = BlockPos::new(-12, 70, 345);
-        let packet = RawPacket { id: 0x2A, payload: pos.to_long().to_be_bytes().to_vec() };
-        assert_eq!(SPacketSignEditorOpen::readPacketData(&packet).unwrap().getSignPosition(), pos);
+        let packet = RawPacket {
+            id: 0x2A,
+            payload: pos.to_long().to_be_bytes().to_vec(),
+        };
+        assert_eq!(
+            SPacketSignEditorOpen::readPacketData(&packet)
+                .unwrap()
+                .getSignPosition(),
+            pos
+        );
     }
 }

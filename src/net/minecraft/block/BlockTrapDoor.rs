@@ -1,8 +1,10 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
-pub const fn isBlockTrapDoor(state: IBlockState) -> bool { matches!(state.getBlockId(), 96 | 167) }
+pub const fn isBlockTrapDoor(state: IBlockState) -> bool {
+    matches!(state.getBlockId(), 96 | 167)
+}
 
 pub const fn facing(state: IBlockState) -> EnumFacing {
     match state.getMetadata() & 3 {
@@ -13,8 +15,12 @@ pub const fn facing(state: IBlockState) -> EnumFacing {
     }
 }
 
-pub const fn isOpen(state: IBlockState) -> bool { state.getMetadata() & 4 != 0 }
-pub const fn isTopHalf(state: IBlockState) -> bool { state.getMetadata() & 8 != 0 }
+pub const fn isOpen(state: IBlockState) -> bool {
+    state.getMetadata() & 4 != 0
+}
+pub const fn isTopHalf(state: IBlockState) -> bool {
+    state.getMetadata() & 8 != 0
+}
 
 /// Exact state result of `BlockTrapDoor#onBlockActivated`. Iron trapdoors
 /// reject manual activation; wooden trapdoors cycle OPEN (metadata bit 2).
@@ -48,11 +54,13 @@ pub fn onBlockPlacedState(
     let (facing, topHalf) = if !matches!(clickedFace, EnumFacing::Up | EnumFacing::Down) {
         (clickedFace, hitY > 0.5)
     } else {
-        (placerHorizontalFacing.opposite(), clickedFace == EnumFacing::Down)
+        (
+            placerHorizontalFacing.opposite(),
+            clickedFace == EnumFacing::Down,
+        )
     };
-    let metadata = metadataForFacing(facing)
-        | if powered { 4 } else { 0 }
-        | if topHalf { 8 } else { 0 };
+    let metadata =
+        metadataForFacing(facing) | if powered { 4 } else { 0 } | if topHalf { 8 } else { 0 };
     IBlockState::fromGlobalStateId((blockId << 4) | metadata)
 }
 
@@ -72,7 +80,9 @@ pub fn getBoundingBox(state: IBlockState) -> AxisAlignedBB {
 }
 
 /// MCP `BlockTrapDoor#canPlaceBlockOnSide` is intentionally unconditional.
-pub const fn canPlaceBlockOnSide() -> bool { true }
+pub const fn canPlaceBlockOnSide() -> bool {
+    true
+}
 
 #[cfg(test)]
 mod tests {

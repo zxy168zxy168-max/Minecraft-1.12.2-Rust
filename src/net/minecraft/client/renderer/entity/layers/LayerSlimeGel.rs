@@ -3,5 +3,7 @@
 pub struct LayerSlimeGel;
 
 impl LayerSlimeGel {
-    pub const fn color() -> [f32; 4] { [1.0, 1.0, 1.0, 0.5] }
+    pub const fn color() -> [f32; 4] {
+        [1.0, 1.0, 1.0, 0.5]
+    }
 }

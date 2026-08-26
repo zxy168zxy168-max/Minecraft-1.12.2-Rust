@@ -66,12 +66,16 @@ pub fn createPlatformBackend() -> Box<dyn SoundBackend> {
 struct UnavailableAudioBackend;
 
 impl SoundBackend for UnavailableAudioBackend {
-    fn isLoaded(&self) -> bool { false }
+    fn isLoaded(&self) -> bool {
+        false
+    }
     fn setMasterVolume(&mut self, _volume: f32) {}
     fn play(&mut self, _request: BackendPlayRequest) -> Result<(), String> {
         Err("audio backend is unavailable".to_owned())
     }
-    fn isPlaying(&self, _channel: u64) -> bool { false }
+    fn isPlaying(&self, _channel: u64) -> bool {
+        false
+    }
     fn stop(&mut self, _channel: u64) {}
     fn remove(&mut self, _channel: u64) {}
     fn stopAll(&mut self) {}
@@ -95,9 +99,7 @@ mod windows_backend {
 
     use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 
-    use super::{
-        AttenuationType, BackendPlayRequest, ListenerTransform, SoundBackend,
-    };
+    use super::{AttenuationType, BackendPlayRequest, ListenerTransform, SoundBackend};
 
     #[derive(Debug)]
     struct StereoGains {
@@ -138,7 +140,11 @@ mod windows_backend {
 
     impl LinearSpatialSource {
         fn new(input: Box<dyn Source<Item = f32> + Send>, gains: Arc<StereoGains>) -> Self {
-            Self { input, gains, pendingRight: None }
+            Self {
+                input,
+                gains,
+                pendingRight: None,
+            }
         }
     }
 
@@ -169,9 +175,15 @@ mod windows_backend {
             })
         }
 
-        fn channels(&self) -> u16 { 2 }
-        fn sample_rate(&self) -> u32 { self.input.sample_rate() }
-        fn total_duration(&self) -> Option<Duration> { self.input.total_duration() }
+        fn channels(&self) -> u16 {
+            2
+        }
+        fn sample_rate(&self) -> u32 {
+            self.input.sample_rate()
+        }
+        fn total_duration(&self) -> Option<Duration> {
+            self.input.total_duration()
+        }
     }
 
     struct Channel {
@@ -193,8 +205,8 @@ mod windows_backend {
 
     impl WindowsAudioBackend {
         pub(super) fn new() -> Result<Self, String> {
-            let (stream, streamHandle) = OutputStream::try_default()
-                .map_err(|error| error.to_string())?;
+            let (stream, streamHandle) =
+                OutputStream::try_default().map_err(|error| error.to_string())?;
             Ok(Self {
                 _stream: stream,
                 streamHandle,
@@ -205,7 +217,9 @@ mod windows_backend {
         }
 
         fn refreshChannelSpatial(listener: ListenerTransform, channel: &Channel) {
-            let Some(gains) = channel.gains.as_ref() else { return; };
+            let Some(gains) = channel.gains.as_ref() else {
+                return;
+            };
             if channel.attenuation == AttenuationType::None {
                 gains.set(1.0, 1.0);
                 return;
@@ -223,7 +237,11 @@ mod windows_backend {
                 (1.0 - distance / channel.attenuationDistance).clamp(0.0, 1.0)
             };
             let direction = if distance > f32::EPSILON {
-                [relative[0] / distance, relative[1] / distance, relative[2] / distance]
+                [
+                    relative[0] / distance,
+                    relative[1] / distance,
+                    relative[2] / distance,
+                ]
             } else {
                 [0.0; 3]
             };
@@ -238,12 +256,16 @@ mod windows_backend {
         }
 
         fn applyChannelVolume(masterVolume: f32, channel: &Channel) {
-            channel.sink.set_volume((masterVolume * channel.baseVolume).max(0.0));
+            channel
+                .sink
+                .set_volume((masterVolume * channel.baseVolume).max(0.0));
         }
     }
 
     impl SoundBackend for WindowsAudioBackend {
-        fn isLoaded(&self) -> bool { true }
+        fn isLoaded(&self) -> bool {
+            true
+        }
 
         fn setMasterVolume(&mut self, volume: f32) {
             self.masterVolume = volume.clamp(0.0, 1.0);
@@ -296,27 +318,39 @@ mod windows_backend {
         }
 
         fn isPlaying(&self, channel: u64) -> bool {
-            self.channels.get(&channel).is_some_and(|entry| !entry.sink.empty())
+            self.channels
+                .get(&channel)
+                .is_some_and(|entry| !entry.sink.empty())
         }
 
         fn stop(&mut self, channel: u64) {
-            if let Some(entry) = self.channels.get(&channel) { entry.sink.stop(); }
+            if let Some(entry) = self.channels.get(&channel) {
+                entry.sink.stop();
+            }
         }
 
         fn remove(&mut self, channel: u64) {
-            if let Some(entry) = self.channels.remove(&channel) { entry.sink.stop(); }
+            if let Some(entry) = self.channels.remove(&channel) {
+                entry.sink.stop();
+            }
         }
 
         fn stopAll(&mut self) {
-            for (_, entry) in self.channels.drain() { entry.sink.stop(); }
+            for (_, entry) in self.channels.drain() {
+                entry.sink.stop();
+            }
         }
 
         fn pause(&mut self, channel: u64) {
-            if let Some(entry) = self.channels.get(&channel) { entry.sink.pause(); }
+            if let Some(entry) = self.channels.get(&channel) {
+                entry.sink.pause();
+            }
         }
 
         fn resume(&mut self, channel: u64) {
-            if let Some(entry) = self.channels.get(&channel) { entry.sink.play(); }
+            if let Some(entry) = self.channels.get(&channel) {
+                entry.sink.play();
+            }
         }
 
         fn setVolume(&mut self, channel: u64, volume: f32) {
@@ -347,7 +381,9 @@ mod windows_backend {
         }
     }
 
-    fn dot(a: [f32; 3], b: [f32; 3]) -> f32 { a[0] * b[0] + a[1] * b[1] + a[2] * b[2] }
+    fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
+        a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+    }
     fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
         [
             a[1] * b[2] - a[2] * b[1],
@@ -355,11 +391,16 @@ mod windows_backend {
             a[0] * b[1] - a[1] * b[0],
         ]
     }
-    fn length(value: [f32; 3]) -> f32 { dot(value, value).sqrt() }
+    fn length(value: [f32; 3]) -> f32 {
+        dot(value, value).sqrt()
+    }
     fn normalize(value: [f32; 3]) -> [f32; 3] {
         let length = length(value);
-        if length <= f32::EPSILON { [1.0, 0.0, 0.0] }
-        else { [value[0] / length, value[1] / length, value[2] / length] }
+        if length <= f32::EPSILON {
+            [1.0, 0.0, 0.0]
+        } else {
+            [value[0] / length, value[1] / length, value[2] / length]
+        }
     }
 }
 

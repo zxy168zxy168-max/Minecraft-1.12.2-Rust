@@ -23,6 +23,10 @@ impl SPacketEntityAttach {
         Ok(result)
     }
 
-    pub const fn getEntityId(&self) -> i32 { self.entityId }
-    pub const fn getVehicleEntityId(&self) -> i32 { self.vehicleEntityId }
+    pub const fn getEntityId(&self) -> i32 {
+        self.entityId
+    }
+    pub const fn getVehicleEntityId(&self) -> i32 {
+        self.vehicleEntityId
+    }
 }

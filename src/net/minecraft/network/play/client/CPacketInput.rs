@@ -12,7 +12,12 @@ pub struct CPacketInput {
 
 impl CPacketInput {
     pub const fn new(strafeSpeed: f32, forwardSpeed: f32, jumping: bool, sneaking: bool) -> Self {
-        Self { strafeSpeed, forwardSpeed, jumping, sneaking }
+        Self {
+            strafeSpeed,
+            forwardSpeed,
+            jumping,
+            sneaking,
+        }
     }
 
     pub fn writePacketData(&self) -> RawPacket {
@@ -20,8 +25,12 @@ impl CPacketInput {
         write_f32_be(self.strafeSpeed, &mut payload);
         write_f32_be(self.forwardSpeed, &mut payload);
         let mut flags = 0_i8;
-        if self.jumping { flags |= 1; }
-        if self.sneaking { flags |= 2; }
+        if self.jumping {
+            flags |= 1;
+        }
+        if self.sneaking {
+            flags |= 2;
+        }
         payload.push(flags as u8);
         RawPacket::new(0x16, payload)
     }

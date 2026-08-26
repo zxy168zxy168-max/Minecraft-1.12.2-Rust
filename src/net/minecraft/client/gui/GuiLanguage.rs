@@ -58,30 +58,43 @@ fn draw_container_background(
     let widthF = width as f32;
     let topV = (top + amountScrolled) as f32 / 32.0;
     let bottomV = (bottom + amountScrolled) as f32 / 32.0;
-    drawList.push_textured_quad(texture, [
-        (0.0, bottom as f32, 0.0, bottomV, color),
-        (widthF, bottom as f32, widthF / 32.0, bottomV, color),
-        (widthF, top as f32, widthF / 32.0, topV, color),
-        (0.0, top as f32, 0.0, topV, color),
-    ]);
+    drawList.push_textured_quad(
+        texture,
+        [
+            (0.0, bottom as f32, 0.0, bottomV, color),
+            (widthF, bottom as f32, widthF / 32.0, bottomV, color),
+            (widthF, top as f32, widthF / 32.0, topV, color),
+            (0.0, top as f32, 0.0, topV, color),
+        ],
+    );
 }
 
 /// MCP `GuiSlot#overlayBackground(startY,endY,255,255)`.
-fn draw_overlay_background(
-    drawList: &mut GuiDrawList,
-    width: i32,
-    startY: i32,
-    endY: i32,
-) {
+fn draw_overlay_background(drawList: &mut GuiDrawList, width: i32, startY: i32, endY: i32) {
     let texture = crate::net::minecraft::client::gui::Gui::OPTIONS_BACKGROUND.clone();
     let color = 0xFF40_4040_u32;
     let widthF = width as f32;
-    drawList.push_textured_quad(texture, [
-        (0.0, endY as f32, 0.0, endY as f32 / 32.0, color),
-        (widthF, endY as f32, widthF / 32.0, endY as f32 / 32.0, color),
-        (widthF, startY as f32, widthF / 32.0, startY as f32 / 32.0, color),
-        (0.0, startY as f32, 0.0, startY as f32 / 32.0, color),
-    ]);
+    drawList.push_textured_quad(
+        texture,
+        [
+            (0.0, endY as f32, 0.0, endY as f32 / 32.0, color),
+            (
+                widthF,
+                endY as f32,
+                widthF / 32.0,
+                endY as f32 / 32.0,
+                color,
+            ),
+            (
+                widthF,
+                startY as f32,
+                widthF / 32.0,
+                startY as f32 / 32.0,
+                color,
+            ),
+            (0.0, startY as f32, 0.0, startY as f32 / 32.0, color),
+        ],
+    );
 }
 
 impl GuiLanguage {
@@ -135,8 +148,15 @@ impl GuiLanguage {
             locale.translate_key("gui.done"),
         ));
 
-        self.languages = languageManager.getLanguages().into_iter().cloned().collect();
-        self.currentLanguage = languageManager.getCurrentLanguage().getLanguageCode().to_owned();
+        self.languages = languageManager
+            .getLanguages()
+            .into_iter()
+            .cloned()
+            .collect();
+        self.currentLanguage = languageManager
+            .getCurrentLanguage()
+            .getLanguageCode()
+            .to_owned();
         self.currentLanguageBidirectional = languageManager.isCurrentLanguageBidirectional();
         self.clampScroll();
     }
@@ -289,12 +309,20 @@ impl GuiLanguage {
             self.GuiScreen.height,
         );
         drawList.draw_gradient_rect(
-            0, LIST_TOP, self.GuiScreen.width, LIST_TOP + 4,
-            0xFF00_0000_u32 as i32, 0x0000_0000,
+            0,
+            LIST_TOP,
+            self.GuiScreen.width,
+            LIST_TOP + 4,
+            0xFF00_0000_u32 as i32,
+            0x0000_0000,
         );
         drawList.draw_gradient_rect(
-            0, self.listBottom() - 4, self.GuiScreen.width, self.listBottom(),
-            0x0000_0000, 0xFF00_0000_u32 as i32,
+            0,
+            self.listBottom() - 4,
+            self.GuiScreen.width,
+            self.listBottom(),
+            0x0000_0000,
+            0xFF00_0000_u32 as i32,
         );
 
         let maxScroll = self.maxScroll();
@@ -309,9 +337,27 @@ impl GuiLanguage {
             if thumbY < LIST_TOP {
                 thumbY = LIST_TOP;
             }
-            drawList.draw_rect(trackX, LIST_TOP, trackRight, self.listBottom(), 0xFF00_0000_u32 as i32);
-            drawList.draw_rect(trackX, thumbY, trackRight, thumbY + thumbHeight, 0xFF80_8080_u32 as i32);
-            drawList.draw_rect(trackX, thumbY, trackRight - 1, thumbY + thumbHeight - 1, 0xFFC0_C0C0_u32 as i32);
+            drawList.draw_rect(
+                trackX,
+                LIST_TOP,
+                trackRight,
+                self.listBottom(),
+                0xFF00_0000_u32 as i32,
+            );
+            drawList.draw_rect(
+                trackX,
+                thumbY,
+                trackRight,
+                thumbY + thumbHeight,
+                0xFF80_8080_u32 as i32,
+            );
+            drawList.draw_rect(
+                trackX,
+                thumbY,
+                trackRight - 1,
+                thumbY + thumbHeight - 1,
+                0xFFC0_C0C0_u32 as i32,
+            );
         }
 
         self.GuiScreen.Gui.drawCenteredString(
@@ -331,7 +377,8 @@ impl GuiLanguage {
             self.GuiScreen.height - 56,
             0x0080_8080,
         );
-        self.GuiScreen.drawScreen(drawList, font, mouseX, mouseY, partialTicks);
+        self.GuiScreen
+            .drawScreen(drawList, font, mouseX, mouseY, partialTicks);
     }
 
     pub fn mouseClicked(
@@ -355,11 +402,15 @@ impl GuiLanguage {
                 && (index as usize) < self.languages.len();
 
             let interaction = if rowHit {
-                self.languages.get(index as usize).map(|language| GuiLanguageInteraction {
-                    action: GuiLanguageAction::SelectLanguage(language.getLanguageCode().to_owned()),
-                    // `GuiSlot#elementClicked` does not play the button press sound.
-                    sound: None,
-                })
+                self.languages
+                    .get(index as usize)
+                    .map(|language| GuiLanguageInteraction {
+                        action: GuiLanguageAction::SelectLanguage(
+                            language.getLanguageCode().to_owned(),
+                        ),
+                        // `GuiSlot#elementClicked` does not play the button press sound.
+                        sound: None,
+                    })
             } else {
                 None
             };

@@ -11,7 +11,11 @@ pub struct CPacketEncryptionResponse {
 }
 
 impl CPacketEncryptionResponse {
-    pub fn new(secret: &SecretKey, key: &RsaPublicKey, verifyToken: &[u8]) -> Result<Self, CryptManagerError> {
+    pub fn new(
+        secret: &SecretKey,
+        key: &RsaPublicKey,
+        verifyToken: &[u8],
+    ) -> Result<Self, CryptManagerError> {
         Ok(Self {
             secretKeyEncrypted: encryptData(key, secret.getEncoded())?,
             verifyTokenEncrypted: encryptData(key, verifyToken)?,

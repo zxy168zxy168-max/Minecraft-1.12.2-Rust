@@ -1,6 +1,12 @@
-#[path = "Ingredient.rs"] pub mod Ingredient;
-#[path = "IRecipe.rs"] pub mod IRecipe;
-#[path = "ShapedRecipes.rs"] pub mod ShapedRecipes;
-#[path = "ShapelessRecipes.rs"] pub mod ShapelessRecipes;
-#[path = "CraftingManager.rs"] pub mod CraftingManager;
-#[path = "RecipeRegistryData.rs"] pub mod RecipeRegistryData;
+#[path = "CraftingManager.rs"]
+pub mod CraftingManager;
+#[path = "IRecipe.rs"]
+pub mod IRecipe;
+#[path = "Ingredient.rs"]
+pub mod Ingredient;
+#[path = "RecipeRegistryData.rs"]
+pub mod RecipeRegistryData;
+#[path = "ShapedRecipes.rs"]
+pub mod ShapedRecipes;
+#[path = "ShapelessRecipes.rs"]
+pub mod ShapelessRecipes;

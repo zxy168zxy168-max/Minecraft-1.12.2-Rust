@@ -37,7 +37,8 @@ impl LanguageManager {
                 log::warn!("unable to parse language metadata section");
                 continue;
             };
-            let Some(languages) = value.get("language").and_then(serde_json::Value::as_object) else {
+            let Some(languages) = value.get("language").and_then(serde_json::Value::as_object)
+            else {
                 continue;
             };
 
@@ -48,11 +49,26 @@ impl LanguageManager {
             let mut parsed = Vec::with_capacity(languages.len());
             let mut valid = true;
             for (code, entry) in languages {
-                if code.len() > 16 { valid = false; break; }
-                let Some(entry) = entry.as_object() else { valid = false; break; };
-                let Some(region) = entry.get("region").and_then(serde_json::Value::as_str) else { valid = false; break; };
-                let Some(name) = entry.get("name").and_then(serde_json::Value::as_str) else { valid = false; break; };
-                if region.is_empty() || name.is_empty() { valid = false; break; }
+                if code.len() > 16 {
+                    valid = false;
+                    break;
+                }
+                let Some(entry) = entry.as_object() else {
+                    valid = false;
+                    break;
+                };
+                let Some(region) = entry.get("region").and_then(serde_json::Value::as_str) else {
+                    valid = false;
+                    break;
+                };
+                let Some(name) = entry.get("name").and_then(serde_json::Value::as_str) else {
+                    valid = false;
+                    break;
+                };
+                if region.is_empty() || name.is_empty() {
+                    valid = false;
+                    break;
+                }
                 let bidirectional = entry
                     .get("bidirectional")
                     .and_then(serde_json::Value::as_bool)
@@ -65,7 +81,9 @@ impl LanguageManager {
             }
             for language in parsed {
                 // MCP LanguageManager: first pack declaring a code wins.
-                self.languageMap.entry(language.getLanguageCode().to_owned()).or_insert(language);
+                self.languageMap
+                    .entry(language.getLanguageCode().to_owned())
+                    .or_insert(language);
             }
         }
 
@@ -74,9 +92,9 @@ impl LanguageManager {
         // source exposes only the namespace assets root, so retain that
         // source-backed invariant explicitly until default-pack root resources
         // are materialized by the asset pipeline.
-        self.languageMap.entry("en_us".to_owned()).or_insert_with(||
-            Language::new("en_us", "US", "English", false)
-        );
+        self.languageMap
+            .entry("en_us".to_owned())
+            .or_insert_with(|| Language::new("en_us", "US", "English", false));
     }
 
     /// MCP `setCurrentLanguage`.
@@ -137,11 +155,20 @@ mod tests {
     fn first_pack_wins_for_a_code() {
         let mut manager = LanguageManager::new("zh_cn");
         manager.parseLanguageMetadata(&[
-            r#"{"language":{"zh_cn":{"region":"中国","name":"简体中文"}}}"#.as_bytes().to_vec(),
-            r#"{"language":{"zh_cn":{"region":"TW","name":"繁體中文"}}}"#.as_bytes().to_vec(),
+            r#"{"language":{"zh_cn":{"region":"中国","name":"简体中文"}}}"#
+                .as_bytes()
+                .to_vec(),
+            r#"{"language":{"zh_cn":{"region":"TW","name":"繁體中文"}}}"#
+                .as_bytes()
+                .to_vec(),
         ]);
         assert_eq!(
-            manager.getLanguages().iter().find(|language| language.getLanguageCode() == "zh_cn").unwrap().to_string(),
+            manager
+                .getLanguages()
+                .iter()
+                .find(|language| language.getLanguageCode() == "zh_cn")
+                .unwrap()
+                .to_string(),
             "简体中文 (中国)"
         );
     }

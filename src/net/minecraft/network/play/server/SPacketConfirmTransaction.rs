@@ -18,11 +18,20 @@ impl SPacketConfirmTransaction {
             accepted: read_bool(&mut input)?,
         };
         if !input.is_empty() {
-            return Err(CodecError::InvalidData(format!("{} unread confirm-transaction bytes", input.len())));
+            return Err(CodecError::InvalidData(format!(
+                "{} unread confirm-transaction bytes",
+                input.len()
+            )));
         }
         Ok(result)
     }
-    pub const fn getWindowId(&self) -> i32 { self.windowId as i32 }
-    pub const fn getActionNumber(&self) -> i16 { self.actionNumber }
-    pub const fn wasAccepted(&self) -> bool { self.accepted }
+    pub const fn getWindowId(&self) -> i32 {
+        self.windowId as i32
+    }
+    pub const fn getActionNumber(&self) -> i16 {
+        self.actionNumber
+    }
+    pub const fn wasAccepted(&self) -> bool {
+        self.accepted
+    }
 }

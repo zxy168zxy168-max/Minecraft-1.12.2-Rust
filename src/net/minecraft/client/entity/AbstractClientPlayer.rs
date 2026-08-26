@@ -15,10 +15,15 @@ pub struct AbstractClientPlayer {
 
 impl AbstractClientPlayer {
     pub fn new(gameProfile: GameProfile) -> Self {
-        Self { gameProfile, playerInfo: None }
+        Self {
+            gameProfile,
+            playerInfo: None,
+        }
     }
 
-    pub fn getGameProfile(&self) -> &GameProfile { &self.gameProfile }
+    pub fn getGameProfile(&self) -> &GameProfile {
+        &self.gameProfile
+    }
 
     /// Rust equivalent of MCP `AbstractClientPlayer#getPlayerInfo` after the
     /// connection lookup has resolved. `NetworkPlayerInfo::clone` shares its

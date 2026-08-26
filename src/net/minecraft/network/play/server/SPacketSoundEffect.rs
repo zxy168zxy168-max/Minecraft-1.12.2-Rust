@@ -1,8 +1,8 @@
+use crate::net::minecraft::network::play::server::SPacketCustomSound::read_sound_category;
 use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::PacketBuffer::{
     read_f32_be, read_i32_be, read_var_i32, CodecError,
 };
-use crate::net::minecraft::network::play::server::SPacketCustomSound::read_sound_category;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::net::minecraft::util::SoundCategory::SoundCategory;
 use crate::net::minecraft::util::SoundEvent::SoundEvent;
@@ -38,24 +38,44 @@ impl SPacketSoundEffect {
                 input.len()
             )));
         }
-        Ok(Self { sound, category, posX, posY, posZ, soundVolume, soundPitch })
+        Ok(Self {
+            sound,
+            category,
+            posX,
+            posY,
+            posZ,
+            soundVolume,
+            soundPitch,
+        })
     }
 
-    pub fn getSound(&self) -> &ResourceLocation { &self.sound }
-    pub const fn getCategory(&self) -> SoundCategory { self.category }
-    pub fn getX(&self) -> f64 { self.posX as f64 / 8.0 }
-    pub fn getY(&self) -> f64 { self.posY as f64 / 8.0 }
-    pub fn getZ(&self) -> f64 { self.posZ as f64 / 8.0 }
-    pub const fn getVolume(&self) -> f32 { self.soundVolume }
-    pub const fn getPitch(&self) -> f32 { self.soundPitch }
+    pub fn getSound(&self) -> &ResourceLocation {
+        &self.sound
+    }
+    pub const fn getCategory(&self) -> SoundCategory {
+        self.category
+    }
+    pub fn getX(&self) -> f64 {
+        self.posX as f64 / 8.0
+    }
+    pub fn getY(&self) -> f64 {
+        self.posY as f64 / 8.0
+    }
+    pub fn getZ(&self) -> f64 {
+        self.posZ as f64 / 8.0
+    }
+    pub const fn getVolume(&self) -> f32 {
+        self.soundVolume
+    }
+    pub const fn getPitch(&self) -> f32 {
+        self.soundPitch
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::net::minecraft::network::PacketBuffer::{
-        write_f32_be, write_i32_be, write_var_i32,
-    };
+    use crate::net::minecraft::network::PacketBuffer::{write_f32_be, write_i32_be, write_var_i32};
 
     #[test]
     fn resolves_numeric_sound_registry() {

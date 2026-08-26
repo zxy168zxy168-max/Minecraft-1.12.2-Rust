@@ -1,14 +1,20 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum EnumDoorHalf { Lower, Upper }
+pub enum EnumDoorHalf {
+    Lower,
+    Upper,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum EnumHingePosition { Left, Right }
+pub enum EnumHingePosition {
+    Left,
+    Right,
+}
 
 /// Source-visible actual state reconstructed from the split lower/upper door
 /// metadata exactly as `BlockDoor#getActualState` does.
@@ -26,7 +32,11 @@ pub const fn isBlockDoor(state: IBlockState) -> bool {
 }
 
 pub const fn half(state: IBlockState) -> EnumDoorHalf {
-    if state.getMetadata() & 8 != 0 { EnumDoorHalf::Upper } else { EnumDoorHalf::Lower }
+    if state.getMetadata() & 8 != 0 {
+        EnumDoorHalf::Upper
+    } else {
+        EnumDoorHalf::Lower
+    }
 }
 
 fn lowerFacing(meta: i32) -> EnumFacing {
@@ -81,9 +91,7 @@ pub fn onBlockActivatedState<A: IBlockAccess>(
         pos.down(1)
     };
     let lowerState = world.getBlockState(lowerPos);
-    if lowerState.getBlockId() != state.getBlockId()
-        || half(lowerState) != EnumDoorHalf::Lower
-    {
+    if lowerState.getBlockId() != state.getBlockId() || half(lowerState) != EnumDoorHalf::Lower {
         return None;
     }
     let toggled = IBlockState::fromGlobalStateId(
@@ -92,7 +100,11 @@ pub fn onBlockActivatedState<A: IBlockAccess>(
     Some((lowerPos, lowerState, toggled))
 }
 
-pub fn getActualState<A: IBlockAccess>(state: IBlockState, world: &A, pos: BlockPos) -> DoorActualState {
+pub fn getActualState<A: IBlockAccess>(
+    state: IBlockState,
+    world: &A,
+    pos: BlockPos,
+) -> DoorActualState {
     let mut actual = match half(state) {
         EnumDoorHalf::Lower => lowerState(state),
         EnumDoorHalf::Upper => upperState(state),
@@ -121,7 +133,11 @@ pub fn getActualState<A: IBlockAccess>(state: IBlockState, world: &A, pos: Block
 
 /// Exact local-space result of `BlockDoor#getBoundingBox` after actual-state
 /// reconstruction. The same box is also the default collision box.
-pub fn getBoundingBox<A: IBlockAccess>(state: IBlockState, world: &A, pos: BlockPos) -> AxisAlignedBB {
+pub fn getBoundingBox<A: IBlockAccess>(
+    state: IBlockState,
+    world: &A,
+    pos: BlockPos,
+) -> AxisAlignedBB {
     let actual = getActualState(state, world, pos);
     let closed = !actual.open;
     let right = actual.hinge == EnumHingePosition::Right;
@@ -176,9 +192,18 @@ pub fn modelVariant<A: IBlockAccess>(state: IBlockState, world: &A, pos: BlockPo
         EnumFacing::West => "west",
         _ => "north",
     };
-    let half = match actual.half { EnumDoorHalf::Lower => "lower", EnumDoorHalf::Upper => "upper" };
-    let hinge = match actual.hinge { EnumHingePosition::Left => "left", EnumHingePosition::Right => "right" };
-    format!("facing={facing},half={half},hinge={hinge},open={}", actual.open)
+    let half = match actual.half {
+        EnumDoorHalf::Lower => "lower",
+        EnumDoorHalf::Upper => "upper",
+    };
+    let hinge = match actual.hinge {
+        EnumHingePosition::Left => "left",
+        EnumHingePosition::Right => "right",
+    };
+    format!(
+        "facing={facing},half={half},hinge={hinge},open={}",
+        actual.open
+    )
 }
 
 /// Decode the compact key into the exact state-mapper variant. This is used
@@ -215,8 +240,8 @@ pub fn modelKey<A: IBlockAccess>(state: IBlockState, world: &A, pos: BlockPos) -
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     struct Access(HashMap<BlockPos, IBlockState>);
     impl IBlockAccess for Access {
@@ -242,7 +267,10 @@ mod tests {
         assert!(lowerActual.powered);
         assert_eq!(upperActual.facing, lowerActual.facing);
         assert_eq!(upperActual.open, lowerActual.open);
-        assert_eq!(modelVariant(lower, &access, pos), "facing=east,half=lower,hinge=right,open=true");
+        assert_eq!(
+            modelVariant(lower, &access, pos),
+            "facing=east,half=lower,hinge=right,open=true"
+        );
     }
 
     #[test]

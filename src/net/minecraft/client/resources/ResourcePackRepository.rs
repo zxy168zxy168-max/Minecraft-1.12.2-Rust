@@ -1,6 +1,5 @@
 use std::{
-    fs,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -28,7 +27,6 @@ pub struct ResourcePackEntry {
     pub iconLocation: ResourceLocation,
 }
 
-
 pub fn defaultPackIconLocation() -> ResourceLocation {
     ResourceLocation::new("minecraft", "dynamic/default_pack_icon.png")
 }
@@ -38,7 +36,9 @@ pub fn defaultPackIconBytes() -> &'static [u8] {
 }
 
 impl ResourcePackEntry {
-    pub const fn isCompatibleWith1122(&self) -> bool { self.packFormat == 3 }
+    pub const fn isCompatibleWith1122(&self) -> bool {
+        self.packFormat == 3
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -79,24 +79,38 @@ impl ResourcePackRepository {
     pub fn scan(directory: impl Into<PathBuf>) -> Result<Self, ResourcePackRepositoryError> {
         let directory = directory.into();
         if directory.exists() && !directory.is_dir() {
-            if let Err(source) = fs::remove_file(&directory).and_then(|_| fs::create_dir_all(&directory)) {
-                return Err(ResourcePackRepositoryError::CreateDirectory { path: directory, source });
+            if let Err(source) =
+                fs::remove_file(&directory).and_then(|_| fs::create_dir_all(&directory))
+            {
+                return Err(ResourcePackRepositoryError::CreateDirectory {
+                    path: directory,
+                    source,
+                });
             }
         } else if !directory.exists() {
             fs::create_dir_all(&directory).map_err(|source| {
-                ResourcePackRepositoryError::CreateDirectory { path: directory.clone(), source }
+                ResourcePackRepositoryError::CreateDirectory {
+                    path: directory.clone(),
+                    source,
+                }
             })?;
         }
 
         let entries = fs::read_dir(&directory).map_err(|source| {
-            ResourcePackRepositoryError::ListDirectory { path: directory.clone(), source }
+            ResourcePackRepositoryError::ListDirectory {
+                path: directory.clone(),
+                source,
+            }
         })?;
         let candidates = entries
             .filter_map(Result::ok)
             .map(|entry| entry.path())
             .filter(|path| {
                 let isZip = path.is_file()
-                    && path.file_name().and_then(|name| name.to_str()).is_some_and(|name| name.ends_with(".zip"));
+                    && path
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .is_some_and(|name| name.ends_with(".zip"));
                 let isFolderPack = path.is_dir() && path.join("pack.mcmeta").is_file();
                 isZip || isFolderPack
             })
@@ -105,19 +119,30 @@ impl ResourcePackRepository {
         // ResourcePackRepository#getResourcePackFiles preserves the directory
         // enumeration order returned by File#listFiles; do not introduce a
         // synthetic alphabetical order here.
-        let repositoryEntriesAll = candidates.into_iter().filter_map(|path| read_entry(path).ok()).collect();
-        Ok(Self { repositoryEntriesAll })
+        let repositoryEntriesAll = candidates
+            .into_iter()
+            .filter_map(|path| read_entry(path).ok())
+            .collect();
+        Ok(Self {
+            repositoryEntriesAll,
+        })
     }
 
-    pub fn getRepositoryEntriesAll(&self) -> &[ResourcePackEntry] { &self.repositoryEntriesAll }
+    pub fn getRepositoryEntriesAll(&self) -> &[ResourcePackEntry] {
+        &self.repositoryEntriesAll
+    }
 
     pub fn findByName(&self, resourcePackName: &str) -> Option<&ResourcePackEntry> {
-        self.repositoryEntriesAll.iter().find(|entry| entry.resourcePackName == resourcePackName)
+        self.repositoryEntriesAll
+            .iter()
+            .find(|entry| entry.resourcePackName == resourcePackName)
     }
 
     #[cfg(test)]
     pub fn fromEntriesForTest(entries: Vec<ResourcePackEntry>) -> Self {
-        Self { repositoryEntriesAll: entries }
+        Self {
+            repositoryEntriesAll: entries,
+        }
     }
 }
 
@@ -138,9 +163,15 @@ fn read_entry(path: PathBuf) -> io::Result<ResourcePackEntry> {
     };
     let metadata: PackMcmeta = serde_json::from_slice(&metadataBytes)
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
-    let resourcePackName = path.file_name()
+    let resourcePackName = path
+        .file_name()
         .and_then(|name| name.to_str())
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "resource-pack name is not valid UTF-8"))?
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "resource-pack name is not valid UTF-8",
+            )
+        })?
         .to_owned();
     let iconLocation = resource_pack_icon_location(&path);
     Ok(ResourcePackEntry {
@@ -176,7 +207,9 @@ fn description_text(value: &serde_json::Value) -> String {
     }
 }
 
-pub fn folder_assets_root(pack_root: &Path) -> PathBuf { pack_root.join("assets") }
+pub fn folder_assets_root(pack_root: &Path) -> PathBuf {
+    pack_root.join("assets")
+}
 
 #[cfg(test)]
 mod tests {
@@ -184,7 +217,10 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_dir() -> PathBuf {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         std::env::temp_dir().join(format!("mc112-resource-repository-{unique}"))
     }
 
@@ -193,7 +229,11 @@ mod tests {
         let root = temp_dir();
         let valid = root.join("Vanilla Test");
         fs::create_dir_all(valid.join("assets/minecraft/textures")).unwrap();
-        fs::write(valid.join("pack.mcmeta"), br#"{"pack":{"pack_format":3,"description":"1.12.2 pack"}}"#).unwrap();
+        fs::write(
+            valid.join("pack.mcmeta"),
+            br#"{"pack":{"pack_format":3,"description":"1.12.2 pack"}}"#,
+        )
+        .unwrap();
         fs::write(valid.join("pack.png"), b"retained-verbatim").unwrap();
         fs::create_dir_all(root.join("Not A Pack")).unwrap();
 
@@ -203,7 +243,10 @@ mod tests {
         assert_eq!(entry.resourcePackName, "Vanilla Test");
         assert_eq!(entry.packFormat, 3);
         assert!(entry.isCompatibleWith1122());
-        assert_eq!(entry.iconBytes.as_deref(), Some(b"retained-verbatim".as_slice()));
+        assert_eq!(
+            entry.iconBytes.as_deref(),
+            Some(b"retained-verbatim".as_slice())
+        );
         assert_eq!(entry.iconLocation, resource_pack_icon_location(&valid));
         let _ = fs::remove_dir_all(root);
     }

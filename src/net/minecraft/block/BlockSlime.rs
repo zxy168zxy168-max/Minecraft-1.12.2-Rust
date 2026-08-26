@@ -4,7 +4,9 @@ use crate::net::minecraft::entity::Entity::Entity;
 pub const BLOCK_ID: i32 = 165;
 pub const SLIPPERINESS: f32 = 0.8;
 
-pub const fn isBlockSlime(state: IBlockState) -> bool { state.getBlockId() == BLOCK_ID }
+pub const fn isBlockSlime(state: IBlockState) -> bool {
+    state.getBlockId() == BLOCK_ID
+}
 
 /// MCP `BlockSlime#onLanded`. `livingBase` is the Rust equivalent of the
 /// source `instanceof EntityLivingBase` branch.

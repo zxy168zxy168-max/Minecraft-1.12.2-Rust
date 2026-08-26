@@ -1,6 +1,6 @@
-use crate::net::minecraft::block::BlockBed::BlockBed;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-    use crate::net::minecraft::block::SoundType::SoundType;
+use crate::net::minecraft::block::BlockBed::BlockBed;
+use crate::net::minecraft::block::SoundType::SoundType;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -10,134 +10,144 @@ use uuid::Uuid;
 use crate::compat::Java::JavaRandom;
 
 use crate::com::mojang::authlib::GameProfile::GameProfile;
-use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::client::audio::LocalSoundEvent::LocalSoundEvent;
-use crate::net::minecraft::client::entity::EntityOtherPlayerMP::EntityOtherPlayerMP;
 use crate::net::minecraft::client::entity::EntityOtherClient::{
     ClientEntityKind, EntityOtherClient, MobEntityType, ObjectSpawnType,
 };
-use crate::net::minecraft::client::network::NetworkPlayerInfo::NetworkPlayerInfo;
+use crate::net::minecraft::client::entity::EntityOtherPlayerMP::EntityOtherPlayerMP;
+use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
-use crate::net::minecraft::client::renderer::DestroyBlockProgress::DestroyBlockProgress;
+use crate::net::minecraft::client::network::NetworkPlayerInfo::NetworkPlayerInfo;
 use crate::net::minecraft::client::particle::ParticleSpawnRequest::ParticleSpawnRequest;
+use crate::net::minecraft::client::renderer::DestroyBlockProgress::DestroyBlockProgress;
+use crate::net::minecraft::entity::effect::EntityLightningBolt::EntityLightningBolt;
 use crate::net::minecraft::entity::player::EntityPlayer::EnumChatVisibility;
-use crate::net::minecraft::network::NetworkManager::{NetworkManager, NetworkManagerError};
-use crate::net::minecraft::item::ItemStack::ItemStack;
-use crate::net::minecraft::item::ItemBlock::ItemBlockPlacement;
 use crate::net::minecraft::inventory::ClickType::ClickType;
 use crate::net::minecraft::inventory::Container::Container;
+use crate::net::minecraft::inventory::ContainerBeacon::ContainerBeacon;
+use crate::net::minecraft::inventory::ContainerBrewingStand::ContainerBrewingStand;
 use crate::net::minecraft::inventory::ContainerChest::ContainerChest;
-use crate::net::minecraft::inventory::ContainerShulkerBox::ContainerShulkerBox;
+use crate::net::minecraft::inventory::ContainerDispenser::ContainerDispenser;
 use crate::net::minecraft::inventory::ContainerEnchantment::ContainerEnchantment;
 use crate::net::minecraft::inventory::ContainerFurnace::ContainerFurnace;
-use crate::net::minecraft::inventory::ContainerRepair::ContainerRepair;
-use crate::net::minecraft::inventory::ContainerWorkbench::ContainerWorkbench;
 use crate::net::minecraft::inventory::ContainerHopper::ContainerHopper;
+use crate::net::minecraft::inventory::ContainerHorseInventory::{
+    ContainerHorseInventory, HorseInventoryKind, HorseInventorySpec,
+};
 use crate::net::minecraft::inventory::ContainerMerchant::ContainerMerchant;
-use crate::net::minecraft::inventory::ContainerHorseInventory::{ContainerHorseInventory, HorseInventoryKind, HorseInventorySpec};
-use crate::net::minecraft::inventory::ContainerBrewingStand::ContainerBrewingStand;
-use crate::net::minecraft::inventory::ContainerDispenser::ContainerDispenser;
-use crate::net::minecraft::inventory::ContainerBeacon::ContainerBeacon;
+use crate::net::minecraft::inventory::ContainerRepair::ContainerRepair;
+use crate::net::minecraft::inventory::ContainerShulkerBox::ContainerShulkerBox;
+use crate::net::minecraft::inventory::ContainerWorkbench::ContainerWorkbench;
+use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
 use crate::net::minecraft::inventory::OpenContainer::OpenContainer;
+use crate::net::minecraft::item::ItemBlock::ItemBlockPlacement;
+use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::network::play::client::CPacketClickWindow::CPacketClickWindow;
-use crate::net::minecraft::network::play::client::CPacketCreativeInventoryAction::CPacketCreativeInventoryAction;
-use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::write_string;
 use crate::net::minecraft::network::play::client::CPacketClientSettings::CPacketClientSettings;
 use crate::net::minecraft::network::play::client::CPacketConfirmTeleport::CPacketConfirmTeleport;
 use crate::net::minecraft::network::play::client::CPacketConfirmTransaction::CPacketConfirmTransaction;
+use crate::net::minecraft::network::play::client::CPacketCreativeInventoryAction::CPacketCreativeInventoryAction;
 use crate::net::minecraft::network::play::client::CPacketCustomPayload::CPacketCustomPayload;
 use crate::net::minecraft::network::play::client::CPacketKeepAlive::CPacketKeepAlive;
+use crate::net::minecraft::network::play::client::CPacketPlayer::PositionRotation;
 use crate::net::minecraft::network::play::client::CPacketSteerBoat::CPacketSteerBoat;
 use crate::net::minecraft::network::play::client::CPacketVehicleMove::CPacketVehicleMove;
-use crate::net::minecraft::network::play::client::CPacketPlayer::PositionRotation;
-use crate::net::minecraft::network::play::server::SPacketBlockAction::SPacketBlockAction;
-use crate::net::minecraft::network::play::server::SPacketBlockChange::SPacketBlockChange;
-use crate::net::minecraft::network::play::server::SPacketBlockBreakAnim::SPacketBlockBreakAnim;
 use crate::net::minecraft::network::play::server::SPacketAnimation::SPacketAnimation;
+use crate::net::minecraft::network::play::server::SPacketBlockAction::SPacketBlockAction;
+use crate::net::minecraft::network::play::server::SPacketBlockBreakAnim::SPacketBlockBreakAnim;
+use crate::net::minecraft::network::play::server::SPacketBlockChange::SPacketBlockChange;
+use crate::net::minecraft::network::play::server::SPacketChangeGameState::SPacketChangeGameState;
+use crate::net::minecraft::network::play::server::SPacketChat::SPacketChat;
+use crate::net::minecraft::network::play::server::SPacketChunkData::SPacketChunkData;
+use crate::net::minecraft::network::play::server::SPacketCloseWindow::SPacketCloseWindow;
+use crate::net::minecraft::network::play::server::SPacketCombatEvent::{
+    Event as CombatEvent, SPacketCombatEvent,
+};
+use crate::net::minecraft::network::play::server::SPacketConfirmTransaction::SPacketConfirmTransaction;
+use crate::net::minecraft::network::play::server::SPacketCooldown::SPacketCooldown;
+use crate::net::minecraft::network::play::server::SPacketCustomPayload::SPacketCustomPayload;
+use crate::net::minecraft::network::play::server::SPacketCustomSound::SPacketCustomSound;
 use crate::net::minecraft::network::play::server::SPacketDestroyEntities::SPacketDestroyEntities;
-use crate::net::minecraft::network::play::server::SPacketRemoveEntityEffect::SPacketRemoveEntityEffect;
+use crate::net::minecraft::network::play::server::SPacketDisconnect::SPacketDisconnect;
+use crate::net::minecraft::network::play::server::SPacketDisplayObjective::SPacketDisplayObjective;
+use crate::net::minecraft::network::play::server::SPacketEffect::SPacketEffect;
 use crate::net::minecraft::network::play::server::SPacketEntity::SPacketEntity;
+use crate::net::minecraft::network::play::server::SPacketEntityAttach::SPacketEntityAttach;
+use crate::net::minecraft::network::play::server::SPacketEntityEffect::SPacketEntityEffect;
+use crate::net::minecraft::network::play::server::SPacketEntityEquipment::SPacketEntityEquipment;
 use crate::net::minecraft::network::play::server::SPacketEntityHeadLook::SPacketEntityHeadLook;
 use crate::net::minecraft::network::play::server::SPacketEntityMetadata::SPacketEntityMetadata;
+use crate::net::minecraft::network::play::server::SPacketEntityProperties::SPacketEntityProperties;
+use crate::net::minecraft::network::play::server::SPacketEntityStatus::SPacketEntityStatus;
 use crate::net::minecraft::network::play::server::SPacketEntityTeleport::SPacketEntityTeleport;
 use crate::net::minecraft::network::play::server::SPacketEntityVelocity::SPacketEntityVelocity;
-use crate::net::minecraft::network::play::server::SPacketEntityProperties::SPacketEntityProperties;
-use crate::net::minecraft::network::play::server::SPacketEntityEffect::SPacketEntityEffect;
-use crate::net::minecraft::network::play::server::SPacketPlayerListItem::{Action as PlayerListAction, SPacketPlayerListItem};
-use crate::net::minecraft::network::play::server::SPacketPlayerListHeaderFooter::SPacketPlayerListHeaderFooter;
-use crate::net::minecraft::network::play::server::SPacketTabComplete::SPacketTabComplete;
-use crate::net::minecraft::network::play::server::SPacketTitle::SPacketTitle;
-use crate::net::minecraft::network::play::server::SPacketUpdateBossInfo::SPacketUpdateBossInfo;
-use crate::net::minecraft::network::play::server::SPacketChat::SPacketChat;
-use crate::net::minecraft::network::play::server::SPacketCombatEvent::{Event as CombatEvent, SPacketCombatEvent};
-use crate::net::minecraft::network::play::server::SPacketCustomSound::SPacketCustomSound;
-use crate::net::minecraft::network::play::server::SPacketEffect::SPacketEffect;
-use crate::net::minecraft::network::play::server::SPacketSoundEffect::SPacketSoundEffect;
-use crate::net::minecraft::network::play::server::SPacketDisplayObjective::SPacketDisplayObjective;
-use crate::net::minecraft::network::play::server::SPacketScoreboardObjective::SPacketScoreboardObjective;
-use crate::net::minecraft::network::play::server::SPacketTeams::SPacketTeams;
-use crate::net::minecraft::network::play::server::SPacketUpdateScore::{Action as UpdateScoreAction, SPacketUpdateScore};
-use crate::net::minecraft::network::play::server::SPacketSpawnPlayer::SPacketSpawnPlayer;
-use crate::net::minecraft::network::play::server::SPacketSpawnObject::SPacketSpawnObject;
-use crate::net::minecraft::network::play::server::SPacketSpawnExperienceOrb::SPacketSpawnExperienceOrb;
-use crate::net::minecraft::network::play::server::SPacketSpawnGlobalEntity::SPacketSpawnGlobalEntity;
-use crate::net::minecraft::network::play::server::SPacketSpawnMob::SPacketSpawnMob;
-use crate::net::minecraft::network::play::server::SPacketSpawnPainting::SPacketSpawnPainting;
-use crate::net::minecraft::network::play::server::SPacketWindowItems::SPacketWindowItems;
-use crate::net::minecraft::network::play::server::SPacketWindowProperty::SPacketWindowProperty;
-use crate::net::minecraft::network::play::server::SPacketOpenWindow::SPacketOpenWindow;
-use crate::net::minecraft::network::play::server::SPacketCloseWindow::SPacketCloseWindow;
-use crate::net::minecraft::network::play::server::SPacketSetSlot::SPacketSetSlot;
-use crate::net::minecraft::network::play::server::SPacketEntityStatus::SPacketEntityStatus;
 use crate::net::minecraft::network::play::server::SPacketHeldItemChange::SPacketHeldItemChange;
-use crate::net::minecraft::network::play::server::SPacketEntityAttach::SPacketEntityAttach;
-use crate::net::minecraft::network::play::server::SPacketEntityEquipment::SPacketEntityEquipment;
-use crate::net::minecraft::network::play::server::SPacketUpdateHealth::SPacketUpdateHealth;
-use crate::net::minecraft::network::play::server::SPacketSetExperience::SPacketSetExperience;
-use crate::net::minecraft::network::play::server::SPacketSignEditorOpen::SPacketSignEditorOpen;
-use crate::net::minecraft::network::play::server::SPacketPlayerAbilities::SPacketPlayerAbilities;
-use crate::net::minecraft::network::play::server::SPacketChangeGameState::SPacketChangeGameState;
-use crate::net::minecraft::network::play::server::SPacketServerDifficulty::SPacketServerDifficulty;
-use crate::net::minecraft::network::play::server::SPacketSpawnPosition::SPacketSpawnPosition;
-use crate::net::minecraft::network::play::server::SPacketCooldown::SPacketCooldown;
-use crate::net::minecraft::network::play::server::SPacketSetPassengers::SPacketSetPassengers;
-use crate::net::minecraft::network::play::server::SPacketMoveVehicle::SPacketMoveVehicle;
-use crate::net::minecraft::network::play::server::SPacketMaps::SPacketMaps;
-use crate::net::minecraft::network::play::server::SPacketParticles::SPacketParticles;
-use crate::net::minecraft::network::play::server::SPacketUseBed::SPacketUseBed;
-use crate::net::minecraft::network::play::server::SPacketCustomPayload::SPacketCustomPayload;
-use crate::net::minecraft::network::play::server::SPacketRecipeBook::{SPacketRecipeBook, State as RecipeBookState};
-use crate::net::minecraft::network::play::server::SPacketPlaceGhostRecipe::SPacketPlaceGhostRecipe;
-use crate::net::minecraft::village::MerchantRecipeList::MerchantRecipeList;
-use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
-use crate::net::minecraft::entity::effect::EntityLightningBolt::EntityLightningBolt;
-use crate::net::minecraft::network::play::server::SPacketChunkData::SPacketChunkData;
-use crate::net::minecraft::network::play::server::SPacketConfirmTransaction::SPacketConfirmTransaction;
-use crate::net::minecraft::network::play::server::SPacketDisconnect::SPacketDisconnect;
 use crate::net::minecraft::network::play::server::SPacketJoinGame::SPacketJoinGame;
-use crate::net::minecraft::network::play::server::SPacketRespawn::SPacketRespawn;
 use crate::net::minecraft::network::play::server::SPacketKeepAlive::SPacketKeepAlive;
+use crate::net::minecraft::network::play::server::SPacketMaps::SPacketMaps;
+use crate::net::minecraft::network::play::server::SPacketMoveVehicle::SPacketMoveVehicle;
 use crate::net::minecraft::network::play::server::SPacketMultiBlockChange::SPacketMultiBlockChange;
+use crate::net::minecraft::network::play::server::SPacketOpenWindow::SPacketOpenWindow;
+use crate::net::minecraft::network::play::server::SPacketParticles::SPacketParticles;
+use crate::net::minecraft::network::play::server::SPacketPlaceGhostRecipe::SPacketPlaceGhostRecipe;
+use crate::net::minecraft::network::play::server::SPacketPlayerAbilities::SPacketPlayerAbilities;
+use crate::net::minecraft::network::play::server::SPacketPlayerListHeaderFooter::SPacketPlayerListHeaderFooter;
+use crate::net::minecraft::network::play::server::SPacketPlayerListItem::{
+    Action as PlayerListAction, SPacketPlayerListItem,
+};
 use crate::net::minecraft::network::play::server::SPacketPlayerPosLook::{
     EnumFlags, SPacketPlayerPosLook,
 };
-use crate::net::minecraft::network::play::server::SPacketUnloadChunk::SPacketUnloadChunk;
+use crate::net::minecraft::network::play::server::SPacketRecipeBook::{
+    SPacketRecipeBook, State as RecipeBookState,
+};
+use crate::net::minecraft::network::play::server::SPacketRemoveEntityEffect::SPacketRemoveEntityEffect;
+use crate::net::minecraft::network::play::server::SPacketRespawn::SPacketRespawn;
+use crate::net::minecraft::network::play::server::SPacketScoreboardObjective::SPacketScoreboardObjective;
+use crate::net::minecraft::network::play::server::SPacketServerDifficulty::SPacketServerDifficulty;
+use crate::net::minecraft::network::play::server::SPacketSetExperience::SPacketSetExperience;
+use crate::net::minecraft::network::play::server::SPacketSetPassengers::SPacketSetPassengers;
+use crate::net::minecraft::network::play::server::SPacketSetSlot::SPacketSetSlot;
+use crate::net::minecraft::network::play::server::SPacketSignEditorOpen::SPacketSignEditorOpen;
+use crate::net::minecraft::network::play::server::SPacketSoundEffect::SPacketSoundEffect;
+use crate::net::minecraft::network::play::server::SPacketSpawnExperienceOrb::SPacketSpawnExperienceOrb;
+use crate::net::minecraft::network::play::server::SPacketSpawnGlobalEntity::SPacketSpawnGlobalEntity;
+use crate::net::minecraft::network::play::server::SPacketSpawnMob::SPacketSpawnMob;
+use crate::net::minecraft::network::play::server::SPacketSpawnObject::SPacketSpawnObject;
+use crate::net::minecraft::network::play::server::SPacketSpawnPainting::SPacketSpawnPainting;
+use crate::net::minecraft::network::play::server::SPacketSpawnPlayer::SPacketSpawnPlayer;
+use crate::net::minecraft::network::play::server::SPacketSpawnPosition::SPacketSpawnPosition;
+use crate::net::minecraft::network::play::server::SPacketTabComplete::SPacketTabComplete;
+use crate::net::minecraft::network::play::server::SPacketTeams::SPacketTeams;
 use crate::net::minecraft::network::play::server::SPacketTimeUpdate::SPacketTimeUpdate;
+use crate::net::minecraft::network::play::server::SPacketTitle::SPacketTitle;
+use crate::net::minecraft::network::play::server::SPacketUnloadChunk::SPacketUnloadChunk;
+use crate::net::minecraft::network::play::server::SPacketUpdateBossInfo::SPacketUpdateBossInfo;
+use crate::net::minecraft::network::play::server::SPacketUpdateHealth::SPacketUpdateHealth;
+use crate::net::minecraft::network::play::server::SPacketUpdateScore::{
+    Action as UpdateScoreAction, SPacketUpdateScore,
+};
 use crate::net::minecraft::network::play::server::SPacketUpdateTileEntity::SPacketUpdateTileEntity;
+use crate::net::minecraft::network::play::server::SPacketUseBed::SPacketUseBed;
+use crate::net::minecraft::network::play::server::SPacketWindowItems::SPacketWindowItems;
+use crate::net::minecraft::network::play::server::SPacketWindowProperty::SPacketWindowProperty;
+use crate::net::minecraft::network::NetworkManager::{NetworkManager, NetworkManagerError};
+use crate::net::minecraft::network::Packet::RawPacket;
+use crate::net::minecraft::network::PacketBuffer::write_string;
+use crate::net::minecraft::potion::PotionEffect::PotionEffect;
+use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::text::ChatType::ChatType;
+use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
 use crate::net::minecraft::util::EnumHand::EnumHand;
+use crate::net::minecraft::util::EnumHandSide::EnumHandSide;
+use crate::net::minecraft::util::EnumParticleTypes::EnumParticleTypes;
+use crate::net::minecraft::util::MovementInputFromOptions::MovementKeyState;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::net::minecraft::util::SoundCategory::SoundCategory;
-use crate::net::minecraft::util::EnumParticleTypes::EnumParticleTypes;
-use crate::net::minecraft::util::EnumHandSide::EnumHandSide;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
-use crate::net::minecraft::util::MovementInputFromOptions::MovementKeyState;
-use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
-use crate::net::minecraft::util::text::ChatType::ChatType;
-use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
-use crate::net::minecraft::world::GameType::GameType;
+use crate::net::minecraft::village::MerchantRecipeList::MerchantRecipeList;
 use crate::net::minecraft::world::storage::MapData::MapData;
-use crate::net::minecraft::potion::PotionEffect::PotionEffect;
+use crate::net::minecraft::world::GameType::GameType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClientSettingsSnapshot {
@@ -275,7 +285,9 @@ pub struct SharedPlayClientState {
 }
 
 impl SharedPlayClientState {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn snapshot(&self) -> PlayClientState {
         self.inner
@@ -315,8 +327,13 @@ impl SharedPlayClientState {
     /// entity. Keeping the mutation here preserves that render-time lifecycle
     /// even though Vulkan capture otherwise uses a read lock.
     pub fn pruneDamagedBlocksForRender(&self, partialTicks: f32) {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        let Some(player) = state.thePlayer.as_ref() else { return; };
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        let Some(player) = state.thePlayer.as_ref() else {
+            return;
+        };
         let partial = partialTicks.clamp(0.0, 1.0) as f64;
         let x = player.entity.prevPosX + (player.entity.posX - player.entity.prevPosX) * partial;
         let y = player.entity.prevPosY + (player.entity.posY - player.entity.prevPosY) * partial;
@@ -335,7 +352,10 @@ impl SharedPlayClientState {
     }
 
     pub fn takePendingSignEditorPosition(&self) -> Option<BlockPos> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         state.pendingSignEditorPosition.take()
     }
 
@@ -368,8 +388,13 @@ impl SharedPlayClientState {
     }
 
     pub fn queueLocalPlayerSound(&self, sound: LocalSoundEvent) -> bool {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        let Some(player) = state.thePlayer.as_mut() else { return false; };
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        let Some(player) = state.thePlayer.as_mut() else {
+            return false;
+        };
         player.queueSoundEvent(sound);
         true
     }
@@ -377,8 +402,14 @@ impl SharedPlayClientState {
     /// Drains all client-originated sounds after the world/player tick. This
     /// mirrors SoundHandler ownership without mixing them into packet events.
     pub fn takeLocalPlayerSoundEvents(&self) -> Vec<LocalSoundEvent> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        let mut sounds = state.thePlayer.as_mut().map_or_else(Vec::new, EntityPlayerSP::takeSoundEvents);
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        let mut sounds = state
+            .thePlayer
+            .as_mut()
+            .map_or_else(Vec::new, EntityPlayerSP::takeSoundEvents);
         if let Some(world) = state.worldClient.as_mut() {
             sounds.extend(world.takeSoundEvents());
         }
@@ -390,8 +421,14 @@ impl SharedPlayClientState {
             .inner
             .write()
             .unwrap_or_else(|poison| poison.into_inner());
-        let Some(player) = state.thePlayer.as_mut() else { return false; };
-        if !player.openContainer.as_ref().is_some_and(|container| container.windowId() == windowId) {
+        let Some(player) = state.thePlayer.as_mut() else {
+            return false;
+        };
+        if !player
+            .openContainer
+            .as_ref()
+            .is_some_and(|container| container.windowId() == windowId)
+        {
             return false;
         }
         player.openContainer = None;
@@ -410,9 +447,16 @@ impl SharedPlayClientState {
         mouseButton: i32,
         clickType: ClickType,
     ) -> Result<Vec<RawPacket>, crate::net::minecraft::network::PacketBuffer::CodecError> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        if state.gameType != GameType::Creative { return Ok(Vec::new()); }
-        let Some(player) = state.thePlayer.as_mut() else { return Ok(Vec::new()); };
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        if state.gameType != GameType::Creative {
+            return Ok(Vec::new());
+        }
+        let Some(player) = state.thePlayer.as_mut() else {
+            return Ok(Vec::new());
+        };
         let mut packets = Vec::new();
         let mut cursor = player.inventory.getItemStack().clone();
         let source = catalogStack.clone();
@@ -422,9 +466,16 @@ impl SharedPlayClientState {
                 if !source.isEmpty() && (0..9).contains(&mouseButton) {
                     let mut replacement = source.copy();
                     replacement.setCount(replacement.getMaxStackSize());
-                    player.inventory.setInventorySlotContents(mouseButton, replacement.clone())?;
-                    player.inventoryContainer.putStackInSlot(36 + mouseButton, replacement.clone())?;
-                    packets.push(CPacketCreativeInventoryAction::new(36 + mouseButton, &replacement).writePacketData()?);
+                    player
+                        .inventory
+                        .setInventorySlotContents(mouseButton, replacement.clone())?;
+                    player
+                        .inventoryContainer
+                        .putStackInSlot(36 + mouseButton, replacement.clone())?;
+                    packets.push(
+                        CPacketCreativeInventoryAction::new(36 + mouseButton, &replacement)
+                            .writePacketData()?,
+                    );
                 }
             }
             ClickType::Clone => {
@@ -437,8 +488,13 @@ impl SharedPlayClientState {
             ClickType::Throw => {
                 if !source.isEmpty() {
                     let mut dropped = source.copy();
-                    dropped.setCount(if mouseButton == 0 { 1 } else { dropped.getMaxStackSize() });
-                    packets.push(CPacketCreativeInventoryAction::new(-1, &dropped).writePacketData()?);
+                    dropped.setCount(if mouseButton == 0 {
+                        1
+                    } else {
+                        dropped.getMaxStackSize()
+                    });
+                    packets
+                        .push(CPacketCreativeInventoryAction::new(-1, &dropped).writePacketData()?);
                 }
             }
             ClickType::Pickup | ClickType::QuickMove => {
@@ -459,7 +515,9 @@ impl SharedPlayClientState {
                     }
                 } else if !source.isEmpty() && cursor.isEmpty() {
                     cursor = source.copy();
-                    if quickMove { cursor.setCount(cursor.getMaxStackSize()); }
+                    if quickMove {
+                        cursor.setCount(cursor.getMaxStackSize());
+                    }
                 } else if mouseButton == 0 {
                     cursor = ItemStack::EMPTY;
                 } else {
@@ -479,11 +537,20 @@ impl SharedPlayClientState {
         &self,
         mouseButton: i32,
     ) -> Result<Option<RawPacket>, crate::net::minecraft::network::PacketBuffer::CodecError> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        if state.gameType != GameType::Creative { return Ok(None); }
-        let Some(player) = state.thePlayer.as_mut() else { return Ok(None); };
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        if state.gameType != GameType::Creative {
+            return Ok(None);
+        }
+        let Some(player) = state.thePlayer.as_mut() else {
+            return Ok(None);
+        };
         let mut cursor = player.inventory.getItemStack().clone();
-        if cursor.isEmpty() { return Ok(None); }
+        if cursor.isEmpty() {
+            return Ok(None);
+        }
         let dropped = if mouseButton == 0 {
             let complete = cursor.clone();
             cursor = ItemStack::EMPTY;
@@ -495,14 +562,25 @@ impl SharedPlayClientState {
         };
         player.inventory.setItemStack(cursor);
         state.revision = state.revision.wrapping_add(1);
-        CPacketCreativeInventoryAction::new(-1, &dropped).writePacketData().map(Some)
+        CPacketCreativeInventoryAction::new(-1, &dropped)
+            .writePacketData()
+            .map(Some)
     }
 
     pub fn clearCreativeCursor(&self) -> bool {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        if state.gameType != GameType::Creative { return false; }
-        let Some(player) = state.thePlayer.as_mut() else { return false; };
-        if player.inventory.getItemStack().isEmpty() { return false; }
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        if state.gameType != GameType::Creative {
+            return false;
+        }
+        let Some(player) = state.thePlayer.as_mut() else {
+            return false;
+        };
+        if player.inventory.getItemStack().isEmpty() {
+            return false;
+        }
         player.inventory.setItemStack(ItemStack::EMPTY);
         state.revision = state.revision.wrapping_add(1);
         true
@@ -513,18 +591,33 @@ impl SharedPlayClientState {
     pub fn clearCreativePlayerContainer(
         &self,
     ) -> Result<Vec<RawPacket>, crate::net::minecraft::network::PacketBuffer::CodecError> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        if state.gameType != GameType::Creative { return Ok(Vec::new()); }
-        let Some(player) = state.thePlayer.as_mut() else { return Ok(Vec::new()); };
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        if state.gameType != GameType::Creative {
+            return Ok(Vec::new());
+        }
+        let Some(player) = state.thePlayer.as_mut() else {
+            return Ok(Vec::new());
+        };
         let mut packets = Vec::with_capacity(46);
         for slot in 0..46 {
-            player.inventoryContainer.putStackInSlot(slot, ItemStack::EMPTY)?;
+            player
+                .inventoryContainer
+                .putStackInSlot(slot, ItemStack::EMPTY)?;
             if slot != 0 {
-                player.inventory.applyContainerPlayerSlot(slot, ItemStack::EMPTY)?;
+                player
+                    .inventory
+                    .applyContainerPlayerSlot(slot, ItemStack::EMPTY)?;
             }
-            packets.push(CPacketCreativeInventoryAction::new(slot, &ItemStack::EMPTY).writePacketData()?);
+            packets.push(
+                CPacketCreativeInventoryAction::new(slot, &ItemStack::EMPTY).writePacketData()?,
+            );
         }
-        player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+        player
+            .inventory
+            .syncFromContainerPlayer(&player.inventoryContainer);
         state.revision = state.revision.wrapping_add(1);
         Ok(packets)
     }
@@ -535,7 +628,10 @@ impl SharedPlayClientState {
     pub fn creativePlayerContainerSnapshot(&self) -> Option<(ItemStack, Vec<ItemStack>)> {
         self.withRead(|state| {
             let player = state.thePlayer.as_ref()?;
-            Some((player.inventory.getItemStack().clone(), player.inventoryContainer.slots().to_vec()))
+            Some((
+                player.inventory.getItemStack().clone(),
+                player.inventoryContainer.slots().to_vec(),
+            ))
         })
     }
 
@@ -568,14 +664,19 @@ impl SharedPlayClientState {
         placement: ItemBlockPlacement,
         hand: EnumHand,
     ) -> bool {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         let heldMatches = state.thePlayer.as_ref().is_some_and(|player| {
             let held = player.getHeldItem(hand);
             !held.isEmpty()
                 && held.itemId == placement.sourceItemId
                 && held.itemDamage == placement.sourceItemDamage
         });
-        if !heldMatches { return false; }
+        if !heldMatches {
+            return false;
+        }
 
         let applied = match state.worldClient.as_mut() {
             Some(world) if world.isBlockReplaceable(placement.pos) => world
@@ -583,10 +684,14 @@ impl SharedPlayClientState {
                 .is_ok(),
             _ => false,
         };
-        if !applied { return false; }
+        if !applied {
+            return false;
+        }
 
         if state.gameType != GameType::Creative {
-            let Some(player) = state.thePlayer.as_mut() else { return false; };
+            let Some(player) = state.thePlayer.as_mut() else {
+                return false;
+            };
             // The identity guard above makes failure here possible only if the
             // local inventory structure is malformed; the world prediction is
             // still left for the authoritative server packet to correct.
@@ -630,7 +735,10 @@ impl SharedPlayClientState {
         if expectedState.isAir() {
             return false;
         }
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         let applied = match state.worldClient.as_mut() {
             Some(world) if world.getBlockState(pos) == expectedState => world
                 .invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(0))
@@ -656,7 +764,10 @@ impl SharedPlayClientState {
         if expectedState == predictedState {
             return false;
         }
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         let applied = match state.worldClient.as_mut() {
             Some(world) if world.getBlockState(pos) == expectedState => world
                 .invalidateRegionAndSetBlock(pos, predictedState)
@@ -716,9 +827,14 @@ impl SharedPlayClientState {
     }
 
     pub fn startUsingHeldItemExact(&self, hand: EnumHand) -> bool {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         let gameType = state.gameType;
-        let Some(player) = state.thePlayer.as_mut() else { return false; };
+        let Some(player) = state.thePlayer.as_mut() else {
+            return false;
+        };
         if !try_start_using_held_item(player, gameType, hand) {
             return false;
         }
@@ -727,7 +843,10 @@ impl SharedPlayClientState {
     }
 
     pub fn startUsingHeldItem(&self, preferredHand: EnumHand) -> Option<EnumHand> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         let gameType = state.gameType;
         let player = state.thePlayer.as_mut()?;
         let hands = match preferredHand {
@@ -744,9 +863,16 @@ impl SharedPlayClientState {
     }
 
     pub fn stopUsingItem(&self) -> bool {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        let Some(player) = state.thePlayer.as_mut() else { return false; };
-        if !player.isHandActive() { return false; }
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        let Some(player) = state.thePlayer.as_mut() else {
+            return false;
+        };
+        if !player.isHandActive() {
+            return false;
+        }
         player.stopActiveHand();
         state.revision = state.revision.wrapping_add(1);
         true
@@ -763,27 +889,38 @@ impl SharedPlayClientState {
     ) -> Result<Option<RawPacket>, crate::net::minecraft::network::PacketBuffer::CodecError> {
         use crate::net::minecraft::network::PacketBuffer::CodecError;
 
-        if !valid_player_container_click_button(mouseButton, clickType) { return Ok(None); }
+        if !valid_player_container_click_button(mouseButton, clickType) {
+            return Ok(None);
+        }
 
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         let gameType = state.gameType;
-        let Some(player) = state.thePlayer.as_mut() else { return Ok(None); };
-        if clickType == ClickType::Clone && gameType != GameType::Creative { return Ok(None); }
-        if slotId < -999 || slotId >= crate::net::minecraft::inventory::ContainerPlayer::ContainerPlayer::SLOT_COUNT as i32 {
-            return Err(CodecError::InvalidData(format!("player-container slot {slotId} outside -999 or 0..45")));
+        let Some(player) = state.thePlayer.as_mut() else {
+            return Ok(None);
+        };
+        if clickType == ClickType::Clone && gameType != GameType::Creative {
+            return Ok(None);
+        }
+        if slotId < -999
+            || slotId
+                >= crate::net::minecraft::inventory::ContainerPlayer::ContainerPlayer::SLOT_COUNT
+                    as i32
+        {
+            return Err(CodecError::InvalidData(format!(
+                "player-container slot {slotId} outside -999 or 0..45"
+            )));
         }
 
         // Only ordinary window clicks consume Container.transactionID. The
         // creative screen calls the same local ContainerPlayer#slotClick body
         // directly and reports changes with CPacketCreativeInventoryAction.
         let actionNumber = player.inventoryContainer.getNextTransactionID();
-        let Some(clickedItem) = apply_player_container_click(
-            player,
-            gameType,
-            slotId,
-            mouseButton,
-            clickType,
-        )? else {
+        let Some(clickedItem) =
+            apply_player_container_click(player, gameType, slotId, mouseButton, clickType)?
+        else {
             return Ok(None);
         };
         state.revision = state.revision.wrapping_add(1);
@@ -794,7 +931,9 @@ impl SharedPlayClientState {
             clickType,
             &clickedItem,
             actionNumber,
-        ).writePacketData().map(Some)
+        )
+        .writePacketData()
+        .map(Some)
     }
 
     /// Runs `EntityPlayer.inventoryContainer.slotClick` for
@@ -808,17 +947,35 @@ impl SharedPlayClientState {
         mouseButton: i32,
         clickType: ClickType,
         inventoryTab: bool,
-    ) -> Result<Option<CreativePlayerContainerClick>, crate::net::minecraft::network::PacketBuffer::CodecError> {
+    ) -> Result<
+        Option<CreativePlayerContainerClick>,
+        crate::net::minecraft::network::PacketBuffer::CodecError,
+    > {
         use crate::net::minecraft::network::PacketBuffer::CodecError;
 
-        if !valid_player_container_click_button(mouseButton, clickType) { return Ok(None); }
+        if !valid_player_container_click_button(mouseButton, clickType) {
+            return Ok(None);
+        }
 
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
-        if state.gameType != GameType::Creative { return Ok(None); }
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
+        if state.gameType != GameType::Creative {
+            return Ok(None);
+        }
         let gameType = state.gameType;
-        let Some(player) = state.thePlayer.as_mut() else { return Ok(None); };
-        if slotId < -999 || slotId >= crate::net::minecraft::inventory::ContainerPlayer::ContainerPlayer::SLOT_COUNT as i32 {
-            return Err(CodecError::InvalidData(format!("creative player-container slot {slotId} outside -999 or 0..45")));
+        let Some(player) = state.thePlayer.as_mut() else {
+            return Ok(None);
+        };
+        if slotId < -999
+            || slotId
+                >= crate::net::minecraft::inventory::ContainerPlayer::ContainerPlayer::SLOT_COUNT
+                    as i32
+        {
+            return Err(CodecError::InvalidData(format!(
+                "creative player-container slot {slotId} outside -999 or 0..45"
+            )));
         }
         if !inventoryTab && slotId >= 0 && !(36..=44).contains(&slotId) {
             return Err(CodecError::InvalidData(format!(
@@ -829,18 +986,25 @@ impl SharedPlayClientState {
         let beforeCursor = player.inventory.getItemStack().clone();
         let beforeSlots = player.inventoryContainer.slots().to_vec();
         let originalSlotStack = if slotId >= 0 {
-            beforeSlots.get(slotId as usize).cloned().unwrap_or(ItemStack::EMPTY)
+            beforeSlots
+                .get(slotId as usize)
+                .cloned()
+                .unwrap_or(ItemStack::EMPTY)
         } else {
             ItemStack::EMPTY
         };
-        let quickCraftFinished = clickType == ClickType::QuickCraft
-            && Container::getDragEvent(mouseButton) == 2;
+        let quickCraftFinished =
+            clickType == ClickType::QuickCraft && Container::getDragEvent(mouseButton) == 2;
         let applied = if !inventoryTab && clickType == ClickType::QuickMove {
             if slotId < 0 {
                 false
             } else {
-                player.inventoryContainer.putStackInSlot(slotId, ItemStack::EMPTY)?;
-                player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+                player
+                    .inventoryContainer
+                    .putStackInSlot(slotId, ItemStack::EMPTY)?;
+                player
+                    .inventory
+                    .syncFromContainerPlayer(&player.inventoryContainer);
                 true
             }
         } else if !inventoryTab && clickType == ClickType::PickupAll {
@@ -850,15 +1014,12 @@ impl SharedPlayClientState {
                 creative_hotbar_pickup_all(player, mouseButton == 1)
             }
         } else {
-            apply_player_container_click(
-                player,
-                gameType,
-                slotId,
-                mouseButton,
-                clickType,
-            )?.is_some()
+            apply_player_container_click(player, gameType, slotId, mouseButton, clickType)?
+                .is_some()
         };
-        if !applied { return Ok(None); }
+        if !applied {
+            return Ok(None);
+        }
         let afterCursor = player.inventory.getItemStack().clone();
         let afterSlots = player.inventoryContainer.slots().to_vec();
         state.revision = state.revision.wrapping_add(1);
@@ -894,18 +1055,29 @@ impl SharedPlayClientState {
                     && Container::extractDragMode(mouseButton) <= 2
             }
         };
-        if !validButton { return Ok(None); }
+        if !validButton {
+            return Ok(None);
+        }
 
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         let gameType = state.gameType;
-        let Some(player) = state.thePlayer.as_mut() else { return Ok(None); };
-        if clickType == ClickType::Clone && gameType != GameType::Creative { return Ok(None); }
+        let Some(player) = state.thePlayer.as_mut() else {
+            return Ok(None);
+        };
+        if clickType == ClickType::Clone && gameType != GameType::Creative {
+            return Ok(None);
+        }
         let crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP {
             inventory,
             openContainer,
             ..
         } = player;
-        let Some(container) = openContainer.as_mut() else { return Ok(None); };
+        let Some(container) = openContainer.as_mut() else {
+            return Ok(None);
+        };
         if slotId < -999 || slotId >= container.slotCount() as i32 {
             return Err(CodecError::InvalidData(format!(
                 "open-container slot {slotId} outside -999 or 0..{}",
@@ -924,13 +1096,18 @@ impl SharedPlayClientState {
                     let original = ItemStack::EMPTY;
                     let mut cursor = inventory.getItemStack().clone();
                     if !cursor.isEmpty() {
-                        if mouseButton == 0 { cursor = ItemStack::EMPTY; } else { cursor.shrink(1); }
+                        if mouseButton == 0 {
+                            cursor = ItemStack::EMPTY;
+                        } else {
+                            cursor.shrink(1);
+                        }
                         inventory.setItemStack(cursor);
                     }
                     original
                 } else {
-                    let index = usize::try_from(slotId)
-                        .map_err(|_| CodecError::InvalidData(format!("negative open-container slot {slotId}")))?;
+                    let index = usize::try_from(slotId).map_err(|_| {
+                        CodecError::InvalidData(format!("negative open-container slot {slotId}"))
+                    })?;
                     let original = container.getSlot(index).cloned().ok_or_else(|| {
                         CodecError::InvalidData(format!("open-container slot {slotId} is absent"))
                     })?;
@@ -941,7 +1118,11 @@ impl SharedPlayClientState {
 
                     if slotStack.isEmpty() {
                         if !cursor.isEmpty() && cursorValidForSlot {
-                            let requested = if mouseButton == 0 { cursor.getCount() } else { 1 };
+                            let requested = if mouseButton == 0 {
+                                cursor.getCount()
+                            } else {
+                                1
+                            };
                             let moved = requested.min(slotLimit).min(cursor.getMaxStackSize());
                             slotStack = cursor.splitStack(moved);
                         }
@@ -953,8 +1134,14 @@ impl SharedPlayClientState {
                         };
                         cursor = slotStack.splitStack(removed);
                     } else if slotStack.canStackWith(&cursor) && cursorValidForSlot {
-                        let requested = if mouseButton == 0 { cursor.getCount() } else { 1 };
-                        let capacity = slotStack.getMaxStackSize().saturating_sub(slotStack.getCount());
+                        let requested = if mouseButton == 0 {
+                            cursor.getCount()
+                        } else {
+                            1
+                        };
+                        let capacity = slotStack
+                            .getMaxStackSize()
+                            .saturating_sub(slotStack.getCount());
                         let moved = requested.min(capacity).max(0);
                         if moved > 0 {
                             cursor.shrink(moved);
@@ -969,21 +1156,30 @@ impl SharedPlayClientState {
                 }
             }
             ClickType::QuickMove => {
-                if slotId < 0 { return Ok(None); }
+                if slotId < 0 {
+                    return Ok(None);
+                }
                 let index = slotId as usize;
                 let mut result = ItemStack::EMPTY;
                 loop {
                     let moved = container.transferStackInSlot(index);
-                    if moved.isEmpty() { break; }
+                    if moved.isEmpty() {
+                        break;
+                    }
                     result = moved.clone();
-                    if !container.getSlot(index).is_some_and(|remaining| ItemStack::areItemsEqual(remaining, &moved)) {
+                    if !container
+                        .getSlot(index)
+                        .is_some_and(|remaining| ItemStack::areItemsEqual(remaining, &moved))
+                    {
                         break;
                     }
                 }
                 result
             }
             ClickType::Swap => {
-                if slotId < 0 { return Ok(None); }
+                if slotId < 0 {
+                    return Ok(None);
+                }
                 container.swapWithHotbar(slotId as usize, mouseButton as usize);
                 ItemStack::EMPTY
             }
@@ -994,7 +1190,9 @@ impl SharedPlayClientState {
                 ItemStack::EMPTY
             }
             ClickType::PickupAll => {
-                if slotId < 0 { return Ok(None); }
+                if slotId < 0 {
+                    return Ok(None);
+                }
                 let mut cursor = inventory.getItemStack().clone();
                 if container.pickupAll(&mut cursor, mouseButton == 1) {
                     inventory.setItemStack(cursor);
@@ -1035,13 +1233,23 @@ impl SharedPlayClientState {
             clickType,
             &clickedItem,
             actionNumber,
-        ).writePacketData().map(Some)
+        )
+        .writePacketData()
+        .map(Some)
     }
 
     pub fn activeItemState(&self) -> Option<(bool, EnumHand, ItemStack, i32)> {
-        let state = self.inner.read().unwrap_or_else(|poison| poison.into_inner());
+        let state = self
+            .inner
+            .read()
+            .unwrap_or_else(|poison| poison.into_inner());
         let player = state.thePlayer.as_ref()?;
-        Some((player.isHandActive(), player.getActiveHand(), player.getActiveItemStack().clone(), player.getItemInUseCount()))
+        Some((
+            player.isHandActive(),
+            player.getActiveHand(),
+            player.getActiveItemStack().clone(),
+            player.getItemInUseCount(),
+        ))
     }
 
     pub fn heldItemState(&self) -> Option<(ItemStack, ItemStack, f32)> {
@@ -1051,7 +1259,9 @@ impl SharedPlayClientState {
             .unwrap_or_else(|poison| poison.into_inner());
         let player = state.thePlayer.as_ref()?;
         let main = player.inventory.getCurrentItem().clone();
-        let off = player.inventory.offHandInventory
+        let off = player
+            .inventory
+            .offHandInventory
             .first()
             .cloned()
             .unwrap_or(ItemStack::EMPTY);
@@ -1090,16 +1300,20 @@ impl SharedPlayClientState {
             let emitServerboundMovement = *doneLoadingTerrain;
 
             if let Some(world) = worldClient.as_mut() {
-                let xpTarget = thePlayer.as_ref().map(|player| [
-                    player.entity.posX,
-                    player.entity.posY + player.getEyeHeight() as f64 * 0.5,
-                    player.entity.posZ,
-                ]);
+                let xpTarget = thePlayer.as_ref().map(|player| {
+                    [
+                        player.entity.posX,
+                        player.entity.posY + player.getEyeHeight() as f64 * 0.5,
+                        player.entity.posZ,
+                    ]
+                });
                 let localPlayerId = thePlayer.as_ref().map(|player| player.entityId);
-                let localPlayerState = thePlayer.as_ref().map(|player| (
-                    [player.entity.posX, player.entity.posY, player.entity.posZ],
-                    player.entity.height,
-                ));
+                let localPlayerState = thePlayer.as_ref().map(|player| {
+                    (
+                        [player.entity.posX, player.entity.posY, player.entity.posZ],
+                        player.entity.height,
+                    )
+                });
                 world.tickEntitiesWithPlayerContext(xpTarget, localPlayerId, localPlayerState);
 
                 // EntityBoat#onUpdate emits CPacketSteerBoat after controlBoat,
@@ -1110,13 +1324,19 @@ impl SharedPlayClientState {
                             if let Some(vehicle) = world.getNonPlayerEntityByID(vehicleId) {
                                 if matches!(
                                     &vehicle.kind,
-                                    ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. }
+                                    ClientEntityKind::Object {
+                                        objectType: ObjectSpawnType::Boat,
+                                        ..
+                                    }
                                 ) {
                                     if emitServerboundMovement {
-                                        packets.push(CPacketSteerBoat::new(
-                                            vehicle.boatPaddleState(0),
-                                            vehicle.boatPaddleState(1),
-                                        ).writePacketData());
+                                        packets.push(
+                                            CPacketSteerBoat::new(
+                                                vehicle.boatPaddleState(0),
+                                                vehicle.boatPaddleState(1),
+                                            )
+                                            .writePacketData(),
+                                        );
                                     }
                                 }
                             }
@@ -1181,17 +1401,26 @@ impl SharedPlayClientState {
     }
 
     pub fn takeTitlePackets(&self) -> Vec<SPacketTitle> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         std::mem::take(&mut state.pendingTitlePackets)
     }
 
     pub fn takeBossInfoPackets(&self) -> Vec<SPacketUpdateBossInfo> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         std::mem::take(&mut state.pendingBossInfoPackets)
     }
 
     pub fn takeTabCompleteMatches(&self) -> Vec<Vec<String>> {
-        let mut state = self.inner.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .inner
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         std::mem::take(&mut state.tabCompleteMatches)
     }
 
@@ -1209,9 +1438,14 @@ impl SharedPlayClientState {
 pub enum PlayHandlerEvent {
     None,
     JoinGame(SPacketJoinGame),
-    Respawn { dimension: i32, dimensionChanged: bool },
+    Respawn {
+        dimension: i32,
+        dimensionChanged: bool,
+    },
     TerrainReady,
-    PlayerDied { message: ITextComponent },
+    PlayerDied {
+        message: ITextComponent,
+    },
     Sound {
         sound: ResourceLocation,
         category: SoundCategory,
@@ -1227,13 +1461,33 @@ pub enum PlayHandlerEvent {
         data: i32,
         serverWide: bool,
     },
-    MapUpdated { mapId: i32, revision: u64 },
-    ChunkLoaded { chunkX: i32, chunkZ: i32, loadedChunks: usize },
-    ChunkUnloaded { chunkX: i32, chunkZ: i32, loadedChunks: usize },
+    MapUpdated {
+        mapId: i32,
+        revision: u64,
+    },
+    ChunkLoaded {
+        chunkX: i32,
+        chunkZ: i32,
+        loadedChunks: usize,
+    },
+    ChunkUnloaded {
+        chunkX: i32,
+        chunkZ: i32,
+        loadedChunks: usize,
+    },
     BlockChanged,
-    TimeUpdated { totalWorldTime: i64, worldTime: i64 },
-    SignEditorOpened { position: BlockPos },
-    TileEntityUpdated { position: BlockPos, action: u8, applied: bool },
+    TimeUpdated {
+        totalWorldTime: i64,
+        worldTime: i64,
+    },
+    SignEditorOpened {
+        position: BlockPos,
+    },
+    TileEntityUpdated {
+        position: BlockPos,
+        action: u8,
+        applied: bool,
+    },
     Disconnected(ITextComponent),
     IgnoredPacket(i32),
 }
@@ -1273,7 +1527,11 @@ fn apply_player_container_click(
                 let original = ItemStack::EMPTY;
                 let mut cursor = player.inventory.getItemStack().clone();
                 if !cursor.isEmpty() {
-                    if mouseButton == 0 { cursor = ItemStack::EMPTY; } else { cursor.shrink(1); }
+                    if mouseButton == 0 {
+                        cursor = ItemStack::EMPTY;
+                    } else {
+                        cursor.shrink(1);
+                    }
                     player.inventory.setItemStack(cursor);
                 }
                 original
@@ -1281,9 +1539,15 @@ fn apply_player_container_click(
                 let index = usize::try_from(slotId).map_err(|_| {
                     CodecError::InvalidData(format!("negative player-container slot {slotId}"))
                 })?;
-                let original = player.inventoryContainer.getSlot(index).cloned().ok_or_else(|| {
-                    CodecError::InvalidData(format!("player-container slot {slotId} outside 0..45"))
-                })?;
+                let original = player
+                    .inventoryContainer
+                    .getSlot(index)
+                    .cloned()
+                    .ok_or_else(|| {
+                        CodecError::InvalidData(format!(
+                            "player-container slot {slotId} outside 0..45"
+                        ))
+                    })?;
                 let mut slotStack = original.clone();
                 let mut cursor = player.inventory.getItemStack().clone();
                 let validPlacement = player_container_slot_accepts(slotId, &cursor);
@@ -1291,7 +1555,11 @@ fn apply_player_container_click(
 
                 if slotStack.isEmpty() {
                     if !cursor.isEmpty() && validPlacement {
-                        let requested = if mouseButton == 0 { cursor.getCount() } else { 1 };
+                        let requested = if mouseButton == 0 {
+                            cursor.getCount()
+                        } else {
+                            1
+                        };
                         let moved = requested.min(slotLimit).min(cursor.getMaxStackSize());
                         slotStack = cursor.splitStack(moved);
                     }
@@ -1303,7 +1571,11 @@ fn apply_player_container_click(
                     };
                     cursor = slotStack.splitStack(removed);
                 } else if validPlacement && slotStack.canStackWith(&cursor) {
-                    let requested = if mouseButton == 0 { cursor.getCount() } else { 1 };
+                    let requested = if mouseButton == 0 {
+                        cursor.getCount()
+                    } else {
+                        1
+                    };
                     let capacity = slotLimit
                         .min(cursor.getMaxStackSize())
                         .saturating_sub(slotStack.getCount());
@@ -1324,14 +1596,20 @@ fn apply_player_container_click(
                     slotStack = ItemStack::EMPTY;
                 }
 
-                player.inventoryContainer.putStackInSlot(slotId, slotStack)?;
+                player
+                    .inventoryContainer
+                    .putStackInSlot(slotId, slotStack)?;
                 player.inventory.setItemStack(cursor);
-                player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+                player
+                    .inventory
+                    .syncFromContainerPlayer(&player.inventoryContainer);
                 original
             }
         }
         ClickType::QuickMove => {
-            if slotId < 0 { return Ok(None); }
+            if slotId < 0 {
+                return Ok(None);
+            }
             let index = slotId as usize;
             let mut result = ItemStack::EMPTY;
             loop {
@@ -1340,7 +1618,8 @@ fn apply_player_container_click(
                     break;
                 }
                 result = moved.clone();
-                let sameItemRemains = player.inventoryContainer
+                let sameItemRemains = player
+                    .inventoryContainer
                     .getSlot(index)
                     .is_some_and(|remaining| ItemStack::areItemsEqual(remaining, &moved));
                 if !sameItemRemains {
@@ -1348,36 +1627,59 @@ fn apply_player_container_click(
                 }
             }
             if !result.isEmpty() {
-                player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+                player
+                    .inventory
+                    .syncFromContainerPlayer(&player.inventoryContainer);
             }
             result
         }
         ClickType::Swap => {
-            if slotId < 0 { return Ok(None); }
-            if player.inventoryContainer.swapWithHotbar(slotId as usize, mouseButton as usize) {
-                player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+            if slotId < 0 {
+                return Ok(None);
+            }
+            if player
+                .inventoryContainer
+                .swapWithHotbar(slotId as usize, mouseButton as usize)
+            {
+                player
+                    .inventory
+                    .syncFromContainerPlayer(&player.inventoryContainer);
             }
             ItemStack::EMPTY
         }
         ClickType::Throw => {
             if slotId >= 0 && player.inventory.getItemStack().isEmpty() {
-                if player.inventoryContainer.throwFromSlot(slotId as usize, mouseButton == 1) {
-                    player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+                if player
+                    .inventoryContainer
+                    .throwFromSlot(slotId as usize, mouseButton == 1)
+                {
+                    player
+                        .inventory
+                        .syncFromContainerPlayer(&player.inventoryContainer);
                 }
             }
             ItemStack::EMPTY
         }
         ClickType::PickupAll => {
-            if slotId < 0 { return Ok(None); }
+            if slotId < 0 {
+                return Ok(None);
+            }
             let mut cursor = player.inventory.getItemStack().clone();
-            if player.inventoryContainer.pickupAll(&mut cursor, mouseButton == 1) {
+            if player
+                .inventoryContainer
+                .pickupAll(&mut cursor, mouseButton == 1)
+            {
                 player.inventory.setItemStack(cursor);
-                player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+                player
+                    .inventory
+                    .syncFromContainerPlayer(&player.inventoryContainer);
             }
             ItemStack::EMPTY
         }
         ClickType::Clone => {
-            if gameType != GameType::Creative { return Ok(None); }
+            if gameType != GameType::Creative {
+                return Ok(None);
+            }
             if slotId >= 0 && player.inventory.getItemStack().isEmpty() {
                 if let Some(stack) = player.inventoryContainer.getSlot(slotId as usize) {
                     if !stack.isEmpty() {
@@ -1398,7 +1700,9 @@ fn apply_player_container_click(
                 gameType == GameType::Creative,
             ) {
                 player.inventory.setItemStack(cursor);
-                player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+                player
+                    .inventory
+                    .syncFromContainerPlayer(&player.inventoryContainer);
             }
             ItemStack::EMPTY
         }
@@ -1412,7 +1716,9 @@ fn apply_player_container_click(
 /// is active.
 fn creative_hotbar_pickup_all(player: &mut EntityPlayerSP, reverse: bool) -> bool {
     let mut cursor = player.inventory.getItemStack().clone();
-    if cursor.isEmpty() || cursor.getCount() >= cursor.getMaxStackSize() { return false; }
+    if cursor.isEmpty() || cursor.getCount() >= cursor.getMaxStackSize() {
+        return false;
+    }
     let indices: Vec<usize> = if reverse {
         (36..=44).rev().collect()
     } else {
@@ -1421,16 +1727,32 @@ fn creative_hotbar_pickup_all(player: &mut EntityPlayerSP, reverse: bool) -> boo
     let mut changed = false;
     for pass in 0..2 {
         for &index in &indices {
-            if cursor.getCount() >= cursor.getMaxStackSize() { break; }
-            let stack = player.inventoryContainer.getSlot(index).cloned().unwrap_or(ItemStack::EMPTY);
-            if stack.isEmpty() || !stack.canStackWith(&cursor) { continue; }
-            if pass == 0 && stack.getCount() == stack.getMaxStackSize() { continue; }
+            if cursor.getCount() >= cursor.getMaxStackSize() {
+                break;
+            }
+            let stack = player
+                .inventoryContainer
+                .getSlot(index)
+                .cloned()
+                .unwrap_or(ItemStack::EMPTY);
+            if stack.isEmpty() || !stack.canStackWith(&cursor) {
+                continue;
+            }
+            if pass == 0 && stack.getCount() == stack.getMaxStackSize() {
+                continue;
+            }
             let moved = (cursor.getMaxStackSize() - cursor.getCount()).min(stack.getCount());
-            if moved <= 0 { continue; }
+            if moved <= 0 {
+                continue;
+            }
             let mut remaining = stack;
             remaining.shrink(moved);
             cursor.grow(moved);
-            if player.inventoryContainer.putStackInSlot(index as i32, remaining).is_err() {
+            if player
+                .inventoryContainer
+                .putStackInSlot(index as i32, remaining)
+                .is_err()
+            {
                 return changed;
             }
             changed = true;
@@ -1438,7 +1760,9 @@ fn creative_hotbar_pickup_all(player: &mut EntityPlayerSP, reverse: bool) -> boo
     }
     if changed {
         player.inventory.setItemStack(cursor);
-        player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+        player
+            .inventory
+            .syncFromContainerPlayer(&player.inventoryContainer);
     }
     changed
 }
@@ -1458,8 +1782,7 @@ fn try_start_using_held_item(
 ) -> bool {
     let stack = player.getHeldItem(hand).clone();
     if stack.isEmpty()
-        || stack.getItemUseAction()
-            == crate::net::minecraft::item::EnumAction::EnumAction::None
+        || stack.getItemUseAction() == crate::net::minecraft::item::EnumAction::EnumAction::None
     {
         return false;
     }
@@ -1479,9 +1802,7 @@ fn try_start_using_held_item(
             .iter()
             .chain(std::iter::once(player.inventory.getCurrentItem()))
             .chain(player.inventory.mainInventory.iter())
-            .any(|candidate| {
-                matches!(candidate.itemId, 262 | 439 | 440) && !candidate.isEmpty()
-            });
+            .any(|candidate| matches!(candidate.itemId, 262 | 439 | 440) && !candidate.isEmpty());
         if !hasArrow {
             return false;
         }
@@ -1793,9 +2114,12 @@ impl NetHandlerPlayClient {
         self.sharedState.update(|state| {
             if (0..10).contains(&packet.getProgress()) {
                 let currentTick = state.cloudTickCounter;
-                let replace = state.damagedBlocks
+                let replace = state
+                    .damagedBlocks
                     .get(&packet.getBreakerId())
-                    .map_or(true, |progress| progress.getPosition() != packet.getPosition());
+                    .map_or(true, |progress| {
+                        progress.getPosition() != packet.getPosition()
+                    });
                 if replace {
                     state.damagedBlocks.insert(
                         packet.getBreakerId(),
@@ -1896,9 +2220,17 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleSpawnPosition(&mut self, rawPacket:&RawPacket) -> Result<PlayHandlerEvent,NetHandlerPlayClientError> {
-        let packet=SPacketSpawnPosition::readPacketData(rawPacket).map_err(|error| packet_error(rawPacket.id, error))?;
-        self.sharedState.withWrite(|state| { if let Some(world)=state.worldClient.as_mut(){ world.setSpawnPoint(packet.getSpawnPos()); } });
+    pub fn handleSpawnPosition(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+        let packet = SPacketSpawnPosition::readPacketData(rawPacket)
+            .map_err(|error| packet_error(rawPacket.id, error))?;
+        self.sharedState.withWrite(|state| {
+            if let Some(world) = state.worldClient.as_mut() {
+                world.setSpawnPoint(packet.getSpawnPos());
+            }
+        });
         Ok(PlayHandlerEvent::None)
     }
 
@@ -1941,9 +2273,7 @@ impl NetHandlerPlayClient {
         let packet = SPacketPlayerPosLook::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let flags = packet.getFlags();
-        let current = self
-            .sharedState
-            .withRead(|state| state.playerPosition);
+        let current = self.sharedState.withRead(|state| state.playerPosition);
 
         let posX = if flags.contains(EnumFlags::X) {
             current.posX + packet.getX()
@@ -1977,10 +2307,15 @@ impl NetHandlerPlayClient {
         self.sharedState.update(|state| {
             if state.thePlayer.is_none() {
                 let mut player = EntityPlayerSP::new(playerEntityId);
-                state.gameType.configurePlayerCapabilities(&mut player.capabilities);
+                state
+                    .gameType
+                    .configurePlayerCapabilities(&mut player.capabilities);
                 state.thePlayer = Some(player);
             }
-            let player = state.thePlayer.as_mut().expect("local player was initialized");
+            let player = state
+                .thePlayer
+                .as_mut()
+                .expect("local player was initialized");
 
             if !flags.contains(EnumFlags::X) {
                 player.entity.motionX = 0.0;
@@ -2003,9 +2338,8 @@ impl NetHandlerPlayClient {
 
         self.playerPosition = appliedPosition;
         self.doneLoadingTerrain = true;
-        networkManager.sendPacket(
-            &CPacketConfirmTeleport::new(packet.getTeleportId()).writePacketData(),
-        )?;
+        networkManager
+            .sendPacket(&CPacketConfirmTeleport::new(packet.getTeleportId()).writePacketData())?;
         networkManager.sendPacket(
             &PositionRotation::new(
                 appliedPosition.posX,
@@ -2025,21 +2359,32 @@ impl NetHandlerPlayClient {
         })
     }
 
-    pub fn handleUpdateBossInfo(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleUpdateBossInfo(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketUpdateBossInfo::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
-        self.sharedState.update(|state| state.pendingBossInfoPackets.push(packet));
+        self.sharedState
+            .update(|state| state.pendingBossInfoPackets.push(packet));
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleTitle(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleTitle(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketTitle::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
-        self.sharedState.update(|state| state.pendingTitlePackets.push(packet));
+        self.sharedState
+            .update(|state| state.pendingTitlePackets.push(packet));
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleTabComplete(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleTabComplete(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketTabComplete::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
@@ -2052,20 +2397,30 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleChat(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleChat(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketChat::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let component = packet.getChatComponent().clone();
         let chatType = packet.func_192590_c();
         self.sharedState.update(|state| {
-            let playerTicks = state.thePlayer.as_ref().map_or(0, |player| player.entity.ticksExisted);
+            let playerTicks = state
+                .thePlayer
+                .as_ref()
+                .map_or(0, |player| player.entity.ticksExisted);
             if chatType == ChatType::GameInfo {
                 state.actionBarMessage = Some(component);
                 state.actionBarUpdatedTick = playerTicks;
             } else {
                 state.nextChatSerial = state.nextChatSerial.wrapping_add(1);
                 let serial = state.nextChatSerial;
-                state.chatMessages.push(ReceivedChatMessage { serial, component, chatType });
+                state.chatMessages.push(ReceivedChatMessage {
+                    serial,
+                    component,
+                    chatType,
+                });
                 if state.chatMessages.len() > 100 {
                     let excess = state.chatMessages.len() - 100;
                     state.chatMessages.drain(0..excess);
@@ -2075,101 +2430,189 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleScoreboardObjective(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleScoreboardObjective(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketScoreboardObjective::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| match packet.getAction() {
-            0 => state.scoreboard.addScoreObjective(packet.getObjectiveName(), packet.getObjectiveValue(), packet.getRenderType()),
+            0 => state.scoreboard.addScoreObjective(
+                packet.getObjectiveName(),
+                packet.getObjectiveValue(),
+                packet.getRenderType(),
+            ),
             1 => state.scoreboard.removeObjective(packet.getObjectiveName()),
-            2 => state.scoreboard.updateScoreObjective(packet.getObjectiveName(), packet.getObjectiveValue(), packet.getRenderType()),
+            2 => state.scoreboard.updateScoreObjective(
+                packet.getObjectiveName(),
+                packet.getObjectiveValue(),
+                packet.getRenderType(),
+            ),
             _ => {}
         });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleDisplayObjective(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleDisplayObjective(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketDisplayObjective::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
-        self.sharedState.update(|state| state.scoreboard.setObjectiveInDisplaySlot(packet.getPosition(), packet.getName()));
+        self.sharedState.update(|state| {
+            state
+                .scoreboard
+                .setObjectiveInDisplaySlot(packet.getPosition(), packet.getName())
+        });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleUpdateScore(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleUpdateScore(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketUpdateScore::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
-        self.sharedState.update(|state| match packet.getScoreAction() {
-            UpdateScoreAction::Change => state.scoreboard.setScore(packet.getPlayerName(), packet.getObjectiveName(), packet.getScoreValue()),
-            UpdateScoreAction::Remove => state.scoreboard.removeScore(
-                packet.getPlayerName(),
-                (!packet.getObjectiveName().is_empty()).then_some(packet.getObjectiveName()),
-            ),
-        });
+        self.sharedState
+            .update(|state| match packet.getScoreAction() {
+                UpdateScoreAction::Change => state.scoreboard.setScore(
+                    packet.getPlayerName(),
+                    packet.getObjectiveName(),
+                    packet.getScoreValue(),
+                ),
+                UpdateScoreAction::Remove => state.scoreboard.removeScore(
+                    packet.getPlayerName(),
+                    (!packet.getObjectiveName().is_empty()).then_some(packet.getObjectiveName()),
+                ),
+            });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleTeams(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleTeams(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketTeams::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
-        self.sharedState.update(|state| {
-            match packet.getAction() {
-                0 => {
-                    {
-                        let team = state.scoreboard.createTeam(packet.getName());
-                        team.update(
-                            packet.getDisplayName(), packet.getPrefix(), packet.getSuffix(),
-                            packet.getFriendlyFlags(), packet.getNameTagVisibility(),
-                            packet.getCollisionRule(), packet.getColor(),
-                        );
-                    }
-                    for player in packet.getPlayers() { state.scoreboard.addPlayerToTeam(player.clone(), packet.getName()); }
+        self.sharedState.update(|state| match packet.getAction() {
+            0 => {
+                {
+                    let team = state.scoreboard.createTeam(packet.getName());
+                    team.update(
+                        packet.getDisplayName(),
+                        packet.getPrefix(),
+                        packet.getSuffix(),
+                        packet.getFriendlyFlags(),
+                        packet.getNameTagVisibility(),
+                        packet.getCollisionRule(),
+                        packet.getColor(),
+                    );
                 }
-                1 => state.scoreboard.removeTeam(packet.getName()),
-                2 => {
-                    if let Some(team) = state.scoreboard.getTeamMut(packet.getName()) {
-                        team.update(
-                            packet.getDisplayName(), packet.getPrefix(), packet.getSuffix(),
-                            packet.getFriendlyFlags(), packet.getNameTagVisibility(),
-                            packet.getCollisionRule(), packet.getColor(),
-                        );
-                    }
+                for player in packet.getPlayers() {
+                    state
+                        .scoreboard
+                        .addPlayerToTeam(player.clone(), packet.getName());
                 }
-                3 => for player in packet.getPlayers() { state.scoreboard.addPlayerToTeam(player.clone(), packet.getName()); },
-                4 => for player in packet.getPlayers() { state.scoreboard.removePlayerFromTeam(player, packet.getName()); },
-                _ => {}
             }
+            1 => state.scoreboard.removeTeam(packet.getName()),
+            2 => {
+                if let Some(team) = state.scoreboard.getTeamMut(packet.getName()) {
+                    team.update(
+                        packet.getDisplayName(),
+                        packet.getPrefix(),
+                        packet.getSuffix(),
+                        packet.getFriendlyFlags(),
+                        packet.getNameTagVisibility(),
+                        packet.getCollisionRule(),
+                        packet.getColor(),
+                    );
+                }
+            }
+            3 => {
+                for player in packet.getPlayers() {
+                    state
+                        .scoreboard
+                        .addPlayerToTeam(player.clone(), packet.getName());
+                }
+            }
+            4 => {
+                for player in packet.getPlayers() {
+                    state
+                        .scoreboard
+                        .removePlayerFromTeam(player, packet.getName());
+                }
+            }
+            _ => {}
         });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handlePlayerListItem(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handlePlayerListItem(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketPlayerListItem::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         match packet.getAction() {
-            PlayerListAction::AddPlayer => for entry in packet.getEntries() {
-                if let Some(id) = entry.profile.getId() {
-                    self.playerInfoMap.insert(id, NetworkPlayerInfo::new(entry.profile.clone(), entry.gameMode, entry.ping, entry.displayName.clone()));
+            PlayerListAction::AddPlayer => {
+                for entry in packet.getEntries() {
+                    if let Some(id) = entry.profile.getId() {
+                        self.playerInfoMap.insert(
+                            id,
+                            NetworkPlayerInfo::new(
+                                entry.profile.clone(),
+                                entry.gameMode,
+                                entry.ping,
+                                entry.displayName.clone(),
+                            ),
+                        );
+                    }
                 }
-            },
-            PlayerListAction::UpdateGameMode => for entry in packet.getEntries() {
-                if let Some(info) = entry.profile.getId().and_then(|id| self.playerInfoMap.get_mut(&id)) { info.setGameType(entry.gameMode); }
-            },
-            PlayerListAction::UpdateLatency => for entry in packet.getEntries() {
-                if let Some(info) = entry.profile.getId().and_then(|id| self.playerInfoMap.get_mut(&id)) { info.setResponseTime(entry.ping); }
-            },
-            PlayerListAction::UpdateDisplayName => for entry in packet.getEntries() {
-                if let Some(info) = entry.profile.getId().and_then(|id| self.playerInfoMap.get_mut(&id)) { info.setDisplayName(entry.displayName.clone()); }
-            },
-            PlayerListAction::RemovePlayer => for entry in packet.getEntries() {
-                if let Some(id) = entry.profile.getId() { self.playerInfoMap.remove(&id); }
-            },
+            }
+            PlayerListAction::UpdateGameMode => {
+                for entry in packet.getEntries() {
+                    if let Some(info) = entry
+                        .profile
+                        .getId()
+                        .and_then(|id| self.playerInfoMap.get_mut(&id))
+                    {
+                        info.setGameType(entry.gameMode);
+                    }
+                }
+            }
+            PlayerListAction::UpdateLatency => {
+                for entry in packet.getEntries() {
+                    if let Some(info) = entry
+                        .profile
+                        .getId()
+                        .and_then(|id| self.playerInfoMap.get_mut(&id))
+                    {
+                        info.setResponseTime(entry.ping);
+                    }
+                }
+            }
+            PlayerListAction::UpdateDisplayName => {
+                for entry in packet.getEntries() {
+                    if let Some(info) = entry
+                        .profile
+                        .getId()
+                        .and_then(|id| self.playerInfoMap.get_mut(&id))
+                    {
+                        info.setDisplayName(entry.displayName.clone());
+                    }
+                }
+            }
+            PlayerListAction::RemovePlayer => {
+                for entry in packet.getEntries() {
+                    if let Some(id) = entry.profile.getId() {
+                        self.playerInfoMap.remove(&id);
+                    }
+                }
+            }
         }
         let snapshot = self.playerInfoMap.clone();
         self.sharedState.update(|state| {
-            if let Some(localId) = state
-                .localGameProfile
-                .as_ref()
-                .and_then(GameProfile::getId)
-            {
+            if let Some(localId) = state.localGameProfile.as_ref().and_then(GameProfile::getId) {
                 if let Some(playerInfo) = snapshot.get(&localId) {
                     // `EntityPlayerSP` is also an AbstractClientPlayer. Keep the
                     // resolved object after a later REMOVE_PLAYER packet.
@@ -2186,10 +2629,16 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-
-    pub fn handlePlayerListHeaderFooter(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
-        let packet = SPacketPlayerListHeaderFooter::readPacketData(rawPacket)
-            .map_err(|error| NetHandlerPlayClientError::Packet { packetId: rawPacket.id, message: error.to_string() })?;
+    pub fn handlePlayerListHeaderFooter(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+        let packet = SPacketPlayerListHeaderFooter::readPacketData(rawPacket).map_err(|error| {
+            NetHandlerPlayClientError::Packet {
+                packetId: rawPacket.id,
+                message: error.to_string(),
+            }
+        })?;
         let header = packet.getHeader().clone();
         let footer = packet.getFooter().clone();
         self.sharedState.update(|state| {
@@ -2246,7 +2695,11 @@ impl NetHandlerPlayClient {
                 requests.push(
                     ParticleSpawnRequest::new(
                         particleType,
-                        [origin[0] + offset[0], origin[1] + offset[1], origin[2] + offset[2]],
+                        [
+                            origin[0] + offset[0],
+                            origin[1] + offset[1],
+                            origin[2] + offset[2],
+                        ],
                         speed,
                         parameters,
                     )
@@ -2284,7 +2737,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::MapUpdated { mapId, revision })
     }
 
-    pub fn handleSpawnObject(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSpawnObject(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSpawnObject::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let objectType = ObjectSpawnType::fromPacketType(packet.getType());
@@ -2295,12 +2751,20 @@ impl NetHandlerPlayClient {
         if objectType == ObjectSpawnType::FishHook {
             let anglerId = packet.getData();
             let anglerExists = self.sharedState.withRead(|state| {
-                state.thePlayer.as_ref().is_some_and(|player| player.entityId == anglerId)
-                    || state.worldClient.as_ref().is_some_and(|world| world.getEntityByID(anglerId).is_some())
+                state
+                    .thePlayer
+                    .as_ref()
+                    .is_some_and(|player| player.entityId == anglerId)
+                    || state
+                        .worldClient
+                        .as_ref()
+                        .is_some_and(|world| world.getEntityByID(anglerId).is_some())
             });
             // MCP creates no EntityFishHook when packet data does not resolve
             // to an EntityPlayer.
-            if !anglerExists { return Ok(PlayHandlerEvent::None); }
+            if !anglerExists {
+                return Ok(PlayHandlerEvent::None);
+            }
         }
         let yaw = packet.getYaw() as f32 * 360.0 / 256.0;
         let pitch = packet.getPitch() as f32 * 360.0 / 256.0;
@@ -2351,13 +2815,18 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleSpawnExperienceOrb(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSpawnExperienceOrb(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSpawnExperienceOrb::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let entity = EntityOtherClient::new(
             packet.getEntityID(),
             None,
-            ClientEntityKind::ExperienceOrb { xpValue: packet.getXPValue() },
+            ClientEntityKind::ExperienceOrb {
+                xpValue: packet.getXPValue(),
+            },
             packet.getX(),
             packet.getY(),
             packet.getZ(),
@@ -2374,7 +2843,10 @@ impl NetHandlerPlayClient {
 
     /// MCP `handleSpawnGlobalEntity`: vanilla protocol 340 only defines
     /// discriminator 1, which enters World.weatherEffects as lightning.
-    pub fn handleSpawnGlobalEntity(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSpawnGlobalEntity(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSpawnGlobalEntity::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         if packet.getType() != 1 {
@@ -2395,7 +2867,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleSpawnMob(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSpawnMob(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSpawnMob::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let Some(entityType) = MobEntityType::fromId(packet.getEntityType()) else {
@@ -2431,7 +2906,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleSpawnPainting(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSpawnPainting(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSpawnPainting::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let position = packet.getPosition();
@@ -2457,7 +2935,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleOpenWindow(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleOpenWindow(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketOpenWindow::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let mut result = Ok(());
@@ -2635,22 +3116,34 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-
     /// MCP `NetHandlerPlayClient#func_191980_a`.
-    pub fn handleRecipeBook(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleRecipeBook(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketRecipeBook::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
-            let Some(player) = state.thePlayer.as_mut() else { return; };
+            let Some(player) = state.thePlayer.as_mut() else {
+                return;
+            };
             player.recipeBook.setGuiOpen(packet.isGuiOpen());
-            player.recipeBook.setFilteringCraftable(packet.isFilteringCraftable());
+            player
+                .recipeBook
+                .setFilteringCraftable(packet.isFilteringCraftable());
             match packet.getState() {
                 RecipeBookState::Remove => {
-                    for &recipeId in packet.getRecipes() { player.recipeBook.lockById(recipeId); }
+                    for &recipeId in packet.getRecipes() {
+                        player.recipeBook.lockById(recipeId);
+                    }
                 }
                 RecipeBookState::Init => {
-                    for &recipeId in packet.getRecipes() { player.recipeBook.unlockById(recipeId); }
-                    for &recipeId in packet.getDisplayedRecipes() { player.recipeBook.markNewById(recipeId); }
+                    for &recipeId in packet.getRecipes() {
+                        player.recipeBook.unlockById(recipeId);
+                    }
+                    for &recipeId in packet.getDisplayedRecipes() {
+                        player.recipeBook.markNewById(recipeId);
+                    }
                 }
                 RecipeBookState::Add => {
                     for &recipeId in packet.getRecipes() {
@@ -2665,12 +3158,20 @@ impl NetHandlerPlayClient {
 
     /// MCP `NetHandlerPlayClient#func_194307_a`. The actual ghost slots are
     /// built by the active `GuiRecipeBook`, never by the network handler.
-    pub fn handlePlaceGhostRecipe(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handlePlaceGhostRecipe(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketPlaceGhostRecipe::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
-            let Some(player) = state.thePlayer.as_ref() else { return; };
-            let activeWindowId = player.openContainer.as_ref().map_or(0, OpenContainer::windowId);
+            let Some(player) = state.thePlayer.as_ref() else {
+                return;
+            };
+            let activeWindowId = player
+                .openContainer
+                .as_ref()
+                .map_or(0, OpenContainer::windowId);
             if activeWindowId == packet.getWindowId() as i32 {
                 state.pendingGhostRecipe = Some((packet.getWindowId(), packet.getRecipeId()));
             }
@@ -2681,7 +3182,10 @@ impl NetHandlerPlayClient {
     /// MCP `NetHandlerPlayClient#handleCustomPayload` branch for `MC|TrList`.
     /// The server owns all completed trade state; this only installs the
     /// recipe list sent for the currently open merchant window.
-    pub fn handleCustomPayload(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleCustomPayload(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketCustomPayload::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         if packet.getChannelName() != "MC|TrList" {
@@ -2693,13 +3197,21 @@ impl NetHandlerPlayClient {
         let recipes = MerchantRecipeList::readFromBuf(&mut input)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         if !input.is_empty() {
-            return Err(packet_error(rawPacket.id, crate::net::minecraft::network::PacketBuffer::CodecError::InvalidData(
-                format!("{} unread MC|TrList bytes", input.len()),
-            )));
+            return Err(packet_error(
+                rawPacket.id,
+                crate::net::minecraft::network::PacketBuffer::CodecError::InvalidData(format!(
+                    "{} unread MC|TrList bytes",
+                    input.len()
+                )),
+            ));
         }
         self.sharedState.update(|state| {
-            let Some(player) = state.thePlayer.as_mut() else { return; };
-            let Some(container) = player.openContainer.as_mut() else { return; };
+            let Some(player) = state.thePlayer.as_mut() else {
+                return;
+            };
+            let Some(container) = player.openContainer.as_mut() else {
+                return;
+            };
             if container.windowId() == windowId {
                 container.setMerchantRecipes(recipes);
             }
@@ -2716,30 +3228,35 @@ impl NetHandlerPlayClient {
         let mut result = Ok(());
         self.sharedState.update(|state| {
             let Some(player) = state.thePlayer.as_mut() else {
-                result = Err(crate::net::minecraft::network::PacketBuffer::CodecError::InvalidData(
-                    "window property received before Join Game".to_owned(),
-                ));
+                result = Err(
+                    crate::net::minecraft::network::PacketBuffer::CodecError::InvalidData(
+                        "window property received before Join Game".to_owned(),
+                    ),
+                );
                 return;
             };
             let Some(container) = player.openContainer.as_mut() else {
                 return;
             };
             if container.windowId() == packet.getWindowId() as i32 {
-                result = container.updateProgressBar(
-                    packet.getProperty() as i32,
-                    packet.getValue() as i32,
-                );
+                result = container
+                    .updateProgressBar(packet.getProperty() as i32, packet.getValue() as i32);
             }
         });
         result.map_err(|error| packet_error(rawPacket.id, error))?;
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleCloseWindow(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleCloseWindow(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketCloseWindow::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
-            let Some(player) = state.thePlayer.as_mut() else { return; };
+            let Some(player) = state.thePlayer.as_mut() else {
+                return;
+            };
             // MCP `handleCloseWindow` delegates to
             // `EntityPlayerSP.closeScreenAndDropStack()` and does not gate the
             // close on the packet window id. `None` is this Rust port's
@@ -2761,9 +3278,10 @@ impl NetHandlerPlayClient {
         let matchesActiveWindow = self.sharedState.withRead(|state| {
             packet.getWindowId() == 0
                 || state.thePlayer.as_ref().is_some_and(|player| {
-                    player.openContainer.as_ref().is_some_and(|container| {
-                        container.windowId() == packet.getWindowId()
-                    })
+                    player
+                        .openContainer
+                        .as_ref()
+                        .is_some_and(|container| container.windowId() == packet.getWindowId())
                 })
         });
         if matchesActiveWindow && !packet.wasAccepted() {
@@ -2772,27 +3290,35 @@ impl NetHandlerPlayClient {
                     packet.getWindowId(),
                     packet.getActionNumber(),
                     true,
-                ).writePacketData(),
+                )
+                .writePacketData(),
             )?;
         }
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleWindowItems(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleWindowItems(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketWindowItems::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let mut result = Ok(());
         self.sharedState.update(|state| {
             let Some(player) = state.thePlayer.as_mut() else {
-                result = Err(crate::net::minecraft::network::PacketBuffer::CodecError::InvalidData(
-                    "window items received before Join Game".to_owned(),
-                ));
+                result = Err(
+                    crate::net::minecraft::network::PacketBuffer::CodecError::InvalidData(
+                        "window items received before Join Game".to_owned(),
+                    ),
+                );
                 return;
             };
             if packet.getWindowId() == 0 {
                 result = player.inventoryContainer.setAll(packet.getItemStacks());
                 if result.is_ok() {
-                    player.inventory.syncFromContainerPlayer(&player.inventoryContainer);
+                    player
+                        .inventory
+                        .syncFromContainerPlayer(&player.inventoryContainer);
                     if let Some(container) = player.openContainer.as_mut() {
                         container.syncFromPlayerInventory(&player.inventory);
                     }
@@ -2803,9 +3329,10 @@ impl NetHandlerPlayClient {
                     openContainer,
                     ..
                 } = player;
-                if let Some(container) = openContainer.as_mut().filter(|container| {
-                    container.windowId() == packet.getWindowId() as i32
-                }) {
+                if let Some(container) = openContainer
+                    .as_mut()
+                    .filter(|container| container.windowId() == packet.getWindowId() as i32)
+                {
                     result = container.setAll(packet.getItemStacks());
                     if result.is_ok() {
                         container.syncToPlayerInventory(inventory);
@@ -2817,7 +3344,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleSetSlot(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSetSlot(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSetSlot::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let mut result = Ok(());
@@ -2886,18 +3416,25 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleHeldItemChange(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleHeldItemChange(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketHeldItemChange::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let mut result = Ok(());
         self.sharedState.update(|state| {
             let Some(player) = state.thePlayer.as_mut() else {
-                result = Err(crate::net::minecraft::network::PacketBuffer::CodecError::InvalidData(
-                    "held item change received before Join Game".to_owned(),
-                ));
+                result = Err(
+                    crate::net::minecraft::network::PacketBuffer::CodecError::InvalidData(
+                        "held item change received before Join Game".to_owned(),
+                    ),
+                );
                 return;
             };
-            result = player.inventory.setCurrentItem(packet.getHeldItemHotbarIndex());
+            result = player
+                .inventory
+                .setCurrentItem(packet.getHeldItemHotbarIndex());
         });
         result.map_err(|error| packet_error(rawPacket.id, error))?;
         Ok(PlayHandlerEvent::None)
@@ -2942,16 +3479,21 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityStatus(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityStatus(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntityStatus::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let localPlayerId = self.playerEntityId;
         let opcode = packet.getOpCode();
         let entityId = packet.getEntityId();
-        let activationRandom = (opcode == 35 && entityId == localPlayerId).then(|| (
-            self.particleRandomizer.next_f32() * 2.0 - 1.0,
-            self.particleRandomizer.next_f32() * 2.0 - 1.0,
-        ));
+        let activationRandom = (opcode == 35 && entityId == localPlayerId).then(|| {
+            (
+                self.particleRandomizer.next_f32() * 2.0 - 1.0,
+                self.particleRandomizer.next_f32() * 2.0 - 1.0,
+            )
+        });
         self.sharedState.update(|state| {
             if entityId == localPlayerId {
                 if let Some(player) = state.thePlayer.as_mut() {
@@ -2982,7 +3524,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityAttach(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityAttach(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntityAttach::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
@@ -2993,7 +3538,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityEquipment(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityEquipment(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntityEquipment::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let slot = packet.getEquipmentSlot();
@@ -3011,7 +3559,9 @@ impl NetHandlerPlayClient {
                         EntityEquipmentSlot::Chest => 38,
                         EntityEquipmentSlot::Head => 39,
                     };
-                    result = player.inventory.setInventorySlotContents(inventoryIndex, stack.clone());
+                    result = player
+                        .inventory
+                        .setInventorySlotContents(inventoryIndex, stack.clone());
                     if result.is_ok() {
                         let containerSlot = match slot {
                             EntityEquipmentSlot::Mainhand => 36 + player.inventory.currentItem,
@@ -3021,7 +3571,9 @@ impl NetHandlerPlayClient {
                             EntityEquipmentSlot::Chest => 6,
                             EntityEquipmentSlot::Head => 5,
                         };
-                        result = player.inventoryContainer.putStackInSlot(containerSlot, stack.clone());
+                        result = player
+                            .inventoryContainer
+                            .putStackInSlot(containerSlot, stack.clone());
                     }
                 }
             } else if let Some(world) = state.worldClient.as_mut() {
@@ -3032,7 +3584,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleChangeGameState(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleChangeGameState(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketChangeGameState::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         match packet.getGameState() {
@@ -3072,7 +3627,10 @@ impl NetHandlerPlayClient {
 
     /// MCP `NetHandlerPlayClient#handleServerDifficulty`: stores the packet
     /// value on the client World's WorldInfo-equivalent difficulty field.
-    pub fn handleServerDifficulty(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleServerDifficulty(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketServerDifficulty::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
@@ -3084,22 +3642,32 @@ impl NetHandlerPlayClient {
     }
 
     /// MCP `NetHandlerPlayClient#handleCooldown`.
-    pub fn handleCooldown(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleCooldown(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketCooldown::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
             if let Some(player) = state.thePlayer.as_mut() {
                 if packet.getTicks() == 0 {
-                    player.getCooldownTrackerMut().removeCooldown(packet.getItemId());
+                    player
+                        .getCooldownTrackerMut()
+                        .removeCooldown(packet.getItemId());
                 } else {
-                    player.getCooldownTrackerMut().setCooldown(packet.getItemId(), packet.getTicks());
+                    player
+                        .getCooldownTrackerMut()
+                        .setCooldown(packet.getItemId(), packet.getTicks());
                 }
             }
         });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleCustomSound(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleCustomSound(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketCustomSound::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         Ok(PlayHandlerEvent::Sound {
@@ -3113,7 +3681,10 @@ impl NetHandlerPlayClient {
         })
     }
 
-    pub fn handleSoundEffect(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSoundEffect(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSoundEffect::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         Ok(PlayHandlerEvent::Sound {
@@ -3127,7 +3698,10 @@ impl NetHandlerPlayClient {
         })
     }
 
-    pub fn handleEffect(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEffect(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEffect::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         Ok(PlayHandlerEvent::WorldEffect {
@@ -3138,20 +3712,28 @@ impl NetHandlerPlayClient {
         })
     }
 
-    pub fn handleCombatEvent(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleCombatEvent(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketCombatEvent::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         if packet.getEventType() == CombatEvent::EntityDied
             && packet.getPlayerId() == self.playerEntityId
         {
-            let message = packet.getDeathMessage().cloned()
+            let message = packet
+                .getDeathMessage()
+                .cloned()
                 .unwrap_or_else(|| ITextComponent::fromPlainText(""));
             return Ok(PlayHandlerEvent::PlayerDied { message });
         }
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handlePlayerAbilities(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handlePlayerAbilities(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketPlayerAbilities::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
@@ -3161,13 +3743,18 @@ impl NetHandlerPlayClient {
                 player.capabilities.allowFlying = packet.isAllowFlying();
                 player.capabilities.isCreativeMode = packet.isCreativeMode();
                 player.capabilities.setFlySpeed(packet.getFlySpeed());
-                player.capabilities.setPlayerWalkSpeed(packet.getWalkSpeed());
+                player
+                    .capabilities
+                    .setPlayerWalkSpeed(packet.getWalkSpeed());
             }
         });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleSetExperience(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSetExperience(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSetExperience::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
@@ -3175,27 +3762,35 @@ impl NetHandlerPlayClient {
                 player.setXPStats(
                     packet.getExperienceBar(),
                     packet.getTotalExperience(),
-                    packet.getLevel()
+                    packet.getLevel(),
                 );
             }
         });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleUpdateHealth(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleUpdateHealth(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketUpdateHealth::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
             if let Some(player) = state.thePlayer.as_mut() {
                 player.setPlayerSPHealth(packet.getHealth());
                 player.foodStats.setFoodLevel(packet.getFoodLevel());
-                player.foodStats.setFoodSaturationLevel(packet.getSaturationLevel());
+                player
+                    .foodStats
+                    .setFoodSaturationLevel(packet.getSaturationLevel());
             }
         });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleSetPassengers(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSetPassengers(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSetPassengers::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let localPlayerId = self.playerEntityId;
@@ -3208,8 +3803,12 @@ impl NetHandlerPlayClient {
                 let vehicle = world.getNonPlayerEntityByID(packet.getEntityId())?;
                 matches!(
                     &vehicle.kind,
-                    ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. }
-                ).then_some(vehicle.entity.rotationYaw)
+                    ClientEntityKind::Object {
+                        objectType: ObjectSpawnType::Boat,
+                        ..
+                    }
+                )
+                .then_some(vehicle.entity.rotationYaw)
             });
 
             if let Some(world) = state.worldClient.as_mut() {
@@ -3275,28 +3874,49 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleSpawnPlayer(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleSpawnPlayer(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketSpawnPlayer::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
-        let profile = self.playerInfoMap.get(&packet.getUniqueId())
+        let profile = self
+            .playerInfoMap
+            .get(&packet.getUniqueId())
             .map(|info| info.getGameProfile().clone())
             .unwrap_or_else(|| GameProfile::new(Some(packet.getUniqueId()), ""));
-        let mut player = EntityOtherPlayerMP::new(packet.getEntityID(), packet.getUniqueId(), profile);
+        let mut player =
+            EntityOtherPlayerMP::new(packet.getEntityID(), packet.getUniqueId(), profile);
         player.setPlayerInfo(self.playerInfoMap.get(&packet.getUniqueId()).cloned());
         let yaw = packet.getYaw() as f32 * 360.0 / 256.0;
         let pitch = packet.getPitch() as f32 * 360.0 / 256.0;
-        player.entity.setPositionAndRotation(packet.getX(), packet.getY(), packet.getZ(), yaw, pitch);
+        player.entity.setPositionAndRotation(
+            packet.getX(),
+            packet.getY(),
+            packet.getZ(),
+            yaw,
+            pitch,
+        );
         player.setServerPosition(packet.getX(), packet.getY(), packet.getZ());
         player.applyMetadata(packet.getDataManagerEntries().iter().cloned());
-        self.sharedState.update(|state| if let Some(world) = state.worldClient.as_mut() { world.addEntityToWorld(packet.getEntityID(), player); });
+        self.sharedState.update(|state| {
+            if let Some(world) = state.worldClient.as_mut() {
+                world.addEntityToWorld(packet.getEntityID(), player);
+            }
+        });
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityMovement(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityMovement(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntity::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
-            let Some(world) = state.worldClient.as_mut() else { return; };
+            let Some(world) = state.worldClient.as_mut() else {
+                return;
+            };
             if let Some(entity) = world.getEntityByIDMut(packet.getEntityId()) {
                 entity.serverPosX += packet.getX() as i64;
                 entity.serverPosY += packet.getY() as i64;
@@ -3342,11 +3962,16 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityTeleport(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityTeleport(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntityTeleport::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
-            let Some(world) = state.worldClient.as_mut() else { return; };
+            let Some(world) = state.worldClient.as_mut() else {
+                return;
+            };
             let yaw = packet.getYaw() as f32 * 360.0 / 256.0;
             let pitch = packet.getPitch() as f32 * 360.0 / 256.0;
             if let Some(entity) = world.getEntityByIDMut(packet.getEntityId()) {
@@ -3355,9 +3980,21 @@ impl NetHandlerPlayClient {
                     && (entity.entity.posY - packet.getY()).abs() < 0.015625
                     && (entity.entity.posZ - packet.getZ()).abs() < 0.03125;
                 entity.setPositionAndRotationDirect(
-                    if close { entity.entity.posX } else { packet.getX() },
-                    if close { entity.entity.posY } else { packet.getY() },
-                    if close { entity.entity.posZ } else { packet.getZ() },
+                    if close {
+                        entity.entity.posX
+                    } else {
+                        packet.getX()
+                    },
+                    if close {
+                        entity.entity.posY
+                    } else {
+                        packet.getY()
+                    },
+                    if close {
+                        entity.entity.posZ
+                    } else {
+                        packet.getZ()
+                    },
                     yaw,
                     pitch,
                     if close { 0 } else { 3 },
@@ -3383,7 +4020,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityHeadLook(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityHeadLook(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntityHeadLook::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
@@ -3397,12 +4037,19 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityProperties(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityProperties(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntityProperties::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
             let entityId = packet.getEntityId();
-            if let Some(player) = state.thePlayer.as_mut().filter(|player| player.entityId == entityId) {
+            if let Some(player) = state
+                .thePlayer
+                .as_mut()
+                .filter(|player| player.entityId == entityId)
+            {
                 for snapshot in packet.getSnapshots() {
                     player.attributeMap.setSnapshot(
                         snapshot.getName(),
@@ -3412,7 +4059,9 @@ impl NetHandlerPlayClient {
                 }
                 return;
             }
-            let Some(world) = state.worldClient.as_mut() else { return; };
+            let Some(world) = state.worldClient.as_mut() else {
+                return;
+            };
             if let Some(player) = world.getEntityByIDMut(entityId) {
                 for snapshot in packet.getSnapshots() {
                     player.attributeMap.setSnapshot(
@@ -3438,7 +4087,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityVelocity(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityVelocity(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntityVelocity::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let localPlayerId = self.playerEntityId;
@@ -3463,7 +4115,10 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleEntityMetadata(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleEntityMetadata(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketEntityMetadata::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         self.sharedState.update(|state| {
@@ -3480,8 +4135,12 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleAnimation(&mut self, rawPacket:&RawPacket)->Result<PlayHandlerEvent,NetHandlerPlayClientError>{
-        let packet=SPacketAnimation::readPacketData(rawPacket).map_err(|error|packet_error(rawPacket.id,error))?;
+    pub fn handleAnimation(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+        let packet = SPacketAnimation::readPacketData(rawPacket)
+            .map_err(|error| packet_error(rawPacket.id, error))?;
         let animation = packet.getAnimationType();
         let hand = match animation {
             0 => Some(crate::net::minecraft::util::EnumHand::EnumHand::MainHand),
@@ -3491,17 +4150,29 @@ impl NetHandlerPlayClient {
         self.sharedState.update(|state| {
             if animation == 2 {
                 let playerId = packet.getEntityID();
-                if state.thePlayer.as_ref().is_some_and(|player| player.entityId == playerId) {
-                    let safeExit = state.thePlayer.as_ref()
+                if state
+                    .thePlayer
+                    .as_ref()
+                    .is_some_and(|player| player.entityId == playerId)
+                {
+                    let safeExit = state
+                        .thePlayer
+                        .as_ref()
                         .and_then(|player| player.bedLocation)
-                        .and_then(|bed| state.worldClient.as_ref()
-                            .and_then(|world| BlockBed::getSafeExitLocation(world, bed, 0)));
+                        .and_then(|bed| {
+                            state
+                                .worldClient
+                                .as_ref()
+                                .and_then(|world| BlockBed::getSafeExitLocation(world, bed, 0))
+                        });
                     if let Some(player) = state.thePlayer.as_mut() {
                         player.wakeUpPlayerClient(safeExit, false);
                         state.playerPosition = player_position_state(player);
                     }
                 } else if let Some(world) = state.worldClient.as_mut() {
-                    let bed = world.getEntityByID(playerId).and_then(|player| player.bedLocation);
+                    let bed = world
+                        .getEntityByID(playerId)
+                        .and_then(|player| player.bedLocation);
                     let safeExit = bed.and_then(|bed| BlockBed::getSafeExitLocation(world, bed, 0));
                     if let Some(player) = world.getEntityByIDMut(playerId) {
                         player.wakeUpPlayerClient(safeExit, false);
@@ -3511,7 +4182,9 @@ impl NetHandlerPlayClient {
                 if let Some(world) = state.worldClient.as_mut() {
                     if let Some(entity) = world.getEntityByIDMut(packet.getEntityID()) {
                         entity.swingArm(hand);
-                    } else if let Some(entity) = world.getNonPlayerEntityByIDMut(packet.getEntityID()) {
+                    } else if let Some(entity) =
+                        world.getNonPlayerEntityByIDMut(packet.getEntityID())
+                    {
                         entity.swingArm(hand);
                     }
                 }
@@ -3520,17 +4193,27 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleUseBed(&mut self, rawPacket: &RawPacket) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+    pub fn handleUseBed(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
         let packet = SPacketUseBed::readPacketData(rawPacket)
             .map_err(|error| packet_error(rawPacket.id, error))?;
         let playerId = packet.getPlayerId();
         let bedPos = packet.getBedPosition();
         self.sharedState.update(|state| {
-            let bedState = state.worldClient
+            let bedState = state
+                .worldClient
                 .as_ref()
                 .map(|world| world.getBlockState(bedPos));
-            let Some(bedState) = bedState else { return; };
-            if state.thePlayer.as_ref().is_some_and(|player| player.entityId == playerId) {
+            let Some(bedState) = bedState else {
+                return;
+            };
+            if state
+                .thePlayer
+                .as_ref()
+                .is_some_and(|player| player.entityId == playerId)
+            {
                 if let Some(player) = state.thePlayer.as_mut() {
                     player.trySleepClient(bedState, bedPos);
                     state.playerPosition = player_position_state(player);
@@ -3544,9 +4227,19 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::None)
     }
 
-    pub fn handleDestroyEntities(&mut self, rawPacket:&RawPacket)->Result<PlayHandlerEvent,NetHandlerPlayClientError>{
-        let packet=SPacketDestroyEntities::readPacketData(rawPacket).map_err(|error|packet_error(rawPacket.id,error))?;
-        self.sharedState.update(|state|if let Some(world)=state.worldClient.as_mut(){for entityId in packet.getEntityIDs(){world.removeEntityFromWorld(*entityId);}});
+    pub fn handleDestroyEntities(
+        &mut self,
+        rawPacket: &RawPacket,
+    ) -> Result<PlayHandlerEvent, NetHandlerPlayClientError> {
+        let packet = SPacketDestroyEntities::readPacketData(rawPacket)
+            .map_err(|error| packet_error(rawPacket.id, error))?;
+        self.sharedState.update(|state| {
+            if let Some(world) = state.worldClient.as_mut() {
+                for entityId in packet.getEntityIDs() {
+                    world.removeEntityFromWorld(*entityId);
+                }
+            }
+        });
         Ok(PlayHandlerEvent::None)
     }
 
@@ -3559,11 +4252,21 @@ impl NetHandlerPlayClient {
         Ok(PlayHandlerEvent::Disconnected(packet.getReason().clone()))
     }
 
-    pub fn getGameProfile(&self) -> &GameProfile { &self.profile }
-    pub const fn getCurrentServerMaxPlayers(&self) -> u8 { self.currentServerMaxPlayers }
-    pub const fn isDoneLoadingTerrain(&self) -> bool { self.doneLoadingTerrain }
-    pub const fn getPlayerPosition(&self) -> PlayerPositionState { self.playerPosition }
-    pub fn getSharedState(&self) -> SharedPlayClientState { self.sharedState.clone() }
+    pub fn getGameProfile(&self) -> &GameProfile {
+        &self.profile
+    }
+    pub const fn getCurrentServerMaxPlayers(&self) -> u8 {
+        self.currentServerMaxPlayers
+    }
+    pub const fn isDoneLoadingTerrain(&self) -> bool {
+        self.doneLoadingTerrain
+    }
+    pub const fn getPlayerPosition(&self) -> PlayerPositionState {
+        self.playerPosition
+    }
+    pub fn getSharedState(&self) -> SharedPlayClientState {
+        self.sharedState.clone()
+    }
 }
 
 fn player_position_state(player: &EntityPlayerSP) -> PlayerPositionState {
@@ -3577,16 +4280,12 @@ fn player_position_state(player: &EntityPlayerSP) -> PlayerPositionState {
     }
 }
 
-fn packet_error(
-    packetId: i32,
-    error: impl std::fmt::Display,
-) -> NetHandlerPlayClientError {
+fn packet_error(packetId: i32, error: impl std::fmt::Display) -> NetHandlerPlayClientError {
     NetHandlerPlayClientError::Packet {
         packetId,
         message: error.to_string(),
     }
 }
-
 
 #[cfg(test)]
 mod placement_prediction_tests {
@@ -3617,10 +4316,10 @@ mod placement_prediction_tests {
                 itemDamage: 0,
                 tagCompound: None,
             };
-            player.inventoryContainer.putStackInSlot(
-                36,
-                player.inventory.mainInventory[0].clone(),
-            ).unwrap();
+            player
+                .inventoryContainer
+                .putStackInSlot(36, player.inventory.mainInventory[0].clone())
+                .unwrap();
             state.thePlayer = Some(player);
         });
 
@@ -3629,7 +4328,15 @@ mod placement_prediction_tests {
             EnumHand::MainHand,
         ));
         shared.withRead(|state| {
-            assert_eq!(state.worldClient.as_ref().unwrap().getBlockState(target).getBlockId(), 50);
+            assert_eq!(
+                state
+                    .worldClient
+                    .as_ref()
+                    .unwrap()
+                    .getBlockState(target)
+                    .getBlockId(),
+                50
+            );
             let player = state.thePlayer.as_ref().unwrap();
             assert_eq!(player.inventory.mainInventory[0].count, 1);
             assert_eq!(player.inventoryContainer.getSlot(36).unwrap().count, 1);
@@ -3665,7 +4372,10 @@ mod placement_prediction_tests {
             EnumHand::MainHand,
         ));
         shared.withRead(|state| {
-            assert_eq!(state.thePlayer.as_ref().unwrap().inventory.mainInventory[0].count, 4);
+            assert_eq!(
+                state.thePlayer.as_ref().unwrap().inventory.mainInventory[0].count,
+                4
+            );
         });
     }
 
@@ -3684,7 +4394,12 @@ mod placement_prediction_tests {
         assert!(!shared.applyPredictedBlockDestruction(target, dirt));
         assert!(shared.applyPredictedBlockDestruction(target, stone));
         shared.withRead(|state| {
-            assert!(state.worldClient.as_ref().unwrap().getBlockState(target).isAir());
+            assert!(state
+                .worldClient
+                .as_ref()
+                .unwrap()
+                .getBlockState(target)
+                .isAir());
         });
         assert!(!shared.applyPredictedBlockDestruction(target, stone));
     }
@@ -3705,7 +4420,10 @@ mod placement_prediction_tests {
         assert!(!shared.applyPredictedBlockState(target, stale, open));
         assert!(shared.applyPredictedBlockState(target, closed, open));
         shared.withRead(|state| {
-            assert_eq!(state.worldClient.as_ref().unwrap().getBlockState(target), open);
+            assert_eq!(
+                state.worldClient.as_ref().unwrap().getBlockState(target),
+                open
+            );
         });
     }
 

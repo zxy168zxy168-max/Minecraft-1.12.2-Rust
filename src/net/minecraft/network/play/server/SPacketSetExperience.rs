@@ -25,9 +25,15 @@ impl SPacketSetExperience {
         Ok(result)
     }
 
-    pub const fn getExperienceBar(&self) -> f32 { self.experienceBar }
-    pub const fn getTotalExperience(&self) -> i32 { self.totalExperience }
-    pub const fn getLevel(&self) -> i32 { self.level }
+    pub const fn getExperienceBar(&self) -> f32 {
+        self.experienceBar
+    }
+    pub const fn getTotalExperience(&self) -> i32 {
+        self.totalExperience
+    }
+    pub const fn getLevel(&self) -> i32 {
+        self.level
+    }
 }
 
 #[cfg(test)]

@@ -4,7 +4,11 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use flate2::{read::{GzDecoder, ZlibDecoder}, write::ZlibEncoder, Compression};
+use flate2::{
+    read::{GzDecoder, ZlibDecoder},
+    write::ZlibEncoder,
+    Compression,
+};
 
 const SECTOR_BYTES: usize = 4096;
 const SECTOR_INTS: usize = SECTOR_BYTES / 4;
@@ -31,10 +35,21 @@ pub struct RegionFile {
 impl RegionFile {
     pub fn new(fileNameIn: impl AsRef<Path>) -> io::Result<Self> {
         let fileName = fileNameIn.as_ref().to_path_buf();
-        if let Some(parent) = fileName.parent() { fs::create_dir_all(parent)?; }
-        let lastModified = fileName.metadata().ok().and_then(|m| m.modified().ok())
-            .and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map(|d| d.as_millis() as u64).unwrap_or(0);
-        let mut dataFile = OpenOptions::new().read(true).write(true).create(true).open(&fileName)?;
+        if let Some(parent) = fileName.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let lastModified = fileName
+            .metadata()
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        let mut dataFile = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(&fileName)?;
         let mut sizeDelta = 0_i32;
         let mut length = dataFile.metadata()?.len();
         if length < SECTOR_BYTES as u64 {
@@ -78,21 +93,38 @@ impl RegionFile {
             *entry = dataFile.read_i32::<BigEndian>()?;
         }
 
-        Ok(Self { fileName, dataFile, offsets, chunkTimestamps, sectorFree, sizeDelta, lastModified })
+        Ok(Self {
+            fileName,
+            dataFile,
+            offsets,
+            chunkTimestamps,
+            sectorFree,
+            sizeDelta,
+            lastModified,
+        })
     }
 
     /// MCP `getChunkDataInputStream`, returned as decompressed bytes so Rust
     /// callers can pass a slice directly to `CompressedStreamTools::readRoot`.
     pub fn readChunkData(&mut self, x: i32, z: i32) -> io::Result<Option<Vec<u8>>> {
-        if Self::outOfBounds(x, z) { return Ok(None); }
+        if Self::outOfBounds(x, z) {
+            return Ok(None);
+        }
         let offset = self.getOffset(x, z);
-        if offset == 0 { return Ok(None); }
+        if offset == 0 {
+            return Ok(None);
+        }
         let sectorNumber = (offset >> 8) as usize;
         let sectorCount = (offset & 255) as usize;
-        if sectorNumber + sectorCount > self.sectorFree.len() { return Ok(None); }
-        self.dataFile.seek(SeekFrom::Start((sectorNumber * SECTOR_BYTES) as u64))?;
+        if sectorNumber + sectorCount > self.sectorFree.len() {
+            return Ok(None);
+        }
+        self.dataFile
+            .seek(SeekFrom::Start((sectorNumber * SECTOR_BYTES) as u64))?;
         let length = self.dataFile.read_i32::<BigEndian>()?;
-        if length <= 0 || length as usize > SECTOR_BYTES * sectorCount { return Ok(None); }
+        if length <= 0 || length as usize > SECTOR_BYTES * sectorCount {
+            return Ok(None);
+        }
         let compression = self.dataFile.read_u8()?;
         let payloadLength = length as usize - 1;
         let mut compressed = vec![0_u8; payloadLength];
@@ -109,7 +141,9 @@ impl RegionFile {
     /// MCP `getChunkDataOutputStream` + `ChunkBuffer#close`: callers provide
     /// the uncompressed NBT stream, RegionFile writes zlib type 2.
     pub fn writeChunkData(&mut self, x: i32, z: i32, data: &[u8]) -> io::Result<bool> {
-        if Self::outOfBounds(x, z) { return Ok(false); }
+        if Self::outOfBounds(x, z) {
+            return Ok(false);
+        }
         let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(data)?;
         let compressed = encoder.finish()?;
@@ -122,13 +156,19 @@ impl RegionFile {
         let mut sectorNumber = (oldOffset >> 8) as usize;
         let oldSectorCount = (oldOffset & 255) as usize;
         let sectorsNeeded = (data.len() + 5) / SECTOR_BYTES + 1;
-        if sectorsNeeded >= 256 { return Ok(()); }
+        if sectorsNeeded >= 256 {
+            return Ok(());
+        }
 
         if sectorNumber != 0 && oldSectorCount == sectorsNeeded {
             self.writeSectorPayload(sectorNumber, data)?;
         } else {
             if sectorNumber != 0 {
-                for sector in sectorNumber..sectorNumber.saturating_add(oldSectorCount).min(self.sectorFree.len()) {
+                for sector in sectorNumber
+                    ..sectorNumber
+                        .saturating_add(oldSectorCount)
+                        .min(self.sectorFree.len())
+                {
                     self.sectorFree[sector] = true;
                 }
             }
@@ -137,9 +177,15 @@ impl RegionFile {
             let mut runLength = 0_usize;
             for (index, free) in self.sectorFree.iter().copied().enumerate() {
                 if free {
-                    if runStart.is_none() { runStart = Some(index); runLength = 1; }
-                    else { runLength += 1; }
-                    if runLength >= sectorsNeeded { break; }
+                    if runStart.is_none() {
+                        runStart = Some(index);
+                        runLength = 1;
+                    } else {
+                        runLength += 1;
+                    }
+                    if runLength >= sectorsNeeded {
+                        break;
+                    }
                 } else {
                     runStart = None;
                     runLength = 0;
@@ -148,7 +194,9 @@ impl RegionFile {
 
             if let Some(start) = runStart.filter(|_| runLength >= sectorsNeeded) {
                 self.setOffset(x, z, ((start << 8) | sectorsNeeded) as i32)?;
-                for sector in start..start + sectorsNeeded { self.sectorFree[sector] = false; }
+                for sector in start..start + sectorsNeeded {
+                    self.sectorFree[sector] = false;
+                }
                 self.writeSectorPayload(start, data)?;
             } else {
                 self.dataFile.seek(SeekFrom::End(0))?;
@@ -168,14 +216,20 @@ impl RegionFile {
     }
 
     fn writeSectorPayload(&mut self, sectorNumber: usize, data: &[u8]) -> io::Result<()> {
-        self.dataFile.seek(SeekFrom::Start((sectorNumber * SECTOR_BYTES) as u64))?;
-        self.dataFile.write_i32::<BigEndian>((data.len() + 1) as i32)?;
+        self.dataFile
+            .seek(SeekFrom::Start((sectorNumber * SECTOR_BYTES) as u64))?;
+        self.dataFile
+            .write_i32::<BigEndian>((data.len() + 1) as i32)?;
         self.dataFile.write_u8(2)?;
         self.dataFile.write_all(data)
     }
 
-    const fn outOfBounds(x: i32, z: i32) -> bool { x < 0 || x >= 32 || z < 0 || z >= 32 }
-    fn getOffset(&self, x: i32, z: i32) -> i32 { self.offsets[(x + z * 32) as usize] }
+    const fn outOfBounds(x: i32, z: i32) -> bool {
+        x < 0 || x >= 32 || z < 0 || z >= 32
+    }
+    fn getOffset(&self, x: i32, z: i32) -> i32 {
+        self.offsets[(x + z * 32) as usize]
+    }
     pub fn isChunkSaved(&self, x: i32, z: i32) -> bool {
         !Self::outOfBounds(x, z) && self.getOffset(x, z) != 0
     }
@@ -188,18 +242,30 @@ impl RegionFile {
     fn setChunkTimestamp(&mut self, x: i32, z: i32, timestamp: i32) -> io::Result<()> {
         let index = (x + z * 32) as usize;
         self.chunkTimestamps[index] = timestamp;
-        self.dataFile.seek(SeekFrom::Start((SECTOR_BYTES + index * 4) as u64))?;
+        self.dataFile
+            .seek(SeekFrom::Start((SECTOR_BYTES + index * 4) as u64))?;
         self.dataFile.write_i32::<BigEndian>(timestamp)
     }
 
-    pub const fn getSizeDelta(&self) -> i32 { self.sizeDelta }
-    pub const fn getLastModified(&self) -> u64 { self.lastModified }
-    pub fn getFileName(&self) -> &Path { &self.fileName }
-    pub fn close(&mut self) -> io::Result<()> { self.dataFile.flush() }
+    pub const fn getSizeDelta(&self) -> i32 {
+        self.sizeDelta
+    }
+    pub const fn getLastModified(&self) -> u64 {
+        self.lastModified
+    }
+    pub fn getFileName(&self) -> &Path {
+        &self.fileName
+    }
+    pub fn close(&mut self) -> io::Result<()> {
+        self.dataFile.flush()
+    }
 }
 
 fn current_time_seconds() -> i32 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i32
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i32
 }
 
 #[cfg(test)]
@@ -229,7 +295,8 @@ mod tests {
 
     #[test]
     fn chunk_coordinates_are_region_local() {
-        let root = std::env::temp_dir().join(format!("mc1122-region-bounds-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("mc1122-region-bounds-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(&root).unwrap();
         let mut region = RegionFile::new(root.join("r.0.0.mca")).unwrap();

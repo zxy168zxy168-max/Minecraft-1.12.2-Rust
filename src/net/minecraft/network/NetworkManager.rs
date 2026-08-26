@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use crate::net::minecraft::network::EnumConnectionState::ConnectionState;
 use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::{read_var_i32, PacketCodec, CodecError};
+use crate::net::minecraft::network::PacketBuffer::{read_var_i32, CodecError, PacketCodec};
 use crate::net::minecraft::util::CryptManager::{NetCipher, SecretKey};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -53,7 +53,10 @@ pub struct LocalEndpointAddress {
 
 impl std::fmt::Debug for LocalEndpointAddress {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.debug_tuple("LocalAddress").field(&self.id).finish()
+        formatter
+            .debug_tuple("LocalAddress")
+            .field(&self.id)
+            .finish()
     }
 }
 
@@ -64,7 +67,9 @@ impl std::fmt::Display for LocalEndpointAddress {
 }
 
 impl LocalEndpointAddress {
-    pub const fn id(&self) -> u64 { self.id }
+    pub const fn id(&self) -> u64 {
+        self.id
+    }
 }
 
 pub(crate) struct LocalConnectionRequest {
@@ -75,10 +80,13 @@ pub(crate) struct LocalConnectionRequest {
 }
 
 impl LocalConnectionRequest {
-    pub(crate) fn close(&self) { self.open.store(false, Ordering::Release); }
+    pub(crate) fn close(&self) {
+        self.open.store(false, Ordering::Release);
+    }
 }
 
-pub(crate) fn createLocalEndpointChannel() -> (LocalEndpointAddress, Receiver<LocalConnectionRequest>) {
+pub(crate) fn createLocalEndpointChannel(
+) -> (LocalEndpointAddress, Receiver<LocalConnectionRequest>) {
     static NEXT_LOCAL_ENDPOINT_ID: AtomicU64 = AtomicU64::new(1);
     let id = NEXT_LOCAL_ENDPOINT_ID.fetch_add(1, Ordering::Relaxed);
     let (connector, receiver) = mpsc::channel();
@@ -110,10 +118,15 @@ pub struct NetworkManager {
 }
 
 impl NetworkManager {
-    pub fn createNetworkManagerAndConnect(host: &str, port: u16) -> Result<Self, NetworkManagerError> {
-        let socketAddress = (host, port).to_socket_addrs()
+    pub fn createNetworkManagerAndConnect(
+        host: &str,
+        port: u16,
+    ) -> Result<Self, NetworkManagerError> {
+        let socketAddress = (host, port)
+            .to_socket_addrs()
             .map_err(|_| NetworkManagerError::UnknownHost)?
-            .next().ok_or(NetworkManagerError::UnknownHost)?;
+            .next()
+            .ok_or(NetworkManagerError::UnknownHost)?;
         let stream = TcpStream::connect_timeout(&socketAddress, CONNECT_TIMEOUT)?;
         stream.set_nodelay(true).ok();
         stream.set_read_timeout(Some(IO_TIMEOUT)).ok();
@@ -138,12 +151,15 @@ impl NetworkManager {
         let (clientToServer, serverInbound) = mpsc::channel::<RawPacket>();
         let (serverToClient, clientInbound) = mpsc::channel::<RawPacket>();
         let open = Arc::new(AtomicBool::new(true));
-        address.connector.send(LocalConnectionRequest {
-            endpointId: address.id,
-            inbound: serverInbound,
-            outbound: serverToClient,
-            open: Arc::clone(&open),
-        }).map_err(|_| NetworkManagerError::LocalEndpointClosed)?;
+        address
+            .connector
+            .send(LocalConnectionRequest {
+                endpointId: address.id,
+                inbound: serverInbound,
+                outbound: serverToClient,
+                open: Arc::clone(&open),
+            })
+            .map_err(|_| NetworkManagerError::LocalEndpointClosed)?;
         Ok(Self {
             managerId: nextNetworkManagerId(),
             transport: NetworkTransport::Local {
@@ -185,7 +201,9 @@ impl NetworkManager {
         match &mut self.transport {
             NetworkTransport::Tcp(stream) => {
                 let mut encoded = self.codec.encode(packet)?;
-                if let Some(cipher) = self.encryptor.as_mut() { cipher.apply(&mut encoded); }
+                if let Some(cipher) = self.encryptor.as_mut() {
+                    cipher.apply(&mut encoded);
+                }
                 stream.write_all(&encoded)?;
                 stream.flush()?;
                 Ok(())
@@ -210,7 +228,13 @@ impl NetworkManager {
             return self.readTcpPacket();
         }
 
-        let NetworkTransport::Local { inbound, open, readTimeout, .. } = &mut self.transport else {
+        let NetworkTransport::Local {
+            inbound,
+            open,
+            readTimeout,
+            ..
+        } = &mut self.transport
+        else {
             unreachable!("local transport was checked above");
         };
         if !open.load(Ordering::Acquire) {
@@ -240,7 +264,9 @@ impl NetworkManager {
     fn readTcpPacket(&mut self) -> Result<RawPacket, NetworkManagerError> {
         let mut lengthBytes = Vec::with_capacity(5);
         let packetLength = loop {
-            if lengthBytes.len() >= 5 { return Err(NetworkManagerError::Codec(CodecError::VarIntTooLarge)); }
+            if lengthBytes.len() >= 5 {
+                return Err(NetworkManagerError::Codec(CodecError::VarIntTooLarge));
+            }
             let byte = self.readNetworkByte(lengthBytes.is_empty())?;
             lengthBytes.push(byte);
             if byte & 0x80 == 0 {
@@ -248,9 +274,16 @@ impl NetworkManager {
                 break read_var_i32(&mut view)?;
             }
         };
-        if packetLength < 0 { return Err(NetworkManagerError::Codec(CodecError::NegativeLength(packetLength))); }
+        if packetLength < 0 {
+            return Err(NetworkManagerError::Codec(CodecError::NegativeLength(
+                packetLength,
+            )));
+        }
         if packetLength as usize > 2 * 1024 * 1024 {
-            return Err(NetworkManagerError::Codec(CodecError::PacketTooLarge { actual: packetLength as usize, maximum: 2 * 1024 * 1024 }));
+            return Err(NetworkManagerError::Codec(CodecError::PacketTooLarge {
+                actual: packetLength as usize,
+                maximum: 2 * 1024 * 1024,
+            }));
         }
         let mut body = vec![0_u8; packetLength as usize];
         self.readNetworkExact(&mut body, false)?;
@@ -262,7 +295,9 @@ impl NetworkManager {
 
     pub fn enableEncryption(&mut self, secretKey: &SecretKey) {
         // MCP never installs encryption handlers on a LocalChannel.
-        if self.isLocalChannel() { return; }
+        if self.isLocalChannel() {
+            return;
+        }
         self.encryptor = Some(NetCipher::new(secretKey, true));
         self.decryptor = Some(NetCipher::new(secretKey, false));
     }
@@ -270,8 +305,14 @@ impl NetworkManager {
     pub fn setCompressionThreshold(&mut self, threshold: i32) {
         // NetHandlerLoginServer suppresses SPacketEnableCompression for local
         // connections. Keep this guard as a second source-shaped invariant.
-        if self.isLocalChannel() { return; }
-        self.codec.set_compression_threshold(if threshold >= 0 { Some(threshold as usize) } else { None });
+        if self.isLocalChannel() {
+            return;
+        }
+        self.codec.set_compression_threshold(if threshold >= 0 {
+            Some(threshold as usize)
+        } else {
+            None
+        });
     }
 
     pub fn setReadTimeout(&mut self, timeout: Duration) -> Result<(), NetworkManagerError> {
@@ -284,22 +325,35 @@ impl NetworkManager {
 
     /// Rust-side identity for associating Netty-channel-equivalent handler state.
     /// This never appears on the Minecraft protocol or in persisted world data.
-    pub const fn id(&self) -> u64 { self.managerId }
+    pub const fn id(&self) -> u64 {
+        self.managerId
+    }
 
-    pub fn setConnectionState(&mut self, state: ConnectionState) { self.connectionState = state; }
-    pub const fn getConnectionState(&self) -> ConnectionState { self.connectionState }
+    pub fn setConnectionState(&mut self, state: ConnectionState) {
+        self.connectionState = state;
+    }
+    pub const fn getConnectionState(&self) -> ConnectionState {
+        self.connectionState
+    }
     pub fn isChannelOpen(&self) -> bool {
-        self.channelOpen && match &self.transport {
-            NetworkTransport::Tcp(_) => true,
-            NetworkTransport::Local { open, .. } => open.load(Ordering::Acquire),
-        }
+        self.channelOpen
+            && match &self.transport {
+                NetworkTransport::Tcp(_) => true,
+                NetworkTransport::Local { open, .. } => open.load(Ordering::Acquire),
+            }
     }
     /// MCP `NetworkManager#isEncrypted`, used by GuiPlayerTabOverlay to
     /// decide whether the authenticated player-head branch is available.
-    pub const fn isEncrypted(&self) -> bool { self.encryptor.is_some() }
+    pub const fn isEncrypted(&self) -> bool {
+        self.encryptor.is_some()
+    }
     /// MCP `NetworkManager#isLocalChannel`.
-    pub const fn isLocalChannel(&self) -> bool { matches!(&self.transport, NetworkTransport::Local { .. }) }
-    pub const fn getRemoteAddress(&self) -> SocketAddr { self.socketAddress }
+    pub const fn isLocalChannel(&self) -> bool {
+        matches!(&self.transport, NetworkTransport::Local { .. })
+    }
+    pub const fn getRemoteAddress(&self) -> SocketAddr {
+        self.socketAddress
+    }
     pub fn getLocalEndpointId(&self) -> Option<u64> {
         match &self.transport {
             NetworkTransport::Local { endpointId, .. } => Some(*endpointId),
@@ -310,7 +364,9 @@ impl NetworkManager {
     pub fn closeChannel(&mut self) {
         self.channelOpen = false;
         match &mut self.transport {
-            NetworkTransport::Tcp(stream) => { let _ = stream.shutdown(std::net::Shutdown::Both); }
+            NetworkTransport::Tcp(stream) => {
+                let _ = stream.shutdown(std::net::Shutdown::Both);
+            }
             NetworkTransport::Local { open, .. } => open.store(false, Ordering::Release),
         }
     }
@@ -326,25 +382,51 @@ impl NetworkManager {
     /// surfaced before the first byte of a new packet; once a VarInt prefix or
     /// body has started, the same call retains its local progress until the
     /// frame is complete.
-    fn readNetworkExact(&mut self, output: &mut [u8], allowIdleTimeout: bool) -> Result<(), NetworkManagerError> {
+    fn readNetworkExact(
+        &mut self,
+        output: &mut [u8],
+        allowIdleTimeout: bool,
+    ) -> Result<(), NetworkManagerError> {
         let NetworkTransport::Tcp(stream) = &mut self.transport else {
-            return Err(NetworkManagerError::Io(io::Error::new(io::ErrorKind::InvalidInput, "byte reads are not used by LocalChannel")));
+            return Err(NetworkManagerError::Io(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "byte reads are not used by LocalChannel",
+            )));
         };
         let mut offset = 0_usize;
         while offset < output.len() {
             match stream.read(&mut output[offset..]) {
-                Ok(0) => { self.channelOpen = false; return Err(NetworkManagerError::Closed); }
+                Ok(0) => {
+                    self.channelOpen = false;
+                    return Err(NetworkManagerError::Closed);
+                }
                 Ok(read) => {
-                    if let Some(cipher) = self.decryptor.as_mut() { cipher.apply(&mut output[offset..offset + read]); }
+                    if let Some(cipher) = self.decryptor.as_mut() {
+                        cipher.apply(&mut output[offset..offset + read]);
+                    }
                     offset += read;
                 }
-                Err(error) if matches!(error.kind(), io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut) => {
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+                    ) =>
+                {
                     if offset == 0 && allowIdleTimeout {
                         return Err(NetworkManagerError::Timeout);
                     }
                 }
-                Err(error) if matches!(error.kind(), io::ErrorKind::UnexpectedEof | io::ErrorKind::ConnectionReset | io::ErrorKind::ConnectionAborted | io::ErrorKind::BrokenPipe) => {
-                    self.channelOpen = false; return Err(NetworkManagerError::Closed);
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        io::ErrorKind::UnexpectedEof
+                            | io::ErrorKind::ConnectionReset
+                            | io::ErrorKind::ConnectionAborted
+                            | io::ErrorKind::BrokenPipe
+                    ) =>
+                {
+                    self.channelOpen = false;
+                    return Err(NetworkManagerError::Closed);
                 }
                 Err(error) => return Err(NetworkManagerError::Io(error)),
             }
@@ -353,7 +435,11 @@ impl NetworkManager {
     }
 }
 
-impl Drop for NetworkManager { fn drop(&mut self) { self.closeChannel(); } }
+impl Drop for NetworkManager {
+    fn drop(&mut self) {
+        self.closeChannel();
+    }
+}
 
 #[cfg(test)]
 mod tests {

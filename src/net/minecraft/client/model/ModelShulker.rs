@@ -43,7 +43,10 @@ impl ModelShulker {
                 [16, 8, 16],
                 0.0,
                 false,
-                PartPose { pivot: [0.0, 24.0, 0.0], rotation: [0.0; 3] },
+                PartPose {
+                    pivot: [0.0, 24.0, 0.0],
+                    rotation: [0.0; 3],
+                },
                 LivingModelGroup::Body,
             ),
             model_box(
@@ -70,7 +73,11 @@ impl ModelShulker {
             false,
             PartPose {
                 pivot: [0.0, 12.0, 0.0],
-                rotation: [input.headPitch.to_radians(), (input.headYaw - input.bodyYaw).to_radians(), 0.0],
+                rotation: [
+                    input.headPitch.to_radians(),
+                    (input.headYaw - input.bodyYaw).to_radians(),
+                    0.0,
+                ],
             },
             LivingModelGroup::Head,
         )]
@@ -84,24 +91,44 @@ mod tests {
 
     fn input(age: f32) -> LivingRenderInput {
         LivingRenderInput {
-            position: [0.0; 3], bodyYaw: 180.0, headYaw: 180.0, headPitch: 0.0,
-            limbSwing: 0.0, limbSwingAmount: 0.0, ageInTicks: age,
-            swingProgress: 0.0, sneaking: false, child: false, deathRotation: 0.0,
-            preScale: 0.999, preScaleXYZ: [0.999; 3], childLayout: LivingChildLayout::BIPED,
+            position: [0.0; 3],
+            bodyYaw: 180.0,
+            headYaw: 180.0,
+            headPitch: 0.0,
+            limbSwing: 0.0,
+            limbSwingAmount: 0.0,
+            ageInTicks: age,
+            swingProgress: 0.0,
+            sneaking: false,
+            child: false,
+            deathRotation: 0.0,
+            preScale: 0.999,
+            preScaleXYZ: [0.999; 3],
+            childLayout: LivingChildLayout::BIPED,
             adultTranslation: [0.0; 3],
         }
     }
 
     #[test]
     fn closed_lid_uses_source_pivot_and_zero_yaw() {
-        let boxes = ModelShulker::shellBoxes(input(20.0), ShulkerModelState { clientPeekAmount: 0.0 });
+        let boxes = ModelShulker::shellBoxes(
+            input(20.0),
+            ShulkerModelState {
+                clientPeekAmount: 0.0,
+            },
+        );
         assert_eq!(boxes[1].pose.pivot, [0.0, 24.0, 0.0]);
         assert_eq!(boxes[1].pose.rotation[1], 0.0);
     }
 
     #[test]
     fn half_open_lid_uses_source_translation_and_fourth_power_rotation() {
-        let boxes = ModelShulker::shellBoxes(input(20.0), ShulkerModelState { clientPeekAmount: 0.5 });
+        let boxes = ModelShulker::shellBoxes(
+            input(20.0),
+            ShulkerModelState {
+                clientPeekAmount: 0.5,
+            },
+        );
         assert!((boxes[1].pose.pivot[1] - 16.0).abs() < 1.0e-5);
         assert!((boxes[1].pose.rotation[1] - std::f32::consts::PI * 0.125).abs() < 1.0e-5);
     }

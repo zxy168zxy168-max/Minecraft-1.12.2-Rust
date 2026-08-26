@@ -24,7 +24,10 @@ impl ModelGhast {
             [16, 16, 16],
             0.0,
             false,
-            PartPose { pivot: [0.0, 8.0, 0.0], rotation: [0.0; 3] },
+            PartPose {
+                pivot: [0.0, 8.0, 0.0],
+                rotation: [0.0; 3],
+            },
             LivingModelGroup::Body,
         ));
 
@@ -41,7 +44,11 @@ impl ModelGhast {
                 false,
                 PartPose {
                     pivot: [x, 15.0, z],
-                    rotation: [0.2 * (input.ageInTicks * 0.3 + i as f32).sin() + 0.4, 0.0, 0.0],
+                    rotation: [
+                        0.2 * (input.ageInTicks * 0.3 + i as f32).sin() + 0.4,
+                        0.0,
+                        0.0,
+                    ],
                 },
                 LivingModelGroup::Body,
             ));
@@ -57,10 +64,20 @@ mod tests {
 
     fn input() -> LivingRenderInput {
         LivingRenderInput {
-            position: [0.0; 3], bodyYaw: 0.0, headYaw: 0.0, headPitch: 0.0,
-            limbSwing: 0.0, limbSwingAmount: 0.0, ageInTicks: 0.0,
-            swingProgress: 0.0, sneaking: false, child: false, deathRotation: 0.0,
-            preScale: 4.5, preScaleXYZ: [4.5; 3], childLayout: LivingChildLayout::BIPED,
+            position: [0.0; 3],
+            bodyYaw: 0.0,
+            headYaw: 0.0,
+            headPitch: 0.0,
+            limbSwing: 0.0,
+            limbSwingAmount: 0.0,
+            ageInTicks: 0.0,
+            swingProgress: 0.0,
+            sneaking: false,
+            child: false,
+            deathRotation: 0.0,
+            preScale: 4.5,
+            preScaleXYZ: [4.5; 3],
+            childLayout: LivingChildLayout::BIPED,
             adultTranslation: [0.0; 3],
         }
     }
@@ -68,7 +85,10 @@ mod tests {
     #[test]
     fn seeded_tentacle_lengths_match_java_random() {
         let boxes = ModelGhast::boxes(input());
-        let lengths = boxes[1..].iter().map(|model_box| model_box.size[1]).collect::<Vec<_>>();
+        let lengths = boxes[1..]
+            .iter()
+            .map(|model_box| model_box.size[1])
+            .collect::<Vec<_>>();
         assert_eq!(lengths, vec![8, 13, 9, 11, 11, 10, 12, 9, 12]);
     }
 

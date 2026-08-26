@@ -57,20 +57,86 @@ impl ModelSkeleton {
 
     pub fn boxes(pose: BipedPose, delta: f32, armorShape: bool) -> Vec<LivingModelBox> {
         if armorShape {
-            return crate::net::minecraft::client::model::ModelZombie::standard_biped_boxes(pose, delta);
+            return crate::net::minecraft::client::model::ModelZombie::standard_biped_boxes(
+                pose, delta,
+            );
         }
         vec![
-            model_box([0, 0], [-4.0, -8.0, -4.0], [8, 8, 8], delta, false, pose.head, LivingModelGroup::Head),
-            model_box([32, 0], [-4.0, -8.0, -4.0], [8, 8, 8], delta + 0.5, false, pose.head, LivingModelGroup::Body),
-            model_box([16, 16], [-4.0, 0.0, -2.0], [8, 12, 4], delta, false, pose.body, LivingModelGroup::Body),
-            model_box([40, 16], [-1.0, -2.0, -1.0], [2, 12, 2], delta, false,
-                crate::net::minecraft::client::model::ModelBiped::PartPose { pivot: [-5.0, 2.0, 0.0], ..pose.rightArm }, LivingModelGroup::Body),
-            model_box([40, 16], [-1.0, -2.0, -1.0], [2, 12, 2], delta, true,
-                crate::net::minecraft::client::model::ModelBiped::PartPose { pivot: [5.0, 2.0, 0.0], ..pose.leftArm }, LivingModelGroup::Body),
-            model_box([0, 16], [-1.0, 0.0, -1.0], [2, 12, 2], delta, false,
-                crate::net::minecraft::client::model::ModelBiped::PartPose { pivot: [-2.0, 12.0, 0.0], ..pose.rightLeg }, LivingModelGroup::Body),
-            model_box([0, 16], [-1.0, 0.0, -1.0], [2, 12, 2], delta, true,
-                crate::net::minecraft::client::model::ModelBiped::PartPose { pivot: [2.0, 12.0, 0.0], ..pose.leftLeg }, LivingModelGroup::Body),
+            model_box(
+                [0, 0],
+                [-4.0, -8.0, -4.0],
+                [8, 8, 8],
+                delta,
+                false,
+                pose.head,
+                LivingModelGroup::Head,
+            ),
+            model_box(
+                [32, 0],
+                [-4.0, -8.0, -4.0],
+                [8, 8, 8],
+                delta + 0.5,
+                false,
+                pose.head,
+                LivingModelGroup::Body,
+            ),
+            model_box(
+                [16, 16],
+                [-4.0, 0.0, -2.0],
+                [8, 12, 4],
+                delta,
+                false,
+                pose.body,
+                LivingModelGroup::Body,
+            ),
+            model_box(
+                [40, 16],
+                [-1.0, -2.0, -1.0],
+                [2, 12, 2],
+                delta,
+                false,
+                crate::net::minecraft::client::model::ModelBiped::PartPose {
+                    pivot: [-5.0, 2.0, 0.0],
+                    ..pose.rightArm
+                },
+                LivingModelGroup::Body,
+            ),
+            model_box(
+                [40, 16],
+                [-1.0, -2.0, -1.0],
+                [2, 12, 2],
+                delta,
+                true,
+                crate::net::minecraft::client::model::ModelBiped::PartPose {
+                    pivot: [5.0, 2.0, 0.0],
+                    ..pose.leftArm
+                },
+                LivingModelGroup::Body,
+            ),
+            model_box(
+                [0, 16],
+                [-1.0, 0.0, -1.0],
+                [2, 12, 2],
+                delta,
+                false,
+                crate::net::minecraft::client::model::ModelBiped::PartPose {
+                    pivot: [-2.0, 12.0, 0.0],
+                    ..pose.rightLeg
+                },
+                LivingModelGroup::Body,
+            ),
+            model_box(
+                [0, 16],
+                [-1.0, 0.0, -1.0],
+                [2, 12, 2],
+                delta,
+                true,
+                crate::net::minecraft::client::model::ModelBiped::PartPose {
+                    pivot: [2.0, 12.0, 0.0],
+                    ..pose.leftLeg
+                },
+                LivingModelGroup::Body,
+            ),
         ]
     }
 }
@@ -109,7 +175,8 @@ mod tests {
             childLayout: crate::net::minecraft::client::renderer::entity::RenderLivingBase::LivingChildLayout::BIPED,
             adultTranslation: [0.0; 3],
         };
-        let boxes = ModelSkeleton::boxes(ModelSkeleton::pose(input, false, false, false), 0.0, false);
+        let boxes =
+            ModelSkeleton::boxes(ModelSkeleton::pose(input, false, false, false), 0.0, false);
         assert_eq!(boxes[3].size, [2, 12, 2]);
         assert_eq!(boxes[5].size, [2, 12, 2]);
     }

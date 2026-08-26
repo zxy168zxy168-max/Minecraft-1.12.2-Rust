@@ -10,11 +10,11 @@ use anyhow::{anyhow, Context};
 use gl::types::{GLchar, GLenum, GLint, GLsizei, GLsizeiptr, GLuint};
 
 use crate::net::minecraft::client::renderer::ShaderFrameState::ShaderFrameState;
-use crate::net::optifine::shader::ClippingHelperShadow::ClippingHelperShadow;
 use crate::net::optifine::shader::config::ShaderPackOptions::ShaderPackOptions;
 use crate::net::optifine::shader::config::ShaderPackSource::{
     loadShaderSourceWithOptions, ShaderMacroEnvironment,
 };
+use crate::net::optifine::shader::ClippingHelperShadow::ClippingHelperShadow;
 use crate::net::optifine::shader::IShaderPack::IShaderPack;
 use crate::net::optifine::shader::Shaders::{
     packNameDefault, packNameNone, PropertyDefaultTrueFalse, Shaders,
@@ -49,13 +49,18 @@ const GBUFFER_NAMES: [&str; GBUFFER_PROGRAM_COUNT] = [
 ];
 // Exact `Shaders.programBackups[1..=20]` mapping. Values retain the original
 // OptiFine program numbers; zero means the compatibility fixed-function path.
-const GBUFFER_BACKUPS: [usize; GBUFFER_PROGRAM_COUNT] = [
-    0, 1, 2, 1, 2, 2, 3, 7, 7, 7, 7, 7, 7, 2, 3, 3, 2, 2, 3, 3,
-];
+const GBUFFER_BACKUPS: [usize; GBUFFER_PROGRAM_COUNT] =
+    [0, 1, 2, 1, 2, 2, 3, 7, 7, 7, 7, 7, 7, 2, 3, 3, 2, 2, 3, 3];
 const SHADOW_NAMES: [&str; 3] = ["shadow", "shadow_solid", "shadow_cutout"];
 const COMPOSITE_NAMES: [&str; 8] = [
-    "composite", "composite1", "composite2", "composite3",
-    "composite4", "composite5", "composite6", "composite7",
+    "composite",
+    "composite1",
+    "composite2",
+    "composite3",
+    "composite4",
+    "composite5",
+    "composite6",
+    "composite7",
 ];
 const COLOR_TEXTURE_UNITS: [u32; COLOR_BUFFER_COUNT] = [0, 1, 2, 3, 7, 8, 9, 10];
 const GBUFFER_ATTRIBUTES: [(GLuint, &str); 8] = [
@@ -68,10 +73,7 @@ const GBUFFER_ATTRIBUTES: [(GLuint, &str); 8] = [
     (6, "mc_midTexCoord"),
     (7, "at_tangent"),
 ];
-const FULLSCREEN_ATTRIBUTES: [(GLuint, &str); 2] = [
-    (0, "mc_position"),
-    (1, "mc_texcoord"),
-];
+const FULLSCREEN_ATTRIBUTES: [(GLuint, &str); 2] = [(0, "mc_position"), (1, "mc_texcoord")];
 
 const BLIT_VERTEX_SHADER: &str = r#"#version 330 compatibility
 layout(location = 0) in vec2 in_position;
@@ -261,7 +263,9 @@ impl PackProgram {
 
     fn destroy(&mut self) {
         if self.id != 0 {
-            unsafe { gl::DeleteProgram(self.id); }
+            unsafe {
+                gl::DeleteProgram(self.id);
+            }
             self.id = 0;
         }
     }
@@ -297,7 +301,10 @@ impl ShaderTargets {
             framebuffer != 0 && depthTextures.iter().all(|texture| *texture != 0),
             "OptiFine framebuffer allocation failed",
         );
-        anyhow::ensure!(colorTextures.iter().flatten().all(|texture| *texture != 0), "OptiFine color texture allocation failed");
+        anyhow::ensure!(
+            colorTextures.iter().flatten().all(|texture| *texture != 0),
+            "OptiFine color texture allocation failed"
+        );
         Ok(Self {
             framebuffer,
             colorTextures,
@@ -361,8 +368,16 @@ impl ShaderTargets {
                     gl::BindTexture(gl::TEXTURE_2D, *texture);
                     gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
                     gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
-                    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as GLint);
-                    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as GLint);
+                    gl::TexParameteri(
+                        gl::TEXTURE_2D,
+                        gl::TEXTURE_WRAP_S,
+                        gl::CLAMP_TO_EDGE as GLint,
+                    );
+                    gl::TexParameteri(
+                        gl::TEXTURE_2D,
+                        gl::TEXTURE_WRAP_T,
+                        gl::CLAMP_TO_EDGE as GLint,
+                    );
                     gl::TexImage2D(
                         gl::TEXTURE_2D,
                         0,
@@ -385,8 +400,16 @@ impl ShaderTargets {
                 gl::BindTexture(gl::TEXTURE_2D, texture);
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as GLint);
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as GLint);
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_WRAP_S,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_WRAP_T,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
                 gl::TexImage2D(
                     gl::TEXTURE_2D,
                     0,
@@ -430,22 +453,18 @@ impl ShaderTargets {
             {
                 *drawBuffer = gl::COLOR_ATTACHMENT0 + index as GLenum;
             }
-            gl::DrawBuffers(
-                self.usedColorBuffers as GLsizei,
-                drawBuffers.as_ptr(),
-            );
+            gl::DrawBuffers(self.usedColorBuffers as GLsizei, drawBuffers.as_ptr());
             let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-            anyhow::ensure!(status == gl::FRAMEBUFFER_COMPLETE, "OptiFine framebuffer is incomplete: 0x{status:04X}");
+            anyhow::ensure!(
+                status == gl::FRAMEBUFFER_COMPLETE,
+                "OptiFine framebuffer is incomplete: 0x{status:04X}"
+            );
         }
         Ok(())
     }
 
-    fn beginScene(
-        &mut self,
-        extent: RendererExtent,
-        clearColor: [f32; 4],
-    ) -> anyhow::Result<()> {
+    fn beginScene(&mut self, extent: RendererExtent, clearColor: [f32; 4]) -> anyhow::Result<()> {
         self.ensureSize(extent)?;
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer);
@@ -472,16 +491,8 @@ impl ShaderTargets {
             for index in 0..self.usedColorBuffers {
                 for texture in self.colorTextures[index] {
                     gl::BindTexture(gl::TEXTURE_2D, texture);
-                    gl::TexParameteri(
-                        gl::TEXTURE_2D,
-                        gl::TEXTURE_MIN_FILTER,
-                        gl::LINEAR as GLint,
-                    );
-                    gl::TexParameteri(
-                        gl::TEXTURE_2D,
-                        gl::TEXTURE_MAG_FILTER,
-                        gl::LINEAR as GLint,
-                    );
+                    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+                    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
                 }
                 gl::BindTexture(gl::TEXTURE_2D, 0);
                 gl::FramebufferTexture2D(
@@ -545,10 +556,7 @@ impl ShaderTargets {
             {
                 *drawBuffer = gl::COLOR_ATTACHMENT0 + index as GLenum;
             }
-            gl::DrawBuffers(
-                self.usedColorBuffers as GLsizei,
-                drawBuffers.as_ptr(),
-            );
+            gl::DrawBuffers(self.usedColorBuffers as GLsizei, drawBuffers.as_ptr());
         }
     }
 
@@ -562,7 +570,11 @@ impl ShaderTargets {
                 gl::ActiveTexture(gl::TEXTURE0 + unit);
                 gl::BindTexture(
                     gl::TEXTURE_2D,
-                    if index < self.usedDepthBuffers { self.depthTextures[index] } else { 0 },
+                    if index < self.usedDepthBuffers {
+                        self.depthTextures[index]
+                    } else {
+                        0
+                    },
                 );
             }
             gl::ActiveTexture(gl::TEXTURE0);
@@ -586,13 +598,16 @@ impl ShaderTargets {
                 gl::ActiveTexture(gl::TEXTURE0 + unit);
                 gl::BindTexture(
                     gl::TEXTURE_2D,
-                    if index < self.usedDepthBuffers { self.depthTextures[index] } else { 0 },
+                    if index < self.usedDepthBuffers {
+                        self.depthTextures[index]
+                    } else {
+                        0
+                    },
                 );
             }
             gl::ActiveTexture(gl::TEXTURE0);
         }
     }
-
 
     fn copyDepthSnapshot(&self, snapshot: usize, textureUnit: u32) {
         if snapshot == 0
@@ -672,8 +687,12 @@ impl ShaderTargets {
             let mut attachments = [gl::NONE; COLOR_BUFFER_COUNT];
             let mut attachmentCount = 0_usize;
             for &index in drawBuffers {
-                if index >= self.usedColorBuffers { continue; }
-                if attachmentCount == COLOR_BUFFER_COUNT { break; }
+                if index >= self.usedColorBuffers {
+                    continue;
+                }
+                if attachmentCount == COLOR_BUFFER_COUNT {
+                    break;
+                }
                 attachments[attachmentCount] = gl::COLOR_ATTACHMENT0 + index as GLenum;
                 attachmentCount += 1;
             }
@@ -698,7 +717,10 @@ impl ShaderTargets {
             for pair in &self.colorTextures {
                 gl::DeleteTextures(2, pair.as_ptr());
             }
-            gl::DeleteTextures(self.depthTextures.len() as GLsizei, self.depthTextures.as_ptr());
+            gl::DeleteTextures(
+                self.depthTextures.len() as GLsizei,
+                self.depthTextures.as_ptr(),
+            );
             gl::DeleteFramebuffers(1, &self.framebuffer);
         }
         self.framebuffer = 0;
@@ -706,7 +728,6 @@ impl ShaderTargets {
         self.colorTextures = [[0; 2]; COLOR_BUFFER_COUNT];
     }
 }
-
 
 struct ShadowTargets {
     framebuffer: GLuint,
@@ -767,7 +788,11 @@ impl ShadowTargets {
     ) -> anyhow::Result<()> {
         let usedDepthBuffers = usedDepthBuffers.min(SHADOW_DEPTH_BUFFER_COUNT);
         let usedColorBuffers = usedColorBuffers.min(SHADOW_COLOR_BUFFER_COUNT);
-        let resolution = if usedDepthBuffers == 0 { 0 } else { resolution.max(1) };
+        let resolution = if usedDepthBuffers == 0 {
+            0
+        } else {
+            resolution.max(1)
+        };
         let changed = self.resolution != resolution
             || self.usedDepthBuffers != usedDepthBuffers
             || self.usedColorBuffers != usedColorBuffers
@@ -789,7 +814,9 @@ impl ShadowTargets {
         }
 
         let mut maximum = 0;
-        unsafe { gl::GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut maximum); }
+        unsafe {
+            gl::GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut maximum);
+        }
         anyhow::ensure!(
             maximum > 0 && resolution <= maximum,
             "shadowMapResolution {resolution} exceeds OpenGL GL_MAX_TEXTURE_SIZE {maximum}",
@@ -810,10 +837,22 @@ impl ShadowTargets {
                 gl::TexParameteri(
                     gl::TEXTURE_2D,
                     gl::TEXTURE_COMPARE_MODE,
-                    if compare { gl::COMPARE_REF_TO_TEXTURE as GLint } else { gl::NONE as GLint },
+                    if compare {
+                        gl::COMPARE_REF_TO_TEXTURE as GLint
+                    } else {
+                        gl::NONE as GLint
+                    },
                 );
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_COMPARE_FUNC, gl::LEQUAL as GLint);
-                let size = if index < usedDepthBuffers { resolution } else { 1 };
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_COMPARE_FUNC,
+                    gl::LEQUAL as GLint,
+                );
+                let size = if index < usedDepthBuffers {
+                    resolution
+                } else {
+                    1
+                };
                 gl::TexImage2D(
                     gl::TEXTURE_2D,
                     0,
@@ -834,7 +873,11 @@ impl ShadowTargets {
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter as GLint);
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, 0x2900);
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, 0x2900);
-                let size = if index < usedColorBuffers { resolution } else { 1 };
+                let size = if index < usedColorBuffers {
+                    resolution
+                } else {
+                    1
+                };
                 gl::TexImage2D(
                     gl::TEXTURE_2D,
                     0,
@@ -861,7 +904,11 @@ impl ShadowTargets {
                     gl::FRAMEBUFFER,
                     gl::COLOR_ATTACHMENT0 + index as GLenum,
                     gl::TEXTURE_2D,
-                    if index < usedColorBuffers { self.colorTextures[index] } else { 0 },
+                    if index < usedColorBuffers {
+                        self.colorTextures[index]
+                    } else {
+                        0
+                    },
                     0,
                 );
             }
@@ -915,10 +962,7 @@ impl ShadowTargets {
                 {
                     *drawBuffer = gl::COLOR_ATTACHMENT0 + index as GLenum;
                 }
-                gl::DrawBuffers(
-                    self.usedColorBuffers as GLsizei,
-                    drawBuffers.as_ptr(),
-                );
+                gl::DrawBuffers(self.usedColorBuffers as GLsizei, drawBuffers.as_ptr());
                 gl::ReadBuffer(gl::NONE);
             }
             gl::ClearColor(1.0, 1.0, 1.0, 1.0);
@@ -998,14 +1042,22 @@ impl ShadowTargets {
                 gl::ActiveTexture(gl::TEXTURE0 + 4 + index as u32);
                 gl::BindTexture(
                     gl::TEXTURE_2D,
-                    if index < self.usedDepthBuffers { self.depthTextures[index] } else { 0 },
+                    if index < self.usedDepthBuffers {
+                        self.depthTextures[index]
+                    } else {
+                        0
+                    },
                 );
             }
             for index in 0..SHADOW_COLOR_BUFFER_COUNT {
                 gl::ActiveTexture(gl::TEXTURE0 + 13 + index as u32);
                 gl::BindTexture(
                     gl::TEXTURE_2D,
-                    if index < self.usedColorBuffers { self.colorTextures[index] } else { 0 },
+                    if index < self.usedColorBuffers {
+                        self.colorTextures[index]
+                    } else {
+                        0
+                    },
                 );
             }
             gl::ActiveTexture(gl::TEXTURE0);
@@ -1014,8 +1066,14 @@ impl ShadowTargets {
 
     fn destroy(&mut self) {
         unsafe {
-            gl::DeleteTextures(self.depthTextures.len() as GLsizei, self.depthTextures.as_ptr());
-            gl::DeleteTextures(self.colorTextures.len() as GLsizei, self.colorTextures.as_ptr());
+            gl::DeleteTextures(
+                self.depthTextures.len() as GLsizei,
+                self.depthTextures.as_ptr(),
+            );
+            gl::DeleteTextures(
+                self.colorTextures.len() as GLsizei,
+                self.colorTextures.as_ptr(),
+            );
             gl::DeleteFramebuffers(1, &self.framebuffer);
         }
         self.framebuffer = 0;
@@ -1135,8 +1193,12 @@ impl OptifineShaderRuntime {
         })
     }
 
-    pub fn selectedName(&self) -> &str { &self.selectedName }
-    pub fn isActive(&self) -> bool { self.active }
+    pub fn selectedName(&self) -> &str {
+        &self.selectedName
+    }
+    pub fn isActive(&self) -> bool {
+        self.active
+    }
     pub fn hasGbufferPrograms(&self) -> bool {
         self.gbufferPrograms.iter().any(Option::is_some)
     }
@@ -1191,22 +1253,34 @@ impl OptifineShaderRuntime {
         // Retain the loaded dimension so the same broken selection is not
         // recompiled every frame. A user selection/reload resets it explicitly.
         self.active = false;
-        unsafe { gl::BindFramebuffer(gl::FRAMEBUFFER, 0); }
+        unsafe {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        }
     }
 
-    pub fn prepareScene(&mut self, frame: &ShaderFrameState, extent: RendererExtent) -> anyhow::Result<bool> {
+    pub fn prepareScene(
+        &mut self,
+        frame: &ShaderFrameState,
+        extent: RendererExtent,
+    ) -> anyhow::Result<bool> {
         self.ensureLoaded(frame.dimension)?;
         if !self.active {
-            unsafe { gl::BindFramebuffer(gl::FRAMEBUFFER, 0); }
+            unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            }
             return Ok(false);
         }
         let now = Instant::now();
-        self.currentFrameTime = now.duration_since(self.lastFrame).as_secs_f32().clamp(0.0, 1.0);
+        self.currentFrameTime = now
+            .duration_since(self.lastFrame)
+            .as_secs_f32()
+            .clamp(0.0, 1.0);
         self.lastFrame = now;
         self.frameTimeCounter = (self.frameTimeCounter + self.currentFrameTime) % 3600.0;
         self.updateShadowUniformMatrices(frame);
         self.renderExtent = scaledExtent(extent, self.renderResMul);
-        self.targets.beginScene(self.renderExtent, frame.clearColor)?;
+        self.targets
+            .beginScene(self.renderExtent, frame.clearColor)?;
         Ok(true)
     }
 
@@ -1288,7 +1362,10 @@ impl OptifineShaderRuntime {
 
     fn resolveGbufferProgram(&self, requested: usize) -> Option<usize> {
         resolveGbufferProgramIndex(requested, |index| {
-            self.gbufferPrograms.get(index).and_then(Option::as_ref).is_some()
+            self.gbufferPrograms
+                .get(index)
+                .and_then(Option::as_ref)
+                .is_some()
         })
     }
 
@@ -1310,16 +1387,31 @@ impl OptifineShaderRuntime {
         }
     }
 
-    pub fn finishScene(&mut self, frame: &ShaderFrameState, extent: RendererExtent) -> anyhow::Result<()> {
+    pub fn finishScene(
+        &mut self,
+        frame: &ShaderFrameState,
+        extent: RendererExtent,
+    ) -> anyhow::Result<()> {
         if !self.active {
-            unsafe { gl::BindFramebuffer(gl::FRAMEBUFFER, 0); }
+            unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            }
             return Ok(());
         }
         let frameTime = self.currentFrameTime;
         let noiseTexture = self.noiseTexture;
-        let renderExtent = if self.renderExtent.width == 0 || self.renderExtent.height == 0 { extent } else { self.renderExtent };
+        let renderExtent = if self.renderExtent.width == 0 || self.renderExtent.height == 0 {
+            extent
+        } else {
+            self.renderExtent
+        };
         unsafe {
-            gl::Viewport(0, 0, renderExtent.width as GLsizei, renderExtent.height as GLsizei);
+            gl::Viewport(
+                0,
+                0,
+                renderExtent.width as GLsizei,
+                renderExtent.height as GLsizei,
+            );
             gl::Disable(gl::DEPTH_TEST);
             gl::DepthMask(gl::FALSE);
             gl::Disable(gl::CULL_FACE);
@@ -1330,7 +1422,8 @@ impl OptifineShaderRuntime {
 
         for program in &mut self.programs {
             self.targets.bindReadTextures();
-            self.targets.generateCompositeMipmaps(program.compositeMipmapMask);
+            self.targets
+                .generateCompositeMipmaps(program.compositeMipmapMask);
             self.shadowTargets.bindTextures();
             bindNoiseTexture(noiseTexture);
             self.targets.beginCompositePass(&program.drawBuffers);
@@ -1349,7 +1442,9 @@ impl OptifineShaderRuntime {
                 &self.shadowModelView,
                 &self.shadowModelViewInverse,
             );
-            unsafe { gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4); }
+            unsafe {
+                gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
+            }
             self.targets.finishCompositePass(&program.drawBuffers);
         }
 
@@ -1376,7 +1471,8 @@ impl OptifineShaderRuntime {
         }
         self.targets.bindReadTextures();
         if let Some(program) = self.finalProgram.as_ref() {
-            self.targets.generateCompositeMipmaps(program.compositeMipmapMask);
+            self.targets
+                .generateCompositeMipmaps(program.compositeMipmapMask);
         }
         self.shadowTargets.bindTextures();
         bindNoiseTexture(noiseTexture);
@@ -1401,7 +1497,9 @@ impl OptifineShaderRuntime {
                 gl::UseProgram(self.blitProgram);
                 let name = CString::new("colortex0").expect("static sampler name");
                 let location = gl::GetUniformLocation(self.blitProgram, name.as_ptr());
-                if location >= 0 { gl::Uniform1i(location, 0); }
+                if location >= 0 {
+                    gl::Uniform1i(location, 0);
+                }
             }
         }
         unsafe {
@@ -1421,10 +1519,7 @@ impl OptifineShaderRuntime {
     /// client uses the compatibility fixed pipeline, represented here by the
     /// explicit `fixedShadowProgram` bridge.
     pub fn beginShadowPass(&mut self) -> bool {
-        if !self.active
-            || !self.shadowTargets.isActive()
-            || self.shadowPassInterval <= 0
-        {
+        if !self.active || !self.shadowTargets.isActive() || self.shadowPassInterval <= 0 {
             return false;
         }
         self.shadowPassCounter -= 1;
@@ -1523,11 +1618,7 @@ impl OptifineShaderRuntime {
                 frame.cameraPosition[2],
             ),
         );
-        ClippingHelperShadow::fromMatrices(
-            projection,
-            modelView,
-            self.shadowLightPositionVector,
-        )
+        ClippingHelperShadow::fromMatrices(projection, modelView, self.shadowLightPositionVector)
     }
 
     pub fn finishShadowPass(&mut self, _displayExtent: RendererExtent) {
@@ -1618,8 +1709,7 @@ impl OptifineShaderRuntime {
 
     fn setNoiseTexture(&mut self, resolution: Option<i32>) -> anyhow::Result<()> {
         let resolution = resolution.unwrap_or(0);
-        if resolution == self.noiseTextureResolution
-            && (resolution == 0 || self.noiseTexture != 0)
+        if resolution == self.noiseTextureResolution && (resolution == 0 || self.noiseTexture != 0)
         {
             return Ok(());
         }
@@ -1628,7 +1718,9 @@ impl OptifineShaderRuntime {
             return Ok(());
         }
         let mut maximum = 0;
-        unsafe { gl::GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut maximum); }
+        unsafe {
+            gl::GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut maximum);
+        }
         anyhow::ensure!(
             maximum > 0 && resolution <= maximum,
             "noiseTextureResolution {resolution} exceeds OpenGL GL_MAX_TEXTURE_SIZE {maximum}",
@@ -1665,7 +1757,9 @@ impl OptifineShaderRuntime {
 
     fn destroyNoiseTexture(&mut self) {
         if self.noiseTexture != 0 {
-            unsafe { gl::DeleteTextures(1, &self.noiseTexture); }
+            unsafe {
+                gl::DeleteTextures(1, &self.noiseTexture);
+            }
             self.noiseTexture = 0;
         }
         self.noiseTextureResolution = 0;
@@ -1677,7 +1771,8 @@ impl OptifineShaderRuntime {
         }
         let loadStarted = Instant::now();
         self.clearPrograms();
-        self.targets.setColorFormats([gl::RGBA8 as GLint; COLOR_BUFFER_COUNT]);
+        self.targets
+            .setColorFormats([gl::RGBA8 as GLint; COLOR_BUFFER_COUNT]);
         self.loadedDimension = Some(dimension);
         if self.selectedName.is_empty()
             || self.selectedName == packNameNone
@@ -1693,7 +1788,10 @@ impl OptifineShaderRuntime {
         self.handDepthMul = shaders.configHandDepthMul;
         let mut pack = shaders.loadShaderPack(None);
         if pack.getName() == packNameNone {
-            log::warn!("Selected shader pack {:?} is unavailable; shaders remain off", self.selectedName);
+            log::warn!(
+                "Selected shader pack {:?} is unavailable; shaders remain off",
+                self.selectedName
+            );
             self.active = false;
             return Ok(());
         }
@@ -1789,22 +1887,22 @@ impl OptifineShaderRuntime {
         if packOptions.isProgramDisabled("final") {
             log::info!("OptiFine profile disabled program final");
         } else {
-        match loadPackProgram(
-            &mut *pack,
-            "final",
-            programDimension,
-            PackProgramStage::Final,
-            &environment,
-            &packOptions,
-        ) {
-            Ok(Some(program)) => {
-                mergeColorFormats(&mut colorFormats, &program, "final");
-                mergeNoiseResolution(&mut noiseTextureResolution, &program);
-                self.finalProgram = Some(program);
+            match loadPackProgram(
+                &mut *pack,
+                "final",
+                programDimension,
+                PackProgramStage::Final,
+                &environment,
+                &packOptions,
+            ) {
+                Ok(Some(program)) => {
+                    mergeColorFormats(&mut colorFormats, &program, "final");
+                    mergeNoiseResolution(&mut noiseTextureResolution, &program);
+                    self.finalProgram = Some(program);
+                }
+                Ok(None) => {}
+                Err(error) => failures.push(format!("final: {error:#}")),
             }
-            Ok(None) => {}
-            Err(error) => failures.push(format!("final: {error:#}")),
-        }
         }
 
         let mut usedColorBuffers = 4_usize;
@@ -1833,7 +1931,9 @@ impl OptifineShaderRuntime {
                 shadowMapFov = program.shadowMapFov;
                 shadowMapHalfPlane = None;
             }
-            if program.shadowIntervalSize.is_some() { shadowIntervalSize = program.shadowIntervalSize; }
+            if program.shadowIntervalSize.is_some() {
+                shadowIntervalSize = program.shadowIntervalSize;
+            }
             if program.shadowMapResolution.is_some() {
                 shadowMapResolution = program.shadowMapResolution;
             }
@@ -1841,13 +1941,13 @@ impl OptifineShaderRuntime {
             shadowNearestMask |= program.shadowNearestMask;
             shadowColorMipmapMask |= program.shadowColorMipmapMask;
             shadowColorNearestMask |= program.shadowColorNearestMask;
-            if program.sunPathRotation.is_some() { sunPathRotation = program.sunPathRotation; }
+            if program.sunPathRotation.is_some() {
+                sunPathRotation = program.sunPathRotation;
+            }
             usedColorBuffers = usedColorBuffers.max(program.requiredColorBuffers);
             usedDepthBuffers = usedDepthBuffers.max(program.requiredDepthBuffers);
-            usedShadowDepthBuffers =
-                usedShadowDepthBuffers.max(program.requiredShadowDepthBuffers);
-            usedShadowColorBuffers =
-                usedShadowColorBuffers.max(program.requiredShadowColorBuffers);
+            usedShadowDepthBuffers = usedShadowDepthBuffers.max(program.requiredShadowDepthBuffers);
+            usedShadowColorBuffers = usedShadowColorBuffers.max(program.requiredShadowColorBuffers);
             if let Some(highest) = program.drawBuffers.iter().max().copied() {
                 usedColorBuffers = usedColorBuffers.max(highest + 1);
             }
@@ -1888,10 +1988,8 @@ impl OptifineShaderRuntime {
             if program.sunPathRotation.is_some() {
                 sunPathRotation = program.sunPathRotation;
             }
-            usedShadowDepthBuffers =
-                usedShadowDepthBuffers.max(program.requiredShadowDepthBuffers);
-            usedShadowColorBuffers =
-                usedShadowColorBuffers.max(program.requiredShadowColorBuffers);
+            usedShadowDepthBuffers = usedShadowDepthBuffers.max(program.requiredShadowDepthBuffers);
+            usedShadowColorBuffers = usedShadowColorBuffers.max(program.requiredShadowColorBuffers);
         }
         usedColorBuffers = usedColorBuffers.clamp(1, COLOR_BUFFER_COUNT);
         usedDepthBuffers = usedDepthBuffers.clamp(1, 3);
@@ -1913,7 +2011,8 @@ impl OptifineShaderRuntime {
         self.targets.setColorFormats(colorFormats);
         self.shadowHardwareFilteringMask = shadowHardwareFilteringMask & 0b11;
         self.shadowTargets.configure(
-            ((shadowMapResolution.unwrap_or(1024) as f32 * self.shadowResMul).round() as i32).max(1),
+            ((shadowMapResolution.unwrap_or(1024) as f32 * self.shadowResMul).round() as i32)
+                .max(1),
             usedShadowDepthBuffers,
             usedShadowColorBuffers,
             shadowHardwareFilteringMask,
@@ -1947,9 +2046,15 @@ impl OptifineShaderRuntime {
             usedShadowColorBuffers,
         );
         if clearDisabledMask != 0 {
-            log::info!("OptiFine persistent color buffers (clear=false): 0x{clearDisabledMask:02X}");
+            log::info!(
+                "OptiFine persistent color buffers (clear=false): 0x{clearDisabledMask:02X}"
+            );
         }
-        let gbufferCount = self.gbufferPrograms.iter().filter(|program| program.is_some()).count();
+        let gbufferCount = self
+            .gbufferPrograms
+            .iter()
+            .filter(|program| program.is_some())
+            .count();
         self.active = gbufferCount > 0 || !self.programs.is_empty() || self.finalProgram.is_some();
         if self.active {
             log::info!(
@@ -1976,13 +2081,21 @@ impl OptifineShaderRuntime {
 
     fn clearPrograms(&mut self) {
         for program in &mut self.gbufferPrograms {
-            if let Some(mut program) = program.take() { program.destroy(); }
+            if let Some(mut program) = program.take() {
+                program.destroy();
+            }
         }
-        for program in &mut self.programs { program.destroy(); }
+        for program in &mut self.programs {
+            program.destroy();
+        }
         self.programs.clear();
-        if let Some(mut program) = self.finalProgram.take() { program.destroy(); }
+        if let Some(mut program) = self.finalProgram.take() {
+            program.destroy();
+        }
         for program in &mut self.shadowPrograms {
-            if let Some(mut program) = program.take() { program.destroy(); }
+            if let Some(mut program) = program.take() {
+                program.destroy();
+            }
         }
         self.destroyNoiseTexture();
         self.packOptions = None;
@@ -1995,9 +2108,15 @@ impl OptifineShaderRuntime {
         self.shadowTargets.destroy();
         self.fixedShadowProgram.destroy();
         unsafe {
-            if self.blitProgram != 0 { gl::DeleteProgram(self.blitProgram); }
-            if self.fullscreenBuffer != 0 { gl::DeleteBuffers(1, &self.fullscreenBuffer); }
-            if self.fullscreenVao != 0 { gl::DeleteVertexArrays(1, &self.fullscreenVao); }
+            if self.blitProgram != 0 {
+                gl::DeleteProgram(self.blitProgram);
+            }
+            if self.fullscreenBuffer != 0 {
+                gl::DeleteBuffers(1, &self.fullscreenBuffer);
+            }
+            if self.fullscreenVao != 0 {
+                gl::DeleteVertexArrays(1, &self.fullscreenVao);
+            }
         }
         self.blitProgram = 0;
         self.fullscreenBuffer = 0;
@@ -2053,7 +2172,8 @@ fn loadPackProgram(
         Some(dimension) => format!("/shaders/world{dimension}/{name}"),
         None => format!("/shaders/{name}"),
     };
-    let Some((rawVertex, rawFragment)) = loadProgramPair(pack, &base, stage, environment, options)? else {
+    let Some((rawVertex, rawFragment)) = loadProgramPair(pack, &base, stage, environment, options)?
+    else {
         return Ok(None);
     };
     let usage = detectProgramResourceUsage(&rawVertex, &rawFragment);
@@ -2076,8 +2196,8 @@ fn loadPackProgram(
     } else {
         0
     };
-    let shadowHardwareFilteringMask =
-        parseShadowHardwareFilteringMask(&rawVertex) | parseShadowHardwareFilteringMask(&rawFragment);
+    let shadowHardwareFilteringMask = parseShadowHardwareFilteringMask(&rawVertex)
+        | parseShadowHardwareFilteringMask(&rawFragment);
     let shadowMapHalfPlane = parseConstFloat(&rawFragment, "shadowDistance")
         .or_else(|| parseLegacyCommentFloat(&rawFragment, "SHADOWHPL"))
         .or_else(|| parseConstFloat(&rawVertex, "shadowDistance"))
@@ -2092,8 +2212,7 @@ fn loadPackProgram(
         .or_else(|| parseLegacyCommentInt(&rawFragment, "SHADOWRES"))
         .or_else(|| parseConstInt(&rawVertex, "shadowMapResolution"))
         .or_else(|| parseLegacyCommentInt(&rawVertex, "SHADOWRES"));
-    let shadowMipmapMask =
-        parseShadowMipmapMask(&rawVertex) | parseShadowMipmapMask(&rawFragment);
+    let shadowMipmapMask = parseShadowMipmapMask(&rawVertex) | parseShadowMipmapMask(&rawFragment);
     let shadowNearestMask =
         parseShadowNearestMask(&rawVertex) | parseShadowNearestMask(&rawFragment);
     let shadowColorMipmapMask =
@@ -2183,15 +2302,12 @@ fn loadProgramPair(
     let fragment = loadShaderSourceWithOptions(pack, &fragmentPath, environment, Some(options))
         .with_context(|| format!("failed reading {fragmentPath}"))?;
     let (fixedVertex, fixedFragment) = match stage {
-        PackProgramStage::Gbuffer => {
-            (FIXED_GBUFFER_VERTEX_SHADER, FIXED_GBUFFER_FRAGMENT_SHADER)
-        }
-        PackProgramStage::Shadow => {
-            (FIXED_GBUFFER_VERTEX_SHADER, FIXED_SHADOW_FRAGMENT_SHADER)
-        }
-        PackProgramStage::Composite | PackProgramStage::Final => {
-            (FIXED_COMPOSITE_VERTEX_SHADER, FIXED_COMPOSITE_FRAGMENT_SHADER)
-        }
+        PackProgramStage::Gbuffer => (FIXED_GBUFFER_VERTEX_SHADER, FIXED_GBUFFER_FRAGMENT_SHADER),
+        PackProgramStage::Shadow => (FIXED_GBUFFER_VERTEX_SHADER, FIXED_SHADOW_FRAGMENT_SHADER),
+        PackProgramStage::Composite | PackProgramStage::Final => (
+            FIXED_COMPOSITE_VERTEX_SHADER,
+            FIXED_COMPOSITE_FRAGMENT_SHADER,
+        ),
     };
     match (vertex, fragment) {
         (Some(vertex), Some(fragment)) => Ok(Some((vertex, fragment))),
@@ -2206,7 +2322,10 @@ fn adaptGbufferVertexShader(source: &str) -> String {
         source,
         &[
             ("gl_ModelViewProjectionMatrix", "mc112_modelview_projection"),
-            ("gl_ModelViewProjectionMatrixInverse", "mc112_modelview_projection_inverse"),
+            (
+                "gl_ModelViewProjectionMatrixInverse",
+                "mc112_modelview_projection_inverse",
+            ),
             ("gl_ProjectionMatrix", "mc112_projection"),
             ("gl_ProjectionMatrixInverse", "mc112_projection_inverse"),
             ("gl_ModelViewMatrix", "mc112_modelview"),
@@ -2260,7 +2379,10 @@ fn adaptGbufferFragmentShader(source: &str) -> String {
         source,
         &[
             ("gl_ModelViewProjectionMatrix", "mc112_modelview_projection"),
-            ("gl_ModelViewProjectionMatrixInverse", "mc112_modelview_projection_inverse"),
+            (
+                "gl_ModelViewProjectionMatrixInverse",
+                "mc112_modelview_projection_inverse",
+            ),
             ("gl_ProjectionMatrix", "mc112_projection"),
             ("gl_ProjectionMatrixInverse", "mc112_projection_inverse"),
             ("gl_ModelViewMatrix", "mc112_modelview"),
@@ -2337,11 +2459,21 @@ fn adaptProgramCandidates(vertex: String, fragment: String) -> Vec<(&'static str
 }
 
 fn adaptProgramPairExtensions(mut vertex: String, mut fragment: String) -> (String, String) {
-    let vertexVersion = vertex.lines().find_map(parseVersionDirective).unwrap_or(120);
-    let fragmentVersion = fragment.lines().find_map(parseVersionDirective).unwrap_or(120);
+    let vertexVersion = vertex
+        .lines()
+        .find_map(parseVersionDirective)
+        .unwrap_or(120);
+    let fragmentVersion = fragment
+        .lines()
+        .find_map(parseVersionDirective)
+        .unwrap_or(120);
     let sharedVersion = vertexVersion.max(fragmentVersion);
-    if vertexVersion < sharedVersion { vertex = promoteShaderVersion(&vertex, sharedVersion); }
-    if fragmentVersion < sharedVersion { fragment = promoteShaderVersion(&fragment, sharedVersion); }
+    if vertexVersion < sharedVersion {
+        vertex = promoteShaderVersion(&vertex, sharedVersion);
+    }
+    if fragmentVersion < sharedVersion {
+        fragment = promoteShaderVersion(&fragment, sharedVersion);
+    }
     if sharedVersion >= 130 {
         vertex = rewriteLegacyInterfaceQualifiers(&vertex, GlslProgramStage::Vertex);
         fragment = rewriteLegacyInterfaceQualifiers(&fragment, GlslProgramStage::Fragment);
@@ -2364,8 +2496,14 @@ fn adaptProgramPairExtensions(mut vertex: String, mut fragment: String) -> (Stri
 /// pair is promoted, legacy interface qualifiers are converted together so a
 /// vertex/fragment pair cannot end up with `flat varying` under GLSL 1.30.
 fn adaptProgramPair(vertex: String, fragment: String) -> (String, String) {
-    let vertexVersion = vertex.lines().find_map(parseVersionDirective).unwrap_or(120);
-    let fragmentVersion = fragment.lines().find_map(parseVersionDirective).unwrap_or(120);
+    let vertexVersion = vertex
+        .lines()
+        .find_map(parseVersionDirective)
+        .unwrap_or(120);
+    let fragmentVersion = fragment
+        .lines()
+        .find_map(parseVersionDirective)
+        .unwrap_or(120);
     let required = requiredCoreGlslVersion(&vertex)
         .max(requiredCoreGlslVersion(&fragment))
         .max(vertexVersion)
@@ -2417,11 +2555,25 @@ fn adaptProgramPair(vertex: String, fragment: String) -> (String, String) {
 fn requiredCoreGlslVersion(source: &str) -> i32 {
     let code = stripGlslComments(source);
     let identifiers130 = [
-        "textureLod", "textureLodOffset", "textureProjLod", "textureProjLodOffset",
-        "textureGrad", "textureGradOffset", "textureProjGrad", "textureProjGradOffset",
-        "modf", "isnan", "isinf", "trunc", "round", "roundEven",
+        "textureLod",
+        "textureLodOffset",
+        "textureProjLod",
+        "textureProjLodOffset",
+        "textureGrad",
+        "textureGradOffset",
+        "textureProjGrad",
+        "textureProjGradOffset",
+        "modf",
+        "isnan",
+        "isinf",
+        "trunc",
+        "round",
+        "roundEven",
     ];
-    if identifiers130.iter().any(|name| containsGlslIdentifier(&code, name)) {
+    if identifiers130
+        .iter()
+        .any(|name| containsGlslIdentifier(&code, name))
+    {
         return 130;
     }
     // The boolean-selector overload of mix is core in 1.30. A precise type
@@ -2429,7 +2581,9 @@ fn requiredCoreGlslVersion(source: &str) -> i32 {
     // narrow, deterministic indication matching the NVIDIA diagnostics from
     // real packs.
     if containsGlslIdentifier(&code, "mix")
-        && ["bvec2", "bvec3", "bvec4"].iter().any(|name| containsGlslIdentifier(&code, name))
+        && ["bvec2", "bvec3", "bvec4"]
+            .iter()
+            .any(|name| containsGlslIdentifier(&code, name))
     {
         // GLSL 1.30 and GL_EXT_gpu_shader4 provide the boolean-selector
         // overloads used by legacy OptiFine packs. Do not jump to a 4.x source
@@ -2451,12 +2605,30 @@ fn requiredCoreGlslVersion(source: &str) -> i32 {
 fn requiresGpuShader4(source: &str) -> bool {
     let code = stripGlslComments(source);
     let identifiers = [
-        "uint", "uvec2", "uvec3", "uvec4", "usampler1D", "usampler2D",
-        "usampler3D", "usamplerCube", "isampler1D", "isampler2D", "isampler3D",
-        "isamplerCube", "texelFetch1D", "texelFetch2D", "texelFetch3D",
-        "texelFetchBuffer", "textureSize1D", "textureSize2D", "textureSize3D",
+        "uint",
+        "uvec2",
+        "uvec3",
+        "uvec4",
+        "usampler1D",
+        "usampler2D",
+        "usampler3D",
+        "usamplerCube",
+        "isampler1D",
+        "isampler2D",
+        "isampler3D",
+        "isamplerCube",
+        "texelFetch1D",
+        "texelFetch2D",
+        "texelFetch3D",
+        "texelFetchBuffer",
+        "textureSize1D",
+        "textureSize2D",
+        "textureSize3D",
     ];
-    if identifiers.iter().any(|name| containsGlslIdentifier(&code, name)) {
+    if identifiers
+        .iter()
+        .any(|name| containsGlslIdentifier(&code, name))
+    {
         return true;
     }
     if containsGlslIdentifier(&code, "flat") && containsGlslIdentifier(&code, "varying") {
@@ -2475,7 +2647,9 @@ fn containsSingleBitwiseOperator(source: &str, operator: char) -> bool {
     let bytes = source.as_bytes();
     let requested = operator as u8;
     for index in 0..bytes.len() {
-        if bytes[index] != requested { continue; }
+        if bytes[index] != requested {
+            continue;
+        }
         let previous = index.checked_sub(1).and_then(|i| bytes.get(i)).copied();
         let next = bytes.get(index + 1).copied();
         if previous != Some(requested) && next != Some(requested) {
@@ -2488,9 +2662,15 @@ fn containsSingleBitwiseOperator(source: &str, operator: char) -> bool {
 fn requiresShaderTextureLod(source: &str) -> bool {
     let code = stripGlslComments(source);
     [
-        "texture1DLod", "texture2DLod", "texture3DLod", "textureCubeLod",
-        "texture1DProjLod", "texture2DProjLod", "texture1DGradARB",
-        "texture2DGradARB", "textureCubeGradARB",
+        "texture1DLod",
+        "texture2DLod",
+        "texture3DLod",
+        "textureCubeLod",
+        "texture1DProjLod",
+        "texture2DProjLod",
+        "texture1DGradARB",
+        "texture2DGradARB",
+        "textureCubeGradARB",
     ]
     .iter()
     .any(|name| containsGlslIdentifier(&code, name))
@@ -2557,14 +2737,22 @@ fn rewriteLegacyInterfaceQualifiers(source: &str, stage: GlslProgramStage) -> St
             if bytes[index] == b'_' || bytes[index].is_ascii_alphabetic() {
                 let start = index;
                 index += 1;
-                while index < bytes.len() && (bytes[index] == b'_' || bytes[index].is_ascii_alphanumeric()) {
+                while index < bytes.len()
+                    && (bytes[index] == b'_' || bytes[index].is_ascii_alphanumeric())
+                {
                     index += 1;
                 }
                 let token = &line[start..index];
                 match token {
-                    "attribute" if matches!(stage, GlslProgramStage::Vertex) => rewritten.push_str("in"),
-                    "varying" if matches!(stage, GlslProgramStage::Vertex) => rewritten.push_str("out"),
-                    "varying" if matches!(stage, GlslProgramStage::Fragment) => rewritten.push_str("in"),
+                    "attribute" if matches!(stage, GlslProgramStage::Vertex) => {
+                        rewritten.push_str("in")
+                    }
+                    "varying" if matches!(stage, GlslProgramStage::Vertex) => {
+                        rewritten.push_str("out")
+                    }
+                    "varying" if matches!(stage, GlslProgramStage::Fragment) => {
+                        rewritten.push_str("in")
+                    }
                     _ => rewritten.push_str(token),
                 }
             } else {
@@ -2622,8 +2810,12 @@ fn hasGlslFunctionCall(source: &str, requested: &str) -> bool {
             }
             if &code[start..index] == requested {
                 let mut next = index;
-                while next < bytes.len() && bytes[next].is_ascii_whitespace() { next += 1; }
-                if bytes.get(next) == Some(&b'(') { return true; }
+                while next < bytes.len() && bytes[next].is_ascii_whitespace() {
+                    next += 1;
+                }
+                if bytes.get(next) == Some(&b'(') {
+                    return true;
+                }
             }
         } else {
             index += 1;
@@ -2657,7 +2849,9 @@ fn renameGlslIdentifierExceptCalls(source: &str, requested: &str, replacement: &
         }
         if index + 1 < bytes.len() && bytes[index] == b'/' && bytes[index + 1] == b'/' {
             let start = index;
-            while index < bytes.len() && bytes[index] != b'\n' { index += 1; }
+            while index < bytes.len() && bytes[index] != b'\n' {
+                index += 1;
+            }
             output.push_str(&source[start..index]);
             continue;
         }
@@ -2672,7 +2866,9 @@ fn renameGlslIdentifierExceptCalls(source: &str, requested: &str, replacement: &
             let identifier = &source[start..index];
             if identifier == requested {
                 let mut next = index;
-                while next < bytes.len() && bytes[next].is_ascii_whitespace() { next += 1; }
+                while next < bytes.len() && bytes[next].is_ascii_whitespace() {
+                    next += 1;
+                }
                 if bytes.get(next) == Some(&b'(') {
                     output.push_str(identifier);
                 } else {
@@ -2685,7 +2881,10 @@ fn renameGlslIdentifierExceptCalls(source: &str, requested: &str, replacement: &
             output.push(bytes[index] as char);
             index += 1;
         } else {
-            let character = source[index..].chars().next().expect("valid UTF-8 shader source");
+            let character = source[index..]
+                .chars()
+                .next()
+                .expect("valid UTF-8 shader source");
             output.push(character);
             index += character.len_utf8();
         }
@@ -2754,19 +2953,32 @@ vec4 mc112_ftransform() { return vec4(mc_position, 0.0, 1.0); }
     for line in source.split_inclusive('\n') {
         let trimmed = line.trim_start();
         let preprocessorOrComment = if inBlockComment {
-            if trimmed.contains("*/") { inBlockComment = false; }
+            if trimmed.contains("*/") {
+                inBlockComment = false;
+            }
             true
         } else if trimmed.starts_with("/*") {
-            if !trimmed.contains("*/") { inBlockComment = true; }
+            if !trimmed.contains("*/") {
+                inBlockComment = true;
+            }
             true
         } else {
             trimmed.is_empty()
                 || trimmed.starts_with("//")
-                || ["#version", "#extension", "#define", "#undef", "#line", "#pragma"]
-                    .iter()
-                    .any(|directive| trimmed.starts_with(directive))
+                || [
+                    "#version",
+                    "#extension",
+                    "#define",
+                    "#undef",
+                    "#line",
+                    "#pragma",
+                ]
+                .iter()
+                .any(|directive| trimmed.starts_with(directive))
         };
-        if !preprocessorOrComment { break; }
+        if !preprocessorOrComment {
+            break;
+        }
         insertion += line.len();
     }
     let mut output = String::with_capacity(source.len() + declaration.len());
@@ -2785,19 +2997,32 @@ fn insertAfterDirectives(source: &str, declaration: &str) -> String {
     for line in source.split_inclusive('\n') {
         let trimmed = line.trim_start();
         let preprocessorOrComment = if inBlockComment {
-            if trimmed.contains("*/") { inBlockComment = false; }
+            if trimmed.contains("*/") {
+                inBlockComment = false;
+            }
             true
         } else if trimmed.starts_with("/*") {
-            if !trimmed.contains("*/") { inBlockComment = true; }
+            if !trimmed.contains("*/") {
+                inBlockComment = true;
+            }
             true
         } else {
             trimmed.is_empty()
                 || trimmed.starts_with("//")
-                || ["#version", "#extension", "#define", "#undef", "#line", "#pragma"]
-                    .iter()
-                    .any(|directive| trimmed.starts_with(directive))
+                || [
+                    "#version",
+                    "#extension",
+                    "#define",
+                    "#undef",
+                    "#line",
+                    "#pragma",
+                ]
+                .iter()
+                .any(|directive| trimmed.starts_with(directive))
         };
-        if !preprocessorOrComment { break; }
+        if !preprocessorOrComment {
+            break;
+        }
         insertion += line.len();
     }
     let mut output = String::with_capacity(source.len() + declaration.len());
@@ -2834,7 +3059,10 @@ fn replaceGlslIdentifiers(source: &str, replacements: &[(&str, &str)]) -> String
             output.push(byte as char);
             index += 1;
         } else {
-            let character = source[index..].chars().next().expect("valid UTF-8 shader source");
+            let character = source[index..]
+                .chars()
+                .next()
+                .expect("valid UTF-8 shader source");
             output.push(character);
             index += character.len_utf8();
         }
@@ -2842,24 +3070,53 @@ fn replaceGlslIdentifiers(source: &str, replacements: &[(&str, &str)]) -> String
     output
 }
 
-
 const TEXTURE_FORMAT_NAMES: [&str; 37] = [
-    "R8", "RG8", "RGB8", "RGBA8", "R8_SNORM", "RG8_SNORM", "RGB8_SNORM", "RGBA8_SNORM",
-    "R16", "RG16", "RGB16", "RGBA16", "R16_SNORM", "RG16_SNORM", "RGB16_SNORM", "RGBA16_SNORM",
-    "R16F", "RG16F", "RGB16F", "RGBA16F", "R32F", "RG32F", "RGB32F", "RGBA32F",
-    "R32I", "RG32I", "RGB32I", "RGBA32I", "R32UI", "RG32UI", "RGB32UI", "RGBA32UI",
-    "R3_G3_B2", "RGB5_A1", "RGB10_A2", "R11F_G11F_B10F", "RGB9_E5",
+    "R8",
+    "RG8",
+    "RGB8",
+    "RGBA8",
+    "R8_SNORM",
+    "RG8_SNORM",
+    "RGB8_SNORM",
+    "RGBA8_SNORM",
+    "R16",
+    "RG16",
+    "RGB16",
+    "RGBA16",
+    "R16_SNORM",
+    "RG16_SNORM",
+    "RGB16_SNORM",
+    "RGBA16_SNORM",
+    "R16F",
+    "RG16F",
+    "RGB16F",
+    "RGBA16F",
+    "R32F",
+    "RG32F",
+    "RGB32F",
+    "RGBA32F",
+    "R32I",
+    "RG32I",
+    "RGB32I",
+    "RGBA32I",
+    "R32UI",
+    "RG32UI",
+    "RGB32UI",
+    "RGBA32UI",
+    "R3_G3_B2",
+    "RGB5_A1",
+    "RGB10_A2",
+    "R11F_G11F_B10F",
+    "RGB9_E5",
 ];
 
 // Exact OptiFine 1.12.2 `Shaders.formatIds` table. Numeric constants are
 // retained because several legacy formats are not named by every generated
 // OpenGL binding version.
 const TEXTURE_FORMAT_IDS: [GLint; 37] = [
-    33321, 33323, 32849, 32856, 36756, 36757, 36758, 36759,
-    33322, 33324, 32852, 32859, 36760, 36761, 36762, 36763,
-    33325, 33327, 34843, 34842, 33326, 33328, 34837, 34836,
-    33333, 33339, 36227, 36226, 33334, 33340, 36209, 36208,
-    10768, 32855, 32857, 35898, 35901,
+    33321, 33323, 32849, 32856, 36756, 36757, 36758, 36759, 33322, 33324, 32852, 32859, 36760,
+    36761, 36762, 36763, 33325, 33327, 34843, 34842, 33326, 33328, 34837, 34836, 33333, 33339,
+    36227, 36226, 33334, 33340, 36209, 36208, 10768, 32855, 32857, 35898, 35901,
 ];
 
 fn textureFormatFromString(value: &str) -> Option<GLint> {
@@ -2884,14 +3141,16 @@ fn textureFormatComponents(value: GLint) -> usize {
     match value {
         33321 | 36756 | 33322 | 36760 | 33325 | 33326 | 33333 | 33334 => 1,
         33323 | 36757 | 33324 | 36761 | 33327 | 33328 | 33339 | 33340 => 2,
-        32849 | 36758 | 32852 | 36762 | 34843 | 34837 | 36227 | 36209
-            | 10768 | 35898 | 35901 => 3,
+        32849 | 36758 | 32852 | 36762 | 34843 | 34837 | 36227 | 36209 | 10768 | 35898 | 35901 => 3,
         _ => 4,
     }
 }
 
 fn isIntegerTextureFormat(value: GLint) -> bool {
-    matches!(value, 33333 | 33339 | 36227 | 36226 | 33334 | 33340 | 36209 | 36208)
+    matches!(
+        value,
+        33333 | 33339 | 36227 | 36226 | 33334 | 33340 | 36209 | 36208
+    )
 }
 
 fn textureUploadFormat(internalFormat: GLint) -> (GLenum, GLenum) {
@@ -2957,7 +3216,10 @@ fn stripGlslComments(source: &str) -> String {
             output.push(bytes[index] as char);
             index += 1;
         } else {
-            let character = source[index..].chars().next().expect("valid UTF-8 shader source");
+            let character = source[index..]
+                .chars()
+                .next()
+                .expect("valid UTF-8 shader source");
             output.push(character);
             index += character.len_utf8();
         }
@@ -2969,18 +3231,31 @@ fn parseColorFormats(source: &str) -> [Option<GLint>; COLOR_BUFFER_COUNT] {
     let mut result = [None; COLOR_BUFFER_COUNT];
     let code = stripGlslComments(source);
     for line in code.lines() {
-        let Some((declaration, value)) = line.split_once('=') else { continue; };
+        let Some((declaration, value)) = line.split_once('=') else {
+            continue;
+        };
         let mut tokens = declaration.split_whitespace();
         if tokens.next() != Some("const") || tokens.next() != Some("int") {
             continue;
         }
-        let Some(name) = tokens.next() else { continue; };
+        let Some(name) = tokens.next() else {
+            continue;
+        };
         if tokens.next().is_some() {
             continue;
         }
-        let Some(bufferName) = name.strip_suffix("Format") else { continue; };
-        let value = value.trim().trim_end_matches(';').split_whitespace().next().unwrap_or("");
-        let Some(index) = bufferIndexFromString(bufferName) else { continue; };
+        let Some(bufferName) = name.strip_suffix("Format") else {
+            continue;
+        };
+        let value = value
+            .trim()
+            .trim_end_matches(';')
+            .split_whitespace()
+            .next()
+            .unwrap_or("");
+        let Some(index) = bufferIndexFromString(bufferName) else {
+            continue;
+        };
         if let Some(format) = textureFormatFromString(value) {
             result[index] = Some(format);
         }
@@ -3041,12 +3316,8 @@ fn parseClearDisabledMask(source: &str) -> u32 {
         if tokens.next().is_some() || !name.ends_with("Clear") {
             continue;
         }
-        let disabled = value
-            .trim()
-            .trim_end_matches(';')
-            .split_whitespace()
-            .next()
-            == Some("false");
+        let disabled =
+            value.trim().trim_end_matches(';').split_whitespace().next() == Some("false");
         if !disabled {
             continue;
         }
@@ -3075,12 +3346,7 @@ fn parseCompositeMipmapMask(source: &str) -> u32 {
         if tokens.next().is_some() || !name.ends_with("MipmapEnabled") {
             continue;
         }
-        let enabled = value
-            .trim()
-            .trim_end_matches(';')
-            .split_whitespace()
-            .next()
-            == Some("true");
+        let enabled = value.trim().trim_end_matches(';').split_whitespace().next() == Some("true");
         if !enabled {
             continue;
         }
@@ -3095,7 +3361,9 @@ fn parseCompositeMipmapMask(source: &str) -> u32 {
 fn parseConstInt(source: &str, requestedName: &str) -> Option<i32> {
     let code = stripGlslComments(source);
     for line in code.lines() {
-        let Some((declaration, value)) = line.split_once('=') else { continue; };
+        let Some((declaration, value)) = line.split_once('=') else {
+            continue;
+        };
         let mut tokens = declaration.split_whitespace();
         if tokens.next() != Some("const") || tokens.next() != Some("int") {
             continue;
@@ -3103,7 +3371,11 @@ fn parseConstInt(source: &str, requestedName: &str) -> Option<i32> {
         if tokens.next() != Some(requestedName) || tokens.next().is_some() {
             continue;
         }
-        let value = value.trim().trim_end_matches(';').split_whitespace().next()?;
+        let value = value
+            .trim()
+            .trim_end_matches(';')
+            .split_whitespace()
+            .next()?;
         return value.parse::<i32>().ok();
     }
     None
@@ -3131,7 +3403,10 @@ fn hfNoiseSample(x: i32, y: i32, z: i32) -> i8 {
 }
 
 fn generateHfNoiseImage(width: i32, height: i32) -> anyhow::Result<Vec<u8>> {
-    anyhow::ensure!(width > 0 && height > 0, "noise texture dimensions must be positive");
+    anyhow::ensure!(
+        width > 0 && height > 0,
+        "noise texture dimensions must be positive"
+    );
     let length = (width as usize)
         .checked_mul(height as usize)
         .and_then(|pixels| pixels.checked_mul(3))
@@ -3154,7 +3429,9 @@ fn mergeColorFormats(formats: &mut [GLint; COLOR_BUFFER_COUNT], program: &PackPr
         formats[1] = textureFormatFromString("RGBA32F").expect("OptiFine format table");
     }
     for (index, requested) in program.colorFormats.iter().copied().enumerate() {
-        let Some(requested) = requested else { continue; };
+        let Some(requested) = requested else {
+            continue;
+        };
         if isIntegerTextureFormat(requested) {
             // Integer deferred targets require integer clear/write semantics in
             // every vanilla fallback program. Do not create a formally complete
@@ -3333,7 +3610,9 @@ fn parseLegacyCommentFloat(source: &str, key: &str) -> Option<f32> {
             character.is_whitespace() || matches!(character, ':' | '=')
         });
         let token = tail
-            .split(|character: char| character.is_whitespace() || matches!(character, ';' | '*' | '/'))
+            .split(|character: char| {
+                character.is_whitespace() || matches!(character, ';' | '*' | '/')
+            })
             .next()?;
         if let Ok(value) = token.parse::<f32>() {
             return Some(value);
@@ -3365,9 +3644,13 @@ fn parseShadowMipmapMask(source: &str) -> u32 {
 
 fn parseShadowNearestMask(source: &str) -> u32 {
     let mut mask = 0_u32;
-    if ["shadowtex0Nearest", "shadowtexNearest", "shadow0MinMagNearest"]
-        .into_iter()
-        .any(|name| parseConstBool(source, name) == Some(true))
+    if [
+        "shadowtex0Nearest",
+        "shadowtexNearest",
+        "shadow0MinMagNearest",
+    ]
+    .into_iter()
+    .any(|name| parseConstBool(source, name) == Some(true))
     {
         mask |= 0b01;
     }
@@ -3402,15 +3685,23 @@ fn parseShadowColorMipmapMask(source: &str) -> u32 {
 
 fn parseShadowColorNearestMask(source: &str) -> u32 {
     let mut mask = 0_u32;
-    if ["shadowcolor0Nearest", "shadowColor0Nearest", "shadowColor0MinMagNearest"]
-        .into_iter()
-        .any(|name| parseConstBool(source, name) == Some(true))
+    if [
+        "shadowcolor0Nearest",
+        "shadowColor0Nearest",
+        "shadowColor0MinMagNearest",
+    ]
+    .into_iter()
+    .any(|name| parseConstBool(source, name) == Some(true))
     {
         mask |= 0b01;
     }
-    if ["shadowcolor1Nearest", "shadowColor1Nearest", "shadowColor1MinMagNearest"]
-        .into_iter()
-        .any(|name| parseConstBool(source, name) == Some(true))
+    if [
+        "shadowcolor1Nearest",
+        "shadowColor1Nearest",
+        "shadowColor1MinMagNearest",
+    ]
+    .into_iter()
+    .any(|name| parseConstBool(source, name) == Some(true))
     {
         mask |= 0b10;
     }
@@ -3438,7 +3729,11 @@ fn detectShaderPackDimensions(pack: &mut dyn IShaderPack) -> Vec<i32> {
 }
 
 fn scaledExtent(extent: RendererExtent, multiplier: f32) -> RendererExtent {
-    let multiplier = if multiplier.is_finite() { multiplier.max(0.01) } else { 1.0 };
+    let multiplier = if multiplier.is_finite() {
+        multiplier.max(0.01)
+    } else {
+        1.0
+    };
     RendererExtent {
         width: ((extent.width as f32 * multiplier).round() as u32).max(1),
         height: ((extent.height as f32 * multiplier).round() as u32).max(1),
@@ -3449,8 +3744,12 @@ fn currentMacroEnvironment(
     config: &Shaders,
     packOptions: &ShaderPackOptions,
 ) -> ShaderMacroEnvironment {
-    let vendor = glString(gl::VENDOR).unwrap_or_default().to_ascii_lowercase();
-    let renderer = glString(gl::RENDERER).unwrap_or_default().to_ascii_lowercase();
+    let vendor = glString(gl::VENDOR)
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let renderer = glString(gl::RENDERER)
+        .unwrap_or_default()
+        .to_ascii_lowercase();
     let version = glString(gl::VERSION).unwrap_or_default();
     let glsl = glString(gl::SHADING_LANGUAGE_VERSION).unwrap_or_default();
     let vendorMacro = if vendor.starts_with("nvidia") {
@@ -3468,7 +3767,10 @@ fn currentMacroEnvironment(
         "MC_GL_RENDERER_GEFORCE"
     } else if renderer.contains("quadro") || renderer.starts_with("nvs") {
         "MC_GL_RENDERER_QUADRO"
-    } else if renderer.contains("radeon") || renderer.starts_with("amd") || renderer.starts_with("ati") {
+    } else if renderer.contains("radeon")
+        || renderer.starts_with("amd")
+        || renderer.starts_with("ati")
+    {
         "MC_GL_RENDERER_RADEON"
     } else if renderer.starts_with("intel") {
         "MC_GL_RENDERER_INTEL"
@@ -3479,13 +3781,12 @@ fn currentMacroEnvironment(
     } else {
         "MC_GL_RENDERER_OTHER"
     };
-    let effectiveProperty = |configured: PropertyDefaultTrueFalse, pack: Option<bool>| {
-        match configured {
+    let effectiveProperty =
+        |configured: PropertyDefaultTrueFalse, pack: Option<bool>| match configured {
             PropertyDefaultTrueFalse::True => true,
             PropertyDefaultTrueFalse::False => false,
             PropertyDefaultTrueFalse::Default => pack.unwrap_or(true),
-        }
-    };
+        };
     ShaderMacroEnvironment {
         glVersion: parseVersionNumber(&version).unwrap_or(330),
         glslVersion: parseVersionNumber(&glsl).unwrap_or(330),
@@ -3510,7 +3811,9 @@ fn currentMacroEnvironment(
 
 fn currentExtensionMacros() -> Vec<String> {
     let mut count = 0;
-    unsafe { gl::GetIntegerv(gl::NUM_EXTENSIONS, &mut count); }
+    unsafe {
+        gl::GetIntegerv(gl::NUM_EXTENSIONS, &mut count);
+    }
     let mut output = Vec::with_capacity(count.max(0) as usize);
     for index in 0..count.max(0) as u32 {
         let pointer = unsafe { gl::GetStringi(gl::EXTENSIONS, index) };
@@ -3524,7 +3827,9 @@ fn currentExtensionMacros() -> Vec<String> {
 }
 
 fn parseVersionNumber(value: &str) -> Option<i32> {
-    let mut parts = value.split(|ch: char| !ch.is_ascii_digit()).filter(|part| !part.is_empty());
+    let mut parts = value
+        .split(|ch: char| !ch.is_ascii_digit())
+        .filter(|part| !part.is_empty());
     let major = parts.next()?.parse::<i32>().ok()?;
     let minor = parts.next()?.parse::<i32>().ok()?;
     Some(major * 100 + if minor >= 10 { minor } else { minor * 10 })
@@ -3532,10 +3837,7 @@ fn parseVersionNumber(value: &str) -> Option<i32> {
 
 fn createFullscreenMesh() -> anyhow::Result<(GLuint, GLuint)> {
     let vertices: [f32; 16] = [
-        -1.0, -1.0, 0.0, 0.0,
-         1.0, -1.0, 1.0, 0.0,
-        -1.0,  1.0, 0.0, 1.0,
-         1.0,  1.0, 1.0, 1.0,
+        -1.0, -1.0, 0.0, 0.0, 1.0, -1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0,
     ];
     let mut vao = 0;
     let mut buffer = 0;
@@ -3556,7 +3858,10 @@ fn createFullscreenMesh() -> anyhow::Result<(GLuint, GLuint)> {
         gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, 16, 8usize as *const c_void);
         gl::BindVertexArray(0);
     }
-    anyhow::ensure!(vao != 0 && buffer != 0, "fullscreen shader mesh allocation failed");
+    anyhow::ensure!(
+        vao != 0 && buffer != 0,
+        "fullscreen shader mesh allocation failed"
+    );
     Ok((vao, buffer))
 }
 
@@ -3600,12 +3905,19 @@ fn dumpAdaptedShaderSources(packName: &str, programName: &str, vertex: &str, fra
     }
 }
 
-fn compileProgram(name: &str, vertexSource: &str, fragmentSource: &str, attributes: &[(GLuint, &str)]) -> anyhow::Result<GLuint> {
+fn compileProgram(
+    name: &str,
+    vertexSource: &str,
+    fragmentSource: &str,
+    attributes: &[(GLuint, &str)],
+) -> anyhow::Result<GLuint> {
     let vertex = compileShader(name, gl::VERTEX_SHADER, vertexSource)?;
     let fragment = match compileShader(name, gl::FRAGMENT_SHADER, fragmentSource) {
         Ok(shader) => shader,
         Err(error) => {
-            unsafe { gl::DeleteShader(vertex); }
+            unsafe {
+                gl::DeleteShader(vertex);
+            }
             return Err(error);
         }
     };
@@ -3622,10 +3934,16 @@ fn compileProgram(name: &str, vertexSource: &str, fragmentSource: &str, attribut
         gl::DeleteShader(fragment);
     }
     let mut status = 0;
-    unsafe { gl::GetProgramiv(program, gl::LINK_STATUS, &mut status); }
-    if status == gl::TRUE as GLint { return Ok(program); }
+    unsafe {
+        gl::GetProgramiv(program, gl::LINK_STATUS, &mut status);
+    }
+    if status == gl::TRUE as GLint {
+        return Ok(program);
+    }
     let log = programLog(program);
-    unsafe { gl::DeleteProgram(program); }
+    unsafe {
+        gl::DeleteProgram(program);
+    }
     Err(anyhow!("{name} program link failed: {log}"))
 }
 
@@ -3637,11 +3955,21 @@ fn compileShader(name: &str, kind: GLenum, source: &str) -> anyhow::Result<GLuin
         gl::CompileShader(shader);
     }
     let mut status = 0;
-    unsafe { gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status); }
-    if status == gl::TRUE as GLint { return Ok(shader); }
+    unsafe {
+        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
+    }
+    if status == gl::TRUE as GLint {
+        return Ok(shader);
+    }
     let log = shaderLog(shader);
-    unsafe { gl::DeleteShader(shader); }
-    let stage = if kind == gl::VERTEX_SHADER { "vertex" } else { "fragment" };
+    unsafe {
+        gl::DeleteShader(shader);
+    }
+    let stage = if kind == gl::VERTEX_SHADER {
+        "vertex"
+    } else {
+        "fragment"
+    };
     Err(anyhow!("{name} {stage} shader compilation failed: {log}"))
 }
 
@@ -3754,7 +4082,11 @@ fn useGbufferProgram(
     uniform1f(
         program,
         "mc112_fog.scale",
-        if fogSpan.abs() > 1.0e-6 { fogSpan.recip() } else { 0.0 },
+        if fogSpan.abs() > 1.0e-6 {
+            fogSpan.recip()
+        } else {
+            0.0
+        },
     );
     uniform3f(
         program,
@@ -3763,16 +4095,32 @@ fn useGbufferProgram(
     );
     uniform1f(program, "mc112_fog_start", draw.fogParameters[0]);
     uniform1f(program, "mc112_fog_end", draw.fogParameters[1]);
-    uniform4f(program, "mc112_lightmap_parameters", draw.lightmapParameters);
+    uniform4f(
+        program,
+        "mc112_lightmap_parameters",
+        draw.lightmapParameters,
+    );
     if let Some(normalMatrix) = inverseTranspose3(modelView) {
         uniformMatrix3(program, "mc112_normal_matrix", &normalMatrix);
     }
     let identity = identity4();
     let lightmap = [
-        1.0 / 256.0, 0.0, 0.0, 0.0,
-        0.0, 1.0 / 256.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        8.0 / 256.0, 8.0 / 256.0, 0.0, 1.0,
+        1.0 / 256.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0 / 256.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        8.0 / 256.0,
+        8.0 / 256.0,
+        0.0,
+        1.0,
     ];
     for name in [
         "mc112_texture_matrix[0]",
@@ -3788,7 +4136,6 @@ fn useGbufferProgram(
     }
     uniformMatrix4(program, "mc112_texture_matrix[1]", &lightmap);
 }
-
 
 fn useShadowProgram(
     program: &mut PackProgram,
@@ -3862,7 +4209,11 @@ fn useShadowProgram(
     let drawModelViewProjection = multiply4(drawProjection, drawModelView);
     uniformMatrix4(program, "mc112_projection", &drawProjection);
     uniformMatrix4(program, "mc112_modelview", &drawModelView);
-    uniformMatrix4(program, "mc112_modelview_projection", &drawModelViewProjection);
+    uniformMatrix4(
+        program,
+        "mc112_modelview_projection",
+        &drawModelViewProjection,
+    );
     uniformMatrix4(program, "mc112_projection_inverse", shadowProjectionInverse);
     if let Some(inverse) = inverse4(drawModelView) {
         uniformMatrix4(program, "mc112_modelview_inverse", &inverse);
@@ -3878,7 +4229,11 @@ fn useShadowProgram(
     uniform1f(
         program,
         "mc112_fog.scale",
-        if fogSpan.abs() > 1.0e-6 { fogSpan.recip() } else { 0.0 },
+        if fogSpan.abs() > 1.0e-6 {
+            fogSpan.recip()
+        } else {
+            0.0
+        },
     );
     uniform3f(
         program,
@@ -3887,16 +4242,32 @@ fn useShadowProgram(
     );
     uniform1f(program, "mc112_fog_start", draw.fogParameters[0]);
     uniform1f(program, "mc112_fog_end", draw.fogParameters[1]);
-    uniform4f(program, "mc112_lightmap_parameters", draw.lightmapParameters);
+    uniform4f(
+        program,
+        "mc112_lightmap_parameters",
+        draw.lightmapParameters,
+    );
     if let Some(normalMatrix) = inverseTranspose3(drawModelView) {
         uniformMatrix3(program, "mc112_normal_matrix", &normalMatrix);
     }
     let identity = identity4();
     let lightmap = [
-        1.0 / 256.0, 0.0, 0.0, 0.0,
-        0.0, 1.0 / 256.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        8.0 / 256.0, 8.0 / 256.0, 0.0, 1.0,
+        1.0 / 256.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0 / 256.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        8.0 / 256.0,
+        8.0 / 256.0,
+        0.0,
+        1.0,
     ];
     for name in [
         "mc112_texture_matrix[0]",
@@ -3928,7 +4299,9 @@ fn usePackProgram(
     shadowModelView: &[f32; 16],
     shadowModelViewInverse: &[f32; 16],
 ) {
-    unsafe { gl::UseProgram(program.id); }
+    unsafe {
+        gl::UseProgram(program.id);
+    }
     for (index, names) in [
         (0, ["gcolor", "colortex0"]),
         (1, ["gdepth", "colortex1"]),
@@ -3943,7 +4316,9 @@ fn usePackProgram(
             uniform1i(program, name, COLOR_TEXTURE_UNITS[index] as i32);
         }
     }
-    for name in ["gdepthtex", "depthtex0"] { uniform1i(program, name, 6); }
+    for name in ["gdepthtex", "depthtex0"] {
+        uniform1i(program, name, 6);
+    }
     uniform1i(program, "depthtex1", 11);
     uniform1i(program, "depthtex2", 12);
     uniform1i(program, "shadow", 4);
@@ -3956,11 +4331,23 @@ fn usePackProgram(
     uniform1i(program, "noisetex", 15);
     uniform1f(program, "viewWidth", extent.width as f32);
     uniform1f(program, "viewHeight", extent.height as f32);
-    uniform1f(program, "aspectRatio", extent.width.max(1) as f32 / extent.height.max(1) as f32);
+    uniform1f(
+        program,
+        "aspectRatio",
+        extent.width.max(1) as f32 / extent.height.max(1) as f32,
+    );
     uniform1f(program, "near", 0.05);
     uniform1f(program, "far", frame.farPlane);
-    uniform1i(program, "worldTime", frame.worldTime.rem_euclid(24000) as i32);
-    uniform1i(program, "worldDay", frame.worldTime.div_euclid(24000) as i32);
+    uniform1i(
+        program,
+        "worldTime",
+        frame.worldTime.rem_euclid(24000) as i32,
+    );
+    uniform1i(
+        program,
+        "worldDay",
+        frame.worldTime.div_euclid(24000) as i32,
+    );
     uniform1i(program, "moonPhase", ((frame.worldTime / 24000) & 7) as i32);
     uniform1i(program, "frameCounter", frameCounter);
     uniform1f(program, "frameTime", frameTime);
@@ -3971,7 +4358,11 @@ fn usePackProgram(
         frame.celestialAngle - 0.75
     };
     uniform1f(program, "sunAngle", sunAngle);
-    let shadowAngle = if sunAngle <= 0.5 { sunAngle } else { sunAngle - 0.5 };
+    let shadowAngle = if sunAngle <= 0.5 {
+        sunAngle
+    } else {
+        sunAngle - 0.5
+    };
     uniform1f(program, "shadowAngle", shadowAngle);
     uniform1f(program, "rainStrength", 0.0);
     uniform1f(program, "wetness", 0.0);
@@ -4018,8 +4409,16 @@ fn usePackProgram(
     } else {
         moonPosition
     };
-    uniform3f(program, "sunPosition", [sunPosition[0], sunPosition[1], sunPosition[2]]);
-    uniform3f(program, "moonPosition", [moonPosition[0], moonPosition[1], moonPosition[2]]);
+    uniform3f(
+        program,
+        "sunPosition",
+        [sunPosition[0], sunPosition[1], sunPosition[2]],
+    );
+    uniform3f(
+        program,
+        "moonPosition",
+        [moonPosition[0], moonPosition[1], moonPosition[2]],
+    );
     uniform3f(
         program,
         "shadowLightPosition",
@@ -4029,7 +4428,11 @@ fn usePackProgram(
             shadowLightPosition[2],
         ],
     );
-    uniform3f(program, "upPosition", [upPosition[0], upPosition[1], upPosition[2]]);
+    uniform3f(
+        program,
+        "upPosition",
+        [upPosition[0], upPosition[1], upPosition[2]],
+    );
 
     // The real shadow traversal is not active yet, but OptiFine still exposes
     // the actual shadow-camera matrices to all programs. Pair neutral depth
@@ -4042,85 +4445,104 @@ fn usePackProgram(
 
 fn uniform1i(program: &mut PackProgram, name: &'static str, value: i32) {
     let location = program.uniform(name);
-    if location >= 0 { unsafe { gl::Uniform1i(location, value); } }
+    if location >= 0 {
+        unsafe {
+            gl::Uniform1i(location, value);
+        }
+    }
 }
 
 fn uniform1f(program: &mut PackProgram, name: &'static str, value: f32) {
     let location = program.uniform(name);
-    if location >= 0 { unsafe { gl::Uniform1f(location, value); } }
+    if location >= 0 {
+        unsafe {
+            gl::Uniform1f(location, value);
+        }
+    }
 }
 
 fn uniform2i(program: &mut PackProgram, name: &'static str, value: [i32; 2]) {
     let location = program.uniform(name);
-    if location >= 0 { unsafe { gl::Uniform2i(location, value[0], value[1]); } }
+    if location >= 0 {
+        unsafe {
+            gl::Uniform2i(location, value[0], value[1]);
+        }
+    }
 }
 
 fn uniform4f(program: &mut PackProgram, name: &'static str, value: [f32; 4]) {
     let location = program.uniform(name);
     if location >= 0 {
-        unsafe { gl::Uniform4f(location, value[0], value[1], value[2], value[3]); }
+        unsafe {
+            gl::Uniform4f(location, value[0], value[1], value[2], value[3]);
+        }
     }
 }
 
 fn uniform3f(program: &mut PackProgram, name: &'static str, value: [f32; 3]) {
     let location = program.uniform(name);
-    if location >= 0 { unsafe { gl::Uniform3f(location, value[0], value[1], value[2]); } }
+    if location >= 0 {
+        unsafe {
+            gl::Uniform3f(location, value[0], value[1], value[2]);
+        }
+    }
 }
 
 fn uniformMatrix3(program: &mut PackProgram, name: &'static str, value: &[f32; 9]) {
     let location = program.uniform(name);
-    if location >= 0 { unsafe { gl::UniformMatrix3fv(location, 1, gl::FALSE, value.as_ptr()); } }
+    if location >= 0 {
+        unsafe {
+            gl::UniformMatrix3fv(location, 1, gl::FALSE, value.as_ptr());
+        }
+    }
 }
 
 fn uniformMatrix4(program: &mut PackProgram, name: &'static str, value: &[f32; 16]) {
     let location = program.uniform(name);
-    if location >= 0 { unsafe { gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()); } }
+    if location >= 0 {
+        unsafe {
+            gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr());
+        }
+    }
 }
 
 fn translation4(x: f32, y: f32, z: f32) -> [f32; 16] {
     [
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        x, y, z, 1.0,
+        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, x, y, z, 1.0,
     ]
 }
 
 fn rotationX4(angle: f32) -> [f32; 16] {
     let (sine, cosine) = angle.sin_cos();
     [
-        1.0, 0.0, 0.0, 0.0,
-        0.0, cosine, sine, 0.0,
-        0.0, -sine, cosine, 0.0,
-        0.0, 0.0, 0.0, 1.0,
+        1.0, 0.0, 0.0, 0.0, 0.0, cosine, sine, 0.0, 0.0, -sine, cosine, 0.0, 0.0, 0.0, 0.0, 1.0,
     ]
 }
 
 fn rotationZ4(angle: f32) -> [f32; 16] {
     let (sine, cosine) = angle.sin_cos();
     [
-        cosine, sine, 0.0, 0.0,
-        -sine, cosine, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0,
+        cosine, sine, 0.0, 0.0, -sine, cosine, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
     ]
 }
 
-fn orthographic4(
-    left: f32,
-    right: f32,
-    bottom: f32,
-    top: f32,
-    near: f32,
-    far: f32,
-) -> [f32; 16] {
+fn orthographic4(left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) -> [f32; 16] {
     let width = right - left;
     let height = top - bottom;
     let depth = far - near;
     [
-        2.0 / width, 0.0, 0.0, 0.0,
-        0.0, 2.0 / height, 0.0, 0.0,
-        0.0, 0.0, -2.0 / depth, 0.0,
+        2.0 / width,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.0 / height,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -2.0 / depth,
+        0.0,
         -(right + left) / width,
         -(top + bottom) / height,
         -(far + near) / depth,
@@ -4132,20 +4554,29 @@ fn perspective4(fieldOfViewDegrees: f32, aspect: f32, near: f32, far: f32) -> [f
     let reciprocalTangent = (fieldOfViewDegrees.to_radians() * 0.5).tan().recip();
     let depth = near - far;
     [
-        reciprocalTangent / aspect.max(1.0e-6), 0.0, 0.0, 0.0,
-        0.0, reciprocalTangent, 0.0, 0.0,
-        0.0, 0.0, (far + near) / depth, -1.0,
-        0.0, 0.0, (2.0 * far * near) / depth, 0.0,
+        reciprocalTangent / aspect.max(1.0e-6),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        reciprocalTangent,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        (far + near) / depth,
+        -1.0,
+        0.0,
+        0.0,
+        (2.0 * far * near) / depth,
+        0.0,
     ]
 }
 
 fn openGlProjection(vulkanProjection: [f32; 16]) -> [f32; 16] {
     // Column-major C * P where C flips Vulkan Y and maps depth 0..w to -w..w.
     let conversion = [
-        1.0, 0.0, 0.0, 0.0,
-        0.0, -1.0, 0.0, 0.0,
-        0.0, 0.0, 2.0, 0.0,
-        0.0, 0.0, -1.0, 1.0,
+        1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, -1.0, 1.0,
     ];
     multiply4(conversion, vulkanProjection)
 }
@@ -4175,26 +4606,42 @@ fn multiply4(left: [f32; 16], right: [f32; 16]) -> [f32; 16] {
 fn inverse4(matrix: [f32; 16]) -> Option<[f32; 16]> {
     let mut augmented = [[0.0_f32; 8]; 4];
     for row in 0..4 {
-        for column in 0..4 { augmented[row][column] = matrix[column * 4 + row]; }
+        for column in 0..4 {
+            augmented[row][column] = matrix[column * 4 + row];
+        }
         augmented[row][4 + row] = 1.0;
     }
     for pivot in 0..4 {
         let swap = (pivot..4).max_by(|left, right| {
-            augmented[*left][pivot].abs().total_cmp(&augmented[*right][pivot].abs())
+            augmented[*left][pivot]
+                .abs()
+                .total_cmp(&augmented[*right][pivot].abs())
         })?;
-        if augmented[swap][pivot].abs() <= 1.0e-8 { return None; }
-        if swap != pivot { augmented.swap(swap, pivot); }
+        if augmented[swap][pivot].abs() <= 1.0e-8 {
+            return None;
+        }
+        if swap != pivot {
+            augmented.swap(swap, pivot);
+        }
         let divisor = augmented[pivot][pivot];
-        for column in 0..8 { augmented[pivot][column] /= divisor; }
+        for column in 0..8 {
+            augmented[pivot][column] /= divisor;
+        }
         for row in 0..4 {
-            if row == pivot { continue; }
+            if row == pivot {
+                continue;
+            }
             let factor = augmented[row][pivot];
-            for column in 0..8 { augmented[row][column] -= factor * augmented[pivot][column]; }
+            for column in 0..8 {
+                augmented[row][column] -= factor * augmented[pivot][column];
+            }
         }
     }
     let mut output = [0.0; 16];
     for row in 0..4 {
-        for column in 0..4 { output[column * 4 + row] = augmented[row][4 + column]; }
+        for column in 0..4 {
+            output[column * 4 + row] = augmented[row][4 + column];
+        }
     }
     Some(output)
 }
@@ -4202,41 +4649,72 @@ fn inverse4(matrix: [f32; 16]) -> Option<[f32; 16]> {
 fn inverseTranspose3(matrix: [f32; 16]) -> Option<[f32; 9]> {
     let inverse = inverse4(matrix)?;
     Some([
-        inverse[0], inverse[4], inverse[8],
-        inverse[1], inverse[5], inverse[9],
-        inverse[2], inverse[6], inverse[10],
+        inverse[0],
+        inverse[4],
+        inverse[8],
+        inverse[1],
+        inverse[5],
+        inverse[9],
+        inverse[2],
+        inverse[6],
+        inverse[10],
     ])
 }
 
 fn identity4() -> [f32; 16] {
     [
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0,
+        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
     ]
 }
 
 fn shaderLog(shader: GLuint) -> String {
     let mut length = 0;
-    unsafe { gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut length); }
+    unsafe {
+        gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut length);
+    }
     let mut buffer = vec![0_u8; length.max(1) as usize];
-    unsafe { gl::GetShaderInfoLog(shader, length, std::ptr::null_mut(), buffer.as_mut_ptr().cast::<GLchar>()); }
-    String::from_utf8_lossy(&buffer).trim_end_matches('\0').to_owned()
+    unsafe {
+        gl::GetShaderInfoLog(
+            shader,
+            length,
+            std::ptr::null_mut(),
+            buffer.as_mut_ptr().cast::<GLchar>(),
+        );
+    }
+    String::from_utf8_lossy(&buffer)
+        .trim_end_matches('\0')
+        .to_owned()
 }
 
 fn programLog(program: GLuint) -> String {
     let mut length = 0;
-    unsafe { gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut length); }
+    unsafe {
+        gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut length);
+    }
     let mut buffer = vec![0_u8; length.max(1) as usize];
-    unsafe { gl::GetProgramInfoLog(program, length, std::ptr::null_mut(), buffer.as_mut_ptr().cast::<GLchar>()); }
-    String::from_utf8_lossy(&buffer).trim_end_matches('\0').to_owned()
+    unsafe {
+        gl::GetProgramInfoLog(
+            program,
+            length,
+            std::ptr::null_mut(),
+            buffer.as_mut_ptr().cast::<GLchar>(),
+        );
+    }
+    String::from_utf8_lossy(&buffer)
+        .trim_end_matches('\0')
+        .to_owned()
 }
 
 fn glString(name: GLenum) -> Option<String> {
     let pointer = unsafe { gl::GetString(name) };
-    if pointer.is_null() { return None; }
-    Some(unsafe { std::ffi::CStr::from_ptr(pointer.cast()) }.to_string_lossy().into_owned())
+    if pointer.is_null() {
+        return None;
+    }
+    Some(
+        unsafe { std::ffi::CStr::from_ptr(pointer.cast()) }
+            .to_string_lossy()
+            .into_owned(),
+    )
 }
 
 #[cfg(test)]
@@ -4245,7 +4723,10 @@ mod tests {
 
     #[test]
     fn parses_optifine_drawbuffers_and_render_targets() {
-        assert_eq!(parseDrawBuffers("/* DRAWBUFFERS:024 */"), Some(vec![0, 2, 4]));
+        assert_eq!(
+            parseDrawBuffers("/* DRAWBUFFERS:024 */"),
+            Some(vec![0, 2, 4])
+        );
         assert_eq!(
             parseDrawBuffers("/* RENDERTARGETS: 1, 3, 7 */"),
             Some(vec![1, 3, 7])
@@ -4303,7 +4784,9 @@ mod tests {
     #[test]
     fn inverse_promotes_the_pair_to_glsl_140() {
         let vertex = "#version 120\nvoid main(){ gl_Position=ftransform(); }\n".to_owned();
-        let fragment = "#version 120\nvoid main(){ mat4 m=inverse(mat4(1.0)); gl_FragColor=vec4(m[0][0]); }\n".to_owned();
+        let fragment =
+            "#version 120\nvoid main(){ mat4 m=inverse(mat4(1.0)); gl_FragColor=vec4(m[0][0]); }\n"
+                .to_owned();
         let (vertex, fragment) = adaptProgramPair(vertex, fragment);
         assert!(vertex.starts_with("#version 140\n"));
         assert!(fragment.starts_with("#version 140\n"));
@@ -4324,7 +4807,8 @@ mod tests {
 
     #[test]
     fn program_pair_adapter_injects_gpu_shader4_for_legacy_integer_operations() {
-        let vertex = "#version 120\nvoid main(){ uint x=1u; x=x<<1; gl_Position=ftransform(); }\n".to_owned();
+        let vertex = "#version 120\nvoid main(){ uint x=1u; x=x<<1; gl_Position=ftransform(); }\n"
+            .to_owned();
         let fragment = "#version 120\nuniform sampler2D tex;\nvoid main(){ gl_FragColor=texelFetch2D(tex, ivec2(0), 0); }\n".to_owned();
         let (vertex, fragment) = adaptProgramPair(vertex, fragment);
         assert!(vertex.contains("#extension GL_EXT_gpu_shader4 : enable"));
@@ -4334,11 +4818,15 @@ mod tests {
     #[test]
     fn program_candidates_try_extensions_before_changing_version_branches() {
         let vertex = "#version 120\nflat varying vec2 uv; void main(){ uint x=1u; uv=vec2(float(x)); gl_Position=ftransform(); }\n".to_owned();
-        let fragment = "#version 120\nflat varying vec2 uv; void main(){ gl_FragColor=vec4(uv,0.0,1.0); }\n".to_owned();
+        let fragment =
+            "#version 120\nflat varying vec2 uv; void main(){ gl_FragColor=vec4(uv,0.0,1.0); }\n"
+                .to_owned();
         let candidates = adaptProgramCandidates(vertex, fragment);
         assert_eq!(candidates[0].0, "extensions");
         assert!(candidates[0].1.starts_with("#version 120\n"));
-        assert!(candidates[0].1.contains("#extension GL_EXT_gpu_shader4 : enable"));
+        assert!(candidates[0]
+            .1
+            .contains("#extension GL_EXT_gpu_shader4 : enable"));
         assert!(candidates[0].1.contains("flat varying vec2 uv"));
     }
 
@@ -4363,8 +4851,12 @@ mod tests {
         assert!(candidates[1].2.starts_with("#version 130\n"));
         assert!(candidates[1].1.contains("flat out vec3 color"));
         assert!(candidates[1].2.contains("flat in vec3 color"));
-        assert!(candidates[1].1.contains("#extension GL_EXT_gpu_shader4 : enable"));
-        assert!(candidates[1].2.contains("#extension GL_EXT_gpu_shader4 : enable"));
+        assert!(candidates[1]
+            .1
+            .contains("#extension GL_EXT_gpu_shader4 : enable"));
+        assert!(candidates[1]
+            .2
+            .contains("#extension GL_EXT_gpu_shader4 : enable"));
     }
 
     #[test]
@@ -4378,10 +4870,19 @@ mod tests {
         // water (12) -> terrain (7) -> textured_lit (3) -> textured (2)
         // -> basic (1) -> fixed-function fallback.
         let water = GbufferProgram::Water as usize;
-        assert_eq!(resolveGbufferProgramIndex(water, |index| index == GbufferProgram::Terrain as usize), Some(GbufferProgram::Terrain as usize));
-        assert_eq!(resolveGbufferProgramIndex(water, |index| index == GbufferProgram::Textured as usize), Some(GbufferProgram::Textured as usize));
+        assert_eq!(
+            resolveGbufferProgramIndex(water, |index| index == GbufferProgram::Terrain as usize),
+            Some(GbufferProgram::Terrain as usize)
+        );
+        assert_eq!(
+            resolveGbufferProgramIndex(water, |index| index == GbufferProgram::Textured as usize),
+            Some(GbufferProgram::Textured as usize)
+        );
         assert_eq!(resolveGbufferProgramIndex(water, |_| false), None);
-        assert_eq!(resolveGbufferProgramIndex(GBUFFER_PROGRAM_COUNT, |_| true), None);
+        assert_eq!(
+            resolveGbufferProgramIndex(GBUFFER_PROGRAM_COUNT, |_| true),
+            None
+        );
     }
 
     #[test]
@@ -4452,21 +4953,41 @@ mod tests {
     #[test]
     fn parses_optifine_const_bools_without_matching_comments_or_similar_names() {
         let source = "const bool shadowHardwareFiltering = TRUE;\nconst bool shadowHardwareFiltering0 = false;\n// const bool shadowHardwareFiltering1 = true;\n";
-        assert_eq!(parseConstBool(source, "shadowHardwareFiltering"), Some(true));
-        assert_eq!(parseConstBool(source, "shadowHardwareFiltering0"), Some(false));
+        assert_eq!(
+            parseConstBool(source, "shadowHardwareFiltering"),
+            Some(true)
+        );
+        assert_eq!(
+            parseConstBool(source, "shadowHardwareFiltering0"),
+            Some(false)
+        );
         assert_eq!(parseConstBool(source, "shadowHardwareFiltering1"), None);
         assert_eq!(parseConstBool(source, "shadowHardware"), None);
-        assert_eq!(parseConstBool("const bool noSemicolon = true", "noSemicolon"), None);
+        assert_eq!(
+            parseConstBool("const bool noSemicolon = true", "noSemicolon"),
+            None
+        );
     }
 
     #[test]
     fn parses_and_generates_optifine_hf_noise_deterministically() {
-        assert_eq!(parseConstInt("const int noiseTextureResolution = 64;", "noiseTextureResolution"), Some(64));
-        assert_eq!(parseConstInt("// const int noiseTextureResolution = 128;", "noiseTextureResolution"), None);
+        assert_eq!(
+            parseConstInt(
+                "const int noiseTextureResolution = 64;",
+                "noiseTextureResolution"
+            ),
+            Some(64)
+        );
+        assert_eq!(
+            parseConstInt(
+                "// const int noiseTextureResolution = 128;",
+                "noiseTextureResolution"
+            ),
+            None
+        );
         let image = generateHfNoiseImage(2, 2).unwrap();
         assert_eq!(image.len(), 12);
         assert_eq!(image, generateHfNoiseImage(2, 2).unwrap());
         assert_ne!(&image[0..3], &image[3..6]);
     }
-
 }

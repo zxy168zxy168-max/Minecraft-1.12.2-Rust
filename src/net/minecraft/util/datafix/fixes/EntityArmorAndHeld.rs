@@ -6,12 +6,16 @@ use crate::net::minecraft::util::datafix::IFixableData::IFixableData;
 /// MCP 1.12.2 `EntityArmorAndHeld` (DataVersion 100).
 pub struct EntityArmorAndHeld;
 impl IFixableData for EntityArmorAndHeld {
-    fn getFixVersion(&self) -> i32 { 100 }
+    fn getFixVersion(&self) -> i32 {
+        100
+    }
     fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
         let equipment = compound.getTagList("Equipment", TAG_COMPOUND);
         if !equipment.hasNoTags() && !compound.hasKeyWithType("HandItems", 10) {
             let mut hand = NBTTagList::new();
-            if let Some(first) = equipment.tags().first().cloned() { hand.appendTag(first); }
+            if let Some(first) = equipment.tags().first().cloned() {
+                hand.appendTag(first);
+            }
             hand.appendTag(NBTBase::Compound(NBTTagCompound::new()));
             compound.setTagList("HandItems", hand);
         }
@@ -19,7 +23,9 @@ impl IFixableData for EntityArmorAndHeld {
         // (singular) while writing `ArmorItems`, exactly as MCP source.
         if equipment.tagCount() > 1 && !compound.hasKeyWithType("ArmorItem", 10) {
             let mut armor = NBTTagList::new();
-            for index in 1..=4 { armor.appendTag(NBTBase::Compound(equipment.getCompoundTagAt(index))); }
+            for index in 1..=4 {
+                armor.appendTag(NBTBase::Compound(equipment.getCompoundTagAt(index)));
+            }
             compound.setTagList("ArmorItems", armor);
         }
         compound.removeTag("Equipment");
@@ -34,7 +40,9 @@ impl IFixableData for EntityArmorAndHeld {
             }
             if !compound.hasKeyWithType("ArmorDropChances", 10) {
                 let mut armor = NBTTagList::new();
-                for index in 1..=4 { armor.appendTag(NBTBase::Float(chances.getFloatAt(index))); }
+                for index in 1..=4 {
+                    armor.appendTag(NBTBase::Float(chances.getFloatAt(index)));
+                }
                 compound.setTagList("ArmorDropChances", armor);
             }
             compound.removeTag("DropChances");

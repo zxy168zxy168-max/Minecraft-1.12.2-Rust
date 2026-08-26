@@ -50,13 +50,26 @@ pub struct GuiKeyBindingList {
 }
 
 impl GuiKeyBindingList {
-    pub fn new(width: i32, height: i32, locale: &Locale, settings: &GameSettings, font: &FontRenderer) -> Self {
+    pub fn new(
+        width: i32,
+        height: i32,
+        locale: &Locale,
+        settings: &GameSettings,
+        font: &FontRenderer,
+    ) -> Self {
         let mut this = Self::default();
         this.initGui(width, height, locale, settings, font);
         this
     }
 
-    pub fn initGui(&mut self, width: i32, height: i32, locale: &Locale, settings: &GameSettings, font: &FontRenderer) {
+    pub fn initGui(
+        &mut self,
+        width: i32,
+        height: i32,
+        locale: &Locale,
+        settings: &GameSettings,
+        font: &FontRenderer,
+    ) {
         self.screenWidth = width;
         self.width = width + 45;
         self.height = height;
@@ -74,7 +87,11 @@ impl GuiKeyBindingList {
             let right = settings.keyBinding(*b);
             category_order(&left.keyCategory)
                 .cmp(&category_order(&right.keyCategory))
-                .then_with(|| locale.translate_key(&left.keyDescription).cmp(locale.translate_key(&right.keyDescription)))
+                .then_with(|| {
+                    locale
+                        .translate_key(&left.keyDescription)
+                        .cmp(locale.translate_key(&right.keyDescription))
+                })
         });
 
         self.listEntries.clear();
@@ -84,7 +101,9 @@ impl GuiKeyBindingList {
             let binding = settings.keyBinding(id);
             if category.as_deref() != Some(binding.keyCategory.as_str()) {
                 category = Some(binding.keyCategory.clone());
-                self.listEntries.push(GuiKeyBindingListEntry::Category(binding.keyCategory.clone()));
+                self.listEntries.push(GuiKeyBindingListEntry::Category(
+                    binding.keyCategory.clone(),
+                ));
             }
             let label = locale.translate_key(&binding.keyDescription);
             self.maxListLabelWidth = self.maxListLabelWidth.max(font.get_string_width(label));
@@ -112,11 +131,19 @@ impl GuiKeyBindingList {
 
         for (index, entry) in self.listEntries.iter().enumerate() {
             let y = LIST_TOP + 4 + index as i32 * SLOT_HEIGHT - self.amountScrolled;
-            if y + SLOT_HEIGHT <= LIST_TOP || y >= bottom { continue; }
+            if y + SLOT_HEIGHT <= LIST_TOP || y >= bottom {
+                continue;
+            }
             match entry {
                 GuiKeyBindingListEntry::Category(category) => {
                     let label = locale.translate_key(category);
-                    font.draw_centered_string_with_shadow(draw, label, self.screenWidth / 2, y + 6, 0x00FF_FFFF);
+                    font.draw_centered_string_with_shadow(
+                        draw,
+                        label,
+                        self.screenWidth / 2,
+                        y + 6,
+                        0x00FF_FFFF,
+                    );
                 }
                 GuiKeyBindingListEntry::Binding(id) => {
                     let binding = settings.keyBinding(*id);
@@ -129,9 +156,13 @@ impl GuiKeyBindingList {
                         0x00FF_FFFF,
                     );
 
-                    let conflict = binding.keyCode != 0 && settings.keyBindings.iter().enumerate().any(|(otherIndex, other)| {
-                        otherIndex != id.index() && other.keyCode == binding.keyCode
-                    });
+                    let conflict =
+                        binding.keyCode != 0
+                            && settings.keyBindings.iter().enumerate().any(
+                                |(otherIndex, other)| {
+                                    otherIndex != id.index() && other.keyCode == binding.keyCode
+                                },
+                            );
                     let mut display = keyDisplayString(locale, binding.keyCode);
                     if selectedBinding == Some(*id) {
                         display = format!("§f> §e{display}§f <");
@@ -139,7 +170,14 @@ impl GuiKeyBindingList {
                         display = format!("§c{display}");
                     }
 
-                    let mut change = GuiButton::newWithSize(1000 + id.index() as i32, rowLeft + 105, y, 75, 20, display);
+                    let mut change = GuiButton::newWithSize(
+                        1000 + id.index() as i32,
+                        rowLeft + 105,
+                        y,
+                        75,
+                        20,
+                        display,
+                    );
                     change.drawButton(draw, font, mouseX, mouseY, partialTicks);
                     let mut reset = GuiButton::newWithSize(
                         2000 + id.index() as i32,
@@ -160,25 +198,57 @@ impl GuiKeyBindingList {
         // from width/2+124 to width/2+139.
         draw.draw_rect(0, 0, self.width, LIST_TOP, 0xFF20_2020_u32 as i32);
         draw.draw_rect(0, bottom, self.width, self.height, 0xFF20_2020_u32 as i32);
-        draw.draw_gradient_rect(0, LIST_TOP, self.width, LIST_TOP + 4, 0xFF00_0000_u32 as i32, 0x0100_0000);
-        draw.draw_gradient_rect(0, bottom - 4, self.width, bottom, 0x0100_0000, 0xFF00_0000_u32 as i32);
+        draw.draw_gradient_rect(
+            0,
+            LIST_TOP,
+            self.width,
+            LIST_TOP + 4,
+            0xFF00_0000_u32 as i32,
+            0x0100_0000,
+        );
+        draw.draw_gradient_rect(
+            0,
+            bottom - 4,
+            self.width,
+            bottom,
+            0x0100_0000,
+            0xFF00_0000_u32 as i32,
+        );
         self.drawScrollBar(draw);
     }
 
-    pub fn mouseClicked(&mut self, mouseX: i32, mouseY: i32, settings: &GameSettings) -> Option<GuiKeyBindingListInteraction> {
+    pub fn mouseClicked(
+        &mut self,
+        mouseX: i32,
+        mouseY: i32,
+        settings: &GameSettings,
+    ) -> Option<GuiKeyBindingListInteraction> {
         let bottom = self.bottom();
         let scrollBarLeft = self.getScrollBarX();
-        if mouseX >= scrollBarLeft && mouseX <= scrollBarLeft + 6 && mouseY >= LIST_TOP && mouseY <= bottom {
+        if mouseX >= scrollBarLeft
+            && mouseX <= scrollBarLeft + 6
+            && mouseY >= LIST_TOP
+            && mouseY <= bottom
+        {
             self.draggingScrollBar = self.getMaxScroll() > 0;
             self.lastDragY = mouseY;
-            return Some(GuiKeyBindingListInteraction { action: GuiKeyBindingListAction::None, sound: None });
+            return Some(GuiKeyBindingListInteraction {
+                action: GuiKeyBindingListAction::None,
+                sound: None,
+            });
         }
 
-        if mouseY < LIST_TOP || mouseY >= bottom { return None; }
+        if mouseY < LIST_TOP || mouseY >= bottom {
+            return None;
+        }
         let relativeY = mouseY - LIST_TOP + self.amountScrolled - 4;
-        if relativeY < 0 { return None; }
+        if relativeY < 0 {
+            return None;
+        }
         let rowIndex = relativeY / SLOT_HEIGHT;
-        let GuiKeyBindingListEntry::Binding(id) = self.listEntries.get(rowIndex as usize)? else { return None; };
+        let GuiKeyBindingListEntry::Binding(id) = self.listEntries.get(rowIndex as usize)? else {
+            return None;
+        };
         let rowLeft = self.width / 2 - 124;
         let rowY = LIST_TOP + 4 + rowIndex * SLOT_HEIGHT - self.amountScrolled;
 
@@ -202,7 +272,9 @@ impl GuiKeyBindingList {
     }
 
     pub fn mouseDragged(&mut self, mouseY: i32) -> bool {
-        if !self.draggingScrollBar { return false; }
+        if !self.draggingScrollBar {
+            return false;
+        }
         let delta = mouseY - self.lastDragY;
         self.lastDragY = mouseY;
         if delta != 0 {
@@ -210,7 +282,8 @@ impl GuiKeyBindingList {
                 if travel > 0 {
                     // This is algebraically identical to GuiSlot's negative
                     // scrollbar scrollMultiplier applied to the mouse delta.
-                    self.amountScrolled += ((delta as f32 * maxScroll as f32) / travel as f32) as i32;
+                    self.amountScrolled +=
+                        ((delta as f32 * maxScroll as f32) / travel as f32) as i32;
                     self.bindAmountScrolled();
                 }
                 debug_assert!(thumbHeight >= 32 || self.bottom() - LIST_TOP < 40);
@@ -219,33 +292,51 @@ impl GuiKeyBindingList {
         true
     }
 
-    pub fn mouseReleased(&mut self) { self.draggingScrollBar = false; }
+    pub fn mouseReleased(&mut self) {
+        self.draggingScrollBar = false;
+    }
 
     pub fn handleMouseWheel(&mut self, lines: f32) -> bool {
-        if lines == 0.0 { return false; }
+        if lines == 0.0 {
+            return false;
+        }
         let old = self.amountScrolled;
         self.amountScrolled -= (lines.signum() * SLOT_HEIGHT as f32 / 2.0) as i32;
         self.bindAmountScrolled();
         old != self.amountScrolled
     }
 
-    pub fn getListWidth(&self) -> i32 { 220 + 32 }
-    pub fn getScrollBarX(&self) -> i32 { self.width / 2 + 124 + 15 }
+    pub fn getListWidth(&self) -> i32 {
+        220 + 32
+    }
+    pub fn getScrollBarX(&self) -> i32 {
+        self.width / 2 + 124 + 15
+    }
     pub fn getMaxScroll(&self) -> i32 {
         let visible = (self.bottom() - LIST_TOP - 4).max(0);
         (self.getContentHeight() - visible).max(0)
     }
 
-    fn getContentHeight(&self) -> i32 { self.listEntries.len() as i32 * SLOT_HEIGHT }
-    fn bottom(&self) -> i32 { self.height - LIST_BOTTOM_MARGIN }
-    fn bindAmountScrolled(&mut self) { self.amountScrolled = self.amountScrolled.clamp(0, self.getMaxScroll()); }
+    fn getContentHeight(&self) -> i32 {
+        self.listEntries.len() as i32 * SLOT_HEIGHT
+    }
+    fn bottom(&self) -> i32 {
+        self.height - LIST_BOTTOM_MARGIN
+    }
+    fn bindAmountScrolled(&mut self) {
+        self.amountScrolled = self.amountScrolled.clamp(0, self.getMaxScroll());
+    }
 
     fn scrollbarGeometry(&self) -> Option<(i32, i32, i32, i32, i32)> {
         let maxScroll = self.getMaxScroll();
-        if maxScroll <= 0 { return None; }
+        if maxScroll <= 0 {
+            return None;
+        }
         let bottom = self.bottom();
         let viewport = bottom - LIST_TOP;
-        if viewport <= 8 { return None; }
+        if viewport <= 8 {
+            return None;
+        }
         let content = self.getContentHeight().max(1);
         let thumbHeight = (viewport * viewport / content).clamp(32, viewport - 8);
         let travel = (viewport - thumbHeight).max(1);
@@ -254,29 +345,55 @@ impl GuiKeyBindingList {
     }
 
     fn drawScrollBar(&self, draw: &mut GuiDrawList) {
-        let Some((left, thumbY, thumbHeight, _, _)) = self.scrollbarGeometry() else { return; };
+        let Some((left, thumbY, thumbHeight, _, _)) = self.scrollbarGeometry() else {
+            return;
+        };
         let right = left + 6;
         draw.draw_rect(left, LIST_TOP, right, self.bottom(), 0xFF00_0000_u32 as i32);
-        draw.draw_rect(left, thumbY, right, thumbY + thumbHeight, 0xFF80_8080_u32 as i32);
-        draw.draw_rect(left, thumbY, right - 1, thumbY + thumbHeight - 1, 0xFFC0_C0C0_u32 as i32);
+        draw.draw_rect(
+            left,
+            thumbY,
+            right,
+            thumbY + thumbHeight,
+            0xFF80_8080_u32 as i32,
+        );
+        draw.draw_rect(
+            left,
+            thumbY,
+            right - 1,
+            thumbY + thumbHeight - 1,
+            0xFFC0_C0C0_u32 as i32,
+        );
     }
 }
 
 fn translatedOr(locale: &Locale, key: &str, fallback: &str) -> String {
     let value = locale.translate_key(key);
-    if value == key { fallback.to_owned() } else { value.to_owned() }
+    if value == key {
+        fallback.to_owned()
+    } else {
+        value.to_owned()
+    }
 }
 
 fn keyDisplayString(locale: &Locale, code: i32) -> String {
-    if code == -100 { return translatedOr(locale, "key.mouse.left", "Button 1"); }
-    if code == -99 { return translatedOr(locale, "key.mouse.right", "Button 2"); }
-    if code == -98 { return translatedOr(locale, "key.mouse.middle", "Button 3"); }
+    if code == -100 {
+        return translatedOr(locale, "key.mouse.left", "Button 1");
+    }
+    if code == -99 {
+        return translatedOr(locale, "key.mouse.right", "Button 2");
+    }
+    if code == -98 {
+        return translatedOr(locale, "key.mouse.middle", "Button 3");
+    }
     if code < 0 {
         let template = translatedOr(locale, "key.mouseButton", "Button %1$s");
         let number = (code + 101).to_string();
         // Minecraft language files use Java Formatter's indexed `%1$s` token;
         // tolerate `%s` as well for third-party language packs.
-        if template.contains("%1$s") { return template.replacen("%1$s", &number, 1); }
+        if template.contains("%1$s") {
+            return template.replacen("%1$s", &number, 1);
+        }
         return template.replacen("%s", &number, 1);
     }
     display_name(code)
@@ -288,7 +405,12 @@ mod tests {
 
     #[test]
     fn mcp_list_geometry_uses_key_binding_overrides() {
-        let list = GuiKeyBindingList { screenWidth: 854, width: 854 + 45, height: 480, ..Default::default() };
+        let list = GuiKeyBindingList {
+            screenWidth: 854,
+            width: 854 + 45,
+            height: 480,
+            ..Default::default()
+        };
         assert_eq!(list.getListWidth(), 252);
         assert_eq!(list.getScrollBarX(), (854 + 45) / 2 + 139);
         assert_eq!(list.width / 2 - 124, (854 + 45) / 2 - 124);

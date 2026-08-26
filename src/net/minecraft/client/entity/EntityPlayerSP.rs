@@ -1,58 +1,58 @@
-use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
-use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::block::BlockLiquid;
-use crate::net::minecraft::block::BlockBed::BlockBed;
-use crate::net::minecraft::block::BlockLiquid::LiquidMaterial;
 use crate::compat::Java::JavaRandom;
+use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::BlockBed::BlockBed;
+use crate::net::minecraft::block::BlockLiquid;
+use crate::net::minecraft::block::BlockLiquid::LiquidMaterial;
 use crate::net::minecraft::client::audio::LocalSoundEvent::LocalSoundEvent;
+use crate::net::minecraft::client::entity::EntityOtherClient::{ClientEntityKind, ObjectSpawnType};
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::client::particle::ParticleEmitter::ParticleEmitter;
-use crate::net::minecraft::util::EnumParticleTypes::EnumParticleTypes;
-use crate::net::minecraft::util::SoundCategory::SoundCategory;
-use crate::net::minecraft::entity::Entity::Entity;
 use crate::net::minecraft::entity::ai::attributes::AbstractAttributeMap::AbstractAttributeMap;
 use crate::net::minecraft::entity::ai::attributes::AttributeModifier::AttributeModifier;
-use uuid::Uuid;
-use crate::net::minecraft::entity::IJumpingMount::IJumpingMount;
-use crate::net::minecraft::entity::EntityLivingBase;
 use crate::net::minecraft::entity::player::InventoryPlayer::InventoryPlayer;
 use crate::net::minecraft::entity::player::PlayerCapabilities::PlayerCapabilities;
+use crate::net::minecraft::entity::Entity::Entity;
+use crate::net::minecraft::entity::EntityLivingBase;
+use crate::net::minecraft::entity::IJumpingMount::IJumpingMount;
 use crate::net::minecraft::inventory::ContainerPlayer::ContainerPlayer;
 use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
 use crate::net::minecraft::inventory::OpenContainer::OpenContainer;
-use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::item::ItemElytra::ItemElytra;
-use crate::net::minecraft::util::FoodStats::FoodStats;
-use crate::net::minecraft::util::CooldownTracker::CooldownTracker;
-use crate::net::minecraft::util::EnumHand::EnumHand;
-use crate::net::minecraft::network::Packet::RawPacket;
+use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::network::datasync::DataSerializers::DataValue;
 use crate::net::minecraft::network::datasync::EntityDataManager::EntityDataManager;
 use crate::net::minecraft::network::play::client::CPacketEntityAction::{
     Action, CPacketEntityAction,
 };
-use crate::net::minecraft::network::play::client::CPacketPlayerAbilities::CPacketPlayerAbilities;
 use crate::net::minecraft::network::play::client::CPacketInput::CPacketInput;
-use crate::net::minecraft::network::play::client::CPacketVehicleMove::CPacketVehicleMove;
 use crate::net::minecraft::network::play::client::CPacketPlayer::{
     CPacketPlayer, Position, PositionRotation, Rotation,
 };
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
-use crate::net::minecraft::util::MovementInputFromOptions::{
-    MovementInputFromOptions, MovementKeyState,
-};
+use crate::net::minecraft::network::play::client::CPacketPlayerAbilities::CPacketPlayerAbilities;
+use crate::net::minecraft::network::play::client::CPacketVehicleMove::CPacketVehicleMove;
+use crate::net::minecraft::network::Packet::RawPacket;
+use crate::net::minecraft::potion::PotionEffect::PotionEffect;
+use crate::net::minecraft::stats::RecipeBook::RecipeBook;
+use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
-use crate::net::minecraft::util::math::Vec3d::Vec3d;
 use crate::net::minecraft::util::math::MathHelper::{
     cos as minecraft_cos, sin as minecraft_sin, wrap_degrees_f32,
 };
-use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
+use crate::net::minecraft::util::math::Vec3d::Vec3d;
+use crate::net::minecraft::util::CooldownTracker::CooldownTracker;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
+use crate::net::minecraft::util::EnumHand::EnumHand;
+use crate::net::minecraft::util::EnumParticleTypes::EnumParticleTypes;
+use crate::net::minecraft::util::FoodStats::FoodStats;
+use crate::net::minecraft::util::MovementInputFromOptions::{
+    MovementInputFromOptions, MovementKeyState,
+};
+use crate::net::minecraft::util::SoundCategory::SoundCategory;
 use crate::net::minecraft::world::EnumDifficulty::EnumDifficulty;
 use crate::net::minecraft::world::GameType::GameType;
-use crate::net::minecraft::stats::RecipeBook::RecipeBook;
-use crate::net::minecraft::potion::PotionEffect::PotionEffect;
-use crate::net::minecraft::client::entity::EntityOtherClient::{ClientEntityKind, ObjectSpawnType};
+use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
+use uuid::Uuid;
 
 /// Gameplay-bearing subset of MCP `net.minecraft.client.entity.EntityPlayerSP`.
 ///
@@ -459,7 +459,9 @@ impl EntityPlayerSP {
         self.renderOffsetZ = 0.0;
     }
 
-    pub fn isPlayerSleeping(&self) -> bool { self.sleeping }
+    pub fn isPlayerSleeping(&self) -> bool {
+        self.sleeping
+    }
 
     pub fn getBedOrientationInDegrees(&self, world: &WorldClient) -> f32 {
         self.bedLocation
@@ -472,21 +474,32 @@ impl EntityPlayerSP {
     fn updateSleepState(&mut self, world: &WorldClient) {
         if self.sleeping {
             self.sleepTimer = (self.sleepTimer + 1).min(100);
-            if self.bedLocation.is_some_and(|bed| !BlockBed::isBlockBed(world.getBlockState(bed))) {
+            if self
+                .bedLocation
+                .is_some_and(|bed| !BlockBed::isBlockBed(world.getBlockState(bed)))
+            {
                 self.wakeUpPlayerClient(
-                    self.bedLocation.and_then(|bed| BlockBed::getSafeExitLocation(world, bed, 0)),
+                    self.bedLocation
+                        .and_then(|bed| BlockBed::getSafeExitLocation(world, bed, 0)),
                     true,
                 );
             }
         } else if self.sleepTimer > 0 {
             self.sleepTimer += 1;
-            if self.sleepTimer >= 110 { self.sleepTimer = 0; }
+            if self.sleepTimer >= 110 {
+                self.sleepTimer = 0;
+            }
         }
     }
 
     /// Port of MCP `EntityPlayerSP#onUpdate`, including the riding branch
     /// selected by `World#updateEntityWithOptionalForce`.
-    pub fn onUpdate(&mut self, world: &mut WorldClient, keys: MovementKeyState, gameType: GameType) -> Vec<RawPacket> {
+    pub fn onUpdate(
+        &mut self,
+        world: &mut WorldClient,
+        keys: MovementKeyState,
+        gameType: GameType,
+    ) -> Vec<RawPacket> {
         // EntityPlayerSP#onUpdate does not enter any inherited entity update
         // until the column containing the player is loaded.
         let loaded_pos = BlockPos::new(
@@ -535,11 +548,18 @@ impl EntityPlayerSP {
             self.entity.motionZ = 0.0;
         }
 
-        if self.hurtTime > 0 { self.hurtTime -= 1; }
-        if self.hurtResistantTime > 0 { self.hurtResistantTime -= 1; }
+        if self.hurtTime > 0 {
+            self.hurtTime -= 1;
+        }
+        if self.hurtResistantTime > 0 {
+            self.hurtResistantTime -= 1;
+        }
         self.tickPotionEffects();
-        if self.health <= 0.0 { self.deathTime = self.deathTime.saturating_add(1); }
-        else { self.deathTime = 0; }
+        if self.health <= 0.0 {
+            self.deathTime = self.deathTime.saturating_add(1);
+        } else {
+            self.deathTime = 0;
+        }
 
         self.updateActiveHand();
 
@@ -557,7 +577,8 @@ impl EntityPlayerSP {
             self.entity.motionX = 0.0;
             self.entity.motionY = 0.0;
             self.entity.motionZ = 0.0;
-            self.movementInput.updatePlayerMoveState(MovementKeyState::default());
+            self.movementInput
+                .updatePlayerMoveState(MovementKeyState::default());
             // MCP EntityPlayer#onUpdate ticks CooldownTracker even while the
             // player is sleeping; the sleeping rendering/input branch must not
             // freeze item cooldowns.
@@ -578,18 +599,24 @@ impl EntityPlayerSP {
         if let Some(directVehicleId) = self.entity.ridingEntityId {
             // EntityPlayerSP#onUpdate riding packets occur before the vehicle
             // repositions its passenger in Entity#updateRidden.
-            packets.push(Rotation::new(
-                self.entity.rotationYaw,
-                self.entity.rotationPitch,
-                self.entity.onGround,
-            ).writePacketData());
+            packets.push(
+                Rotation::new(
+                    self.entity.rotationYaw,
+                    self.entity.rotationPitch,
+                    self.entity.onGround,
+                )
+                .writePacketData(),
+            );
             let input = self.movementInput.movementInput;
-            packets.push(CPacketInput::new(
-                input.moveStrafe,
-                input.field_192832_b,
-                input.jump,
-                input.sneak,
-            ).writePacketData());
+            packets.push(
+                CPacketInput::new(
+                    input.moveStrafe,
+                    input.field_192832_b,
+                    input.jump,
+                    input.sneak,
+                )
+                .writePacketData(),
+            );
 
             let lowest = world.lowestRidingEntityId(self.entityId, Some(directVehicleId));
             if lowest != self.entityId && world.localPlayerControlsVehicle(lowest, self.entityId) {
@@ -632,7 +659,10 @@ impl EntityPlayerSP {
         let mut z = vehicle.entity.posZ;
         let isBoat = matches!(
             &vehicle.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Boat,
+                ..
+            }
         );
 
         if isBoat {
@@ -644,8 +674,9 @@ impl EntityPlayerSP {
                     -0.6
                 };
             }
-            let offset = Vec3d::new(lateral as f64, 0.0, 0.0)
-                .rotate_yaw(-vehicle.entity.rotationYaw * 0.017453292 - std::f32::consts::FRAC_PI_2);
+            let offset = Vec3d::new(lateral as f64, 0.0, 0.0).rotate_yaw(
+                -vehicle.entity.rotationYaw * 0.017453292 - std::f32::consts::FRAC_PI_2,
+            );
             x += offset.x;
             z += offset.z;
 
@@ -704,10 +735,19 @@ impl EntityPlayerSP {
         }
     }
 
-    fn vehicleMountedYOffset(&self, vehicle: &crate::net::minecraft::client::entity::EntityOtherClient::EntityOtherClient) -> f64 {
+    fn vehicleMountedYOffset(
+        &self,
+        vehicle: &crate::net::minecraft::client::entity::EntityOtherClient::EntityOtherClient,
+    ) -> f64 {
         match &vehicle.kind {
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. } => -0.1,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, .. } => 0.0,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Boat,
+                ..
+            } => -0.1,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Minecart,
+                ..
+            } => 0.0,
             ClientEntityKind::Mob { entityType } => match entityType.registryName {
                 "llama" => vehicle.entity.height as f64 * 0.67,
                 "donkey" | "mule" => vehicle.entity.height as f64 * 0.75 - 0.25,
@@ -719,14 +759,22 @@ impl EntityPlayerSP {
         }
     }
 
-    pub const fn isRowingBoat(&self) -> bool { self.rowingBoat }
+    pub const fn isRowingBoat(&self) -> bool {
+        self.rowingBoat
+    }
 
-    pub const fn getHorseJumpPower(&self) -> f32 { self.horseJumpPower }
-
+    pub const fn getHorseJumpPower(&self) -> f32 {
+        self.horseJumpPower
+    }
 
     /// Minimal land branch of `EntityPlayerSP.onLivingUpdate` plus
     /// `EntityLivingBase.onLivingUpdate/func_191986_a`.
-    fn onLivingUpdate(&mut self, world: &mut WorldClient, keys: MovementKeyState, gameType: GameType) -> Vec<RawPacket> {
+    fn onLivingUpdate(
+        &mut self,
+        world: &mut WorldClient,
+        keys: MovementKeyState,
+        gameType: GameType,
+    ) -> Vec<RawPacket> {
         // MCP captures the previous tick's input before
         // `MovementInputFromOptions.updatePlayerMoveState`; the double-tap
         // sprint state machine depends on that ordering.
@@ -827,10 +875,10 @@ impl EntityPlayerSP {
                 .get(2)
                 .is_some_and(ItemElytra::isBroken)
             {
-                packets.push(CPacketEntityAction::new(
-                    self.entityId,
-                    Action::StartFallFlying,
-                ).writePacketData());
+                packets.push(
+                    CPacketEntityAction::new(self.entityId, Action::StartFallFlying)
+                        .writePacketData(),
+                );
             }
         }
 
@@ -847,7 +895,8 @@ impl EntityPlayerSP {
         }
 
         let ridingHorseId = self.entity.ridingEntityId.filter(|vehicleId| {
-            world.getNonPlayerEntityByID(*vehicleId)
+            world
+                .getNonPlayerEntityByID(*vehicleId)
                 .is_some_and(|vehicle| vehicle.isHorseFamily() && IJumpingMount::canJump(vehicle))
         });
         if let Some(vehicleId) = ridingHorseId {
@@ -862,11 +911,14 @@ impl EntityPlayerSP {
                 self.horseJumpPowerCounter = -10;
                 let jumpPower = (self.horseJumpPower * 100.0).floor() as i32;
                 world.setHorseJumpPower(vehicleId, jumpPower);
-                packets.push(CPacketEntityAction::withAuxData(
-                    self.entityId,
-                    Action::StartRidingJump,
-                    jumpPower,
-                ).writePacketData());
+                packets.push(
+                    CPacketEntityAction::withAuxData(
+                        self.entityId,
+                        Action::StartRidingJump,
+                        jumpPower,
+                    )
+                    .writePacketData(),
+                );
             } else if !was_jumping && input.jump {
                 self.horseJumpPowerCounter = 0;
                 self.horseJumpPower = 0.0;
@@ -875,8 +927,7 @@ impl EntityPlayerSP {
                 if self.horseJumpPowerCounter < 10 {
                     self.horseJumpPower = self.horseJumpPowerCounter as f32 * 0.1;
                 } else {
-                    self.horseJumpPower = 0.8
-                        + 2.0 / (self.horseJumpPowerCounter - 9) as f32 * 0.1;
+                    self.horseJumpPower = 0.8 + 2.0 / (self.horseJumpPowerCounter - 9) as f32 * 0.1;
                 }
             }
         } else {
@@ -902,7 +953,8 @@ impl EntityPlayerSP {
                 self.heal(1.0);
             }
             if self.foodStats.needFood() && self.entity.ticksExisted % 10 == 0 {
-                self.foodStats.setFoodLevel(self.foodStats.getFoodLevel() + 1);
+                self.foodStats
+                    .setFoodLevel(self.foodStats.getFoodLevel() + 1);
             }
         }
         if self.jumpTicks > 0 {
@@ -910,48 +962,48 @@ impl EntityPlayerSP {
         }
 
         if !self.entity.isRiding() {
-        if self.entity.motionX.abs() < 0.003 {
-            self.entity.motionX = 0.0;
-        }
-        if self.entity.motionY.abs() < 0.003 {
-            self.entity.motionY = 0.0;
-        }
-        if self.entity.motionZ.abs() < 0.003 {
-            self.entity.motionZ = 0.0;
-        }
-
-        if input.jump {
-            if self.entity.isInWater() || self.entity.isInLava(world) {
-                self.entity.motionY += EntityLivingBase::LIQUID_JUMP_MOTION;
-            } else if self.entity.onGround && self.jumpTicks == 0 {
-                self.jump();
-                self.jumpTicks = 10;
+            if self.entity.motionX.abs() < 0.003 {
+                self.entity.motionX = 0.0;
             }
-        } else {
-            self.jumpTicks = 0;
-        }
+            if self.entity.motionY.abs() < 0.003 {
+                self.entity.motionY = 0.0;
+            }
+            if self.entity.motionZ.abs() < 0.003 {
+                self.entity.motionZ = 0.0;
+            }
 
-        let move_strafe = input.moveStrafe * 0.98;
-        let move_forward = input.field_192832_b * 0.98;
-        if self.capabilities.isFlying {
-            let previousMotionY = self.entity.motionY;
-            let previousJumpMovementFactor = self.jumpMovementFactor;
-            self.jumpMovementFactor = self.capabilities.getFlySpeed()
-                * if self.isSprinting { 2.0 } else { 1.0 };
-            self.travelLand(world, move_strafe, 0.0, move_forward, gameType);
-            self.entity.motionY = previousMotionY * 0.6;
-            self.jumpMovementFactor = previousJumpMovementFactor;
-            self.entity.fallDistance = 0.0;
-            self.setEntityFlag(7, false);
-        } else if self.entity.isInWater() {
-            self.travelWater(world, move_strafe, 0.0, move_forward);
-        } else if self.entity.isInLava(world) {
-            self.travelLava(world, move_strafe, 0.0, move_forward);
-        } else if self.isElytraFlying() {
-            self.travelElytra(world);
-        } else {
-            self.travelLand(world, move_strafe, 0.0, move_forward, gameType);
-        }
+            if input.jump {
+                if self.entity.isInWater() || self.entity.isInLava(world) {
+                    self.entity.motionY += EntityLivingBase::LIQUID_JUMP_MOTION;
+                } else if self.entity.onGround && self.jumpTicks == 0 {
+                    self.jump();
+                    self.jumpTicks = 10;
+                }
+            } else {
+                self.jumpTicks = 0;
+            }
+
+            let move_strafe = input.moveStrafe * 0.98;
+            let move_forward = input.field_192832_b * 0.98;
+            if self.capabilities.isFlying {
+                let previousMotionY = self.entity.motionY;
+                let previousJumpMovementFactor = self.jumpMovementFactor;
+                self.jumpMovementFactor =
+                    self.capabilities.getFlySpeed() * if self.isSprinting { 2.0 } else { 1.0 };
+                self.travelLand(world, move_strafe, 0.0, move_forward, gameType);
+                self.entity.motionY = previousMotionY * 0.6;
+                self.jumpMovementFactor = previousJumpMovementFactor;
+                self.entity.fallDistance = 0.0;
+                self.setEntityFlag(7, false);
+            } else if self.entity.isInWater() {
+                self.travelWater(world, move_strafe, 0.0, move_forward);
+            } else if self.entity.isInLava(world) {
+                self.travelLava(world, move_strafe, 0.0, move_forward);
+            } else if self.isElytraFlying() {
+                self.travelElytra(world);
+            } else {
+                self.travelLand(world, move_strafe, 0.0, move_forward, gameType);
+            }
         }
 
         // MCP EntityPlayer#onLivingUpdate updates these inherited movement
@@ -967,10 +1019,7 @@ impl EntityPlayerSP {
             self.capabilities.getWalkSpeed() as f64,
         ) as f32;
 
-        if self.entity.onGround
-            && self.capabilities.isFlying
-            && gameType != GameType::Spectator
-        {
+        if self.entity.onGround && self.capabilities.isFlying && gameType != GameType::Spectator {
             self.capabilities.isFlying = false;
             packets.push(CPacketPlayerAbilities::new(&self.capabilities).writePacketData());
         }
@@ -982,7 +1031,9 @@ impl EntityPlayerSP {
         let deltaX = self.entity.posX - self.entity.prevPosX;
         let deltaZ = self.entity.posZ - self.entity.prevPosZ;
         let mut amount = ((deltaX * deltaX + deltaZ * deltaZ).sqrt() as f32) * 4.0;
-        if amount > 1.0 { amount = 1.0; }
+        if amount > 1.0 {
+            amount = 1.0;
+        }
         self.limbSwingAmount += (amount - self.limbSwingAmount) * 0.4;
         self.limbSwing += self.limbSwingAmount;
 
@@ -1015,20 +1066,29 @@ impl EntityPlayerSP {
         moved = self.updateDistance(targetBodyYaw, moved);
         self.prevMovedDistance = self.movedDistance;
         self.prevCameraYaw = self.cameraYaw;
-        let mut horizontalMotion =
-            (self.entity.motionX * self.entity.motionX + self.entity.motionZ * self.entity.motionZ)
-                .sqrt() as f32;
+        let mut horizontalMotion = (self.entity.motionX * self.entity.motionX
+            + self.entity.motionZ * self.entity.motionZ)
+            .sqrt() as f32;
         let mut verticalCamera =
             (-self.entity.motionY * 0.20000000298023224_f64).atan() as f32 * 15.0;
-        if horizontalMotion > 0.1 { horizontalMotion = 0.1; }
-        if !self.entity.onGround || self.health <= 0.0 { horizontalMotion = 0.0; }
-        if self.entity.onGround || self.health <= 0.0 { verticalCamera = 0.0; }
+        if horizontalMotion > 0.1 {
+            horizontalMotion = 0.1;
+        }
+        if !self.entity.onGround || self.health <= 0.0 {
+            horizontalMotion = 0.0;
+        }
+        if self.entity.onGround || self.health <= 0.0 {
+            verticalCamera = 0.0;
+        }
         self.cameraYaw += (horizontalMotion - self.cameraYaw) * 0.4;
         self.cameraPitch += (verticalCamera - self.cameraPitch) * 0.8;
         self.rotationYawHead = self.entity.rotationYaw;
         normalize_previous_angle(self.entity.rotationYaw, &mut self.entity.prevRotationYaw);
         normalize_previous_angle(self.renderYawOffset, &mut self.prevRenderYawOffset);
-        normalize_previous_angle(self.entity.rotationPitch, &mut self.entity.prevRotationPitch);
+        normalize_previous_angle(
+            self.entity.rotationPitch,
+            &mut self.entity.prevRotationPitch,
+        );
         normalize_previous_angle(self.rotationYawHead, &mut self.prevRotationYawHead);
         self.movedDistance += moved;
         // EntityLivingBase#onUpdate advances the render timer after the full
@@ -1079,7 +1139,9 @@ impl EntityPlayerSP {
         if relative * relative > 2500.0 {
             self.renderYawOffset += relative * 0.2;
         }
-        if reversed { distance *= -1.0; }
+        if reversed {
+            distance *= -1.0;
+        }
         distance
     }
 
@@ -1095,12 +1157,13 @@ impl EntityPlayerSP {
                 speed += (efficiency * efficiency + 1) as f32;
             }
         }
-        if self.isInsideWater(world)
-            && self.inventory.armorInventory[3].getEnchantmentLevel(6) == 0
+        if self.isInsideWater(world) && self.inventory.armorInventory[3].getEnchantmentLevel(6) == 0
         {
             speed /= 5.0;
         }
-        if !self.entity.onGround { speed /= 5.0; }
+        if !self.entity.onGround {
+            speed /= 5.0;
+        }
         speed
     }
 
@@ -1158,9 +1221,7 @@ impl EntityPlayerSP {
             .sqrt();
         let lookLength = look.length();
         let mut lift = minecraft_cos(pitchRadians);
-        lift = (lift as f64
-            * lift as f64
-            * 1.0_f64.min(lookLength / 0.4_f64)) as f32;
+        lift = (lift as f64 * lift as f64 * 1.0_f64.min(lookLength / 0.4_f64)) as f32;
         self.entity.motionY += -0.08 + lift as f64 * 0.06;
 
         if self.entity.motionY < 0.0 && lookHorizontal > 0.0 {
@@ -1187,8 +1248,11 @@ impl EntityPlayerSP {
         self.entity.motionX *= 0.9900000095367432_f64;
         self.entity.motionY *= 0.9800000190734863_f64;
         self.entity.motionZ *= 0.9900000095367432_f64;
-        let (motionX, motionY, motionZ) =
-            (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
         self.entity
             .moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
     }
@@ -1221,7 +1285,8 @@ impl EntityPlayerSP {
             self.jumpMovementFactor
         };
 
-        self.entity.func_191958_b(strafe, vertical, forward, acceleration);
+        self.entity
+            .func_191958_b(strafe, vertical, forward, acceleration);
 
         friction = 0.91;
         if self.entity.onGround {
@@ -1246,10 +1311,17 @@ impl EntityPlayerSP {
             }
         }
 
-        let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
-        self.entity.moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
+        self.entity
+            .moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
 
-        if self.entity.isCollidedHorizontally && EntityLivingBase::isOnLadder(world, &self.entity, gameType == GameType::Spectator) {
+        if self.entity.isCollidedHorizontally
+            && EntityLivingBase::isOnLadder(world, &self.entity, gameType == GameType::Spectator)
+        {
             self.entity.motionY = 0.2;
         }
 
@@ -1271,15 +1343,25 @@ impl EntityPlayerSP {
         let mut slowdown = 0.8_f32;
         let mut acceleration = 0.02_f32;
         let mut depth_strider = self.inventory.armorInventory[0].getEnchantmentLevel(8) as f32;
-        if depth_strider > 3.0 { depth_strider = 3.0; }
-        if !self.entity.onGround { depth_strider *= 0.5; }
+        if depth_strider > 3.0 {
+            depth_strider = 3.0;
+        }
+        if !self.entity.onGround {
+            depth_strider *= 0.5;
+        }
         if depth_strider > 0.0 {
             slowdown += (0.54600006_f32 - slowdown) * depth_strider / 3.0;
             acceleration += (self.aiMoveSpeed - acceleration) * depth_strider / 3.0;
         }
-        self.entity.func_191958_b(strafe, vertical, forward, acceleration);
-        let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
-        self.entity.moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
+        self.entity
+            .func_191958_b(strafe, vertical, forward, acceleration);
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
+        self.entity
+            .moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
         self.entity.motionX *= slowdown as f64;
         self.entity.motionY *= 0.800000011920929_f64;
         self.entity.motionZ *= slowdown as f64;
@@ -1300,8 +1382,13 @@ impl EntityPlayerSP {
     fn travelLava(&mut self, world: &WorldClient, strafe: f32, vertical: f32, forward: f32) {
         let start_y = self.entity.posY;
         self.entity.func_191958_b(strafe, vertical, forward, 0.02);
-        let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
-        self.entity.moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
+        self.entity
+            .moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
         self.entity.motionX *= 0.5;
         self.entity.motionY *= 0.5;
         self.entity.motionZ *= 0.5;
@@ -1324,12 +1411,18 @@ impl EntityPlayerSP {
     pub fn isInsideWater(&self, world: &WorldClient) -> bool {
         // MCP `Entity#isInsideOfMaterial` returns false while riding a boat.
         if let Some(vehicleId) = self.entity.ridingEntityId {
-            if world.getNonPlayerEntityByID(vehicleId).is_some_and(|vehicle| {
-                matches!(
-                    &vehicle.kind,
-                    ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. }
-                )
-            }) {
+            if world
+                .getNonPlayerEntityByID(vehicleId)
+                .is_some_and(|vehicle| {
+                    matches!(
+                        &vehicle.kind,
+                        ClientEntityKind::Object {
+                            objectType: ObjectSpawnType::Boat,
+                            ..
+                        }
+                    )
+                })
+            {
                 return false;
             }
         }
@@ -1343,7 +1436,8 @@ impl EntityPlayerSP {
         if LiquidMaterial::fromState(state) != Some(LiquidMaterial::Water) {
             return false;
         }
-        let submerged_offset = BlockLiquid::getLiquidHeightPercent(state.getMetadata()) - 0.11111111_f32;
+        let submerged_offset =
+            BlockLiquid::getLiquidHeightPercent(state.getMetadata()) - 0.11111111_f32;
         let surface = (pos.y + 1) as f64 - submerged_offset as f64;
         eye_y < surface
     }
@@ -1379,32 +1473,40 @@ impl EntityPlayerSP {
         let d3 = (self.entity.rotationYaw - self.lastReportedYaw) as f64;
         let d4 = (self.entity.rotationPitch - self.lastReportedPitch) as f64;
         self.positionUpdateTicks += 1;
-        let moving = d0 * d0 + d1 * d1 + d2 * d2 > 9.0e-4
-            || self.positionUpdateTicks >= 20;
+        let moving = d0 * d0 + d1 * d1 + d2 * d2 > 9.0e-4 || self.positionUpdateTicks >= 20;
         let rotating = d3 != 0.0 || d4 != 0.0;
 
         if moving && rotating {
-            packets.push(PositionRotation::new(
-                self.entity.posX,
-                self.entity.boundingBox.min_y,
-                self.entity.posZ,
-                self.entity.rotationYaw,
-                self.entity.rotationPitch,
-                self.entity.onGround,
-            ).writePacketData());
+            packets.push(
+                PositionRotation::new(
+                    self.entity.posX,
+                    self.entity.boundingBox.min_y,
+                    self.entity.posZ,
+                    self.entity.rotationYaw,
+                    self.entity.rotationPitch,
+                    self.entity.onGround,
+                )
+                .writePacketData(),
+            );
         } else if moving {
-            packets.push(Position::new(
-                self.entity.posX,
-                self.entity.boundingBox.min_y,
-                self.entity.posZ,
-                self.entity.onGround,
-            ).writePacketData());
+            packets.push(
+                Position::new(
+                    self.entity.posX,
+                    self.entity.boundingBox.min_y,
+                    self.entity.posZ,
+                    self.entity.onGround,
+                )
+                .writePacketData(),
+            );
         } else if rotating {
-            packets.push(Rotation::new(
-                self.entity.rotationYaw,
-                self.entity.rotationPitch,
-                self.entity.onGround,
-            ).writePacketData());
+            packets.push(
+                Rotation::new(
+                    self.entity.rotationYaw,
+                    self.entity.rotationPitch,
+                    self.entity.onGround,
+                )
+                .writePacketData(),
+            );
         } else if self.prevOnGround != self.entity.onGround {
             packets.push(CPacketPlayer::new(self.entity.onGround).writePacketData());
         }
@@ -1425,7 +1527,9 @@ impl EntityPlayerSP {
         packets
     }
 
-    pub const fn getAbsorptionAmount(&self) -> f32 { self.absorptionAmount }
+    pub const fn getAbsorptionAmount(&self) -> f32 {
+        self.absorptionAmount
+    }
 
     pub fn setAbsorptionAmount(&mut self, amount: f32) {
         self.absorptionAmount = amount.max(0.0);
@@ -1461,7 +1565,10 @@ impl EntityPlayerSP {
         let amplifier = f64::from(effect.getAmplifier()) + 1.0;
         let movementModifier = match effect.getPotionId() {
             1 => Some((SPEED_POTION_MODIFIER_ID, SPEED_POTION_AMOUNT * amplifier)),
-            2 => Some((SLOWNESS_POTION_MODIFIER_ID, SLOWNESS_POTION_AMOUNT * amplifier)),
+            2 => Some((
+                SLOWNESS_POTION_MODIFIER_ID,
+                SLOWNESS_POTION_AMOUNT * amplifier,
+            )),
             _ => None,
         };
         if let Some((id, amount)) = movementModifier {
@@ -1506,7 +1613,8 @@ impl EntityPlayerSP {
     }
 
     fn tickPotionEffects(&mut self) {
-        let expired = self.activePotionEffects
+        let expired = self
+            .activePotionEffects
             .iter_mut()
             .filter_map(|(&potionId, effect)| (!effect.tickDuration()).then_some(potionId))
             .collect::<Vec<_>>();
@@ -1546,7 +1654,9 @@ impl EntityPlayerSP {
     }
 
     fn tickTotemParticleEmitter(&mut self, world: &mut WorldClient) {
-        let Some(emitter) = self.totemParticleEmitter.as_mut() else { return; };
+        let Some(emitter) = self.totemParticleEmitter.as_mut() else {
+            return;
+        };
         world.queueParticleSpawns(emitter.onUpdate(&self.entity));
         if emitter.isExpired() {
             self.totemParticleEmitter = None;
@@ -1567,7 +1677,8 @@ impl EntityPlayerSP {
 
     /// MCP `EntityLivingBase#getMaxHealth` through the MAX_HEALTH attribute.
     pub fn getMaxHealth(&self) -> f32 {
-        self.attributeMap.getAttributeValue("generic.maxHealth", 20.0) as f32
+        self.attributeMap
+            .getAttributeValue("generic.maxHealth", 20.0) as f32
     }
 
     /// MCP `EntityLivingBase#shouldHeal`.
@@ -1577,18 +1688,24 @@ impl EntityPlayerSP {
 
     /// MCP `EntityPlayer#getTotalArmorValue`.
     pub fn getTotalArmorValue(&self) -> i32 {
-        self.inventory.armorInventory.iter().enumerate().fold(0, |total, (index, stack)| {
-            let Some(definition) = crate::net::minecraft::item::ItemArmor::ItemArmor::definition(stack.itemId) else {
-                return total;
-            };
-            let slot = match index {
-                0 => EntityEquipmentSlot::Feet,
-                1 => EntityEquipmentSlot::Legs,
-                2 => EntityEquipmentSlot::Chest,
-                _ => EntityEquipmentSlot::Head,
-            };
-            total + definition.material.damageReduction(slot)
-        })
+        self.inventory
+            .armorInventory
+            .iter()
+            .enumerate()
+            .fold(0, |total, (index, stack)| {
+                let Some(definition) =
+                    crate::net::minecraft::item::ItemArmor::ItemArmor::definition(stack.itemId)
+                else {
+                    return total;
+                };
+                let slot = match index {
+                    0 => EntityEquipmentSlot::Feet,
+                    1 => EntityEquipmentSlot::Legs,
+                    2 => EntityEquipmentSlot::Chest,
+                    _ => EntityEquipmentSlot::Head,
+                };
+                total + definition.material.damageReduction(slot)
+            })
     }
 
     /// MCP `Entity#getAir`: data-manager AIR value, 300 when full.
@@ -1633,19 +1750,28 @@ impl EntityPlayerSP {
                 self.hurtTime = self.maxHurtTime;
                 self.attackedAtYaw = 0.0;
                 if opcode == 33 {
-                    let pitch = (self.soundRandomizer.next_f32() - self.soundRandomizer.next_f32()) * 0.2 + 1.0;
-                    self.queueSoundAtPlayer("enchant.thorns.hit", SoundCategory::Players, 1.0, pitch);
+                    let pitch = (self.soundRandomizer.next_f32() - self.soundRandomizer.next_f32())
+                        * 0.2
+                        + 1.0;
+                    self.queueSoundAtPlayer(
+                        "enchant.thorns.hit",
+                        SoundCategory::Players,
+                        1.0,
+                        pitch,
+                    );
                 }
                 let sound = match opcode {
                     36 => "entity.player.hurt_drown",
                     37 => "entity.player.hurt_on_fire",
                     _ => "entity.player.hurt",
                 };
-                let pitch = (self.soundRandomizer.next_f32() - self.soundRandomizer.next_f32()) * 0.2 + 1.0;
+                let pitch =
+                    (self.soundRandomizer.next_f32() - self.soundRandomizer.next_f32()) * 0.2 + 1.0;
                 self.queueSoundAtPlayer(sound, SoundCategory::Players, 1.0, pitch);
             }
             3 => {
-                let pitch = (self.soundRandomizer.next_f32() - self.soundRandomizer.next_f32()) * 0.2 + 1.0;
+                let pitch =
+                    (self.soundRandomizer.next_f32() - self.soundRandomizer.next_f32()) * 0.2 + 1.0;
                 self.queueSoundAtPlayer("entity.player.death", SoundCategory::Players, 1.0, pitch);
                 self.health = 0.0;
             }
@@ -1709,7 +1835,9 @@ impl EntityPlayerSP {
 
     pub fn getSwingProgress(&self, partialTicks: f32) -> f32 {
         let mut delta = self.swingProgress - self.prevSwingProgress;
-        if delta < 0.0 { delta += 1.0; }
+        if delta < 0.0 {
+            delta += 1.0;
+        }
         self.prevSwingProgress + delta * partialTicks.clamp(0.0, 1.0)
     }
 
@@ -1728,7 +1856,11 @@ impl EntityPlayerSP {
     pub fn getHeldItem(&self, hand: EnumHand) -> &ItemStack {
         match hand {
             EnumHand::MainHand => self.inventory.getCurrentItem(),
-            EnumHand::OffHand => self.inventory.offHandInventory.first().unwrap_or(&ItemStack::EMPTY),
+            EnumHand::OffHand => self
+                .inventory
+                .offHandInventory
+                .first()
+                .unwrap_or(&ItemStack::EMPTY),
         }
     }
 
@@ -1746,7 +1878,9 @@ impl EntityPlayerSP {
         let (containerSlot, updated) = match hand {
             EnumHand::MainHand => {
                 let index = self.inventory.currentItem;
-                if !(0..9).contains(&index) { return false; }
+                if !(0..9).contains(&index) {
+                    return false;
+                }
                 let stack = &mut self.inventory.mainInventory[index as usize];
                 if stack.isEmpty()
                     || stack.itemId != expectedItemId
@@ -1771,7 +1905,9 @@ impl EntityPlayerSP {
                 (45, stack.clone())
             }
         };
-        let _ = self.inventoryContainer.putStackInSlot(containerSlot, updated);
+        let _ = self
+            .inventoryContainer
+            .putStackInSlot(containerSlot, updated);
         if let Some(container) = self.openContainer.as_mut() {
             container.syncFromPlayerInventory(&self.inventory);
         }
@@ -1791,7 +1927,9 @@ impl EntityPlayerSP {
     }
 
     fn updateActiveHand(&mut self) {
-        if !self.handActive { return; }
+        if !self.handActive {
+            return;
+        }
         let held = self.getHeldItem(self.activeHand).clone();
         if held.itemId == self.activeItemStack.itemId
             && held.itemDamage == self.activeItemStack.itemDamage
@@ -1811,7 +1949,9 @@ impl EntityPlayerSP {
 
     fn updateItemUseSound(&mut self) {
         use crate::net::minecraft::item::EnumAction::EnumAction;
-        if self.activeItemStack.isEmpty() || !self.handActive { return; }
+        if self.activeItemStack.isEmpty() || !self.handActive {
+            return;
+        }
         match self.activeItemStack.getItemUseAction() {
             EnumAction::Drink => {
                 let pitch = self.soundRandomizer.next_f32() * 0.1 + 0.9;
@@ -1819,8 +1959,14 @@ impl EntityPlayerSP {
             }
             EnumAction::Eat => {
                 let volume = 0.5 + 0.5 * self.soundRandomizer.next_i32_bound(2) as f32;
-                let pitch = (self.soundRandomizer.next_f32() - self.soundRandomizer.next_f32()) * 0.2 + 1.0;
-                self.queueSoundAtPlayer("entity.generic.eat", SoundCategory::Players, volume, pitch);
+                let pitch =
+                    (self.soundRandomizer.next_f32() - self.soundRandomizer.next_f32()) * 0.2 + 1.0;
+                self.queueSoundAtPlayer(
+                    "entity.generic.eat",
+                    SoundCategory::Players,
+                    volume,
+                    pitch,
+                );
             }
             _ => {}
         }
@@ -1830,7 +1976,9 @@ impl EntityPlayerSP {
     /// final `EntityLivingBase#updateItemUse` feedback while
     /// leaving inventory contents to SetSlot/WindowItems.
     fn onItemUseFinishClient(&mut self) {
-        if self.activeItemStack.isEmpty() || !self.handActive { return; }
+        if self.activeItemStack.isEmpty() || !self.handActive {
+            return;
+        }
         self.updateItemUseSound();
         // ItemFood's burp originates from the authoritative server world and
         // is delivered as SPacketSoundEffect. Replaying it here would duplicate
@@ -1850,7 +1998,9 @@ impl EntityPlayerSP {
         volume: f32,
         pitch: f32,
     ) {
-        self.pendingSoundEvents.push(LocalSoundEvent::positioned(sound, category, position, volume, pitch));
+        self.pendingSoundEvents.push(LocalSoundEvent::positioned(
+            sound, category, position, volume, pitch,
+        ));
     }
 
     pub fn queueSoundAtPlayer(
@@ -1863,7 +2013,11 @@ impl EntityPlayerSP {
         self.queueSoundAt(
             sound,
             category,
-            [self.entity.posX as f32, self.entity.posY as f32, self.entity.posZ as f32],
+            [
+                self.entity.posX as f32,
+                self.entity.posY as f32,
+                self.entity.posZ as f32,
+            ],
             volume,
             pitch,
         );
@@ -1873,18 +2027,30 @@ impl EntityPlayerSP {
         std::mem::take(&mut self.pendingSoundEvents)
     }
 
-    pub fn stopActiveHand(&mut self) { self.resetActiveHand(); }
+    pub fn stopActiveHand(&mut self) {
+        self.resetActiveHand();
+    }
     pub fn resetActiveHand(&mut self) {
         self.handActive = false;
         self.activeItemStack = ItemStack::EMPTY;
         self.activeItemStackUseCount = 0;
     }
-    pub const fn isHandActive(&self) -> bool { self.handActive }
-    pub const fn getActiveHand(&self) -> EnumHand { self.activeHand }
-    pub fn getActiveItemStack(&self) -> &ItemStack { &self.activeItemStack }
-    pub const fn getItemInUseCount(&self) -> i32 { self.activeItemStackUseCount }
+    pub const fn isHandActive(&self) -> bool {
+        self.handActive
+    }
+    pub const fn getActiveHand(&self) -> EnumHand {
+        self.activeHand
+    }
+    pub fn getActiveItemStack(&self) -> &ItemStack {
+        &self.activeItemStack
+    }
+    pub const fn getItemInUseCount(&self) -> i32 {
+        self.activeItemStackUseCount
+    }
 
-    pub const fn getScore(&self) -> i32 { self.score }
+    pub const fn getScore(&self) -> i32 {
+        self.score
+    }
 
     pub fn addScore(&mut self, scoreIn: i32) {
         self.score = self.score.saturating_add(scoreIn);
@@ -1908,12 +2074,24 @@ impl EntityPlayerSP {
         }
     }
 
-    pub const fn getHealth(&self) -> f32 { self.health }
-    pub const fn getLastDamage(&self) -> f32 { self.lastDamage }
-    pub fn getFoodStats(&self) -> &FoodStats { &self.foodStats }
-    pub fn getFoodStatsMut(&mut self) -> &mut FoodStats { &mut self.foodStats }
-    pub fn getCooldownTracker(&self) -> &CooldownTracker { &self.cooldownTracker }
-    pub fn getCooldownTrackerMut(&mut self) -> &mut CooldownTracker { &mut self.cooldownTracker }
+    pub const fn getHealth(&self) -> f32 {
+        self.health
+    }
+    pub const fn getLastDamage(&self) -> f32 {
+        self.lastDamage
+    }
+    pub fn getFoodStats(&self) -> &FoodStats {
+        &self.foodStats
+    }
+    pub fn getFoodStatsMut(&mut self) -> &mut FoodStats {
+        &mut self.foodStats
+    }
+    pub fn getCooldownTracker(&self) -> &CooldownTracker {
+        &self.cooldownTracker
+    }
+    pub fn getCooldownTrackerMut(&mut self) -> &mut CooldownTracker {
+        &mut self.cooldownTracker
+    }
 
     pub fn setPositionAndRotation(&mut self, x: f64, y: f64, z: f64, yaw: f32, pitch: f32) {
         self.entity.setPositionAndRotation(x, y, z, yaw, pitch);
@@ -2004,8 +2182,12 @@ impl EntityPlayerSP {
 }
 
 fn normalize_previous_angle(current: f32, previous: &mut f32) {
-    while current - *previous < -180.0 { *previous -= 360.0; }
-    while current - *previous >= 180.0 { *previous += 360.0; }
+    while current - *previous < -180.0 {
+        *previous -= 360.0;
+    }
+    while current - *previous >= 180.0 {
+        *previous += 360.0;
+    }
 }
 
 #[cfg(test)]
@@ -2019,7 +2201,10 @@ mod tests {
         player.handleStatusUpdate(36);
         let sounds = player.takeSoundEvents();
         assert_eq!(sounds.len(), 1);
-        assert_eq!(sounds[0].sound.to_string(), "minecraft:entity.player.hurt_drown");
+        assert_eq!(
+            sounds[0].sound.to_string(),
+            "minecraft:entity.player.hurt_drown"
+        );
         assert_eq!(sounds[0].category, SoundCategory::Players);
 
         player.activateTotem(0.0, 0.0);
@@ -2061,10 +2246,10 @@ mod tests {
             itemDamage: 0,
             tagCompound: None,
         };
-        player.inventoryContainer.putStackInSlot(
-            38,
-            player.inventory.mainInventory[2].clone(),
-        ).unwrap();
+        player
+            .inventoryContainer
+            .putStackInSlot(38, player.inventory.mainInventory[2].clone())
+            .unwrap();
 
         assert!(player.consumeHeldItemForPlacement(EnumHand::MainHand, 50, 0));
         assert_eq!(player.inventory.mainInventory[2].count, 1);
@@ -2096,7 +2281,10 @@ mod tests {
 
         let first = player.onLivingUpdate(
             &mut world,
-            MovementKeyState { jump: true, ..MovementKeyState::default() },
+            MovementKeyState {
+                jump: true,
+                ..MovementKeyState::default()
+            },
             GameType::Creative,
         );
         assert!(first.iter().all(|packet| packet.id != 0x13));
@@ -2105,7 +2293,10 @@ mod tests {
         let _ = player.onLivingUpdate(&mut world, MovementKeyState::default(), GameType::Creative);
         let second = player.onLivingUpdate(
             &mut world,
-            MovementKeyState { jump: true, ..MovementKeyState::default() },
+            MovementKeyState {
+                jump: true,
+                ..MovementKeyState::default()
+            },
             GameType::Creative,
         );
         assert!(player.capabilities.isFlying);
@@ -2127,10 +2318,15 @@ mod tests {
 
         let packets = player.onLivingUpdate(
             &mut world,
-            MovementKeyState { jump: true, ..MovementKeyState::default() },
+            MovementKeyState {
+                jump: true,
+                ..MovementKeyState::default()
+            },
             GameType::Survival,
         );
-        let fall_flying = packets.iter().find(|packet| packet.id == 0x15)
+        let fall_flying = packets
+            .iter()
+            .find(|packet| packet.id == 0x15)
             .expect("START_FALL_FLYING packet");
         assert_eq!(fall_flying.payload, vec![7, 8, 0]);
 
@@ -2139,7 +2335,10 @@ mod tests {
         player.entity.motionY = -0.2;
         let broken = player.onLivingUpdate(
             &mut world,
-            MovementKeyState { jump: true, ..MovementKeyState::default() },
+            MovementKeyState {
+                jump: true,
+                ..MovementKeyState::default()
+            },
             GameType::Survival,
         );
         assert!(broken.iter().all(|packet| packet.id != 0x15));
@@ -2156,7 +2355,9 @@ mod tests {
         let mut horse = EntityOtherClient::new(
             100,
             None,
-            ClientEntityKind::Mob { entityType: MobEntityType::fromId(100).unwrap() },
+            ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(100).unwrap(),
+            },
             0.0,
             64.0,
             0.0,
@@ -2169,18 +2370,18 @@ mod tests {
 
         let mut player = EntityPlayerSP::new(7);
         player.entity.ridingEntityId = Some(100);
-        let jump = MovementKeyState { jump: true, ..MovementKeyState::default() };
+        let jump = MovementKeyState {
+            jump: true,
+            ..MovementKeyState::default()
+        };
         let _ = player.onLivingUpdate(&mut world, jump, GameType::Survival);
         for _ in 0..5 {
             let _ = player.onLivingUpdate(&mut world, jump, GameType::Survival);
         }
         assert!((player.getHorseJumpPower() - 0.5).abs() < 1.0e-6);
 
-        let packets = player.onLivingUpdate(
-            &mut world,
-            MovementKeyState::default(),
-            GameType::Survival,
-        );
+        let packets =
+            player.onLivingUpdate(&mut world, MovementKeyState::default(), GameType::Survival);
         let jump_packet = packets.iter().find(|packet| packet.id == 0x15).unwrap();
         assert_eq!(jump_packet.payload, vec![7, 5, 50]);
         assert_eq!(player.horseJumpPowerCounter, -10);
@@ -2199,10 +2400,7 @@ mod tests {
             tagCompound: None,
         };
 
-        player.applyMetadata([
-            (0, DataValue::Byte(0x22)),
-            (6, DataValue::Byte(0x01)),
-        ]);
+        player.applyMetadata([(0, DataValue::Byte(0x22)), (6, DataValue::Byte(0x01))]);
         assert!(player.entity.sneaking);
         assert!(player.isInvisible());
         assert!(player.isHandActive());
@@ -2219,12 +2417,16 @@ mod tests {
     fn sprinting_uses_vanilla_attribute_modifier_and_entity_flag() {
         let mut player = EntityPlayerSP::new(7);
         player.setSprinting(true);
-        let speed = player.attributeMap.getAttributeValue("generic.movementSpeed", 0.0);
+        let speed = player
+            .attributeMap
+            .getAttributeValue("generic.movementSpeed", 0.0);
         assert!((speed - 0.1300000031292439).abs() < 1.0e-12);
         assert_ne!(player.dataManager.byte(0, 0) & 0x08, 0);
 
         player.setSprinting(false);
-        let speed = player.attributeMap.getAttributeValue("generic.movementSpeed", 0.0);
+        let speed = player
+            .attributeMap
+            .getAttributeValue("generic.movementSpeed", 0.0);
         assert!((speed - 0.10000000149011612).abs() < 1.0e-12);
         assert_eq!(player.dataManager.byte(0, 0) & 0x08, 0);
     }
@@ -2282,9 +2484,7 @@ mod tests {
             .sqrt();
         let look_length = look.length();
         let mut lift = minecraft_cos(pitch);
-        lift = (lift as f64
-            * lift as f64
-            * 1.0_f64.min(look_length / 0.4_f64)) as f32;
+        lift = (lift as f64 * lift as f64 * 1.0_f64.min(look_length / 0.4_f64)) as f32;
         let mut expected_x = player.entity.motionX;
         let mut expected_y = player.entity.motionY + -0.08 + lift as f64 * 0.06;
         let mut expected_z = player.entity.motionZ;

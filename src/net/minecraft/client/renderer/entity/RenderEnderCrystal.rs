@@ -13,7 +13,10 @@ impl RenderEnderCrystal {
     }
 
     pub fn beamTexture() -> ResourceLocation {
-        ResourceLocation::new("minecraft", "textures/entity/endercrystal/endercrystal_beam.png")
+        ResourceLocation::new(
+            "minecraft",
+            "textures/entity/endercrystal/endercrystal_beam.png",
+        )
     }
 
     /// Returns `(f, f1)` from `doRender`: the interpolated inner rotation and

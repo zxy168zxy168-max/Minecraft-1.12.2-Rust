@@ -21,8 +21,12 @@ impl ModelRotation {
         }
     }
 
-    pub const fn x(self) -> i32 { self.x }
-    pub const fn y(self) -> i32 { self.y }
+    pub const fn x(self) -> i32 {
+        self.x
+    }
+    pub const fn y(self) -> i32 {
+        self.y
+    }
 
     /// `ModelRotation.rotateFace` / `rotate(EnumFacing)`.
     pub fn rotateFace(self, mut facing: EnumFacing) -> EnumFacing {
@@ -101,8 +105,16 @@ fn rotate_around_y(facing: EnumFacing) -> EnumFacing {
 fn rotate_axis(value: [f32; 3], axis: char, radians: f32) -> [f32; 3] {
     let (sin, cos) = radians.sin_cos();
     match axis {
-        'x' => [value[0], value[1] * cos - value[2] * sin, value[1] * sin + value[2] * cos],
-        'y' => [value[0] * cos + value[2] * sin, value[1], -value[0] * sin + value[2] * cos],
+        'x' => [
+            value[0],
+            value[1] * cos - value[2] * sin,
+            value[1] * sin + value[2] * cos,
+        ],
+        'y' => [
+            value[0] * cos + value[2] * sin,
+            value[1],
+            -value[0] * sin + value[2] * cos,
+        ],
         _ => value,
     }
 }
@@ -124,6 +136,9 @@ mod tests {
         let rotation = ModelRotation::new(90, 90);
         assert_eq!(rotation.rotateFace(EnumFacing::Up), EnumFacing::East);
         assert_eq!(rotation.rotateVertex(EnumFacing::East, 0), 1);
-        assert_eq!(ModelRotation::new(0, 90).rotateFace(EnumFacing::North), EnumFacing::East);
+        assert_eq!(
+            ModelRotation::new(0, 90).rotateFace(EnumFacing::North),
+            EnumFacing::East
+        );
     }
 }

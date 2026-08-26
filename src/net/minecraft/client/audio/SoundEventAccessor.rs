@@ -17,20 +17,36 @@ pub struct SoundEventAccessor {
 
 impl SoundEventAccessor {
     pub fn new(location: ResourceLocation, subtitle: Option<String>) -> Self {
-        Self { accessorList: Vec::new(), location, subtitle }
+        Self {
+            accessorList: Vec::new(),
+            location,
+            subtitle,
+        }
     }
 
-    pub fn addSound(&mut self, sound: Sound) { self.accessorList.push(sound); }
-    pub fn getLocation(&self) -> &ResourceLocation { &self.location }
-    pub fn getSubtitle(&self) -> Option<&str> { self.subtitle.as_deref() }
-    pub fn sounds(&self) -> &[Sound] { &self.accessorList }
+    pub fn addSound(&mut self, sound: Sound) {
+        self.accessorList.push(sound);
+    }
+    pub fn getLocation(&self) -> &ResourceLocation {
+        &self.location
+    }
+    pub fn getSubtitle(&self) -> Option<&str> {
+        self.subtitle.as_deref()
+    }
+    pub fn sounds(&self) -> &[Sound] {
+        &self.accessorList
+    }
 
     pub fn getWeight(&self, registry: &SoundRegistry) -> i32 {
-        self.accessorList.iter().map(|sound| match sound.getType() {
-            Type::File => sound.getWeight(),
-            Type::SoundEvent => registry.getObject(sound.getSoundLocation())
-                .map_or(0, |event| event.getWeight(registry)),
-        }).sum()
+        self.accessorList
+            .iter()
+            .map(|sound| match sound.getType() {
+                Type::File => sound.getWeight(),
+                Type::SoundEvent => registry
+                    .getObject(sound.getSoundLocation())
+                    .map_or(0, |event| event.getWeight(registry)),
+            })
+            .sum()
     }
 
     pub fn cloneEntry(&self, registry: &SoundRegistry, random: &mut JavaRandom) -> Sound {
@@ -43,15 +59,19 @@ impl SoundEventAccessor {
         for sound in &self.accessorList {
             let weight = match sound.getType() {
                 Type::File => sound.getWeight(),
-                Type::SoundEvent => registry.getObject(sound.getSoundLocation())
+                Type::SoundEvent => registry
+                    .getObject(sound.getSoundLocation())
                     .map_or(0, |event| event.getWeight(registry)),
             };
             selected -= weight;
-            if selected >= 0 { continue; }
+            if selected >= 0 {
+                continue;
+            }
 
             return match sound.getType() {
                 Type::File => sound.clone(),
-                Type::SoundEvent => registry.getObject(sound.getSoundLocation())
+                Type::SoundEvent => registry
+                    .getObject(sound.getSoundLocation())
                     .map(|event| event.cloneEntry(registry, random).withEventModifiers(sound))
                     .unwrap_or_else(Sound::missing),
             };
@@ -74,11 +94,21 @@ mod tests {
 
         let root_location = ResourceLocation::parse("minecraft:root");
         let mut root = SoundEventAccessor::new(root_location.clone(), None);
-        root.addSound(Sound::new("minecraft:nested", 0.25, 2.0, 3, Type::SoundEvent, true));
+        root.addSound(Sound::new(
+            "minecraft:nested",
+            0.25,
+            2.0,
+            3,
+            Type::SoundEvent,
+            true,
+        ));
         registry.add(root);
 
         let mut random = JavaRandom::new(0);
-        let sound = registry.getObject(&root_location).unwrap().cloneEntry(&registry, &mut random);
+        let sound = registry
+            .getObject(&root_location)
+            .unwrap()
+            .cloneEntry(&registry, &mut random);
         assert_eq!(sound.getSoundLocation().to_string(), "minecraft:file");
         assert_eq!(sound.getVolume(), 0.125);
         assert_eq!(sound.getPitch(), 1.6);

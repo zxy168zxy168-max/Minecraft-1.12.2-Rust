@@ -52,10 +52,20 @@ mod tests {
     #[test]
     fn protocol_340_layout_and_id_match() {
         let packet = CPacketClickWindow::new(
-            0, 36, 0, ClickType::Pickup,
-            &ItemStack { itemId: 339, count: 1, itemDamage: 0, tagCompound: None },
+            0,
+            36,
+            0,
+            ClickType::Pickup,
+            &ItemStack {
+                itemId: 339,
+                count: 1,
+                itemDamage: 0,
+                tagCompound: None,
+            },
             7,
-        ).writePacketData().unwrap();
+        )
+        .writePacketData()
+        .unwrap();
         assert_eq!(packet.id, 0x07);
         assert_eq!(packet.payload[0], 0);
         assert_eq!(&packet.payload[1..3], &36_i16.to_be_bytes());

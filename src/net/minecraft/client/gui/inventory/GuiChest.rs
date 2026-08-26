@@ -76,18 +76,35 @@ mod tests {
         let mut gui = GuiChest::new(3);
         gui.initGui(320, 240);
         assert_eq!(gui.container.ySize, 168);
-        assert_eq!(gui.slotPosition(0), Some((gui.container.guiLeft + 8, gui.container.guiTop + 18)));
-        assert_eq!(gui.slotPosition(27), Some((gui.container.guiLeft + 8, gui.container.guiTop + 103 - 18)));
-        assert_eq!(gui.slotPosition(54), Some((gui.container.guiLeft + 8, gui.container.guiTop + 161 - 18)));
+        assert_eq!(
+            gui.slotPosition(0),
+            Some((gui.container.guiLeft + 8, gui.container.guiTop + 18))
+        );
+        assert_eq!(
+            gui.slotPosition(27),
+            Some((gui.container.guiLeft + 8, gui.container.guiTop + 103 - 18))
+        );
+        assert_eq!(
+            gui.slotPosition(54),
+            Some((gui.container.guiLeft + 8, gui.container.guiTop + 161 - 18))
+        );
     }
     #[test]
     fn six_row_double_chest_matches_mcp_geometry() {
         let mut gui = GuiChest::new(6);
         gui.initGui(426, 240);
         assert_eq!(gui.container.ySize, 222);
-        assert_eq!(gui.slotPosition(53), Some((gui.container.guiLeft + 152, gui.container.guiTop + 108)));
-        assert_eq!(gui.slotPosition(54), Some((gui.container.guiLeft + 8, gui.container.guiTop + 139)));
-        assert_eq!(gui.slotPosition(81), Some((gui.container.guiLeft + 8, gui.container.guiTop + 197)));
+        assert_eq!(
+            gui.slotPosition(53),
+            Some((gui.container.guiLeft + 152, gui.container.guiTop + 108))
+        );
+        assert_eq!(
+            gui.slotPosition(54),
+            Some((gui.container.guiLeft + 8, gui.container.guiTop + 139))
+        );
+        assert_eq!(
+            gui.slotPosition(81),
+            Some((gui.container.guiLeft + 8, gui.container.guiTop + 197))
+        );
     }
-
 }

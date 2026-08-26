@@ -15,7 +15,9 @@ pub struct GuiInventory {
 }
 
 impl Default for GuiInventory {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl GuiInventory {
@@ -25,7 +27,11 @@ impl GuiInventory {
     pub fn new() -> Self {
         let mut slots = Vec::with_capacity(46);
         // ContainerPlayer constructor order is the network slot order.
-        slots.push(GuiSlot { slotNumber: 0, xPos: 154, yPos: 28 });
+        slots.push(GuiSlot {
+            slotNumber: 0,
+            xPos: 154,
+            yPos: 28,
+        });
         for row in 0..2 {
             for column in 0..2 {
                 slots.push(GuiSlot {
@@ -36,7 +42,11 @@ impl GuiInventory {
             }
         }
         for armor in 0..4 {
-            slots.push(GuiSlot { slotNumber: 5 + armor, xPos: 8, yPos: 8 + armor * 18 });
+            slots.push(GuiSlot {
+                slotNumber: 5 + armor,
+                xPos: 8,
+                yPos: 8 + armor * 18,
+            });
         }
         for row in 0..3 {
             for column in 0..9 {
@@ -48,9 +58,17 @@ impl GuiInventory {
             }
         }
         for column in 0..9 {
-            slots.push(GuiSlot { slotNumber: 36 + column, xPos: 8 + column * 18, yPos: 142 });
+            slots.push(GuiSlot {
+                slotNumber: 36 + column,
+                xPos: 8 + column * 18,
+                yPos: 142,
+            });
         }
-        slots.push(GuiSlot { slotNumber: 45, xPos: 77, yPos: 62 });
+        slots.push(GuiSlot {
+            slotNumber: 45,
+            xPos: 77,
+            yPos: 62,
+        });
         Self {
             container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots),
             recipeBook: GuiRecipeBook::new(),
@@ -65,7 +83,8 @@ impl GuiInventory {
     pub fn initGuiWithRecipeBook(&mut self, width: i32, height: i32, book: &RecipeBook) {
         self.container.initGui(width, height);
         self.widthTooNarrow = width < 379;
-        self.recipeBook.init(width, height, self.widthTooNarrow, book);
+        self.recipeBook
+            .init(width, height, self.widthTooNarrow, book);
         self.container.guiLeft = self.recipeBook.containerLeft(Self::X_SIZE);
     }
 
@@ -77,16 +96,23 @@ impl GuiInventory {
         resetPage: bool,
         locale: &Locale,
     ) {
-        self.recipeBook.rebuild(book, inventory, craftingStacks, 2, 2, resetPage, locale);
+        self.recipeBook
+            .rebuild(book, inventory, craftingStacks, 2, 2, resetPage, locale);
         self.container.guiLeft = self.recipeBook.containerLeft(Self::X_SIZE);
     }
 
     pub fn craftingSlotPositions(&self) -> Vec<(i32, i32)> {
-        (0..=4).filter_map(|slot| self.container.slotPosition(slot)).collect()
+        (0..=4)
+            .filter_map(|slot| self.container.slotPosition(slot))
+            .collect()
     }
 
-    pub fn slotAt(&self, mouseX: i32, mouseY: i32) -> Option<i32> { self.container.slotAt(mouseX, mouseY) }
-    pub fn slotPosition(&self, slotNumber: i32) -> Option<(i32, i32)> { self.container.slotPosition(slotNumber) }
+    pub fn slotAt(&self, mouseX: i32, mouseY: i32) -> Option<i32> {
+        self.container.slotAt(mouseX, mouseY)
+    }
+    pub fn slotPosition(&self, slotNumber: i32) -> Option<(i32, i32)> {
+        self.container.slotPosition(slotNumber)
+    }
 
     pub fn inventoryBackground() -> ResourceLocation {
         ResourceLocation::parse("textures/gui/container/inventory.png")

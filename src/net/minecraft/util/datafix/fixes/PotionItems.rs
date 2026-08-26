@@ -120,17 +120,26 @@ impl PotionItems {
     }
 }
 impl IFixableData for PotionItems {
-    fn getFixVersion(&self) -> i32 { 102 }
+    fn getFixVersion(&self) -> i32 {
+        102
+    }
     fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
         if compound.getString("id") == "minecraft:potion" {
             let mut tag = compound.getCompoundTag("tag");
             let damage = compound.getShort("Damage");
             if !tag.hasKeyWithType("Potion", 8) {
-                tag.setString("Potion", Self::potionId((damage as i32 & 127) as usize).unwrap_or("minecraft:water"));
+                tag.setString(
+                    "Potion",
+                    Self::potionId((damage as i32 & 127) as usize).unwrap_or("minecraft:water"),
+                );
                 compound.setCompoundTag("tag", tag);
-                if (damage as i32 & 16384) == 16384 { compound.setString("id", "minecraft:splash_potion"); }
+                if (damage as i32 & 16384) == 16384 {
+                    compound.setString("id", "minecraft:splash_potion");
+                }
             }
-            if damage != 0 { compound.setShort("Damage", 0); }
+            if damage != 0 {
+                compound.setShort("Damage", 0);
+            }
         }
         compound
     }

@@ -43,8 +43,9 @@ impl DesktopRenderer {
                 Ok((window, Self::Vulkan(renderer)))
             }
             RenderBackend::OpenGl => {
-                let (window, renderer) = OpenGlWindow::create(eventLoop, attributes, gameSettings, gameDir)
-                    .context("failed initializing Minecraft OpenGL output")?;
+                let (window, renderer) =
+                    OpenGlWindow::create(eventLoop, attributes, gameSettings, gameDir)
+                        .context("failed initializing Minecraft OpenGL output")?;
                 Ok((window, Self::OpenGl(renderer)))
             }
         }
@@ -61,7 +62,10 @@ impl DesktopRenderer {
         match self {
             Self::Vulkan(renderer) => {
                 let extent = renderer.extent();
-                RendererExtent { width: extent.width, height: extent.height }
+                RendererExtent {
+                    width: extent.width,
+                    height: extent.height,
+                }
             }
             Self::OpenGl(renderer) => renderer.extent(),
         }
@@ -81,14 +85,22 @@ impl DesktopRenderer {
         }
     }
 
-    pub fn drawNativeGuiFrame(&mut self, window: &Window, frame: &GuiRenderFrame) -> anyhow::Result<()> {
+    pub fn drawNativeGuiFrame(
+        &mut self,
+        window: &Window,
+        frame: &GuiRenderFrame,
+    ) -> anyhow::Result<()> {
         match self {
             Self::OpenGl(renderer) => renderer.drawNativeGuiFrame(window, frame),
             Self::Vulkan(renderer) => renderer.drawNativeGuiFrame(window, frame),
         }
     }
 
-    pub fn drawWorldFrame(&mut self, window: &Window, frame: &WorldRenderFrame) -> anyhow::Result<()> {
+    pub fn drawWorldFrame(
+        &mut self,
+        window: &Window,
+        frame: &WorldRenderFrame,
+    ) -> anyhow::Result<()> {
         match self {
             Self::Vulkan(renderer) => renderer.drawWorldFrame(window, frame),
             Self::OpenGl(renderer) => renderer.drawWorldFrame(window, frame),
@@ -113,5 +125,4 @@ impl DesktopRenderer {
             renderer.reloadShaderPack();
         }
     }
-
 }

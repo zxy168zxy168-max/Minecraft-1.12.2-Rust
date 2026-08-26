@@ -25,7 +25,11 @@ impl ArmorMaterial {
     }
 
     pub const fn defaultColor(self) -> i32 {
-        if matches!(self, Self::Leather) { 0xA06540 } else { 0xFFFFFF }
+        if matches!(self, Self::Leather) {
+            0xA06540
+        } else {
+            0xFFFFFF
+        }
     }
 
     /// MCP `ArmorMaterial#getDamageReductionAmount`.
@@ -85,7 +89,9 @@ impl ItemArmor {
     }
 
     pub fn getColor(stack: &ItemStack) -> i32 {
-        let Some(definition) = Self::definition(stack.itemId) else { return 0xFFFFFF; };
+        let Some(definition) = Self::definition(stack.itemId) else {
+            return 0xFFFFFF;
+        };
         if definition.material != ArmorMaterial::Leather {
             return 0xFFFFFF;
         }
@@ -105,7 +111,11 @@ impl ItemArmor {
 
     pub fn texture(stack: &ItemStack, overlay: bool) -> Option<ResourceLocation> {
         let definition = Self::definition(stack.itemId)?;
-        let layer = if definition.slot == EntityEquipmentSlot::Legs { 2 } else { 1 };
+        let layer = if definition.slot == EntityEquipmentSlot::Legs {
+            2
+        } else {
+            1
+        };
         let suffix = if overlay && definition.material == ArmorMaterial::Leather {
             "_overlay"
         } else {
@@ -130,41 +140,93 @@ mod tests {
 
     #[test]
     fn vanilla_ids_map_to_material_and_slot() {
-        assert_eq!(ItemArmor::definition(298).unwrap().slot, EntityEquipmentSlot::Head);
-        assert_eq!(ItemArmor::definition(300).unwrap().slot, EntityEquipmentSlot::Legs);
-        assert_eq!(ItemArmor::definition(313).unwrap().material, ArmorMaterial::Diamond);
-        assert_eq!(ItemArmor::definition(317).unwrap().slot, EntityEquipmentSlot::Feet);
+        assert_eq!(
+            ItemArmor::definition(298).unwrap().slot,
+            EntityEquipmentSlot::Head
+        );
+        assert_eq!(
+            ItemArmor::definition(300).unwrap().slot,
+            EntityEquipmentSlot::Legs
+        );
+        assert_eq!(
+            ItemArmor::definition(313).unwrap().material,
+            ArmorMaterial::Diamond
+        );
+        assert_eq!(
+            ItemArmor::definition(317).unwrap().slot,
+            EntityEquipmentSlot::Feet
+        );
         assert!(ItemArmor::definition(443).is_none());
     }
 
     #[test]
     fn leather_color_uses_display_color_and_vanilla_default() {
-        let plain = ItemStack { itemId: 299, count: 1, itemDamage: 0, tagCompound: None };
+        let plain = ItemStack {
+            itemId: 299,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
         assert_eq!(ItemArmor::getColor(&plain), 0xA06540);
 
         let mut display = NBTTagCompound::new();
         display.setInteger("color", 0x123456);
         let mut root = NBTTagCompound::new();
-        root.setTag("display", crate::net::minecraft::nbt::NBTBase::NBTBase::Compound(display));
-        let dyed = ItemStack { tagCompound: Some(root), ..plain };
+        root.setTag(
+            "display",
+            crate::net::minecraft::nbt::NBTBase::NBTBase::Compound(display),
+        );
+        let dyed = ItemStack {
+            tagCompound: Some(root),
+            ..plain
+        };
         assert_eq!(ItemArmor::getColor(&dyed), 0x123456);
     }
 
     #[test]
     fn damage_reduction_matches_armor_material_tables() {
-        assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Feet), 1);
-        assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Legs), 2);
-        assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Chest), 3);
-        assert_eq!(ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Head), 1);
-        assert_eq!(ArmorMaterial::Iron.damageReduction(EntityEquipmentSlot::Chest), 6);
-        assert_eq!(ArmorMaterial::Diamond.damageReduction(EntityEquipmentSlot::Head), 3);
-        assert_eq!(ArmorMaterial::Chain.damageReduction(EntityEquipmentSlot::Legs), 4);
-        assert_eq!(ArmorMaterial::Gold.damageReduction(EntityEquipmentSlot::Chest), 5);
+        assert_eq!(
+            ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Feet),
+            1
+        );
+        assert_eq!(
+            ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Legs),
+            2
+        );
+        assert_eq!(
+            ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Chest),
+            3
+        );
+        assert_eq!(
+            ArmorMaterial::Leather.damageReduction(EntityEquipmentSlot::Head),
+            1
+        );
+        assert_eq!(
+            ArmorMaterial::Iron.damageReduction(EntityEquipmentSlot::Chest),
+            6
+        );
+        assert_eq!(
+            ArmorMaterial::Diamond.damageReduction(EntityEquipmentSlot::Head),
+            3
+        );
+        assert_eq!(
+            ArmorMaterial::Chain.damageReduction(EntityEquipmentSlot::Legs),
+            4
+        );
+        assert_eq!(
+            ArmorMaterial::Gold.damageReduction(EntityEquipmentSlot::Chest),
+            5
+        );
     }
 
     #[test]
     fn leggings_use_layer_two_and_leather_has_overlay() {
-        let leggings = ItemStack { itemId: 300, count: 1, itemDamage: 0, tagCompound: None };
+        let leggings = ItemStack {
+            itemId: 300,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
         assert_eq!(
             ItemArmor::texture(&leggings, false).unwrap().getPath(),
             "textures/models/armor/leather_layer_2.png",

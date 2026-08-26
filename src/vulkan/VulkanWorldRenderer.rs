@@ -1,31 +1,32 @@
-use crate::net::minecraft::client::gui::inventory::GuiInventory::GuiInventory;
-use crate::net::minecraft::client::gui::inventory::GuiChest::GuiChest;
-use crate::net::minecraft::client::gui::inventory::GuiShulkerBox::GuiShulkerBox;
-use crate::net::minecraft::client::gui::inventory::GuiScreenHorseInventory::GuiScreenHorseInventory;
-use crate::net::minecraft::client::gui::inventory::GuiCrafting::GuiCrafting;
-use crate::net::minecraft::client::gui::inventory::GuiFurnace::GuiFurnace;
-use crate::net::minecraft::client::gui::inventory::GuiBrewingStand::GuiBrewingStand;
-use crate::net::minecraft::client::gui::inventory::GuiDispenser::GuiDispenser;
 use crate::net::minecraft::client::gui::inventory::GuiBeacon::GuiBeacon;
-use crate::net::minecraft::client::gui::GuiHopper::GuiHopper;
-use crate::net::minecraft::client::gui::GuiRepair::GuiRepair;
-use crate::net::minecraft::client::gui::GuiEnchantment::{EnchantmentBookRenderState, GuiEnchantment};
-use crate::net::minecraft::enchantment::Enchantment::Enchantment;
-use crate::net::minecraft::util::EnchantmentNameParts::EnchantmentNameParts;
-use crate::net::minecraft::client::gui::GuiMerchant::{GuiMerchant, MerchantPreviewRegion};
-use crate::net::minecraft::village::MerchantRecipeList::MerchantRecipeList;
+use crate::net::minecraft::client::gui::inventory::GuiBrewingStand::GuiBrewingStand;
+use crate::net::minecraft::client::gui::inventory::GuiChest::GuiChest;
 use crate::net::minecraft::client::gui::inventory::GuiContainer::GuiContainer;
+use crate::net::minecraft::client::gui::inventory::GuiCrafting::GuiCrafting;
+use crate::net::minecraft::client::gui::inventory::GuiDispenser::GuiDispenser;
+use crate::net::minecraft::client::gui::inventory::GuiFurnace::GuiFurnace;
+use crate::net::minecraft::client::gui::inventory::GuiInventory::GuiInventory;
+use crate::net::minecraft::client::gui::inventory::GuiScreenHorseInventory::GuiScreenHorseInventory;
+use crate::net::minecraft::client::gui::inventory::GuiShulkerBox::GuiShulkerBox;
+use crate::net::minecraft::client::gui::GuiEnchantment::{
+    EnchantmentBookRenderState, GuiEnchantment,
+};
+use crate::net::minecraft::client::gui::GuiHopper::GuiHopper;
+use crate::net::minecraft::client::gui::GuiMerchant::{GuiMerchant, MerchantPreviewRegion};
+use crate::net::minecraft::client::gui::GuiRepair::GuiRepair;
+use crate::net::minecraft::client::model::ModelShield::ModelShield;
 use crate::net::minecraft::creativetab::CreativeTabs::{
     byIndex as creativeTabByIndex, BUILDING_BLOCKS as RECIPE_BUILDING_TAB,
     COMBAT as RECIPE_COMBAT_TAB, CREATIVE_TAB_ARRAY, FOOD as RECIPE_FOOD_TAB,
-    INVENTORY as CREATIVE_INVENTORY_TAB, MISC as RECIPE_MISC_TAB,
-    REDSTONE as RECIPE_REDSTONE_TAB, SEARCH as RECIPE_SEARCH_TAB,
-    TOOLS as RECIPE_TOOLS_TAB,
+    INVENTORY as CREATIVE_INVENTORY_TAB, MISC as RECIPE_MISC_TAB, REDSTONE as RECIPE_REDSTONE_TAB,
+    SEARCH as RECIPE_SEARCH_TAB, TOOLS as RECIPE_TOOLS_TAB,
 };
-use crate::net::minecraft::client::model::ModelShield::ModelShield;
+use crate::net::minecraft::enchantment::Enchantment::Enchantment;
 use crate::net::minecraft::inventory::ContainerHorseInventory::HorseInventorySpec;
-use std::collections::{HashMap, HashSet, VecDeque};
+use crate::net::minecraft::util::EnchantmentNameParts::EnchantmentNameParts;
+use crate::net::minecraft::village::MerchantRecipeList::MerchantRecipeList;
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::{self, Write as _};
 use std::path::PathBuf;
 use std::sync::{mpsc, Arc, OnceLock};
@@ -33,229 +34,257 @@ use std::time::{Duration, Instant};
 
 use rayon::prelude::*;
 
+use crate::com::mojang::authlib::minecraft::MinecraftSessionService::MinecraftSessionService;
+use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
-use crate::net::minecraft::util::math::MathHelper::{cos as minecraft_cos, sin as minecraft_sin};
 use crate::net::minecraft::block::Block::Block;
 use crate::net::minecraft::block::BlockBed::BlockBed;
 use crate::net::minecraft::block::BlockDoor;
-use crate::net::minecraft::block::BlockLiquid;
 use crate::net::minecraft::block::BlockFence;
 use crate::net::minecraft::block::BlockFenceGate;
-use crate::net::minecraft::block::BlockFlowerPot;
-use crate::net::minecraft::block::BlockRedstoneWire;
 use crate::net::minecraft::block::BlockFire::BlockFire;
+use crate::net::minecraft::block::BlockFlowerPot;
+use crate::net::minecraft::block::BlockLiquid;
 use crate::net::minecraft::block::BlockPane;
+use crate::net::minecraft::block::BlockRedstoneWire;
 use crate::net::minecraft::block::BlockSkull::BlockSkull;
 use crate::net::minecraft::block::BlockStairs::{self, EnumShape as StairShape};
 use crate::net::minecraft::block::BlockWall;
-use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
-use crate::net::minecraft::client::gui::MapItemRenderer::MapItemRenderer;
-use crate::net::minecraft::client::gui::GuiIngame::{GuiIngame, HudText, HudTexture};
-use crate::net::minecraft::client::gui::GuiOverlayDebug::DebugOverlayData;
-use crate::net::minecraft::client::gui::GuiBossOverlay::GuiBossOverlay;
-use crate::net::minecraft::network::play::server::SPacketTitle::{SPacketTitle, Type as TitleType};
-use crate::net::minecraft::network::play::server::SPacketUpdateBossInfo::SPacketUpdateBossInfo;
-use crate::net::minecraft::client::gui::GuiPlayerTabOverlay::GuiPlayerTabOverlay;
-use crate::net::minecraft::client::gui::GuiNewChat::GuiNewChat;
-use crate::net::minecraft::client::gui::GuiTextField::GuiTextFieldRenderState;
-use crate::net::minecraft::client::network::NetworkPlayerInfo::NetworkPlayerInfo;
-use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::client::entity::EntityOtherClient::{
     ClientEntityKind, EntityOtherClient, ObjectSpawnType,
 };
-use crate::net::minecraft::client::particle::ParticleDigging::{ParticleActualModel, ParticleDiggingRenderState};
-use crate::net::minecraft::client::particle::ParticleRenderState::ParticleRenderState;
-use crate::net::minecraft::client::renderer::DestroyBlockProgress::DestroyBlockProgress;
+use crate::net::minecraft::client::gui::recipebook::GuiRecipeBook::{
+    GuiRect, RecipeBookRenderState,
+};
+use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
+use crate::net::minecraft::client::gui::GuiBossOverlay::GuiBossOverlay;
+use crate::net::minecraft::client::gui::GuiIngame::{GuiIngame, HudText, HudTexture};
+use crate::net::minecraft::client::gui::GuiNewChat::GuiNewChat;
+use crate::net::minecraft::client::gui::GuiOverlayDebug::DebugOverlayData;
+use crate::net::minecraft::client::gui::GuiPlayerTabOverlay::GuiPlayerTabOverlay;
+use crate::net::minecraft::client::gui::GuiTextField::GuiTextFieldRenderState;
+use crate::net::minecraft::client::gui::MapItemRenderer::MapItemRenderer;
+use crate::net::minecraft::client::model::ModelArmorStand::ModelArmorStand;
+use crate::net::minecraft::client::model::ModelBiped::{ArmPose, BipedPose, PartPose};
+use crate::net::minecraft::client::model::ModelBlaze::ModelBlaze;
+use crate::net::minecraft::client::model::ModelBoat::ModelBoat;
+use crate::net::minecraft::client::model::ModelBook::ModelBook;
+use crate::net::minecraft::client::model::ModelChicken::ModelChicken;
+use crate::net::minecraft::client::model::ModelCow::ModelCow;
+use crate::net::minecraft::client::model::ModelCreeper::ModelCreeper;
+use crate::net::minecraft::client::model::ModelDragon::ModelDragon;
+use crate::net::minecraft::client::model::ModelElytra::{ElytraRotationState, ModelElytra};
+use crate::net::minecraft::client::model::ModelEnderCrystal::ModelEnderCrystal;
+use crate::net::minecraft::client::model::ModelEnderman::ModelEnderman;
+use crate::net::minecraft::client::model::ModelGhast::ModelGhast;
+use crate::net::minecraft::client::model::ModelGuardian::{GuardianModelState, ModelGuardian};
+use crate::net::minecraft::client::model::ModelHorse::{HorseModelVariant, ModelHorse};
+use crate::net::minecraft::client::model::ModelIllager::{IllagerPose, ModelIllager};
+use crate::net::minecraft::client::model::ModelLeashKnot::ModelLeashKnot;
+use crate::net::minecraft::client::model::ModelLlama::ModelLlama;
+use crate::net::minecraft::client::model::ModelMagmaCube::ModelMagmaCube;
+use crate::net::minecraft::client::model::ModelMinecart::ModelMinecart;
+use crate::net::minecraft::client::model::ModelOcelot::ModelOcelot;
+use crate::net::minecraft::client::model::ModelPig::ModelPig;
+use crate::net::minecraft::client::model::ModelPolarBear::ModelPolarBear;
+use crate::net::minecraft::client::model::ModelRabbit::ModelRabbit;
+use crate::net::minecraft::client::model::ModelSheep1::ModelSheep1;
+use crate::net::minecraft::client::model::ModelSheep2::ModelSheep2;
+use crate::net::minecraft::client::model::ModelShulker::{ModelShulker, ShulkerModelState};
+use crate::net::minecraft::client::model::ModelShulkerBullet::{
+    ModelShulkerBullet, ShulkerBulletModelMesh,
+};
+use crate::net::minecraft::client::model::ModelSkeleton::ModelSkeleton;
+use crate::net::minecraft::client::model::ModelSkeletonHead::ModelSkeletonHead;
+use crate::net::minecraft::client::model::ModelSlime::ModelSlime;
+use crate::net::minecraft::client::model::ModelSpider::ModelSpider;
+use crate::net::minecraft::client::model::ModelSquid::ModelSquid;
+use crate::net::minecraft::client::model::ModelVehicleBox::VehicleModelMesh;
+use crate::net::minecraft::client::model::ModelVillager::ModelVillager;
+use crate::net::minecraft::client::model::ModelWitch::ModelWitch;
+use crate::net::minecraft::client::model::ModelWolf::ModelWolf;
+use crate::net::minecraft::client::model::ModelZombie::ModelZombie;
+use crate::net::minecraft::client::model::ModelZombieVillager::ModelZombieVillager;
+use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::client::network::NetHandlerPlayClient::{
     PlayClientState, PlayerPositionState, ReceivedChatMessage,
 };
-use crate::net::minecraft::client::renderer::EntityRenderer::{EntityRenderer, LightmapParameters};
-use crate::net::minecraft::client::renderer::ShaderFrameState::ShaderFrameState;
-use crate::net::minecraft::client::renderer::entity::RenderPlayer::{ElytraCorpseRotation, PlayerRenderInput, RenderPlayer};
-use crate::net::minecraft::client::renderer::entity::Render::Render;
-use crate::net::minecraft::client::renderer::entity::RenderManager::{EntityRendererKind, RenderManager};
-use crate::net::minecraft::client::renderer::entity::RenderEntityItem::RenderEntityItem;
-use crate::net::minecraft::client::renderer::entity::RenderFallingBlock::RenderFallingBlock;
-use crate::net::minecraft::client::renderer::entity::RenderSnowball::RenderSnowball;
-use crate::net::minecraft::client::renderer::entity::RenderXPOrb::RenderXPOrb;
-use crate::net::minecraft::client::renderer::entity::RenderArrow::RenderArrow;
-use crate::net::minecraft::client::renderer::entity::RenderTNTPrimed::RenderTNTPrimed;
-use crate::net::minecraft::client::renderer::entity::RenderEnderCrystal::RenderEnderCrystal;
-use crate::net::minecraft::client::renderer::entity::RenderBoat::RenderBoat;
-use crate::net::minecraft::client::renderer::entity::RenderMinecart::RenderMinecart;
-use crate::net::minecraft::client::renderer::entity::RenderPainting::RenderPainting;
-use crate::net::minecraft::client::renderer::entity::RenderItemFrame::RenderItemFrame;
-use crate::net::minecraft::client::renderer::entity::RenderLeashKnot::RenderLeashKnot;
-use crate::net::minecraft::client::renderer::entity::RenderLivingBase::{LivingModelMesh, RenderLivingBase};
-use crate::net::minecraft::client::renderer::entity::RenderZombie::{RenderZombie, ZombieRenderVariant};
-use crate::net::minecraft::client::renderer::entity::RenderSkeleton::{RenderSkeleton, SkeletonRenderVariant};
-use crate::net::minecraft::client::renderer::entity::RenderArmorStand::RenderArmorStand;
-use crate::net::minecraft::client::renderer::entity::RenderPig::RenderPig;
-use crate::net::minecraft::client::renderer::entity::RenderCow::RenderCow;
-use crate::net::minecraft::client::renderer::entity::RenderSheep::RenderSheep;
-use crate::net::minecraft::client::renderer::entity::RenderChicken::RenderChicken;
-use crate::net::minecraft::client::renderer::entity::RenderMooshroom::RenderMooshroom;
-use crate::net::minecraft::client::renderer::entity::RenderCreeper::RenderCreeper;
-use crate::net::minecraft::client::renderer::entity::RenderSpider::{RenderSpider, SpiderVariant};
-use crate::net::minecraft::client::renderer::entity::RenderEnderman::RenderEnderman;
-use crate::net::minecraft::client::renderer::entity::RenderSquid::RenderSquid;
-use crate::net::minecraft::client::renderer::entity::RenderDragon::RenderDragon;
-use crate::net::minecraft::client::renderer::entity::RenderSlime::RenderSlime;
-use crate::net::minecraft::client::renderer::entity::RenderMagmaCube::RenderMagmaCube;
-use crate::net::minecraft::client::renderer::entity::RenderBlaze::RenderBlaze;
-use crate::net::minecraft::client::renderer::entity::RenderGhast::RenderGhast;
-use crate::net::minecraft::client::renderer::entity::RenderGuardian::RenderGuardian;
-use crate::net::minecraft::client::renderer::entity::RenderShulker::{RenderShulker, ShulkerTransformOp};
-use crate::net::minecraft::client::renderer::entity::RenderShulkerBullet::RenderShulkerBullet;
-use crate::net::minecraft::client::renderer::entity::RenderFireball::RenderFireball;
-use crate::net::minecraft::client::renderer::entity::RenderDragonFireball::RenderDragonFireball;
-use crate::net::minecraft::client::renderer::entity::RenderWitherSkull::RenderWitherSkull;
-use crate::net::minecraft::client::renderer::entity::RenderFish::RenderFish;
-use crate::net::minecraft::entity::projectile::EntityShulkerBullet::EntityShulkerBullet;
-use crate::net::minecraft::entity::projectile::EntityFishHook::EntityFishHook;
-use crate::net::minecraft::entity::projectile::EntityFireball::EntityFireball;
-use crate::net::minecraft::entity::item::EntityMinecart::{EntityMinecart, MinecartType};
-use crate::net::minecraft::entity::EntityLeashKnot::EntityLeashKnot;
-use crate::net::minecraft::entity::item::EntityItemFrame::EntityItemFrame;
-use crate::net::minecraft::client::renderer::entity::RenderWolf::RenderWolf;
-use crate::net::minecraft::client::renderer::entity::RenderOcelot::RenderOcelot;
-use crate::net::minecraft::client::renderer::entity::RenderRabbit::RenderRabbit;
-use crate::net::minecraft::client::renderer::entity::RenderPolarBear::RenderPolarBear;
-use crate::net::minecraft::client::renderer::entity::RenderAbstractHorse::RenderAbstractHorse;
-use crate::net::minecraft::client::renderer::entity::RenderHorse::RenderHorse;
-use crate::net::minecraft::client::renderer::entity::RenderLlama::RenderLlama;
-use crate::net::minecraft::client::renderer::entity::RenderVillager::RenderVillager;
-use crate::net::minecraft::client::renderer::entity::RenderWitch::RenderWitch;
-use crate::net::minecraft::client::renderer::entity::RenderVindicator::RenderVindicator;
-use crate::net::minecraft::client::renderer::entity::RenderEvoker::RenderEvoker;
-use crate::net::minecraft::client::renderer::entity::RenderIllusionIllager::RenderIllusionIllager;
-use crate::net::minecraft::client::renderer::entity::RenderZombieVillager::RenderZombieVillager;
-use crate::net::minecraft::client::model::ModelBoat::ModelBoat;
-use crate::net::minecraft::client::model::ModelMinecart::ModelMinecart;
-use crate::net::minecraft::client::model::ModelLeashKnot::ModelLeashKnot;
-use crate::net::minecraft::client::model::ModelEnderCrystal::ModelEnderCrystal;
-use crate::net::minecraft::client::model::ModelVehicleBox::VehicleModelMesh;
-use crate::net::minecraft::client::model::ModelZombie::ModelZombie;
-use crate::net::minecraft::client::model::ModelSkeleton::ModelSkeleton;
-use crate::net::minecraft::client::model::ModelArmorStand::ModelArmorStand;
-use crate::net::minecraft::client::model::ModelPig::ModelPig;
-use crate::net::minecraft::client::model::ModelCow::ModelCow;
-use crate::net::minecraft::client::model::ModelSheep1::ModelSheep1;
-use crate::net::minecraft::client::model::ModelSheep2::ModelSheep2;
-use crate::net::minecraft::client::model::ModelChicken::ModelChicken;
-use crate::net::minecraft::client::model::ModelCreeper::ModelCreeper;
-use crate::net::minecraft::client::model::ModelSpider::ModelSpider;
-use crate::net::minecraft::client::model::ModelEnderman::ModelEnderman;
-use crate::net::minecraft::client::model::ModelSquid::ModelSquid;
-use crate::net::minecraft::client::model::ModelDragon::ModelDragon;
-use crate::net::minecraft::client::model::ModelSlime::ModelSlime;
-use crate::net::minecraft::client::model::ModelMagmaCube::ModelMagmaCube;
-use crate::net::minecraft::client::model::ModelBlaze::ModelBlaze;
-use crate::net::minecraft::client::model::ModelGhast::ModelGhast;
-use crate::net::minecraft::client::model::ModelGuardian::{GuardianModelState, ModelGuardian};
-use crate::net::minecraft::client::model::ModelShulker::{ModelShulker, ShulkerModelState};
-use crate::net::minecraft::client::model::ModelShulkerBullet::{ModelShulkerBullet, ShulkerBulletModelMesh};
-use crate::net::minecraft::client::model::ModelSkeletonHead::ModelSkeletonHead;
-use crate::net::minecraft::client::model::ModelWolf::ModelWolf;
-use crate::net::minecraft::client::model::ModelOcelot::ModelOcelot;
-use crate::net::minecraft::client::model::ModelRabbit::ModelRabbit;
-use crate::net::minecraft::client::model::ModelPolarBear::ModelPolarBear;
-use crate::net::minecraft::client::model::ModelHorse::{HorseModelVariant, ModelHorse};
-use crate::net::minecraft::client::model::ModelLlama::ModelLlama;
-use crate::net::minecraft::client::model::ModelVillager::ModelVillager;
-use crate::net::minecraft::client::model::ModelWitch::ModelWitch;
-use crate::net::minecraft::client::model::ModelIllager::{IllagerPose, ModelIllager};
-use crate::net::minecraft::client::model::ModelZombieVillager::ModelZombieVillager;
-use crate::net::minecraft::client::model::ModelBook::ModelBook;
-use crate::net::minecraft::client::renderer::tileentity::TileEntityEnchantmentTableRenderer::TileEntityEnchantmentTableRenderer;
-use crate::net::minecraft::client::renderer::tileentity::TileEntityBeaconRenderer::TileEntityBeaconRenderer;
-use crate::net::minecraft::client::renderer::tileentity::TileEntityEndPortalRenderer::TileEntityEndPortalRenderer;
-use crate::net::minecraft::client::renderer::tileentity::TileEntityShulkerBoxRenderer::TileEntityShulkerBoxRenderer;
-use crate::net::minecraft::client::renderer::tileentity::TileEntitySignRenderer::TileEntitySignRenderer;
-use crate::net::minecraft::client::renderer::entity::layers::LayerHeldItem::LayerHeldItem;
-use crate::net::minecraft::client::renderer::entity::layers::LayerCape::{CapeMotionInput, LayerCape};
-use crate::net::minecraft::client::renderer::entity::layers::LayerSaddle::LayerSaddle;
-use crate::net::minecraft::client::renderer::entity::layers::LayerSheepWool::LayerSheepWool;
-use crate::net::minecraft::client::renderer::entity::layers::LayerMooshroomMushroom::LayerMooshroomMushroom;
-use crate::net::minecraft::client::renderer::entity::layers::LayerCreeperCharge::LayerCreeperCharge;
-use crate::net::minecraft::client::renderer::entity::layers::LayerSpiderEyes::LayerSpiderEyes;
-use crate::net::minecraft::client::renderer::entity::layers::LayerEndermanEyes::LayerEndermanEyes;
-use crate::net::minecraft::client::renderer::entity::layers::LayerHeldBlock::LayerHeldBlock;
-use crate::net::minecraft::client::renderer::entity::layers::LayerSlimeGel::LayerSlimeGel;
-use crate::net::minecraft::client::renderer::entity::layers::LayerWolfCollar::LayerWolfCollar;
-use crate::net::minecraft::client::renderer::entity::layers::LayerLlamaDecor::LayerLlamaDecor;
-use crate::net::minecraft::client::model::ModelBiped::{ArmPose, BipedPose, PartPose};
-use crate::net::minecraft::client::model::ModelElytra::{ElytraRotationState, ModelElytra};
-use crate::net::minecraft::client::renderer::entity::layers::LayerArmorBase::LayerArmorBase;
-use crate::net::minecraft::client::renderer::entity::layers::LayerBipedArmor::LayerBipedArmor;
-use crate::net::minecraft::client::renderer::entity::layers::LayerElytra::LayerElytra;
-use crate::net::minecraft::client::renderer::entity::layers::LayerCustomHead::LayerCustomHead;
-use crate::net::minecraft::item::ItemArmor::ItemArmor;
-use crate::net::minecraft::item::ItemSkull::ItemSkull;
-use crate::net::minecraft::client::renderer::ItemModelMesher::ItemModelMesher;
-use crate::net::minecraft::client::renderer::ItemRenderer::{FirstPersonItemRenderState, ItemRenderer};
-use crate::net::minecraft::client::renderer::RenderItem::{RenderItem, ResolvedItemModel};
-use crate::net::minecraft::client::renderer::tileentity::TileEntitySkullRenderer::TileEntitySkullRenderer;
-use crate::net::minecraft::client::renderer::tileentity::TileEntityItemStackRenderer::{BuiltInItemMesh, TileEntityItemStackRenderer};
-use crate::net::minecraft::client::renderer::tileentity::TileEntityChestRenderer::{ChestRenderInput, TileEntityChestRenderer};
+use crate::net::minecraft::client::network::NetworkPlayerInfo::NetworkPlayerInfo;
+use crate::net::minecraft::client::particle::ParticleDigging::{
+    ParticleActualModel, ParticleDiggingRenderState,
+};
+use crate::net::minecraft::client::particle::ParticleRenderState::ParticleRenderState;
 use crate::net::minecraft::client::renderer::block::model::ItemCameraTransforms::{
     ItemTransformVec3f, TransformType,
 };
-use crate::net::minecraft::client::resources::DefaultPlayerSkin::DefaultPlayerSkin;
-use crate::net::minecraft::client::resources::SkinManager::SkinManager;
-use crate::com::mojang::authlib::GameProfile::GameProfile;
-use crate::com::mojang::authlib::minecraft::MinecraftSessionService::MinecraftSessionService;
-use crate::net::minecraft::client::renderer::BlockModelRenderer::BlockModelRenderer;
-use crate::net::minecraft::client::renderer::BlockFluidRenderer::{self, FluidSprites};
-use crate::net::minecraft::client::renderer::color::BlockColors::BlockColors;
-use crate::net::minecraft::client::renderer::color::ItemColors::ItemColors;
-use crate::net::minecraft::world::ColorizerGrass::ColorizerGrass;
-use crate::net::minecraft::world::ColorizerFoliage::ColorizerFoliage;
-use crate::net::minecraft::world::biome::BiomeColorHelper::BiomeAccess;
-use crate::net::minecraft::world::biome::Biome::Biome;
-use crate::net::minecraft::client::renderer::culling::ClippingHelperImpl::ClippingHelperImpl;
-use crate::net::minecraft::client::renderer::culling::Frustum::Frustum;
 use crate::net::minecraft::client::renderer::chunk::CompiledChunk::CompiledChunk;
 use crate::net::minecraft::client::renderer::chunk::RenderChunk::RenderChunkKey;
 use crate::net::minecraft::client::renderer::chunk::VisGraph::VisGraph;
+use crate::net::minecraft::client::renderer::color::BlockColors::BlockColors;
+use crate::net::minecraft::client::renderer::color::ItemColors::ItemColors;
+use crate::net::minecraft::client::renderer::culling::ClippingHelperImpl::ClippingHelperImpl;
+use crate::net::minecraft::client::renderer::culling::Frustum::Frustum;
+use crate::net::minecraft::client::renderer::entity::layers::LayerArmorBase::LayerArmorBase;
+use crate::net::minecraft::client::renderer::entity::layers::LayerBipedArmor::LayerBipedArmor;
+use crate::net::minecraft::client::renderer::entity::layers::LayerCape::{
+    CapeMotionInput, LayerCape,
+};
+use crate::net::minecraft::client::renderer::entity::layers::LayerCreeperCharge::LayerCreeperCharge;
+use crate::net::minecraft::client::renderer::entity::layers::LayerCustomHead::LayerCustomHead;
+use crate::net::minecraft::client::renderer::entity::layers::LayerElytra::LayerElytra;
+use crate::net::minecraft::client::renderer::entity::layers::LayerEndermanEyes::LayerEndermanEyes;
+use crate::net::minecraft::client::renderer::entity::layers::LayerHeldBlock::LayerHeldBlock;
+use crate::net::minecraft::client::renderer::entity::layers::LayerHeldItem::LayerHeldItem;
+use crate::net::minecraft::client::renderer::entity::layers::LayerLlamaDecor::LayerLlamaDecor;
+use crate::net::minecraft::client::renderer::entity::layers::LayerMooshroomMushroom::LayerMooshroomMushroom;
+use crate::net::minecraft::client::renderer::entity::layers::LayerSaddle::LayerSaddle;
+use crate::net::minecraft::client::renderer::entity::layers::LayerSheepWool::LayerSheepWool;
+use crate::net::minecraft::client::renderer::entity::layers::LayerSlimeGel::LayerSlimeGel;
+use crate::net::minecraft::client::renderer::entity::layers::LayerSpiderEyes::LayerSpiderEyes;
+use crate::net::minecraft::client::renderer::entity::layers::LayerWolfCollar::LayerWolfCollar;
+use crate::net::minecraft::client::renderer::entity::Render::Render;
+use crate::net::minecraft::client::renderer::entity::RenderAbstractHorse::RenderAbstractHorse;
+use crate::net::minecraft::client::renderer::entity::RenderArmorStand::RenderArmorStand;
+use crate::net::minecraft::client::renderer::entity::RenderArrow::RenderArrow;
+use crate::net::minecraft::client::renderer::entity::RenderBlaze::RenderBlaze;
+use crate::net::minecraft::client::renderer::entity::RenderBoat::RenderBoat;
+use crate::net::minecraft::client::renderer::entity::RenderChicken::RenderChicken;
+use crate::net::minecraft::client::renderer::entity::RenderCow::RenderCow;
+use crate::net::minecraft::client::renderer::entity::RenderCreeper::RenderCreeper;
+use crate::net::minecraft::client::renderer::entity::RenderDragon::RenderDragon;
+use crate::net::minecraft::client::renderer::entity::RenderDragonFireball::RenderDragonFireball;
+use crate::net::minecraft::client::renderer::entity::RenderEnderCrystal::RenderEnderCrystal;
+use crate::net::minecraft::client::renderer::entity::RenderEnderman::RenderEnderman;
+use crate::net::minecraft::client::renderer::entity::RenderEntityItem::RenderEntityItem;
+use crate::net::minecraft::client::renderer::entity::RenderEvoker::RenderEvoker;
+use crate::net::minecraft::client::renderer::entity::RenderFallingBlock::RenderFallingBlock;
+use crate::net::minecraft::client::renderer::entity::RenderFireball::RenderFireball;
+use crate::net::minecraft::client::renderer::entity::RenderFish::RenderFish;
+use crate::net::minecraft::client::renderer::entity::RenderGhast::RenderGhast;
+use crate::net::minecraft::client::renderer::entity::RenderGuardian::RenderGuardian;
+use crate::net::minecraft::client::renderer::entity::RenderHorse::RenderHorse;
+use crate::net::minecraft::client::renderer::entity::RenderIllusionIllager::RenderIllusionIllager;
+use crate::net::minecraft::client::renderer::entity::RenderItemFrame::RenderItemFrame;
+use crate::net::minecraft::client::renderer::entity::RenderLeashKnot::RenderLeashKnot;
+use crate::net::minecraft::client::renderer::entity::RenderLivingBase::{
+    LivingModelMesh, RenderLivingBase,
+};
+use crate::net::minecraft::client::renderer::entity::RenderLlama::RenderLlama;
+use crate::net::minecraft::client::renderer::entity::RenderMagmaCube::RenderMagmaCube;
+use crate::net::minecraft::client::renderer::entity::RenderManager::{
+    EntityRendererKind, RenderManager,
+};
+use crate::net::minecraft::client::renderer::entity::RenderMinecart::RenderMinecart;
+use crate::net::minecraft::client::renderer::entity::RenderMooshroom::RenderMooshroom;
+use crate::net::minecraft::client::renderer::entity::RenderOcelot::RenderOcelot;
+use crate::net::minecraft::client::renderer::entity::RenderPainting::RenderPainting;
+use crate::net::minecraft::client::renderer::entity::RenderPig::RenderPig;
+use crate::net::minecraft::client::renderer::entity::RenderPlayer::{
+    ElytraCorpseRotation, PlayerRenderInput, RenderPlayer,
+};
+use crate::net::minecraft::client::renderer::entity::RenderPolarBear::RenderPolarBear;
+use crate::net::minecraft::client::renderer::entity::RenderRabbit::RenderRabbit;
+use crate::net::minecraft::client::renderer::entity::RenderSheep::RenderSheep;
+use crate::net::minecraft::client::renderer::entity::RenderShulker::{
+    RenderShulker, ShulkerTransformOp,
+};
+use crate::net::minecraft::client::renderer::entity::RenderShulkerBullet::RenderShulkerBullet;
+use crate::net::minecraft::client::renderer::entity::RenderSkeleton::{
+    RenderSkeleton, SkeletonRenderVariant,
+};
+use crate::net::minecraft::client::renderer::entity::RenderSlime::RenderSlime;
+use crate::net::minecraft::client::renderer::entity::RenderSnowball::RenderSnowball;
+use crate::net::minecraft::client::renderer::entity::RenderSpider::{RenderSpider, SpiderVariant};
+use crate::net::minecraft::client::renderer::entity::RenderSquid::RenderSquid;
+use crate::net::minecraft::client::renderer::entity::RenderTNTPrimed::RenderTNTPrimed;
+use crate::net::minecraft::client::renderer::entity::RenderVillager::RenderVillager;
+use crate::net::minecraft::client::renderer::entity::RenderVindicator::RenderVindicator;
+use crate::net::minecraft::client::renderer::entity::RenderWitch::RenderWitch;
+use crate::net::minecraft::client::renderer::entity::RenderWitherSkull::RenderWitherSkull;
+use crate::net::minecraft::client::renderer::entity::RenderWolf::RenderWolf;
+use crate::net::minecraft::client::renderer::entity::RenderXPOrb::RenderXPOrb;
+use crate::net::minecraft::client::renderer::entity::RenderZombie::{
+    RenderZombie, ZombieRenderVariant,
+};
+use crate::net::minecraft::client::renderer::entity::RenderZombieVillager::RenderZombieVillager;
+use crate::net::minecraft::client::renderer::tileentity::TileEntityBeaconRenderer::TileEntityBeaconRenderer;
+use crate::net::minecraft::client::renderer::tileentity::TileEntityChestRenderer::{
+    ChestRenderInput, TileEntityChestRenderer,
+};
+use crate::net::minecraft::client::renderer::tileentity::TileEntityEnchantmentTableRenderer::TileEntityEnchantmentTableRenderer;
+use crate::net::minecraft::client::renderer::tileentity::TileEntityEndPortalRenderer::TileEntityEndPortalRenderer;
+use crate::net::minecraft::client::renderer::tileentity::TileEntityItemStackRenderer::{
+    BuiltInItemMesh, TileEntityItemStackRenderer,
+};
+use crate::net::minecraft::client::renderer::tileentity::TileEntityShulkerBoxRenderer::TileEntityShulkerBoxRenderer;
+use crate::net::minecraft::client::renderer::tileentity::TileEntitySignRenderer::TileEntitySignRenderer;
+use crate::net::minecraft::client::renderer::tileentity::TileEntitySkullRenderer::TileEntitySkullRenderer;
+use crate::net::minecraft::client::renderer::BlockFluidRenderer::{self, FluidSprites};
+use crate::net::minecraft::client::renderer::BlockModelRenderer::BlockModelRenderer;
+use crate::net::minecraft::client::renderer::BlockModelShapes::{
+    BlockModelShapes, ResolvedBlockModel, ResolvedFace,
+};
+use crate::net::minecraft::client::renderer::DestroyBlockProgress::DestroyBlockProgress;
+use crate::net::minecraft::client::renderer::EntityRenderer::{EntityRenderer, LightmapParameters};
+use crate::net::minecraft::client::renderer::ItemModelMesher::ItemModelMesher;
+use crate::net::minecraft::client::renderer::ItemRenderer::{
+    FirstPersonItemRenderState, ItemRenderer,
+};
 use crate::net::minecraft::client::renderer::RenderGlobal::{
     drawSelectionBox, setupTerrainWithLookupScratch, SelectionBoxRenderState,
     TerrainTraversalScratch,
 };
-use crate::net::minecraft::client::renderer::BlockModelShapes::{
-    BlockModelShapes, ResolvedBlockModel, ResolvedFace,
-};
+use crate::net::minecraft::client::renderer::RenderItem::{RenderItem, ResolvedItemModel};
+use crate::net::minecraft::client::renderer::ShaderFrameState::ShaderFrameState;
+use crate::net::minecraft::client::resources::DefaultPlayerSkin::DefaultPlayerSkin;
 use crate::net::minecraft::client::resources::Locale::Locale;
-use crate::net::minecraft::client::gui::recipebook::GuiRecipeBook::{GuiRect, RecipeBookRenderState};
+use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::ResourceManager;
+use crate::net::minecraft::client::resources::SkinManager::SkinManager;
+use crate::net::minecraft::entity::item::EntityItemFrame::EntityItemFrame;
+use crate::net::minecraft::entity::item::EntityMinecart::{EntityMinecart, MinecartType};
+use crate::net::minecraft::entity::projectile::EntityFireball::EntityFireball;
+use crate::net::minecraft::entity::projectile::EntityFishHook::EntityFishHook;
+use crate::net::minecraft::entity::projectile::EntityShulkerBullet::EntityShulkerBullet;
+use crate::net::minecraft::entity::EntityLeashKnot::EntityLeashKnot;
+use crate::net::minecraft::inventory::Container::Container;
+use crate::net::minecraft::inventory::ContainerPlayer::{
+    playerContainerSlotAccepts, playerContainerSlotLimit,
+};
+use crate::net::minecraft::inventory::ContainerWindow::{
+    canHoldBrewingPotion, isBrewingReagent, isFurnaceFuel, ContainerWindowKind,
+};
+use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
 use crate::net::minecraft::item::crafting::CraftingManager::CraftingManager;
 use crate::net::minecraft::item::crafting::RecipeRegistryData::RecipeCategory;
-use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::ResourceManager;
+use crate::net::minecraft::item::EnumAction::EnumAction;
+use crate::net::minecraft::item::ItemArmor::ItemArmor;
+use crate::net::minecraft::item::ItemMap::ItemMap;
+use crate::net::minecraft::item::ItemSkull::ItemSkull;
+use crate::net::minecraft::item::ItemStack::ItemStack;
+use crate::net::minecraft::item::ItemTooltip;
+use crate::net::minecraft::network::play::server::SPacketTitle::{SPacketTitle, Type as TitleType};
+use crate::net::minecraft::network::play::server::SPacketUpdateBossInfo::SPacketUpdateBossInfo;
+use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
+use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::math::MathHelper::{cos as minecraft_cos, sin as minecraft_sin};
+use crate::net::minecraft::util::math::Vec3d::Vec3d;
+use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
 use crate::net::minecraft::util::BlockRenderLayer::BlockRenderLayer;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::EnumHand::EnumHand;
 use crate::net::minecraft::util::EnumHandSide::EnumHandSide;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
-use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
-use crate::net::minecraft::item::ItemStack::ItemStack;
-use crate::net::minecraft::item::ItemMap::ItemMap;
-use crate::net::minecraft::item::ItemTooltip;
-use crate::net::minecraft::inventory::ContainerWindow::{canHoldBrewingPotion, isBrewingReagent, isFurnaceFuel, ContainerWindowKind};
-use crate::net::minecraft::inventory::Container::Container;
-use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
-use crate::net::minecraft::inventory::ContainerPlayer::{
-    playerContainerSlotAccepts, playerContainerSlotLimit,
-};
-use crate::net::minecraft::item::EnumAction::EnumAction;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
-use crate::net::minecraft::util::math::Vec3d::Vec3d;
-use crate::net::minecraft::world::EnumSkyBlock::EnumSkyBlock;
-use crate::net::minecraft::world::WorldProvider::WorldProvider;
-use crate::net::minecraft::world::GameType::GameType;
-use crate::net::minecraft::world::storage::MapData::MapData;
-use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
+use crate::net::minecraft::world::biome::Biome::Biome;
+use crate::net::minecraft::world::biome::BiomeColorHelper::BiomeAccess;
 use crate::net::minecraft::world::chunk::Chunk::Chunk;
+use crate::net::minecraft::world::storage::MapData::MapData;
+use crate::net::minecraft::world::ColorizerFoliage::ColorizerFoliage;
+use crate::net::minecraft::world::ColorizerGrass::ColorizerGrass;
+use crate::net::minecraft::world::EnumSkyBlock::EnumSkyBlock;
+use crate::net::minecraft::world::GameType::GameType;
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
+use crate::net::minecraft::world::WorldProvider::WorldProvider;
 use crate::vulkan::GuiDrawList::{GuiDrawCommand, GuiDrawList, GuiTopology};
 use crate::vulkan::NativeImage::NativeImage;
 use crate::vulkan::TextureSource::{TextureAnimation, TextureSource};
@@ -543,7 +572,6 @@ pub struct WorldRenderFrame {
     pub clearColor: [f32; 4],
 }
 
-
 /// Allocation-free FNV-1a sink used to fingerprint immutable render inputs.
 /// Per-resource state fingerprints avoid rebuilding unchanged GPU-bound meshes;
 /// this writer applies that principle without allocating a temporary `String`.
@@ -779,8 +807,7 @@ impl RenderFrameMeshCache {
             if let Some(cached) = self.blockEntities.get_mut(&identity) {
                 cached.lastSeenEpoch = self.blockEntityEpoch;
                 if cached.key == key {
-                    self.profileBlockEntityReuses =
-                        self.profileBlockEntityReuses.saturating_add(1);
+                    self.profileBlockEntityReuses = self.profileBlockEntityReuses.saturating_add(1);
                     return Arc::clone(&cached.mesh);
                 }
             }
@@ -806,7 +833,6 @@ impl RenderFrameMeshCache {
     fn blockEntityResidentCount(&self) -> usize {
         self.blockEntities.len()
     }
-
 
     fn beginStaticEntityFrame(&mut self) {
         self.staticEntityEpoch = self.staticEntityEpoch.wrapping_add(1).max(1);
@@ -836,8 +862,7 @@ impl RenderFrameMeshCache {
         if let Some(cached) = self.staticEntities.get_mut(&identity) {
             cached.lastSeenEpoch = self.staticEntityEpoch;
             if cached.key == key {
-                self.profileStaticEntityReuses =
-                    self.profileStaticEntityReuses.saturating_add(1);
+                self.profileStaticEntityReuses = self.profileStaticEntityReuses.saturating_add(1);
                 return Arc::clone(&cached.mesh);
             }
         }
@@ -903,9 +928,9 @@ impl RenderFrameMeshCache {
                 meshes.entityMeshGeneration = self.nextStreamGeneration();
             }
 
-            let sameBlockEntities =
-                meshes.blockEntityVertices.as_ref() == previous.blockEntityVertices.as_ref()
-                    && meshes.blockEntityIndices.as_ref() == previous.blockEntityIndices.as_ref();
+            let sameBlockEntities = meshes.blockEntityVertices.as_ref()
+                == previous.blockEntityVertices.as_ref()
+                && meshes.blockEntityIndices.as_ref() == previous.blockEntityIndices.as_ref();
             if sameBlockEntities {
                 meshes.blockEntityVertices = Arc::clone(&previous.blockEntityVertices);
                 meshes.blockEntityIndices = Arc::clone(&previous.blockEntityIndices);
@@ -914,9 +939,9 @@ impl RenderFrameMeshCache {
                 meshes.blockEntityMeshGeneration = self.nextStreamGeneration();
             }
 
-            let sameStaticEntities =
-                meshes.staticEntityVertices.as_ref() == previous.staticEntityVertices.as_ref()
-                    && meshes.staticEntityIndices.as_ref() == previous.staticEntityIndices.as_ref();
+            let sameStaticEntities = meshes.staticEntityVertices.as_ref()
+                == previous.staticEntityVertices.as_ref()
+                && meshes.staticEntityIndices.as_ref() == previous.staticEntityIndices.as_ref();
             if sameStaticEntities {
                 meshes.staticEntityVertices = Arc::clone(&previous.staticEntityVertices);
                 meshes.staticEntityIndices = Arc::clone(&previous.staticEntityIndices);
@@ -925,7 +950,8 @@ impl RenderFrameMeshCache {
                 meshes.staticEntityMeshGeneration = self.nextStreamGeneration();
             }
 
-            let sameDepth = meshes.entityDepthVertices.as_ref() == previous.entityDepthVertices.as_ref()
+            let sameDepth = meshes.entityDepthVertices.as_ref()
+                == previous.entityDepthVertices.as_ref()
                 && meshes.entityDepthIndices.as_ref() == previous.entityDepthIndices.as_ref();
             if sameDepth {
                 meshes.entityDepthVertices = Arc::clone(&previous.entityDepthVertices);
@@ -935,7 +961,8 @@ impl RenderFrameMeshCache {
                 meshes.entityDepthMeshGeneration = self.nextStreamGeneration();
             }
 
-            let sameOverlay = meshes.entityOverlayVertices.as_ref() == previous.entityOverlayVertices.as_ref()
+            let sameOverlay = meshes.entityOverlayVertices.as_ref()
+                == previous.entityOverlayVertices.as_ref()
                 && meshes.entityOverlayIndices.as_ref() == previous.entityOverlayIndices.as_ref()
                 && meshes.skyAlphaIndexCount == previous.skyAlphaIndexCount
                 && meshes.skyCelestialIndexCount == previous.skyCelestialIndexCount
@@ -950,7 +977,8 @@ impl RenderFrameMeshCache {
                 meshes.entityOverlayMeshGeneration = self.nextStreamGeneration();
             }
 
-            let sameParticles = meshes.particleVertices.as_ref() == previous.particleVertices.as_ref()
+            let sameParticles = meshes.particleVertices.as_ref()
+                == previous.particleVertices.as_ref()
                 && meshes.particleIndices.as_ref() == previous.particleIndices.as_ref();
             if sameParticles {
                 meshes.particleVertices = Arc::clone(&previous.particleVertices);
@@ -960,13 +988,17 @@ impl RenderFrameMeshCache {
                 meshes.particleMeshGeneration = self.nextStreamGeneration();
             }
 
-            let sameTransparentParticles =
-                meshes.transparentParticleVertices.as_ref() == previous.transparentParticleVertices.as_ref()
-                    && meshes.transparentParticleIndices.as_ref() == previous.transparentParticleIndices.as_ref();
+            let sameTransparentParticles = meshes.transparentParticleVertices.as_ref()
+                == previous.transparentParticleVertices.as_ref()
+                && meshes.transparentParticleIndices.as_ref()
+                    == previous.transparentParticleIndices.as_ref();
             if sameTransparentParticles {
-                meshes.transparentParticleVertices = Arc::clone(&previous.transparentParticleVertices);
-                meshes.transparentParticleIndices = Arc::clone(&previous.transparentParticleIndices);
-                meshes.transparentParticleMeshGeneration = previous.transparentParticleMeshGeneration;
+                meshes.transparentParticleVertices =
+                    Arc::clone(&previous.transparentParticleVertices);
+                meshes.transparentParticleIndices =
+                    Arc::clone(&previous.transparentParticleIndices);
+                meshes.transparentParticleMeshGeneration =
+                    previous.transparentParticleMeshGeneration;
             } else {
                 meshes.transparentParticleMeshGeneration = self.nextStreamGeneration();
             }
@@ -981,7 +1013,8 @@ impl RenderFrameMeshCache {
                 meshes.damageMeshGeneration = self.nextStreamGeneration();
             }
 
-            let sameSelection = meshes.selectionVertices.as_ref() == previous.selectionVertices.as_ref()
+            let sameSelection = meshes.selectionVertices.as_ref()
+                == previous.selectionVertices.as_ref()
                 && meshes.selectionIndices.as_ref() == previous.selectionIndices.as_ref();
             if sameSelection {
                 meshes.selectionVertices = Arc::clone(&previous.selectionVertices);
@@ -991,7 +1024,8 @@ impl RenderFrameMeshCache {
                 meshes.selectionMeshGeneration = self.nextStreamGeneration();
             }
 
-            let sameFirstPerson = meshes.firstPersonVertices.as_ref() == previous.firstPersonVertices.as_ref()
+            let sameFirstPerson = meshes.firstPersonVertices.as_ref()
+                == previous.firstPersonVertices.as_ref()
                 && meshes.firstPersonIndices.as_ref() == previous.firstPersonIndices.as_ref()
                 && meshes.firstPersonDrawRanges == previous.firstPersonDrawRanges
                 && meshes.firstPersonPushConstants == previous.firstPersonPushConstants;
@@ -1220,21 +1254,30 @@ struct LivingTargetRenderState {
 
 impl LivingTargetRenderState {
     fn previousEyes(self) -> [f64; 3] {
-        [self.prevPosition[0], self.prevPosition[1] + self.eyeHeight as f64, self.prevPosition[2]]
+        [
+            self.prevPosition[0],
+            self.prevPosition[1] + self.eyeHeight as f64,
+            self.prevPosition[2],
+        ]
     }
 
     fn interpolatedCenter(self, partialTicks: f32) -> [f64; 3] {
         let partial = partialTicks.clamp(0.0, 1.0) as f64;
         [
             self.prevPosition[0] + (self.position[0] - self.prevPosition[0]) * partial,
-            self.prevPosition[1] + (self.position[1] - self.prevPosition[1]) * partial
+            self.prevPosition[1]
+                + (self.position[1] - self.prevPosition[1]) * partial
                 + self.height as f64 * 0.5,
             self.prevPosition[2] + (self.position[2] - self.prevPosition[2]) * partial,
         ]
     }
 
     fn currentCenter(self) -> [f64; 3] {
-        [self.position[0], self.position[1] + self.height as f64 * 0.5, self.position[2]]
+        [
+            self.position[0],
+            self.position[1] + self.height as f64 * 0.5,
+            self.position[2],
+        ]
     }
 }
 
@@ -1615,14 +1658,16 @@ impl ChunkMeshDispatcher {
         // so the lane count grows much more slowly than the worker count. This
         // keeps high-core CPUs fed during streaming without flooding the pool or
         // stealing the render thread. One interactive lane remains independent.
-        let normalColumnJobLimit = ((workerCount + 3) / 4)
-            .clamp(1, MAX_NORMAL_BACKGROUND_COLUMN_JOBS);
+        let normalColumnJobLimit =
+            ((workerCount + 3) / 4).clamp(1, MAX_NORMAL_BACKGROUND_COLUMN_JOBS);
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(workerCount)
             .thread_name(|index| format!("mc112-chunk-mesh-{index}"))
             .build()
             .map_err(|error| {
-                log::warn!("failed creating dedicated chunk mesh pool; using global Rayon pool: {error}");
+                log::warn!(
+                    "failed creating dedicated chunk mesh pool; using global Rayon pool: {error}"
+                );
                 error
             })
             .ok();
@@ -1828,7 +1873,8 @@ impl VulkanWorldRenderer {
             false,
             false,
             false,
-        ).unwrap_or_else(|error| {
+        )
+        .unwrap_or_else(|error| {
             log::warn!("failed loading standard galactic font, using normal font metrics: {error}");
             fontRenderer.clone()
         });
@@ -1904,19 +1950,15 @@ impl VulkanWorldRenderer {
         }
     }
 
-    fn updatePlayerTextures(
-        &mut self,
-        infos: impl Iterator<Item = (NetworkPlayerInfo, bool)>,
-    ) {
+    fn updatePlayerTextures(&mut self, infos: impl Iterator<Item = (NetworkPlayerInfo, bool)>) {
         for (info, requireSecure) in infos {
-            self.skinManager.requestProfileTextures(&info, requireSecure);
+            self.skinManager
+                .requestProfileTextures(&info, requireSecure);
         }
         let completed = self.skinManager.drainCompleted();
         for resolved in completed.profiles {
             if self.skullPlayerInfos.contains_key(&resolved.key) {
-                let info = NetworkPlayerInfo::new(
-                    resolved.profile, GameType::Survival, 0, None,
-                );
+                let info = NetworkPlayerInfo::new(resolved.profile, GameType::Survival, 0, None);
                 self.skinManager.requestProfileTextures(&info, false);
                 self.skullPlayerInfos.insert(resolved.key, info);
             }
@@ -1954,12 +1996,20 @@ impl VulkanWorldRenderer {
             keep
         });
         for (location, image) in icons {
-            if self.textureCache.get(&location).is_some_and(|source| source.image == image) {
+            if self
+                .textureCache
+                .get(&location)
+                .is_some_and(|source| source.image == image)
+            {
                 continue;
             }
             self.textureCache.insert(
                 location.clone(),
-                Arc::new(TextureSource::dynamic(location, image, "ResourcePackRepository/pack.png")),
+                Arc::new(TextureSource::dynamic(
+                    location,
+                    image,
+                    "ResourcePackRepository/pack.png",
+                )),
             );
             changed = true;
         }
@@ -1985,8 +2035,7 @@ impl VulkanWorldRenderer {
             .textureCache
             .keys()
             .filter(|location| {
-                location.getNamespace() == "minecraft"
-                    && location.getPath().starts_with("skins/")
+                location.getNamespace() == "minecraft" && location.getPath().starts_with("skins/")
             })
             .cloned()
             .collect::<Vec<_>>();
@@ -2007,8 +2056,8 @@ impl VulkanWorldRenderer {
             if self.dynamicPlayerAssignments.contains_key(location) {
                 continue;
             }
-            let Some(slotIndex) = (0..self.dynamicPlayerSlots.len())
-                .find(|index| !used.contains(index))
+            let Some(slotIndex) =
+                (0..self.dynamicPlayerSlots.len()).find(|index| !used.contains(index))
             else {
                 return false;
             };
@@ -2032,12 +2081,10 @@ impl VulkanWorldRenderer {
         let mut entityRectangles = (*current.entityTextureRectangles).clone();
         let mut textureRectangles = (*current.textureRectangles).clone();
         entityRectangles.retain(|location, _| {
-            !(location.getNamespace() == "minecraft"
-                && location.getPath().starts_with("skins/"))
+            !(location.getNamespace() == "minecraft" && location.getPath().starts_with("skins/"))
         });
         textureRectangles.retain(|location, _| {
-            !(location.getNamespace() == "minecraft"
-                && location.getPath().starts_with("skins/"))
+            !(location.getNamespace() == "minecraft" && location.getPath().starts_with("skins/"))
         });
 
         for location in desired {
@@ -2055,8 +2102,8 @@ impl VulkanWorldRenderer {
             let copyHeight = image.height().min(slot.tileSize);
             for y in 0..copyHeight {
                 for x in 0..copyWidth {
-                    let destination = (((slot.originY + y) * atlas.width + slot.originX + x) * 4)
-                        as usize;
+                    let destination =
+                        (((slot.originY + y) * atlas.width + slot.originX + x) * 4) as usize;
                     atlas.rgba[destination..destination + 4]
                         .copy_from_slice(&image.pixel_rgba(x, y));
                 }
@@ -2084,14 +2131,22 @@ impl VulkanWorldRenderer {
     /// all terrain/material rectangles stay at identical coordinates. Existing
     /// RenderChunk UVs therefore remain valid and must not be discarded.
     fn invalidateAtlasForDynamicTextures(&mut self) {
-        let playerCount = self.textureCache.keys().filter(|location| {
-            location.getNamespace() == "minecraft" && location.getPath().starts_with("skins/")
-        }).count();
-        let iconCount = self.textureCache.keys().filter(|location| {
-            location.getNamespace() == "minecraft"
-                && (location.getPath().starts_with("resourcepackicons/")
-                    || location.getPath() == "dynamic/default_pack_icon.png")
-        }).count();
+        let playerCount = self
+            .textureCache
+            .keys()
+            .filter(|location| {
+                location.getNamespace() == "minecraft" && location.getPath().starts_with("skins/")
+            })
+            .count();
+        let iconCount = self
+            .textureCache
+            .keys()
+            .filter(|location| {
+                location.getNamespace() == "minecraft"
+                    && (location.getPath().starts_with("resourcepackicons/")
+                        || location.getPath() == "dynamic/default_pack_icon.png")
+            })
+            .count();
         if playerCount <= DYNAMIC_PLAYER_TEXTURE_RESERVE
             && iconCount <= DYNAMIC_RESOURCE_PACK_ICON_RESERVE
         {
@@ -2104,7 +2159,9 @@ impl VulkanWorldRenderer {
         // Defensive overflow fallback. It is preferable to rebuild chunks once
         // than silently alias two textures if a server exceeds the fixed tail.
         let existing = self.chunkMeshes.keys().copied().collect::<Vec<_>>();
-        for key in existing { self.queueGpuRemoval(key); }
+        for key in existing {
+            self.queueGpuRemoval(key);
+        }
         self.chunkMeshes.clear();
         self.observedChunkRevisions.clear();
         self.priorityPendingChunks.clear();
@@ -2204,10 +2261,14 @@ impl VulkanWorldRenderer {
         self.guiNewChat.scroll(amount, lineCount);
     }
 
-    pub fn resetChatScroll(&mut self) { self.guiNewChat.resetScroll(); }
+    pub fn resetChatScroll(&mut self) {
+        self.guiNewChat.resetScroll();
+    }
 
     /// MCP `GuiNewChat#clearChatMessages(false)` used by F3+D.
-    pub fn clearChatMessages(&mut self) { self.guiNewChat.clearChatMessages(false); }
+    pub fn clearChatMessages(&mut self) {
+        self.guiNewChat.clearChatMessages(false);
+    }
 
     /// Adds a client-owned debug line without sending a chat packet.
     pub fn printDebugMessage(
@@ -2217,7 +2278,9 @@ impl VulkanWorldRenderer {
         wrapWidth: i32,
     ) {
         self.guiNewChat.printChatMessageWithFont(
-            crate::net::minecraft::util::text::ITextComponent::ITextComponent::fromPlainText(message),
+            crate::net::minecraft::util::text::ITextComponent::ITextComponent::fromPlainText(
+                message,
+            ),
             updateCounter,
             wrapWidth.max(1),
             &self.fontRenderer,
@@ -2229,7 +2292,9 @@ impl VulkanWorldRenderer {
     /// invalidated and rebuilt from the authoritative `WorldClient`.
     pub fn reloadChunks(&mut self) {
         let existing = self.chunkMeshes.keys().copied().collect::<Vec<_>>();
-        for key in existing { self.queueGpuRemoval(key); }
+        for key in existing {
+            self.queueGpuRemoval(key);
+        }
         self.chunkMeshes.clear();
         self.observedChunkRevisions.clear();
         self.priorityPendingChunks.clear();
@@ -2276,9 +2341,8 @@ impl VulkanWorldRenderer {
     ) {
         self.blockModelShapes = BlockModelShapes::new(resourceManager.clone());
         self.resourceManager = resourceManager.clone();
-        self.textureCache.retain(|_, source| {
-            source.source_pack.starts_with("SkinManager/")
-        });
+        self.textureCache
+            .retain(|_, source| source.source_pack.starts_with("SkinManager/"));
         self.atlasState = None;
         self.dynamicAtlasDirtySince = None;
         self.dynamicPlayerSlots.clear();
@@ -2289,13 +2353,18 @@ impl VulkanWorldRenderer {
         self.standardGalacticFontRenderer = FontRenderer::load(
             &resourceManager,
             ResourceLocation::parse("textures/font/ascii_sga.png"),
-            false, false, false,
-        ).unwrap_or(fontRenderer);
+            false,
+            false,
+            false,
+        )
+        .unwrap_or(fontRenderer);
         self.locale = locale;
         self.reloadChunks();
     }
 
-    pub fn tickIngameGui(&mut self) { self.guiIngame.updateTick(); }
+    pub fn tickIngameGui(&mut self) {
+        self.guiIngame.updateTick();
+    }
 
     pub fn shouldPlayEndBossMusic(&self) -> bool {
         self.guiBossOverlay.shouldPlayEndBossMusic()
@@ -2307,21 +2376,38 @@ impl VulkanWorldRenderer {
         location: [f32; 3],
         systemTimeMillis: u64,
     ) {
-        self.guiIngame.soundPlay(subtitle, location, systemTimeMillis);
+        self.guiIngame
+            .soundPlay(subtitle, location, systemTimeMillis);
     }
 
-    pub fn setUnicodeFlag(&mut self, value: bool) { self.fontRenderer.set_unicode_flag(value); }
+    pub fn setUnicodeFlag(&mut self, value: bool) {
+        self.fontRenderer.set_unicode_flag(value);
+    }
 
     pub fn handleTitle(&mut self, packet: &SPacketTitle) {
-        let message = packet.getMessage()
-            .map(|component| component.resolveWithLocale(&self.locale).getFormattedText().to_owned())
+        let message = packet
+            .getMessage()
+            .map(|component| {
+                component
+                    .resolveWithLocale(&self.locale)
+                    .getFormattedText()
+                    .to_owned()
+            })
             .unwrap_or_default();
         match packet.getType() {
-            TitleType::Title => self.guiIngame.displayTitle(Some(&message), None, -1, -1, -1),
-            TitleType::Subtitle => self.guiIngame.displayTitle(None, Some(&message), -1, -1, -1),
+            TitleType::Title => self
+                .guiIngame
+                .displayTitle(Some(&message), None, -1, -1, -1),
+            TitleType::Subtitle => self
+                .guiIngame
+                .displayTitle(None, Some(&message), -1, -1, -1),
             TitleType::Actionbar => self.guiIngame.setOverlayMessage(message),
             TitleType::Times => self.guiIngame.displayTitle(
-                None, None, packet.getFadeInTime(), packet.getDisplayTime(), packet.getFadeOutTime(),
+                None,
+                None,
+                packet.getFadeInTime(),
+                packet.getDisplayTime(),
+                packet.getFadeOutTime(),
             ),
             TitleType::Clear => self.guiIngame.displayTitle(None, None, -1, -1, -1),
             TitleType::Reset => {
@@ -2332,17 +2418,24 @@ impl VulkanWorldRenderer {
     }
 
     pub fn handleBossInfo(&mut self, packet: &SPacketUpdateBossInfo, systemTimeMillis: u64) {
-        self.guiBossOverlay.read(packet, systemTimeMillis, &self.locale);
+        self.guiBossOverlay
+            .read(packet, systemTimeMillis, &self.locale);
     }
 
-    pub fn showChatCompletionCandidates(&mut self, line: impl Into<String>, updateCounter: i32, wrapWidth: i32) {
-        self.guiNewChat.printChatMessageWithOptionalDeletionWithFont(
-            ITextComponent::fromPlainText(line.into()),
-            1,
-            updateCounter,
-            wrapWidth.max(1),
-            &self.fontRenderer,
-        );
+    pub fn showChatCompletionCandidates(
+        &mut self,
+        line: impl Into<String>,
+        updateCounter: i32,
+        wrapWidth: i32,
+    ) {
+        self.guiNewChat
+            .printChatMessageWithOptionalDeletionWithFont(
+                ITextComponent::fromPlainText(line.into()),
+                1,
+                updateCounter,
+                wrapWidth.max(1),
+                &self.fontRenderer,
+            );
     }
 
     pub fn setDebugOverlayMessage(&mut self, message: impl Into<String>) {
@@ -2447,11 +2540,20 @@ impl VulkanWorldRenderer {
                 1 => 1,
                 2 => 2,
                 0 => 0,
-                _ => if fancyGraphics { 2 } else { 1 },
+                _ => {
+                    if fancyGraphics {
+                        2
+                    } else {
+                        1
+                    }
+                }
             },
         };
         let reducedDebugInfo = reducedDebugInfo
-            || state.thePlayer.as_ref().is_some_and(|player| player.hasReducedDebug);
+            || state
+                .thePlayer
+                .as_ref()
+                .is_some_and(|player| player.hasReducedDebug);
         let centerChunk = ChunkKey::new(
             (state.playerPosition.posX.floor() as i32).div_euclid(16),
             (state.playerPosition.posZ.floor() as i32).div_euclid(16),
@@ -2459,7 +2561,8 @@ impl VulkanWorldRenderer {
         let cameraY = (state.playerPosition.posY + state.playerPosition.eyeHeight as f64)
             .floor()
             .clamp(0.0, 255.0) as i32;
-        let centerRenderChunk = RenderChunkKey::new(centerChunk.x, cameraY.div_euclid(16), centerChunk.z);
+        let centerRenderChunk =
+            RenderChunkKey::new(centerChunk.x, cameraY.div_euclid(16), centerChunk.z);
         let dimension = state
             .worldClient
             .as_ref()
@@ -2501,13 +2604,17 @@ impl VulkanWorldRenderer {
                     container.properties().to_vec(),
                 )
             });
-        let (merchantRecipes, merchantRecipeIndex) = state.thePlayer.as_ref()
+        let (merchantRecipes, merchantRecipeIndex) = state
+            .thePlayer
+            .as_ref()
             .and_then(|player| player.openContainer.as_ref())
             .filter(|container| container.windowKind() == Some(ContainerWindowKind::Merchant))
-            .map_or((None, 0), |container| (
-                container.merchantRecipes().cloned(),
-                container.merchantRecipeIndex().unwrap_or(0),
-            ));
+            .map_or((None, 0), |container| {
+                (
+                    container.merchantRecipes().cloned(),
+                    container.merchantRecipeIndex().unwrap_or(0),
+                )
+            });
         let inventoryOpen = playerInventoryOpen
             || creativeInventoryOpen
             || inventoryIsChest
@@ -2521,12 +2628,15 @@ impl VulkanWorldRenderer {
         let mut skullProfiles = Vec::<GameProfile>::new();
         if let Some(world) = state.worldClient.as_ref() {
             skullProfiles.extend(
-                world.skullTileEntities()
+                world
+                    .skullTileEntities()
                     .filter_map(|skull| skull.getPlayerProfile().cloned()),
             );
             skullProfiles.extend(world.remotePlayers().filter_map(|player| {
                 ItemSkull::getPlayerProfile(
-                    player.equipment.getItemStackFromSlot(EntityEquipmentSlot::Head),
+                    player
+                        .equipment
+                        .getItemStackFromSlot(EntityEquipmentSlot::Head),
                 )
             }));
         }
@@ -2541,7 +2651,9 @@ impl VulkanWorldRenderer {
         for profile in skullProfiles {
             let key = skull_profile_cache_key(&profile);
             liveSkullProfiles.insert(key.clone());
-            let replace = self.skullPlayerInfos.get(&key)
+            let replace = self
+                .skullPlayerInfos
+                .get(&key)
                 .map_or(true, |info| info.getGameProfile() != &profile);
             if replace {
                 self.skinManager.invalidateProfileCompletion(&key);
@@ -2551,14 +2663,19 @@ impl VulkanWorldRenderer {
                 );
             }
         }
-        self.skullPlayerInfos.retain(|key, _| liveSkullProfiles.contains(key));
+        self.skullPlayerInfos
+            .retain(|key, _| liveSkullProfiles.contains(key));
         for (key, info) in &self.skullPlayerInfos {
             self.skinManager.requestProfileCompletion(
-                key.clone(), info.getGameProfile().clone(), true,
+                key.clone(),
+                info.getGameProfile().clone(),
+                true,
             );
         }
 
-        let mut textureInfos = state.playerInfoMap.values()
+        let mut textureInfos = state
+            .playerInfoMap
+            .values()
             .cloned()
             .map(|info| (info, true))
             .collect::<Vec<_>>();
@@ -2578,7 +2695,10 @@ impl VulkanWorldRenderer {
             }));
         }
         textureInfos.extend(
-            self.skullPlayerInfos.values().cloned().map(|info| (info, false)),
+            self.skullPlayerInfos
+                .values()
+                .cloned()
+                .map(|info| (info, false)),
         );
         self.updatePlayerTextures(textureInfos.into_iter());
         self.flushDynamicAtlasIfReady();
@@ -2602,19 +2722,40 @@ impl VulkanWorldRenderer {
                 playerListSkinParts.insert(player.uniqueId, player.skinParts());
             }
         }
-        let playerListEntries = state.playerInfoMap.values().cloned().map(|mut info| {
-            let displayName = info.getDisplayName().map(|component| component.resolveWithLocale(&self.locale));
-            info.setDisplayName(displayName);
-            info
-        }).collect::<Vec<_>>();
-        let playerListHeader = state.playerListHeader.as_ref().map(|component| component.resolveWithLocale(&self.locale));
-        let playerListFooter = state.playerListFooter.as_ref().map(|component| component.resolveWithLocale(&self.locale));
-        let chatMessages = state.chatMessages.iter().cloned().map(|mut message| {
-            message.component = message.component.resolveWithLocale(&self.locale);
-            message
-        }).collect::<Vec<_>>();
+        let playerListEntries = state
+            .playerInfoMap
+            .values()
+            .cloned()
+            .map(|mut info| {
+                let displayName = info
+                    .getDisplayName()
+                    .map(|component| component.resolveWithLocale(&self.locale));
+                info.setDisplayName(displayName);
+                info
+            })
+            .collect::<Vec<_>>();
+        let playerListHeader = state
+            .playerListHeader
+            .as_ref()
+            .map(|component| component.resolveWithLocale(&self.locale));
+        let playerListFooter = state
+            .playerListFooter
+            .as_ref()
+            .map(|component| component.resolveWithLocale(&self.locale));
+        let chatMessages = state
+            .chatMessages
+            .iter()
+            .cloned()
+            .map(|mut message| {
+                message.component = message.component.resolveWithLocale(&self.locale);
+                message
+            })
+            .collect::<Vec<_>>();
         let scoreboard = state.scoreboard.clone();
-        let actionBarMessage = state.actionBarMessage.as_ref().map(|component| component.resolveWithLocale(&self.locale));
+        let actionBarMessage = state
+            .actionBarMessage
+            .as_ref()
+            .map(|component| component.resolveWithLocale(&self.locale));
         let playerCreativeMode = state.gameType == GameType::Creative;
 
         let (
@@ -2655,12 +2796,16 @@ impl VulkanWorldRenderer {
             .thePlayer
             .as_ref()
             .map(|player| {
-                let hotbarStacks = player.inventory.mainInventory
+                let hotbarStacks = player
+                    .inventory
+                    .mainInventory
                     .iter()
                     .take(9)
                     .cloned()
                     .collect::<Vec<_>>();
-                let offhandStack = player.inventory.offHandInventory
+                let offhandStack = player
+                    .inventory
+                    .offHandInventory
                     .first()
                     .cloned()
                     .unwrap_or(ItemStack::EMPTY);
@@ -2694,8 +2839,14 @@ impl VulkanWorldRenderer {
                     !offhandStack.isEmpty(),
                     hotbarStacks,
                     offhandStack,
-                    if inventoryIsChest || inventoryIsShulker || inventoryHorseSpec.is_some() || inventoryWindowKind.is_some() {
-                        player.openContainer.as_ref()
+                    if inventoryIsChest
+                        || inventoryIsShulker
+                        || inventoryHorseSpec.is_some()
+                        || inventoryWindowKind.is_some()
+                    {
+                        player
+                            .openContainer
+                            .as_ref()
                             .map(|container| container.slots().to_vec())
                             .unwrap_or_default()
                     } else {
@@ -2709,7 +2860,10 @@ impl VulkanWorldRenderer {
                     player.getFoodStats().getSaturationLevel(),
                     player.getTotalArmorValue(),
                     player.getAir(),
-                    state.worldClient.as_ref().is_some_and(|world| player.isInsideWater(world)),
+                    state
+                        .worldClient
+                        .as_ref()
+                        .is_some_and(|world| player.isInsideWater(world)),
                     player.activePotionEffects.values().copied().collect(),
                     ridingLivingEntity,
                     mountHealth,
@@ -2744,25 +2898,52 @@ impl VulkanWorldRenderer {
                 )
             })
             .unwrap_or((
-                0, false, vec![ItemStack::EMPTY; 9], ItemStack::EMPTY,
-                vec![ItemStack::EMPTY; 46], ItemStack::EMPTY,
-                20.0, 20.0, 0.0, 20, 5.0, 0, 300, false, Vec::new(), false, None, None, 0.0, 0, 7, 0, 0, 0.0, EnumHand::MainHand,
-                0.0, 0.0, 0.0, false, false, false, 0.0, 0.0,
+                0,
+                false,
+                vec![ItemStack::EMPTY; 9],
+                ItemStack::EMPTY,
+                vec![ItemStack::EMPTY; 46],
+                ItemStack::EMPTY,
+                20.0,
+                20.0,
+                0.0,
+                20,
+                5.0,
+                0,
+                300,
+                false,
+                Vec::new(),
+                false,
+                None,
+                None,
+                0.0,
+                0,
+                7,
+                0,
+                0,
+                0.0,
+                EnumHand::MainHand,
+                0.0,
+                0.0,
+                0.0,
+                false,
+                false,
+                false,
+                0.0,
+                0.0,
             ));
-        let (
-            itemActivationItem,
-            itemActivationTicks,
-            itemActivationRandomX,
-            itemActivationRandomY,
-        ) = state.thePlayer.as_ref().map_or(
-            (ItemStack::EMPTY, 0, 0.0, 0.0),
-            |player| (
-                player.itemActivationItem.clone(),
-                player.itemActivationTicks,
-                player.itemActivationRandomX,
-                player.itemActivationRandomY,
-            ),
-        );
+        let (itemActivationItem, itemActivationTicks, itemActivationRandomX, itemActivationRandomY) =
+            state
+                .thePlayer
+                .as_ref()
+                .map_or((ItemStack::EMPTY, 0, 0.0, 0.0), |player| {
+                    (
+                        player.itemActivationItem.clone(),
+                        player.itemActivationTicks,
+                        player.itemActivationRandomX,
+                        player.itemActivationRandomY,
+                    )
+                });
         let inventorySlots = if creativeInventoryOpen {
             creativeDisplaySlots.clone()
         } else {
@@ -2770,16 +2951,24 @@ impl VulkanWorldRenderer {
         };
         let mut damagedBlocks = state.damagedBlocks.values().copied().collect::<Vec<_>>();
         if let Some(local) = localDestroyProgress {
-            damagedBlocks.retain(|progress| progress.getMiningPlayerEntId() != local.getMiningPlayerEntId());
+            damagedBlocks
+                .retain(|progress| progress.getMiningPlayerEntId() != local.getMiningPlayerEntId());
             damagedBlocks.push(local);
         }
-        let localPlayerTarget = state.thePlayer.as_ref().map(|player| LivingTargetRenderState {
-            entityId: player.entityId,
-            prevPosition: [player.entity.prevPosX, player.entity.prevPosY, player.entity.prevPosZ],
-            position: [player.entity.posX, player.entity.posY, player.entity.posZ],
-            height: player.entity.height,
-            eyeHeight: player.getEyeHeight(),
-        });
+        let localPlayerTarget = state
+            .thePlayer
+            .as_ref()
+            .map(|player| LivingTargetRenderState {
+                entityId: player.entityId,
+                prevPosition: [
+                    player.entity.prevPosX,
+                    player.entity.prevPosY,
+                    player.entity.prevPosZ,
+                ],
+                position: [player.entity.posX, player.entity.posY, player.entity.posZ],
+                height: player.entity.height,
+                eyeHeight: player.getEyeHeight(),
+            });
         let Some(world) = state.worldClient.as_ref() else {
             return WorldRenderCapture {
                 playerPosition: renderPlayerPosition,
@@ -2916,7 +3105,9 @@ impl VulkanWorldRenderer {
                 blockLight: 0,
                 targetBlock: None,
                 loadedRenderChunks: self.chunkMeshes.len(),
-                queuedRenderChunks: self.priorityPendingChunks.len() + self.pendingChunks.len() + self.inflightChunks.len(),
+                queuedRenderChunks: self.priorityPendingChunks.len()
+                    + self.pendingChunks.len()
+                    + self.inflightChunks.len(),
                 biomeSkyColor: [0.49, 0.70, 1.0],
                 lastLightningBolt: 0,
                 partialTicks,
@@ -2956,11 +3147,9 @@ impl VulkanWorldRenderer {
         self.advanceTorchFlicker(world.getTotalWorldTime());
         let totalWorldTime = world.getTotalWorldTime();
         let worldTime = world.getWorldTime();
-        let cloudHeight = world.getProvider().getCloudHeight()
-            + ofCloudsHeight.clamp(0.0, 1.0) * 128.0;
-        let cloudMode = if renderDistanceChunks >= 4
-            && world.getProvider().isSurfaceWorld()
-        {
+        let cloudHeight =
+            world.getProvider().getCloudHeight() + ofCloudsHeight.clamp(0.0, 1.0) * 128.0;
+        let cloudMode = if renderDistanceChunks >= 4 && world.getProvider().isSurfaceWorld() {
             requestedCloudMode
         } else {
             0
@@ -2985,7 +3174,11 @@ impl VulkanWorldRenderer {
             ((skyRgb >> 8) & 255) as f32 / 255.0,
             (skyRgb & 255) as f32 / 255.0,
         ];
-        let blockReachDistance = if state.gameType.isCreative() { 5.0 } else { 4.5 };
+        let blockReachDistance = if state.gameType.isCreative() {
+            5.0
+        } else {
+            4.5
+        };
         let objectMouseOver = state
             .thePlayer
             .as_ref()
@@ -3003,103 +3196,154 @@ impl VulkanWorldRenderer {
         let skyLight = world.getLightFor(EnumSkyBlock::Sky, cameraBlockPos);
         let blockLight = world.getLightFor(EnumSkyBlock::Block, cameraBlockPos);
         let loadedRenderChunks = self.chunkMeshes.len();
-        let queuedRenderChunks = self.priorityPendingChunks.len() + self.pendingChunks.len() + self.inflightChunks.len();
-        let mut remotePlayers = world.remotePlayers().map(|player| {
-            let lightPos = BlockPos::new(
-                player.entity.posX.floor() as i32,
-                (player.entity.posY + player.entity.height as f64 * 0.5).floor() as i32,
-                player.entity.posZ.floor() as i32,
-            );
-            RemotePlayerRenderState {
-                entityId: player.entityId,
-                uniqueId: player.uniqueId,
-                name: player.gameProfile.getName().to_owned(),
-                skinLocation: player.getPlayerInfo().or_else(|| state.playerInfoMap.get(&player.uniqueId))
-                    .map(NetworkPlayerInfo::getLocationSkin)
-                    .unwrap_or_else(|| DefaultPlayerSkin::getDefaultSkin(player.uniqueId)),
-                slim: player.getPlayerInfo().or_else(|| state.playerInfoMap.get(&player.uniqueId))
-                    .map(|info| info.getSkinType() == "slim")
-                    .unwrap_or_else(|| DefaultPlayerSkin::isSlimSkin(player.uniqueId)),
-                capeLocation: player.getPlayerInfo().or_else(|| state.playerInfoMap.get(&player.uniqueId))
-                    .and_then(NetworkPlayerInfo::getLocationCape),
-                prevChasingPosition: [player.prevChasingPosX, player.prevChasingPosY, player.prevChasingPosZ],
-                chasingPosition: [player.chasingPosX, player.chasingPosY, player.chasingPosZ],
-                prevMovedDistance: player.prevMovedDistance,
-                movedDistance: player.movedDistance,
-                prevCameraYaw: player.prevCameraYaw,
-                cameraYaw: player.cameraYaw,
-                chestStack: player.equipment.getItemStackFromSlot(EntityEquipmentSlot::Chest).clone(),
-                armorStacks: [
-                    player.equipment.getItemStackFromSlot(EntityEquipmentSlot::Feet).clone(),
-                    player.equipment.getItemStackFromSlot(EntityEquipmentSlot::Legs).clone(),
-                    player.equipment.getItemStackFromSlot(EntityEquipmentSlot::Chest).clone(),
-                    player.equipment.getItemStackFromSlot(EntityEquipmentSlot::Head).clone(),
-                ],
-                elytraLocation: LayerElytra::texture(
-                    player.equipment.getItemStackFromSlot(EntityEquipmentSlot::Chest),
-                    player.getPlayerInfo().or_else(|| state.playerInfoMap.get(&player.uniqueId)),
-                    player.skinParts(),
-                ),
-                customHeadSkinLocation: LayerCustomHead::playerProfile(
-                    player.equipment.getItemStackFromSlot(EntityEquipmentSlot::Head),
-                ).map(|profile| {
-                    self.skullPlayerInfos
-                        .get(&skull_profile_cache_key(&profile))
+        let queuedRenderChunks =
+            self.priorityPendingChunks.len() + self.pendingChunks.len() + self.inflightChunks.len();
+        let mut remotePlayers = world
+            .remotePlayers()
+            .map(|player| {
+                let lightPos = BlockPos::new(
+                    player.entity.posX.floor() as i32,
+                    (player.entity.posY + player.entity.height as f64 * 0.5).floor() as i32,
+                    player.entity.posZ.floor() as i32,
+                );
+                RemotePlayerRenderState {
+                    entityId: player.entityId,
+                    uniqueId: player.uniqueId,
+                    name: player.gameProfile.getName().to_owned(),
+                    skinLocation: player
+                        .getPlayerInfo()
+                        .or_else(|| state.playerInfoMap.get(&player.uniqueId))
                         .map(NetworkPlayerInfo::getLocationSkin)
-                        .unwrap_or_else(|| profile.getId()
-                            .map(DefaultPlayerSkin::getDefaultSkin)
-                            .unwrap_or_else(DefaultPlayerSkin::getDefaultSkinLegacy))
-                }),
-                elytraRotation: ElytraRotationState::default(),
-                elytraFlying: player.isElytraFlying(),
-                prevPosition: [player.entity.prevPosX, player.entity.prevPosY, player.entity.prevPosZ],
-                position: [player.entity.posX, player.entity.posY, player.entity.posZ],
-                prevBodyYaw: player.prevRenderYawOffset,
-                bodyYaw: player.renderYawOffset,
-                prevYaw: player.entity.prevRotationYaw,
-                yaw: player.entity.rotationYaw,
-                prevHeadYaw: player.prevRotationYawHead,
-                headYaw: player.rotationYawHead,
-                prevPitch: player.entity.prevRotationPitch,
-                pitch: player.entity.rotationPitch,
-                prevLimbSwingAmount: player.prevLimbSwingAmount,
-                limbSwingAmount: player.limbSwingAmount,
-                limbSwing: player.limbSwing,
-                prevSwingProgress: player.prevSwingProgress,
-                swingProgress: player.swingProgress,
-                ticksExisted: player.entity.ticksExisted,
-                ticksElytraFlying: player.ticksElytraFlying,
-                motion: [player.entity.motionX, player.entity.motionY, player.entity.motionZ],
-                hurtTime: player.hurtTime,
-                deathTime: player.deathTime,
-                sneaking: player.isSneaking(),
-                riding: player.entity.isRiding(),
-                sleeping: player.isPlayerSleeping(),
-                bedOrientation: player.getBedOrientationInDegrees(world),
-                renderOffset: [player.renderOffsetX, player.renderOffsetY, player.renderOffsetZ],
-                skinParts: player.skinParts(),
-                packedLight: world.getCombinedLight(lightPos, 0),
-                invisible: player.isInvisible(),
-                beingRidden: !player.entity.passengerIds.is_empty(),
-                burning: player.isBurning(),
-                swingingArmIsLeft: player.swingingArmIsLeft(),
-                mainHandStack: player.getHeldItemMainhand().clone(),
-                offHandStack: player.getHeldItemOffhand().clone(),
-                primaryHand: player.getPrimaryHand(),
-                activeHand: player.getActiveHand(),
-                itemInUseCount: player.getItemInUseCount(),
-                height: player.entity.height,
-                eyeHeight: if player.isPlayerSleeping() {
-                    0.2
-                } else if player.isSneaking() || player.entity.height == 1.65 {
-                    1.54
-                } else if player.isElytraFlying() || player.entity.height == 0.6 {
-                    0.4
-                } else {
-                    1.62
-                },
-            }
-        }).collect::<Vec<_>>();
+                        .unwrap_or_else(|| DefaultPlayerSkin::getDefaultSkin(player.uniqueId)),
+                    slim: player
+                        .getPlayerInfo()
+                        .or_else(|| state.playerInfoMap.get(&player.uniqueId))
+                        .map(|info| info.getSkinType() == "slim")
+                        .unwrap_or_else(|| DefaultPlayerSkin::isSlimSkin(player.uniqueId)),
+                    capeLocation: player
+                        .getPlayerInfo()
+                        .or_else(|| state.playerInfoMap.get(&player.uniqueId))
+                        .and_then(NetworkPlayerInfo::getLocationCape),
+                    prevChasingPosition: [
+                        player.prevChasingPosX,
+                        player.prevChasingPosY,
+                        player.prevChasingPosZ,
+                    ],
+                    chasingPosition: [player.chasingPosX, player.chasingPosY, player.chasingPosZ],
+                    prevMovedDistance: player.prevMovedDistance,
+                    movedDistance: player.movedDistance,
+                    prevCameraYaw: player.prevCameraYaw,
+                    cameraYaw: player.cameraYaw,
+                    chestStack: player
+                        .equipment
+                        .getItemStackFromSlot(EntityEquipmentSlot::Chest)
+                        .clone(),
+                    armorStacks: [
+                        player
+                            .equipment
+                            .getItemStackFromSlot(EntityEquipmentSlot::Feet)
+                            .clone(),
+                        player
+                            .equipment
+                            .getItemStackFromSlot(EntityEquipmentSlot::Legs)
+                            .clone(),
+                        player
+                            .equipment
+                            .getItemStackFromSlot(EntityEquipmentSlot::Chest)
+                            .clone(),
+                        player
+                            .equipment
+                            .getItemStackFromSlot(EntityEquipmentSlot::Head)
+                            .clone(),
+                    ],
+                    elytraLocation: LayerElytra::texture(
+                        player
+                            .equipment
+                            .getItemStackFromSlot(EntityEquipmentSlot::Chest),
+                        player
+                            .getPlayerInfo()
+                            .or_else(|| state.playerInfoMap.get(&player.uniqueId)),
+                        player.skinParts(),
+                    ),
+                    customHeadSkinLocation: LayerCustomHead::playerProfile(
+                        player
+                            .equipment
+                            .getItemStackFromSlot(EntityEquipmentSlot::Head),
+                    )
+                    .map(|profile| {
+                        self.skullPlayerInfos
+                            .get(&skull_profile_cache_key(&profile))
+                            .map(NetworkPlayerInfo::getLocationSkin)
+                            .unwrap_or_else(|| {
+                                profile
+                                    .getId()
+                                    .map(DefaultPlayerSkin::getDefaultSkin)
+                                    .unwrap_or_else(DefaultPlayerSkin::getDefaultSkinLegacy)
+                            })
+                    }),
+                    elytraRotation: ElytraRotationState::default(),
+                    elytraFlying: player.isElytraFlying(),
+                    prevPosition: [
+                        player.entity.prevPosX,
+                        player.entity.prevPosY,
+                        player.entity.prevPosZ,
+                    ],
+                    position: [player.entity.posX, player.entity.posY, player.entity.posZ],
+                    prevBodyYaw: player.prevRenderYawOffset,
+                    bodyYaw: player.renderYawOffset,
+                    prevYaw: player.entity.prevRotationYaw,
+                    yaw: player.entity.rotationYaw,
+                    prevHeadYaw: player.prevRotationYawHead,
+                    headYaw: player.rotationYawHead,
+                    prevPitch: player.entity.prevRotationPitch,
+                    pitch: player.entity.rotationPitch,
+                    prevLimbSwingAmount: player.prevLimbSwingAmount,
+                    limbSwingAmount: player.limbSwingAmount,
+                    limbSwing: player.limbSwing,
+                    prevSwingProgress: player.prevSwingProgress,
+                    swingProgress: player.swingProgress,
+                    ticksExisted: player.entity.ticksExisted,
+                    ticksElytraFlying: player.ticksElytraFlying,
+                    motion: [
+                        player.entity.motionX,
+                        player.entity.motionY,
+                        player.entity.motionZ,
+                    ],
+                    hurtTime: player.hurtTime,
+                    deathTime: player.deathTime,
+                    sneaking: player.isSneaking(),
+                    riding: player.entity.isRiding(),
+                    sleeping: player.isPlayerSleeping(),
+                    bedOrientation: player.getBedOrientationInDegrees(world),
+                    renderOffset: [
+                        player.renderOffsetX,
+                        player.renderOffsetY,
+                        player.renderOffsetZ,
+                    ],
+                    skinParts: player.skinParts(),
+                    packedLight: world.getCombinedLight(lightPos, 0),
+                    invisible: player.isInvisible(),
+                    beingRidden: !player.entity.passengerIds.is_empty(),
+                    burning: player.isBurning(),
+                    swingingArmIsLeft: player.swingingArmIsLeft(),
+                    mainHandStack: player.getHeldItemMainhand().clone(),
+                    offHandStack: player.getHeldItemOffhand().clone(),
+                    primaryHand: player.getPrimaryHand(),
+                    activeHand: player.getActiveHand(),
+                    itemInUseCount: player.getItemInUseCount(),
+                    height: player.entity.height,
+                    eyeHeight: if player.isPlayerSleeping() {
+                        0.2
+                    } else if player.isSneaking() || player.entity.height == 1.65 {
+                        1.54
+                    } else if player.isElytraFlying() || player.entity.height == 0.6 {
+                        0.4
+                    } else {
+                        1.62
+                    },
+                }
+            })
+            .collect::<Vec<_>>();
         let mut localPlayerRenderState = state.thePlayer.as_ref().map(|player| {
             let lightPos = BlockPos::new(
                 player.entity.posX.floor() as i32,
@@ -3113,37 +3357,80 @@ impl VulkanWorldRenderer {
                 skinLocation: localSkinLocation.clone(),
                 slim: localSlim,
                 capeLocation: localPlayerInfo.and_then(NetworkPlayerInfo::getLocationCape),
-                prevChasingPosition: [player.prevChasingPosX, player.prevChasingPosY, player.prevChasingPosZ],
+                prevChasingPosition: [
+                    player.prevChasingPosX,
+                    player.prevChasingPosY,
+                    player.prevChasingPosZ,
+                ],
                 chasingPosition: [player.chasingPosX, player.chasingPosY, player.chasingPosZ],
                 prevMovedDistance: player.prevMovedDistance,
                 movedDistance: player.movedDistance,
                 prevCameraYaw: player.prevCameraYaw,
                 cameraYaw: player.cameraYaw,
-                chestStack: player.inventory.armorInventory.get(2).cloned().unwrap_or(ItemStack::EMPTY),
+                chestStack: player
+                    .inventory
+                    .armorInventory
+                    .get(2)
+                    .cloned()
+                    .unwrap_or(ItemStack::EMPTY),
                 armorStacks: [
-                    player.inventory.armorInventory.get(0).cloned().unwrap_or(ItemStack::EMPTY),
-                    player.inventory.armorInventory.get(1).cloned().unwrap_or(ItemStack::EMPTY),
-                    player.inventory.armorInventory.get(2).cloned().unwrap_or(ItemStack::EMPTY),
-                    player.inventory.armorInventory.get(3).cloned().unwrap_or(ItemStack::EMPTY),
+                    player
+                        .inventory
+                        .armorInventory
+                        .get(0)
+                        .cloned()
+                        .unwrap_or(ItemStack::EMPTY),
+                    player
+                        .inventory
+                        .armorInventory
+                        .get(1)
+                        .cloned()
+                        .unwrap_or(ItemStack::EMPTY),
+                    player
+                        .inventory
+                        .armorInventory
+                        .get(2)
+                        .cloned()
+                        .unwrap_or(ItemStack::EMPTY),
+                    player
+                        .inventory
+                        .armorInventory
+                        .get(3)
+                        .cloned()
+                        .unwrap_or(ItemStack::EMPTY),
                 ],
                 elytraLocation: LayerElytra::texture(
-                    player.inventory.armorInventory.get(2).unwrap_or(&ItemStack::EMPTY),
+                    player
+                        .inventory
+                        .armorInventory
+                        .get(2)
+                        .unwrap_or(&ItemStack::EMPTY),
                     localPlayerInfo,
                     localSkinParts,
                 ),
-                customHeadSkinLocation: player.inventory.armorInventory.get(3)
+                customHeadSkinLocation: player
+                    .inventory
+                    .armorInventory
+                    .get(3)
                     .and_then(LayerCustomHead::playerProfile)
                     .map(|profile| {
                         self.skullPlayerInfos
                             .get(&skull_profile_cache_key(&profile))
                             .map(NetworkPlayerInfo::getLocationSkin)
-                            .unwrap_or_else(|| profile.getId()
-                                .map(DefaultPlayerSkin::getDefaultSkin)
-                                .unwrap_or_else(DefaultPlayerSkin::getDefaultSkinLegacy))
+                            .unwrap_or_else(|| {
+                                profile
+                                    .getId()
+                                    .map(DefaultPlayerSkin::getDefaultSkin)
+                                    .unwrap_or_else(DefaultPlayerSkin::getDefaultSkinLegacy)
+                            })
                     }),
                 elytraRotation: ElytraRotationState::default(),
                 elytraFlying: player.isElytraFlying(),
-                prevPosition: [player.entity.prevPosX, player.entity.prevPosY, player.entity.prevPosZ],
+                prevPosition: [
+                    player.entity.prevPosX,
+                    player.entity.prevPosY,
+                    player.entity.prevPosZ,
+                ],
                 position: [player.entity.posX, player.entity.posY, player.entity.posZ],
                 prevBodyYaw: player.prevRenderYawOffset,
                 bodyYaw: player.renderYawOffset,
@@ -3160,14 +3447,22 @@ impl VulkanWorldRenderer {
                 swingProgress: player.swingProgress,
                 ticksExisted: player.entity.ticksExisted,
                 ticksElytraFlying: player.ticksElytraFlying,
-                motion: [player.entity.motionX, player.entity.motionY, player.entity.motionZ],
+                motion: [
+                    player.entity.motionX,
+                    player.entity.motionY,
+                    player.entity.motionZ,
+                ],
                 hurtTime: player.hurtTime,
                 deathTime: player.deathTime,
                 sneaking: player.entity.sneaking,
                 riding: player.entity.isRiding(),
                 sleeping: player.isPlayerSleeping(),
                 bedOrientation: player.getBedOrientationInDegrees(world),
-                renderOffset: [player.renderOffsetX, player.renderOffsetY, player.renderOffsetZ],
+                renderOffset: [
+                    player.renderOffsetX,
+                    player.renderOffsetY,
+                    player.renderOffsetZ,
+                ],
                 skinParts: localSkinParts,
                 packedLight: world.getCombinedLight(lightPos, 0),
                 invisible: player.isInvisible(),
@@ -3190,7 +3485,11 @@ impl VulkanWorldRenderer {
         // every render call. Preserve the same 10% smoothing across immutable
         // Vulkan frame captures.
         for player in &mut remotePlayers {
-            let previous = self.elytraRotations.get(&player.uniqueId).copied().unwrap_or_default();
+            let previous = self
+                .elytraRotations
+                .get(&player.uniqueId)
+                .copied()
+                .unwrap_or_default();
             let pose = ModelElytra::setRotationAngles(
                 player.sneaking,
                 player.elytraFlying,
@@ -3201,7 +3500,11 @@ impl VulkanWorldRenderer {
             self.elytraRotations.insert(player.uniqueId, pose.rotations);
         }
         if let Some(player) = localPlayerRenderState.as_mut() {
-            let previous = self.elytraRotations.get(&player.uniqueId).copied().unwrap_or_default();
+            let previous = self
+                .elytraRotations
+                .get(&player.uniqueId)
+                .copied()
+                .unwrap_or_default();
             let pose = ModelElytra::setRotationAngles(
                 player.sneaking,
                 player.elytraFlying,
@@ -3211,10 +3514,13 @@ impl VulkanWorldRenderer {
             player.elytraRotation = pose.rotations;
             self.elytraRotations.insert(player.uniqueId, pose.rotations);
         }
-        let livePlayerIds = remotePlayers.iter().map(|player| player.uniqueId)
+        let livePlayerIds = remotePlayers
+            .iter()
+            .map(|player| player.uniqueId)
             .chain(localPlayerRenderState.iter().map(|player| player.uniqueId))
             .collect::<HashSet<_>>();
-        self.elytraRotations.retain(|id, _| livePlayerIds.contains(id));
+        self.elytraRotations
+            .retain(|id, _| livePlayerIds.contains(id));
 
         if thirdPersonView > 0 && state.gameType != GameType::Spectator {
             // RenderPlayer#setModelVisibilities uses a head-only model for a
@@ -3228,175 +3534,225 @@ impl VulkanWorldRenderer {
         let nonPlayerEntities = world.nonPlayerEntities().cloned().collect::<Vec<_>>();
         let mapData = state.mapData.clone();
 
-        let skulls = world.skullTileEntities().filter_map(|skull| {
-            let blockState = world.getBlockState(skull.pos);
-            if !BlockSkull::isBlockSkull(blockState) { return None; }
-            Some(SkullRenderState {
-                pos: skull.pos,
-                facing: BlockSkull::getFacing(blockState),
-                rotation: skull.getSkullRotation(),
-                skullType: skull.getSkullType(),
-                playerSkinLocation: skull.getPlayerProfile().map(|profile| {
-                    self.skullPlayerInfos
-                        .get(&skull_profile_cache_key(profile))
-                        .map(NetworkPlayerInfo::getLocationSkin)
-                        .unwrap_or_else(|| {
-                            profile.getId()
-                                .map(DefaultPlayerSkin::getDefaultSkin)
-                                .unwrap_or_else(DefaultPlayerSkin::getDefaultSkinLegacy)
-                        })
-                }),
-                animateTicks: skull.getAnimationProgress(partialTicks),
-                packedLight: world.getCombinedLight(skull.pos, 0),
-            })
-        }).collect::<Vec<_>>();
-
-        let beds = world.bedTileEntities().filter_map(|bed| {
-            let state = world.getBlockState(bed.pos);
-            if !BlockBed::isBlockBed(state) { return None; }
-            Some(BedRenderState {
-                pos: bed.pos,
-                head: BlockBed::isHead(state),
-                horizontalIndex: BlockBed::getFacing(state).horizontalIndex().unwrap_or(2) as i32,
-                colorMetadata: bed.colorMetadata() as i16,
-                packedLight: world.getCombinedLight(bed.pos, 0),
-            })
-        }).collect::<Vec<_>>();
-
-        let same_chest = |pos: BlockPos, block_id: i32| world.getBlockState(pos).getBlockId() == block_id;
-        let chests = world.chestTileEntities().filter_map(|chest| {
-            let state = world.getBlockState(chest.pos);
-            let block_id = state.getBlockId();
-            if !matches!(block_id, 54 | 146) { return None; }
-            let x_neg = same_chest(chest.pos.west(1), block_id);
-            let z_neg = same_chest(chest.pos.north(1), block_id);
-            if x_neg || z_neg { return None; }
-            let x_pos = same_chest(chest.pos.east(1), block_id);
-            let z_pos = same_chest(chest.pos.south(1), block_id);
-            let mut lid = chest.interpolatedLidAngle(partialTicks);
-            if x_neg {
-                if let Some(adjacent) = world.getChestTileEntity(chest.pos.west(1)) {
-                    lid = lid.max(adjacent.interpolatedLidAngle(partialTicks));
+        let skulls = world
+            .skullTileEntities()
+            .filter_map(|skull| {
+                let blockState = world.getBlockState(skull.pos);
+                if !BlockSkull::isBlockSkull(blockState) {
+                    return None;
                 }
-            }
-            if z_neg {
-                if let Some(adjacent) = world.getChestTileEntity(chest.pos.north(1)) {
-                    lid = lid.max(adjacent.interpolatedLidAngle(partialTicks));
+                Some(SkullRenderState {
+                    pos: skull.pos,
+                    facing: BlockSkull::getFacing(blockState),
+                    rotation: skull.getSkullRotation(),
+                    skullType: skull.getSkullType(),
+                    playerSkinLocation: skull.getPlayerProfile().map(|profile| {
+                        self.skullPlayerInfos
+                            .get(&skull_profile_cache_key(profile))
+                            .map(NetworkPlayerInfo::getLocationSkin)
+                            .unwrap_or_else(|| {
+                                profile
+                                    .getId()
+                                    .map(DefaultPlayerSkin::getDefaultSkin)
+                                    .unwrap_or_else(DefaultPlayerSkin::getDefaultSkinLegacy)
+                            })
+                    }),
+                    animateTicks: skull.getAnimationProgress(partialTicks),
+                    packedLight: world.getCombinedLight(skull.pos, 0),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let beds = world
+            .bedTileEntities()
+            .filter_map(|bed| {
+                let state = world.getBlockState(bed.pos);
+                if !BlockBed::isBlockBed(state) {
+                    return None;
                 }
-            }
-            Some(ChestRenderState {
-                pos: chest.pos,
-                trapped: block_id == 146,
-                ender: false,
-                large: x_pos || z_pos,
-                metadata: state.getMetadata(),
-                adjacentXPos: x_pos,
-                adjacentZPos: z_pos,
-                lidProgress: lid,
-                packedLight: world.getCombinedLight(chest.pos, 0),
+                Some(BedRenderState {
+                    pos: bed.pos,
+                    head: BlockBed::isHead(state),
+                    horizontalIndex: BlockBed::getFacing(state).horizontalIndex().unwrap_or(2)
+                        as i32,
+                    colorMetadata: bed.colorMetadata() as i16,
+                    packedLight: world.getCombinedLight(bed.pos, 0),
+                })
             })
-        }).chain(world.enderChestTileEntities().filter_map(|chest| {
-            let state = world.getBlockState(chest.pos);
-            if state.getBlockId() != 130 { return None; }
-            Some(ChestRenderState {
-                pos: chest.pos,
-                trapped: false,
-                ender: true,
-                large: false,
-                metadata: state.getMetadata(),
-                adjacentXPos: false,
-                adjacentZPos: false,
-                lidProgress: chest.interpolatedLidAngle(partialTicks),
-                packedLight: world.getCombinedLight(chest.pos, 0),
-            })
-        })).collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
-        let pistons = world.pistonTileEntities().filter_map(|piston| {
-            if piston.finished() { return None; }
-            Some(PistonRenderState {
-                pos: piston.pos,
-                pistonState: piston.pistonState,
-                facing: piston.pistonFacing,
-                progress: piston.getProgress(partialTicks),
-                offset: piston.offset(partialTicks),
-                extending: piston.extending,
-                shouldHeadBeRendered: piston.shouldHeadBeRendered,
-                packedLight: world.getCombinedLight(piston.pos, 0),
+        let same_chest =
+            |pos: BlockPos, block_id: i32| world.getBlockState(pos).getBlockId() == block_id;
+        let chests = world
+            .chestTileEntities()
+            .filter_map(|chest| {
+                let state = world.getBlockState(chest.pos);
+                let block_id = state.getBlockId();
+                if !matches!(block_id, 54 | 146) {
+                    return None;
+                }
+                let x_neg = same_chest(chest.pos.west(1), block_id);
+                let z_neg = same_chest(chest.pos.north(1), block_id);
+                if x_neg || z_neg {
+                    return None;
+                }
+                let x_pos = same_chest(chest.pos.east(1), block_id);
+                let z_pos = same_chest(chest.pos.south(1), block_id);
+                let mut lid = chest.interpolatedLidAngle(partialTicks);
+                if x_neg {
+                    if let Some(adjacent) = world.getChestTileEntity(chest.pos.west(1)) {
+                        lid = lid.max(adjacent.interpolatedLidAngle(partialTicks));
+                    }
+                }
+                if z_neg {
+                    if let Some(adjacent) = world.getChestTileEntity(chest.pos.north(1)) {
+                        lid = lid.max(adjacent.interpolatedLidAngle(partialTicks));
+                    }
+                }
+                Some(ChestRenderState {
+                    pos: chest.pos,
+                    trapped: block_id == 146,
+                    ender: false,
+                    large: x_pos || z_pos,
+                    metadata: state.getMetadata(),
+                    adjacentXPos: x_pos,
+                    adjacentZPos: z_pos,
+                    lidProgress: lid,
+                    packedLight: world.getCombinedLight(chest.pos, 0),
+                })
             })
-        }).collect::<Vec<_>>();
+            .chain(world.enderChestTileEntities().filter_map(|chest| {
+                let state = world.getBlockState(chest.pos);
+                if state.getBlockId() != 130 {
+                    return None;
+                }
+                Some(ChestRenderState {
+                    pos: chest.pos,
+                    trapped: false,
+                    ender: true,
+                    large: false,
+                    metadata: state.getMetadata(),
+                    adjacentXPos: false,
+                    adjacentZPos: false,
+                    lidProgress: chest.interpolatedLidAngle(partialTicks),
+                    packedLight: world.getCombinedLight(chest.pos, 0),
+                })
+            }))
+            .collect::<Vec<_>>();
 
-        let shulkerBoxes = world.shulkerBoxTileEntities().filter_map(|shulker| {
-            let state = world.getBlockState(shulker.pos);
-            let block_id = state.getBlockId();
-            if !(219..=234).contains(&block_id) { return None; }
-            Some(ShulkerBoxRenderState {
-                pos: shulker.pos,
-                colorMetadata: shulker.colorMetadata(),
-                facing: EnumFacing::getFront(state.getMetadata()),
-                progress: shulker.interpolatedProgress(partialTicks),
-                packedLight: world.getCombinedLight(shulker.pos, 0),
+        let pistons = world
+            .pistonTileEntities()
+            .filter_map(|piston| {
+                if piston.finished() {
+                    return None;
+                }
+                Some(PistonRenderState {
+                    pos: piston.pos,
+                    pistonState: piston.pistonState,
+                    facing: piston.pistonFacing,
+                    progress: piston.getProgress(partialTicks),
+                    offset: piston.offset(partialTicks),
+                    extending: piston.extending,
+                    shouldHeadBeRendered: piston.shouldHeadBeRendered,
+                    packedLight: world.getCombinedLight(piston.pos, 0),
+                })
             })
-        }).collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
-        let signs = world.signTileEntities().filter_map(|sign| {
-            let state = world.getBlockState(sign.pos);
-            if !matches!(state.getBlockId(), 63 | 68) { return None; }
-            Some(SignRenderState {
-                pos: sign.pos,
-                blockId: state.getBlockId(),
-                metadata: state.getMetadata(),
-                lines: std::array::from_fn(|index| {
-                    sign.signText[index]
-                        .resolveWithLocale(&self.locale)
-                        .getFormattedText()
-                        .to_owned()
-                }),
-                lineBeingEdited: sign.lineBeingEdited,
-                packedLight: world.getCombinedLight(sign.pos, 0),
+        let shulkerBoxes = world
+            .shulkerBoxTileEntities()
+            .filter_map(|shulker| {
+                let state = world.getBlockState(shulker.pos);
+                let block_id = state.getBlockId();
+                if !(219..=234).contains(&block_id) {
+                    return None;
+                }
+                Some(ShulkerBoxRenderState {
+                    pos: shulker.pos,
+                    colorMetadata: shulker.colorMetadata(),
+                    facing: EnumFacing::getFront(state.getMetadata()),
+                    progress: shulker.interpolatedProgress(partialTicks),
+                    packedLight: world.getCombinedLight(shulker.pos, 0),
+                })
             })
-        }).collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
-        let enchantmentTables = world.enchantmentTableTileEntities().filter_map(|table| {
-            if world.getBlockState(table.pos).getBlockId() != 116 { return None; }
-            let partial = partialTicks.clamp(0.0, 1.0);
-            let ticks = table.tickCount as f32 + partial;
-            let interpolatedFlip = table.pageFlipPrev
-                + (table.pageFlip - table.pageFlipPrev) * partial;
-            let page = |offset: f32| {
-                (((interpolatedFlip + offset) - (interpolatedFlip + offset).floor()) * 1.6 - 0.3)
-                    .clamp(0.0, 1.0)
-            };
-            let mut rotationDelta = table.bookRotation - table.bookRotationPrev;
-            while rotationDelta >= std::f32::consts::PI {
-                rotationDelta -= std::f32::consts::PI * 2.0;
-            }
-            while rotationDelta < -std::f32::consts::PI {
-                rotationDelta += std::f32::consts::PI * 2.0;
-            }
-            Some(EnchantmentTableRenderState {
-                pos: table.pos,
-                ticks,
-                pageFlipRight: page(0.25),
-                pageFlipLeft: page(0.75),
-                spread: table.bookSpreadPrev
-                    + (table.bookSpread - table.bookSpreadPrev) * partial,
-                rotation: table.bookRotationPrev + rotationDelta * partial,
-                packedLight: world.getCombinedLight(table.pos, 0),
+        let signs = world
+            .signTileEntities()
+            .filter_map(|sign| {
+                let state = world.getBlockState(sign.pos);
+                if !matches!(state.getBlockId(), 63 | 68) {
+                    return None;
+                }
+                Some(SignRenderState {
+                    pos: sign.pos,
+                    blockId: state.getBlockId(),
+                    metadata: state.getMetadata(),
+                    lines: std::array::from_fn(|index| {
+                        sign.signText[index]
+                            .resolveWithLocale(&self.locale)
+                            .getFormattedText()
+                            .to_owned()
+                    }),
+                    lineBeingEdited: sign.lineBeingEdited,
+                    packedLight: world.getCombinedLight(sign.pos, 0),
+                })
             })
-        }).collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
-        let beacons = world.beaconTileEntities().filter_map(|beacon| {
-            (world.getBlockState(beacon.pos).getBlockId() == 138).then(|| BeaconRenderState {
-                pos: beacon.pos,
-                beamScale: beacon.shouldBeamRender(totalWorldTime),
-                segments: beacon.getBeamSegments().to_vec(),
+        let enchantmentTables = world
+            .enchantmentTableTileEntities()
+            .filter_map(|table| {
+                if world.getBlockState(table.pos).getBlockId() != 116 {
+                    return None;
+                }
+                let partial = partialTicks.clamp(0.0, 1.0);
+                let ticks = table.tickCount as f32 + partial;
+                let interpolatedFlip =
+                    table.pageFlipPrev + (table.pageFlip - table.pageFlipPrev) * partial;
+                let page = |offset: f32| {
+                    (((interpolatedFlip + offset) - (interpolatedFlip + offset).floor()) * 1.6
+                        - 0.3)
+                        .clamp(0.0, 1.0)
+                };
+                let mut rotationDelta = table.bookRotation - table.bookRotationPrev;
+                while rotationDelta >= std::f32::consts::PI {
+                    rotationDelta -= std::f32::consts::PI * 2.0;
+                }
+                while rotationDelta < -std::f32::consts::PI {
+                    rotationDelta += std::f32::consts::PI * 2.0;
+                }
+                Some(EnchantmentTableRenderState {
+                    pos: table.pos,
+                    ticks,
+                    pageFlipRight: page(0.25),
+                    pageFlipLeft: page(0.75),
+                    spread: table.bookSpreadPrev
+                        + (table.bookSpread - table.bookSpreadPrev) * partial,
+                    rotation: table.bookRotationPrev + rotationDelta * partial,
+                    packedLight: world.getCombinedLight(table.pos, 0),
+                })
             })
-        }).collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
-        let endPortals = world.endPortalTileEntities().filter_map(|portal| {
-            (world.getBlockState(portal.pos).getBlockId() == 119)
-                .then_some(EndPortalRenderState { pos: portal.pos })
-        }).collect::<Vec<_>>();
+        let beacons = world
+            .beaconTileEntities()
+            .filter_map(|beacon| {
+                (world.getBlockState(beacon.pos).getBlockId() == 138).then(|| BeaconRenderState {
+                    pos: beacon.pos,
+                    beamScale: beacon.shouldBeamRender(totalWorldTime),
+                    segments: beacon.getBeamSegments().to_vec(),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let endPortals = world
+            .endPortalTileEntities()
+            .filter_map(|portal| {
+                (world.getBlockState(portal.pos).getBlockId() == 119)
+                    .then_some(EndPortalRenderState { pos: portal.pos })
+            })
+            .collect::<Vec<_>>();
 
         let graphicsModeChanged = self
             .lastFancyGraphics
@@ -3414,11 +3770,8 @@ impl VulkanWorldRenderer {
         loadedSet.clear();
         for chunk in world.loadedChunks() {
             for sectionIndex in 0..16 {
-                let key = RenderChunkKey::new(
-                    chunk.xPosition,
-                    sectionIndex as i32,
-                    chunk.zPosition,
-                );
+                let key =
+                    RenderChunkKey::new(chunk.xPosition, sectionIndex as i32, chunk.zPosition);
                 sections.push((
                     key,
                     chunk.sectionRevision(sectionIndex),
@@ -3474,9 +3827,10 @@ impl VulkanWorldRenderer {
                 continue;
             }
 
-            let needsBuild = self.chunkMeshes.get(&key).map_or(true, |mesh| {
-                mesh.sourceRevision != revision || !mesh.ready
-            });
+            let needsBuild = self
+                .chunkMeshes
+                .get(&key)
+                .map_or(true, |mesh| mesh.sourceRevision != revision || !mesh.ready);
             if needsBuild {
                 self.ensureRenderChunkPlaceholder(key, revision);
                 let initialPriority = (key.x - centerChunk.x).abs()
@@ -3493,15 +3847,12 @@ impl VulkanWorldRenderer {
         // distance-prioritised queue.  Preserve the same nearest-first result,
         // but do not drain and sort an unchanged queue once per rendered frame.
         // A new task or a camera RenderChunk transition invalidates the order.
-        if self.pendingChunkOrderDirty
-            || self.pendingChunkOrderCenter != Some(centerRenderChunk)
-        {
+        if self.pendingChunkOrderDirty || self.pendingChunkOrderCenter != Some(centerRenderChunk) {
             let mut orderedPending = std::mem::take(&mut self.pendingChunkOrderScratch);
             orderedPending.clear();
             orderedPending.extend(self.pendingChunks.drain(..));
-            orderedPending.sort_by_key(|key| {
-                render_chunk_distance_squared(*key, centerRenderChunk)
-            });
+            orderedPending
+                .sort_by_key(|key| render_chunk_distance_squared(*key, centerRenderChunk));
             self.pendingChunks.extend(orderedPending.drain(..));
             self.pendingChunkOrderScratch = orderedPending;
             self.pendingChunkOrderDirty = false;
@@ -3594,12 +3945,17 @@ impl VulkanWorldRenderer {
         let flowerPotContents = if selectedBatches.is_empty() {
             Arc::new(HashMap::new())
         } else {
-            Arc::new(world.flowerPotTileEntities()
-                .map(|tile| (
-                    tile.pos,
-                    BlockFlowerPot::contentsName(Some(tile)).to_owned(),
-                ))
-                .collect::<HashMap<_, _>>())
+            Arc::new(
+                world
+                    .flowerPotTileEntities()
+                    .map(|tile| {
+                        (
+                            tile.pos,
+                            BlockFlowerPot::contentsName(Some(tile)).to_owned(),
+                        )
+                    })
+                    .collect::<HashMap<_, _>>(),
+            )
         };
         let jobs = selectedBatches
             .into_iter()
@@ -3729,8 +4085,14 @@ impl VulkanWorldRenderer {
             localSkinLocation,
             localSlim,
             localSkinParts,
-            localInvisible: state.thePlayer.as_ref().is_some_and(|player| player.isInvisible()),
-            localBurning: state.thePlayer.as_ref().is_some_and(|player| player.isBurning()),
+            localInvisible: state
+                .thePlayer
+                .as_ref()
+                .is_some_and(|player| player.isInvisible()),
+            localBurning: state
+                .thePlayer
+                .as_ref()
+                .is_some_and(|player| player.isBurning()),
             firstPersonItems,
             localSwingProgress,
             localSwingingHand,
@@ -3745,7 +4107,8 @@ impl VulkanWorldRenderer {
             firstPersonPackedLight: world.getCombinedLight(
                 BlockPos::new(
                     renderPlayerPosition.posX.floor() as i32,
-                    (renderPlayerPosition.posY + renderPlayerPosition.eyeHeight as f64).floor() as i32,
+                    (renderPlayerPosition.posY + renderPlayerPosition.eyeHeight as f64).floor()
+                        as i32,
                     renderPlayerPosition.posZ.floor() as i32,
                 ),
                 0,
@@ -3838,8 +4201,7 @@ impl VulkanWorldRenderer {
                     self.inflightPriorityColumnJobs =
                         self.inflightPriorityColumnJobs.saturating_sub(1);
                 } else {
-                    self.inflightNormalColumnJobs =
-                        self.inflightNormalColumnJobs.saturating_sub(1);
+                    self.inflightNormalColumnJobs = self.inflightNormalColumnJobs.saturating_sub(1);
                 }
                 continue;
             }
@@ -3848,7 +4210,11 @@ impl VulkanWorldRenderer {
                 batch.requests.len(),
                 batch.requests[0].key.x,
                 batch.requests[0].key.z,
-                if batch.priority { "priority" } else { "streaming" },
+                if batch.priority {
+                    "priority"
+                } else {
+                    "streaming"
+                },
             );
             self.dispatcher.dispatch(ChunkColumnBuildJob {
                 requests: batch.requests,
@@ -3927,7 +4293,9 @@ impl VulkanWorldRenderer {
         );
         let frameBuildElapsed = frameBuildStarted.elapsed();
         self.profileFrames = self.profileFrames.saturating_add(1);
-        self.profileAtlasNanos = self.profileAtlasNanos.saturating_add(atlasElapsed.as_nanos());
+        self.profileAtlasNanos = self
+            .profileAtlasNanos
+            .saturating_add(atlasElapsed.as_nanos());
         self.profileChunkWorkNanos = self
             .profileChunkWorkNanos
             .saturating_add(chunkWorkElapsed.as_nanos());
@@ -4040,7 +4408,11 @@ impl VulkanWorldRenderer {
         let Some(mesh) = self.chunkMeshes.get(&key) else {
             return;
         };
-        if !mesh.ready || mesh.compiledChunk.isLayerEmpty(BlockRenderLayer::Translucent) {
+        if !mesh.ready
+            || mesh
+                .compiledChunk
+                .isLayerEmpty(BlockRenderLayer::Translucent)
+        {
             return;
         }
         let vertices = Arc::clone(&mesh.vertices);
@@ -4108,11 +4480,9 @@ impl VulkanWorldRenderer {
                 continue;
             }
             if batch.priority {
-                self.inflightPriorityColumnJobs =
-                    self.inflightPriorityColumnJobs.saturating_sub(1);
+                self.inflightPriorityColumnJobs = self.inflightPriorityColumnJobs.saturating_sub(1);
             } else {
-                self.inflightNormalColumnJobs =
-                    self.inflightNormalColumnJobs.saturating_sub(1);
+                self.inflightNormalColumnJobs = self.inflightNormalColumnJobs.saturating_sub(1);
             }
             self.finishedMeshBacklog.extend(batch.results);
         }
@@ -4134,11 +4504,15 @@ impl VulkanWorldRenderer {
                 .vertices
                 .len()
                 .saturating_mul(std::mem::size_of::<WorldVertex>())
-                .saturating_add(result.indices.len().saturating_mul(std::mem::size_of::<u32>()));
+                .saturating_add(
+                    result
+                        .indices
+                        .len()
+                        .saturating_mul(std::mem::size_of::<u32>()),
+                );
             if !uploads.is_empty()
                 && (resultBytes > MAX_SINGLE_FINISHED_CHUNK_BYTES
-                    || uploadBytes.saturating_add(resultBytes)
-                        > MAX_FINISHED_CHUNK_BYTES_PER_FRAME)
+                    || uploadBytes.saturating_add(resultBytes) > MAX_FINISHED_CHUNK_BYTES_PER_FRAME)
             {
                 self.finishedMeshBacklog.push_front(result);
                 break;
@@ -4147,7 +4521,8 @@ impl VulkanWorldRenderer {
             let Some(currentToken) = self.inflightChunks.remove(&result.key) else {
                 continue;
             };
-            if currentToken != result.token || result.token.worldGeneration != self.worldGeneration {
+            if currentToken != result.token || result.token.worldGeneration != self.worldGeneration
+            {
                 continue;
             }
             let dirtyAgain = self.dirtyWhileInflight.remove(&result.key);
@@ -4228,11 +4603,7 @@ impl VulkanWorldRenderer {
                 tintIndex: None,
             }],
         };
-        self.registerMaterialKey(
-            missingKey.clone(),
-            &mut materialIndices,
-            &mut materials,
-        );
+        self.registerMaterialKey(missingKey.clone(), &mut materialIndices, &mut materials);
 
         let steveKey = MaterialKey {
             blockId: -2,
@@ -4325,7 +4696,8 @@ impl VulkanWorldRenderer {
                 tintIndex: None,
             }],
         };
-        let fontPageKeys = self.fontRenderer
+        let fontPageKeys = self
+            .fontRenderer
             .unicode_pages_with_glyphs()
             .into_iter()
             .map(|page| MaterialKey {
@@ -4346,14 +4718,20 @@ impl VulkanWorldRenderer {
         let chestKey = MaterialKey {
             blockId: -15,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/generic_54.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/generic_54.png",
+                ),
                 tintIndex: None,
             }],
         };
         let shulkerKey = MaterialKey {
             blockId: -16,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/shulker_box.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/shulker_box.png",
+                ),
                 tintIndex: None,
             }],
         };
@@ -4367,7 +4745,10 @@ impl VulkanWorldRenderer {
         let craftingKey = MaterialKey {
             blockId: -21,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/crafting_table.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/crafting_table.png",
+                ),
                 tintIndex: None,
             }],
         };
@@ -4388,7 +4769,10 @@ impl VulkanWorldRenderer {
         let enchantingKey = MaterialKey {
             blockId: -24,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/enchanting_table.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/enchanting_table.png",
+                ),
                 tintIndex: None,
             }],
         };
@@ -4402,7 +4786,10 @@ impl VulkanWorldRenderer {
         let brewingStandKey = MaterialKey {
             blockId: -26,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/brewing_stand.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/brewing_stand.png",
+                ),
                 tintIndex: None,
             }],
         };
@@ -4437,42 +4824,60 @@ impl VulkanWorldRenderer {
         let creativeTabsKey = MaterialKey {
             blockId: -17,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/creative_inventory/tabs.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/creative_inventory/tabs.png",
+                ),
                 tintIndex: None,
             }],
         };
         let creativeItemsKey = MaterialKey {
             blockId: -18,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/creative_inventory/tab_items.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/creative_inventory/tab_items.png",
+                ),
                 tintIndex: None,
             }],
         };
         let creativeSearchKey = MaterialKey {
             blockId: -19,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/creative_inventory/tab_item_search.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/creative_inventory/tab_item_search.png",
+                ),
                 tintIndex: None,
             }],
         };
         let creativeInventoryKey = MaterialKey {
             blockId: -20,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/gui/container/creative_inventory/tab_inventory.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/gui/container/creative_inventory/tab_inventory.png",
+                ),
                 tintIndex: None,
             }],
         };
         let glintKey = MaterialKey {
             blockId: -8,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/misc/enchanted_item_glint.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/misc/enchanted_item_glint.png",
+                ),
                 tintIndex: None,
             }],
         };
         let shieldBaseKey = MaterialKey {
             blockId: -9,
             layers: vec![MaterialLayerKey {
-                texture: ResourceLocation::new("minecraft", "textures/entity/shield_base_nopattern.png"),
+                texture: ResourceLocation::new(
+                    "minecraft",
+                    "textures/entity/shield_base_nopattern.png",
+                ),
                 tintIndex: None,
             }],
         };
@@ -4482,7 +4887,8 @@ impl VulkanWorldRenderer {
             (-12, "textures/items/empty_armor_slot_leggings.png"),
             (-13, "textures/items/empty_armor_slot_boots.png"),
             (-14, "textures/items/empty_armor_slot_shield.png"),
-        ].map(|(blockId, path)| MaterialKey {
+        ]
+        .map(|(blockId, path)| MaterialKey {
             blockId,
             layers: vec![MaterialLayerKey {
                 texture: ResourceLocation::new("minecraft", path),
@@ -4494,14 +4900,38 @@ impl VulkanWorldRenderer {
         self.registerMaterialKey(widgetsKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(iconsKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(barsKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(optionsBackgroundKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(minecraftTitleKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(editionTitleKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(unknownServerKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(resourcePackControlsKey.clone(), &mut materialIndices, &mut materials);
+        self.registerMaterialKey(
+            optionsBackgroundKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
+        self.registerMaterialKey(
+            minecraftTitleKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
+        self.registerMaterialKey(
+            editionTitleKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
+        self.registerMaterialKey(
+            unknownServerKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
+        self.registerMaterialKey(
+            resourcePackControlsKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
         self.registerMaterialKey(unknownPackKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(fontKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(standardGalacticFontKey.clone(), &mut materialIndices, &mut materials);
+        self.registerMaterialKey(
+            standardGalacticFontKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
         for key in &fontPageKeys {
             self.registerMaterialKey(key.clone(), &mut materialIndices, &mut materials);
         }
@@ -4514,15 +4944,35 @@ impl VulkanWorldRenderer {
         self.registerMaterialKey(anvilKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(enchantingKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(hopperKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(brewingStandKey.clone(), &mut materialIndices, &mut materials);
+        self.registerMaterialKey(
+            brewingStandKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
         self.registerMaterialKey(dispenserKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(beaconKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(merchantKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(recipeBookKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(creativeTabsKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(creativeItemsKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(creativeSearchKey.clone(), &mut materialIndices, &mut materials);
-        self.registerMaterialKey(creativeInventoryKey.clone(), &mut materialIndices, &mut materials);
+        self.registerMaterialKey(
+            creativeTabsKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
+        self.registerMaterialKey(
+            creativeItemsKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
+        self.registerMaterialKey(
+            creativeSearchKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
+        self.registerMaterialKey(
+            creativeInventoryKey.clone(),
+            &mut materialIndices,
+            &mut materials,
+        );
         self.registerMaterialKey(glintKey.clone(), &mut materialIndices, &mut materials);
         self.registerMaterialKey(shieldBaseKey.clone(), &mut materialIndices, &mut materials);
         for key in &emptySlotKeys {
@@ -4533,10 +4983,16 @@ impl VulkanWorldRenderer {
         // TextureMap in vanilla. Vulkan keeps one descriptor atlas, so these
         // native-size textures receive dedicated exact rectangles.
         let mut builtInTextureKeys = Vec::<(ResourceLocation, MaterialKey)>::new();
-        for (index, location) in TileEntityItemStackRenderer::staticTextures().into_iter().enumerate() {
+        for (index, location) in TileEntityItemStackRenderer::staticTextures()
+            .into_iter()
+            .enumerate()
+        {
             let key = MaterialKey {
                 blockId: -30_000 - index as i32,
-                layers: vec![MaterialLayerKey { texture: location.clone(), tintIndex: None }],
+                layers: vec![MaterialLayerKey {
+                    texture: location.clone(),
+                    tintIndex: None,
+                }],
             };
             self.registerMaterialKey(key.clone(), &mut materialIndices, &mut materials);
             builtInTextureKeys.push((location, key));
@@ -4547,17 +5003,24 @@ impl VulkanWorldRenderer {
         let mut bannerBaseKeys = Vec::<(ResourceLocation, MaterialKey)>::new();
         for dyeDamage in 0..16_i32 {
             let generated = ResourceLocation::new(
-                "minecraft", format!("textures/generated/banner_base_{dyeDamage}.png"),
+                "minecraft",
+                format!("textures/generated/banner_base_{dyeDamage}.png"),
             );
             let key = MaterialKey {
                 blockId: -31_000 - dyeDamage,
                 layers: vec![
                     MaterialLayerKey {
-                        texture: ResourceLocation::new("minecraft", "textures/entity/banner_base.png"),
+                        texture: ResourceLocation::new(
+                            "minecraft",
+                            "textures/entity/banner_base.png",
+                        ),
                         tintIndex: None,
                     },
                     MaterialLayerKey {
-                        texture: ResourceLocation::new("minecraft", "textures/entity/banner/base.png"),
+                        texture: ResourceLocation::new(
+                            "minecraft",
+                            "textures/entity/banner/base.png",
+                        ),
                         tintIndex: Some(dyeDamage),
                     },
                 ],
@@ -4603,10 +5066,8 @@ impl VulkanWorldRenderer {
             self.registerMaterialKey(key.clone(), &mut materialIndices, &mut materials);
         }
 
-        let solidWhiteLocation = ResourceLocation::new(
-            "minecraft",
-            "textures/generated/solid_white.png",
-        );
+        let solidWhiteLocation =
+            ResourceLocation::new("minecraft", "textures/generated/solid_white.png");
         let solidWhiteKey = MaterialKey {
             blockId: -34_005,
             layers: vec![MaterialLayerKey {
@@ -4614,15 +5075,9 @@ impl VulkanWorldRenderer {
                 tintIndex: None,
             }],
         };
-        self.registerMaterialKey(
-            solidWhiteKey.clone(),
-            &mut materialIndices,
-            &mut materials,
-        );
-        let mapCheckerLocation = ResourceLocation::new(
-            "minecraft",
-            "textures/generated/map_checker.png",
-        );
+        self.registerMaterialKey(solidWhiteKey.clone(), &mut materialIndices, &mut materials);
+        let mapCheckerLocation =
+            ResourceLocation::new("minecraft", "textures/generated/map_checker.png");
         let mapCheckerKey = MaterialKey {
             blockId: -34_006,
             layers: vec![MaterialLayerKey {
@@ -4630,11 +5085,7 @@ impl VulkanWorldRenderer {
                 tintIndex: None,
             }],
         };
-        self.registerMaterialKey(
-            mapCheckerKey.clone(),
-            &mut materialIndices,
-            &mut materials,
-        );
+        self.registerMaterialKey(mapCheckerKey.clone(), &mut materialIndices, &mut materials);
 
         // RenderManager entity renderers bind native entity sheets outside
         // TextureMap. Vulkan keeps them as exact rectangles in the shared atlas.
@@ -4718,23 +5169,30 @@ impl VulkanWorldRenderer {
         // LayerBipedArmor binds native 64x32 armor sheets outside TextureMap.
         for material in ["leather", "chainmail", "iron", "gold", "diamond"] {
             entityTextures.push(ResourceLocation::new(
-                "minecraft", format!("textures/models/armor/{material}_layer_1.png"),
+                "minecraft",
+                format!("textures/models/armor/{material}_layer_1.png"),
             ));
             entityTextures.push(ResourceLocation::new(
-                "minecraft", format!("textures/models/armor/{material}_layer_2.png"),
+                "minecraft",
+                format!("textures/models/armor/{material}_layer_2.png"),
             ));
         }
         entityTextures.push(ResourceLocation::new(
-            "minecraft", "textures/models/armor/leather_layer_1_overlay.png",
+            "minecraft",
+            "textures/models/armor/leather_layer_1_overlay.png",
         ));
         entityTextures.push(ResourceLocation::new(
-            "minecraft", "textures/models/armor/leather_layer_2_overlay.png",
+            "minecraft",
+            "textures/models/armor/leather_layer_2_overlay.png",
         ));
         entityTextures.push(LayerElytra::defaultTexture());
         for (index, location) in entityTextures.into_iter().enumerate() {
             let key = MaterialKey {
                 blockId: -35_000 - index as i32,
-                layers: vec![MaterialLayerKey { texture: location.clone(), tintIndex: None }],
+                layers: vec![MaterialLayerKey {
+                    texture: location.clone(),
+                    tintIndex: None,
+                }],
             };
             self.registerMaterialKey(key.clone(), &mut materialIndices, &mut materials);
             entityTextureKeys.push((location, key));
@@ -4742,10 +5200,14 @@ impl VulkanWorldRenderer {
         for (index, layered) in RenderHorse::layeredTextures().into_iter().enumerate() {
             let key = MaterialKey {
                 blockId: -36_000 - index as i32,
-                layers: layered.layers.into_iter().map(|texture| MaterialLayerKey {
-                    texture,
-                    tintIndex: None,
-                }).collect(),
+                layers: layered
+                    .layers
+                    .into_iter()
+                    .map(|texture| MaterialLayerKey {
+                        texture,
+                        tintIndex: None,
+                    })
+                    .collect(),
             };
             self.registerMaterialKey(key.clone(), &mut materialIndices, &mut materials);
             entityTextureKeys.push((layered.generated, key));
@@ -4808,7 +5270,9 @@ impl VulkanWorldRenderer {
         }
 
         let mut stairModels = HashMap::<(i32, StairShape), Arc<ResolvedBlockModel>>::new();
-        for blockId in [53, 67, 108, 109, 114, 128, 134, 135, 136, 156, 163, 164, 180, 203] {
+        for blockId in [
+            53, 67, 108, 109, 114, 128, 134, 135, 136, 156, 163, 164, 180, 203,
+        ] {
             for meta in 0..8 {
                 let state = IBlockState::fromGlobalStateId((blockId << 4) | meta);
                 let stateKey = stair_model_state_key(state);
@@ -4830,7 +5294,10 @@ impl VulkanWorldRenderer {
         let mut snowyModels = HashMap::<i32, Arc<ResolvedBlockModel>>::new();
         for blockId in [2, 110] {
             let state = IBlockState::fromGlobalStateId(blockId << 4);
-            if let Some(model) = self.blockModelShapes.getModelForVariant(state, "snowy=true") {
+            if let Some(model) = self
+                .blockModelShapes
+                .getModelForVariant(state, "snowy=true")
+            {
                 for quad in &model.quads {
                     if !quad.material.layers.is_empty() {
                         let key = material_key(state.getBlockId(), &quad.material);
@@ -4885,7 +5352,11 @@ impl VulkanWorldRenderer {
                     for quad in &model.quads {
                         if !quad.material.layers.is_empty() {
                             let material = material_key(BlockFire::BLOCK_ID, &quad.material);
-                            self.registerMaterialKey(material, &mut materialIndices, &mut materials);
+                            self.registerMaterialKey(
+                                material,
+                                &mut materialIndices,
+                                &mut materials,
+                            );
                         }
                     }
                     fireModels.insert((age, mask), model);
@@ -4914,10 +5385,7 @@ impl VulkanWorldRenderer {
                 // name from VARIANT; each resource contains only `half`.
                 // Including `variant=...` produces a missing variant and was
                 // the reason all six double plants rendered transparent.
-                let variant = format!(
-                    "half={}",
-                    if upper { "upper" } else { "lower" },
-                );
+                let variant = format!("half={}", if upper { "upper" } else { "lower" },);
                 let state = IBlockState::fromGlobalStateId(
                     (175 << 4) | variantMeta as i32 | (if upper { 8 } else { 0 }),
                 );
@@ -4925,7 +5393,11 @@ impl VulkanWorldRenderer {
                     for quad in &model.quads {
                         if !quad.material.layers.is_empty() {
                             let material = material_key(175, &quad.material);
-                            self.registerMaterialKey(material, &mut materialIndices, &mut materials);
+                            self.registerMaterialKey(
+                                material,
+                                &mut materialIndices,
+                                &mut materials,
+                            );
                         }
                     }
                     doublePlantModels.insert((variantMeta as u8, upper), model);
@@ -4940,9 +5412,12 @@ impl VulkanWorldRenderer {
         for facing in EnumFacing::VALUES {
             let facing_index = facing.index() as u8;
             let facing_name = match facing {
-                EnumFacing::Down => "down", EnumFacing::Up => "up",
-                EnumFacing::North => "north", EnumFacing::South => "south",
-                EnumFacing::West => "west", EnumFacing::East => "east",
+                EnumFacing::Down => "down",
+                EnumFacing::Up => "up",
+                EnumFacing::North => "north",
+                EnumFacing::South => "south",
+                EnumFacing::West => "west",
+                EnumFacing::East => "east",
             };
             for sticky in [false, true] {
                 for short in [false, true] {
@@ -4957,7 +5432,11 @@ impl VulkanWorldRenderer {
                         for quad in &model.quads {
                             if !quad.material.layers.is_empty() {
                                 let material = material_key(34, &quad.material);
-                                self.registerMaterialKey(material, &mut materialIndices, &mut materials);
+                                self.registerMaterialKey(
+                                    material,
+                                    &mut materialIndices,
+                                    &mut materials,
+                                );
                             }
                         }
                         pistonHeadModels.insert((facing_index, sticky, short), model);
@@ -4975,11 +5454,18 @@ impl VulkanWorldRenderer {
             let representative = IBlockState::fromGlobalStateId(blockId << 4);
             for key in 0_u8..32 {
                 let variant = BlockDoor::modelVariantFromKey(key);
-                if let Some(model) = self.blockModelShapes.getModelForVariant(representative, variant) {
+                if let Some(model) = self
+                    .blockModelShapes
+                    .getModelForVariant(representative, variant)
+                {
                     for quad in &model.quads {
                         if !quad.material.layers.is_empty() {
                             let material = material_key(blockId, &quad.material);
-                            self.registerMaterialKey(material, &mut materialIndices, &mut materials);
+                            self.registerMaterialKey(
+                                material,
+                                &mut materialIndices,
+                                &mut materials,
+                            );
                         }
                     }
                     doorModels.insert((blockId, key), model);
@@ -4995,11 +5481,18 @@ impl VulkanWorldRenderer {
             let representative = IBlockState::fromGlobalStateId(blockId << 4);
             for key in 0_u8..16 {
                 let variant = BlockFenceGate::modelVariantFromKey(key);
-                if let Some(model) = self.blockModelShapes.getModelForVariant(representative, variant) {
+                if let Some(model) = self
+                    .blockModelShapes
+                    .getModelForVariant(representative, variant)
+                {
                     for quad in &model.quads {
                         if !quad.material.layers.is_empty() {
                             let material = material_key(blockId, &quad.material);
-                            self.registerMaterialKey(material, &mut materialIndices, &mut materials);
+                            self.registerMaterialKey(
+                                material,
+                                &mut materialIndices,
+                                &mut materials,
+                            );
                         }
                     }
                     fenceGateModels.insert((blockId, key), model);
@@ -5014,7 +5507,10 @@ impl VulkanWorldRenderer {
         let representative = IBlockState::fromGlobalStateId(BlockRedstoneWire::BLOCK_ID << 4);
         for key in 0_u8..81 {
             let variant = BlockRedstoneWire::modelVariantFromKey(key);
-            if let Some(model) = self.blockModelShapes.getModelForVariant(representative, variant) {
+            if let Some(model) = self
+                .blockModelShapes
+                .getModelForVariant(representative, variant)
+            {
                 for quad in &model.quads {
                     if !quad.material.layers.is_empty() {
                         let material = material_key(BlockRedstoneWire::BLOCK_ID, &quad.material);
@@ -5031,7 +5527,10 @@ impl VulkanWorldRenderer {
         let representative = IBlockState::fromGlobalStateId(BlockFlowerPot::BLOCK_ID << 4);
         for contents in BlockFlowerPot::CONTENTS {
             let variant = BlockFlowerPot::modelVariant(contents);
-            if let Some(model) = self.blockModelShapes.getModelForVariant(representative, &variant) {
+            if let Some(model) = self
+                .blockModelShapes
+                .getModelForVariant(representative, &variant)
+            {
                 for quad in &model.quads {
                     if !quad.material.layers.is_empty() {
                         let material = material_key(BlockFlowerPot::BLOCK_ID, &quad.material);
@@ -5093,9 +5592,12 @@ impl VulkanWorldRenderer {
         // TextureManager dynamic objects are appended after all stable
         // TextureMap/entity/GUI registrations. Fixed reserve slots in
         // buildAtlas keep every pre-existing rectangle invariant.
-        let mut dynamicPlayerTextures = self.textureCache
+        let mut dynamicPlayerTextures = self
+            .textureCache
             .keys()
-            .filter(|location| location.getNamespace() == "minecraft" && location.getPath().starts_with("skins/"))
+            .filter(|location| {
+                location.getNamespace() == "minecraft" && location.getPath().starts_with("skins/")
+            })
             .cloned()
             .collect::<Vec<_>>();
         dynamicPlayerTextures.sort();
@@ -5104,7 +5606,10 @@ impl VulkanWorldRenderer {
         for (index, location) in dynamicPlayerTextures.into_iter().enumerate() {
             let key = MaterialKey {
                 blockId: DYNAMIC_PLAYER_MATERIAL_BASE - index as i32,
-                layers: vec![MaterialLayerKey { texture: location.clone(), tintIndex: None }],
+                layers: vec![MaterialLayerKey {
+                    texture: location.clone(),
+                    tintIndex: None,
+                }],
             };
             self.registerMaterialKey(key.clone(), &mut materialIndices, &mut materials);
             let materialIndex = *materialIndices
@@ -5113,11 +5618,14 @@ impl VulkanWorldRenderer {
             dynamicPlayerMaterialIndices.push((location.clone(), materialIndex));
             entityTextureKeys.push((location, key));
         }
-        let mut dynamicPackIcons = self.textureCache
+        let mut dynamicPackIcons = self
+            .textureCache
             .keys()
-            .filter(|location| location.getNamespace() == "minecraft"
-                && (location.getPath().starts_with("resourcepackicons/")
-                    || location.getPath() == "dynamic/default_pack_icon.png"))
+            .filter(|location| {
+                location.getNamespace() == "minecraft"
+                    && (location.getPath().starts_with("resourcepackicons/")
+                        || location.getPath() == "dynamic/default_pack_icon.png")
+            })
             .cloned()
             .collect::<Vec<_>>();
         dynamicPackIcons.sort();
@@ -5125,19 +5633,26 @@ impl VulkanWorldRenderer {
         for (index, location) in dynamicPackIcons.into_iter().enumerate() {
             let key = MaterialKey {
                 blockId: DYNAMIC_RESOURCE_PACK_ICON_MATERIAL_BASE - index as i32,
-                layers: vec![MaterialLayerKey { texture: location, tintIndex: None }],
+                layers: vec![MaterialLayerKey {
+                    texture: location,
+                    tintIndex: None,
+                }],
             };
             self.registerMaterialKey(key, &mut materialIndices, &mut materials);
         }
 
         let materialCount = materials.len();
-        let playerUnusedCount = DYNAMIC_PLAYER_TEXTURE_RESERVE
-            .saturating_sub(dynamicPlayerMaterialIndices.len());
+        let playerUnusedCount =
+            DYNAMIC_PLAYER_TEXTURE_RESERVE.saturating_sub(dynamicPlayerMaterialIndices.len());
         let (atlas, rectangles, exactRectangles, placements) = self.buildAtlas(&materials);
         let mut dynamicPlayerSlots = dynamicPlayerMaterialIndices
             .iter()
             .filter_map(|(_, index)| placements.get(*index).copied())
-            .map(|[originX, originY, tileSize]| DynamicAtlasSlot { originX, originY, tileSize })
+            .map(|[originX, originY, tileSize]| DynamicAtlasSlot {
+                originX,
+                originY,
+                tileSize,
+            })
             .collect::<Vec<_>>();
         dynamicPlayerSlots.extend(
             placements
@@ -5145,7 +5660,11 @@ impl VulkanWorldRenderer {
                 .skip(materialCount)
                 .take(playerUnusedCount)
                 .copied()
-                .map(|[originX, originY, tileSize]| DynamicAtlasSlot { originX, originY, tileSize }),
+                .map(|[originX, originY, tileSize]| DynamicAtlasSlot {
+                    originX,
+                    originY,
+                    tileSize,
+                }),
         );
         self.dynamicPlayerSlots = dynamicPlayerSlots;
         self.dynamicPlayerAssignments = dynamicPlayerMaterialIndices
@@ -5166,7 +5685,11 @@ impl VulkanWorldRenderer {
                 // TextureAtlasSprite independently uses a 0.01-atlas-pixel
                 // min/max inset; item sprites bind the native TextureManager
                 // rectangle while stitched block materials use that MCP inset.
-                let rectangle = if material.key.blockId == -1000 { exact } else { inset };
+                let rectangle = if material.key.blockId == -1000 {
+                    exact
+                } else {
+                    inset
+                };
                 (material.key.clone(), rectangle)
             })
             .collect::<HashMap<_, _>>();
@@ -5574,26 +6097,28 @@ impl VulkanWorldRenderer {
         if let Some(texture) = self.textureCache.get(location) {
             return Arc::clone(texture);
         }
-        let texture = Arc::new(if location.getNamespace() == "minecraft"
-            && location.getPath() == "textures/missingno.png"
-        {
-            // TextureUtil's missing sprite is generated in memory; it is not a
-            // resource-pack PNG and must not produce a misleading I/O warning.
-            TextureSource::missing(location.clone())
-        } else if location.getNamespace() == "minecraft"
-            && location.getPath() == "textures/generated/solid_white.png"
-        {
-            TextureSource::solid_white(location.clone())
-        } else if location.getNamespace() == "minecraft"
-            && location.getPath() == "textures/generated/map_checker.png"
-        {
-            TextureSource::map_checker(location.clone())
-        } else {
-            TextureSource::load(&self.resourceManager, location).unwrap_or_else(|error| {
-                log::warn!("failed loading world texture {location}: {error}");
+        let texture = Arc::new(
+            if location.getNamespace() == "minecraft"
+                && location.getPath() == "textures/missingno.png"
+            {
+                // TextureUtil's missing sprite is generated in memory; it is not a
+                // resource-pack PNG and must not produce a misleading I/O warning.
                 TextureSource::missing(location.clone())
-            })
-        });
+            } else if location.getNamespace() == "minecraft"
+                && location.getPath() == "textures/generated/solid_white.png"
+            {
+                TextureSource::solid_white(location.clone())
+            } else if location.getNamespace() == "minecraft"
+                && location.getPath() == "textures/generated/map_checker.png"
+            {
+                TextureSource::map_checker(location.clone())
+            } else {
+                TextureSource::load(&self.resourceManager, location).unwrap_or_else(|error| {
+                    log::warn!("failed loading world texture {location}: {error}");
+                    TextureSource::missing(location.clone())
+                })
+            },
+        );
         self.textureCache
             .insert(location.clone(), Arc::clone(&texture));
         texture
@@ -5602,7 +6127,12 @@ impl VulkanWorldRenderer {
     fn buildAtlas(
         &self,
         materials: &[MaterialRegistration],
-    ) -> (BlockTextureAtlas, Vec<[f32; 4]>, Vec<[f32; 4]>, Vec<[u32; 3]>) {
+    ) -> (
+        BlockTextureAtlas,
+        Vec<[f32; 4]>,
+        Vec<[f32; 4]>,
+        Vec<[u32; 3]>,
+    ) {
         if materials.is_empty() {
             let full = vec![[0.0, 0.0, 1.0, 1.0]];
             return (missing_atlas(), full.clone(), full, vec![[0, 0, 1]]);
@@ -5612,14 +6142,22 @@ impl VulkanWorldRenderer {
         // therefore does not enlarge every 16x16 terrain sprite when a 64x64
         // entity texture is present. The Vulkan backend keeps one descriptor
         // atlas, but preserves that variable-size placement responsibility.
-        let mut tileSizes = materials
+        let mut tileSizes = materials.iter().map(material_tile_size).collect::<Vec<_>>();
+        let playerCount = materials
             .iter()
-            .map(material_tile_size)
-            .collect::<Vec<_>>();
-        let playerCount = materials.iter().filter(|material| is_dynamic_player_material(material.key.blockId)).count();
-        let iconCount = materials.iter().filter(|material| is_dynamic_resource_pack_icon_material(material.key.blockId)).count();
-        tileSizes.extend(std::iter::repeat(64).take(DYNAMIC_PLAYER_TEXTURE_RESERVE.saturating_sub(playerCount)));
-        tileSizes.extend(std::iter::repeat(32).take(DYNAMIC_RESOURCE_PACK_ICON_RESERVE.saturating_sub(iconCount)));
+            .filter(|material| is_dynamic_player_material(material.key.blockId))
+            .count();
+        let iconCount = materials
+            .iter()
+            .filter(|material| is_dynamic_resource_pack_icon_material(material.key.blockId))
+            .count();
+        tileSizes.extend(
+            std::iter::repeat(64).take(DYNAMIC_PLAYER_TEXTURE_RESERVE.saturating_sub(playerCount)),
+        );
+        tileSizes.extend(
+            std::iter::repeat(32)
+                .take(DYNAMIC_RESOURCE_PACK_ICON_RESERVE.saturating_sub(iconCount)),
+        );
         let (width, height, placements) = stitch_material_tiles(&tileSizes);
         let mut rgba = vec![0_u8; width as usize * height as usize * 4];
         let mut rectangles = Vec::with_capacity(materials.len());
@@ -5633,7 +6171,11 @@ impl VulkanWorldRenderer {
                 .iter()
                 .zip(material.textures.iter())
                 .collect::<Vec<_>>();
-            let dynamicTint = material.key.layers.iter().all(|layer| layer.tintIndex.is_some());
+            let dynamicTint = material
+                .key
+                .layers
+                .iter()
+                .all(|layer| layer.tintIndex.is_some());
             let bannerDyeDamage = (-31_015..=-31_000)
                 .contains(&material.key.blockId)
                 .then_some((-31_000 - material.key.blockId) as usize);
@@ -5648,12 +6190,12 @@ impl VulkanWorldRenderer {
                         // MathHelper.multiplyColor(base, dye).
                         let baseImage = &material.textures[0].image;
                         let maskImage = &material.textures[1].image;
-                        let baseX = ((x as u64 * baseImage.width().max(1) as u64)
-                            / tileSize as u64) as u32;
+                        let baseX =
+                            ((x as u64 * baseImage.width().max(1) as u64) / tileSize as u64) as u32;
                         let baseY = ((y as u64 * baseImage.height().max(1) as u64)
                             / tileSize as u64) as u32;
-                        let maskX = ((x as u64 * maskImage.width().max(1) as u64)
-                            / tileSize as u64) as u32;
+                        let maskX =
+                            ((x as u64 * maskImage.width().max(1) as u64) / tileSize as u64) as u32;
                         let maskY = ((y as u64 * maskImage.height().max(1) as u64)
                             / tileSize as u64) as u32;
                         let base = baseImage.pixel_rgba(
@@ -5740,22 +6282,22 @@ impl VulkanWorldRenderer {
                     }
                     let destination = (((originY + y) * width + originX + x) * 4) as usize;
                     rgba[destination] = (output[0].clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
-                    rgba[destination + 1] =
-                        (output[1].clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
-                    rgba[destination + 2] =
-                        (output[2].clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
-                    rgba[destination + 3] =
-                        (output[3].clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
+                    rgba[destination + 1] = (output[1].clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
+                    rgba[destination + 2] = (output[2].clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
+                    rgba[destination + 3] = (output[3].clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
                 }
             }
 
             let (spriteWidth, spriteHeight) = if fullEntityTexture {
-                material.textures.iter().fold((1_u32, 1_u32), |size, texture| {
-                    (
-                        size.0.max(texture.image.width().max(1).min(tileSize)),
-                        size.1.max(texture.image.height().max(1).min(tileSize)),
-                    )
-                })
+                material
+                    .textures
+                    .iter()
+                    .fold((1_u32, 1_u32), |size, texture| {
+                        (
+                            size.0.max(texture.image.width().max(1).min(tileSize)),
+                            size.1.max(texture.image.height().max(1).min(tileSize)),
+                        )
+                    })
             } else {
                 fire_material_texture(material)
                     .map(|texture| {
@@ -5810,7 +6352,8 @@ impl VulkanWorldRenderer {
     fn markEmptyRenderChunk(&mut self, key: RenderChunkKey, sourceRevision: u64) {
         self.queuedChunks.remove(&key);
         self.priorityQueuedChunks.remove(&key);
-        self.priorityPendingChunks.retain(|candidate| *candidate != key);
+        self.priorityPendingChunks
+            .retain(|candidate| *candidate != key);
         self.pendingChunks.retain(|candidate| *candidate != key);
         self.chunksToResortTransparencySet.remove(&key);
         self.chunksToResortTransparency
@@ -6013,7 +6556,8 @@ impl VulkanWorldRenderer {
         }
         self.queuedChunks.remove(&key);
         self.priorityQueuedChunks.remove(&key);
-        self.priorityPendingChunks.retain(|candidate| *candidate != key);
+        self.priorityPendingChunks
+            .retain(|candidate| *candidate != key);
         self.pendingChunks.retain(|candidate| *candidate != key);
         self.chunksToResortTransparencySet.remove(&key);
         self.chunksToResortTransparency
@@ -6112,18 +6656,14 @@ fn prepare_translucent_sort(
         center[2] = center[2] * 0.25 - camera[2];
         scratch.order.push(TranslucentQuadOrder {
             originalIndex: quadIndex,
-            distanceSquared: center[0] * center[0]
-                + center[1] * center[1]
-                + center[2] * center[2],
+            distanceSquared: center[0] * center[0] + center[1] * center[1] + center[2] * center[2],
         });
     }
     // Java `Arrays.sort(Object[], Comparator)` is stable. Rust's `sort_by` is
     // also stable, so equal-distance quads retain their current state order.
-    scratch.order.sort_by(|left, right| {
-        right
-            .distanceSquared
-            .total_cmp(&left.distanceSquared)
-    });
+    scratch
+        .order
+        .sort_by(|left, right| right.distanceSquared.total_cmp(&left.distanceSquared));
     scratch
         .order
         .iter()
@@ -6167,7 +6707,11 @@ fn sort_translucent_indices(
 }
 
 fn sort_translucent_layer(mesh: &mut LayerMesh, camera: [f32; 3]) -> bool {
-    sort_translucent_indices(mesh.vertices.as_slice(), mesh.indices.as_mut_slice(), camera)
+    sort_translucent_indices(
+        mesh.vertices.as_slice(),
+        mesh.indices.as_mut_slice(),
+        camera,
+    )
 }
 
 fn prepare_translucent_index_range_sort(
@@ -6237,9 +6781,7 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
             compiledChunk,
         };
     };
-    if !key.isValidWorldHeight()
-        || chunk.getBlockStorageArray()[key.y as usize].is_none()
-    {
+    if !key.isValidWorldHeight() || chunk.getBlockStorageArray()[key.y as usize].is_none() {
         return ChunkBuildResult {
             key,
             token: job.request.token,
@@ -6254,7 +6796,9 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
 
     let mut layers: [LayerMesh; 4] = std::array::from_fn(|_| LayerMesh::default());
     let mut visGraph = VisGraph::new();
-    let access = SnapshotBlockAccess { chunks: &job.snapshot };
+    let access = SnapshotBlockAccess {
+        chunks: &job.snapshot,
+    };
     let baseX = key.x * 16;
     let baseY = key.y * 16;
     let baseZ = key.z * 16;
@@ -6271,16 +6815,10 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
                     visGraph.setOpaqueCube(localX, localY, localZ);
                 }
 
-                let blockPos = BlockPos::new(
-                    baseX + localX as i32,
-                    worldY,
-                    baseZ + localZ as i32,
-                );
+                let blockPos = BlockPos::new(baseX + localX as i32, worldY, baseZ + localZ as i32);
                 if BlockLiquid::isLiquid(state) {
-                    let renderLayer = BlockRenderLayer::forBlockId(
-                        state.getBlockId(),
-                        job.request.fancyGraphics,
-                    );
+                    let renderLayer =
+                        BlockRenderLayer::forBlockId(state.getBlockId(), job.request.fancyGraphics);
                     compiledChunk.setLayerStarted(renderLayer);
                     let sprites = if matches!(state.getBlockId(), 10 | 11) {
                         FluidSprites {
@@ -6301,36 +6839,43 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
                         blockPos,
                         &job.atlas.blockColors,
                         sprites,
-                        |sample, liquidState| snapshot_combined_light(
-                            &job.snapshot,
-                            sample,
-                            job.request.dimension,
-                            liquidState,
-                        ),
+                        |sample, liquidState| {
+                            snapshot_combined_light(
+                                &job.snapshot,
+                                sample,
+                                job.request.dimension,
+                                liquidState,
+                            )
+                        },
                     );
                     if !fluid.indices.is_empty() {
                         let layerMesh = &mut layers[renderLayer.index()];
                         let baseVertex = layerMesh.vertices.len() as u32;
-                        layerMesh.vertices.extend(fluid.vertices.into_iter().map(|vertex| WorldVertex {
-                            position: vertex.position,
-                            uv: vertex.uv,
-                            color: vertex.color,
-                            lightmap: [
-                                ((vertex.packedLight >> 4) & 15) as f32,
-                                ((vertex.packedLight >> 20) & 15) as f32,
-                            ],
-                        
-                            shaderEntity: shader_entity_data(state, 1),
-                            shaderPadding: 0,
-                        }));
-                        layerMesh.indices.extend(fluid.indices.into_iter().map(|index| baseVertex + index));
+                        layerMesh
+                            .vertices
+                            .extend(fluid.vertices.into_iter().map(|vertex| WorldVertex {
+                                position: vertex.position,
+                                uv: vertex.uv,
+                                color: vertex.color,
+                                lightmap: [
+                                    ((vertex.packedLight >> 4) & 15) as f32,
+                                    ((vertex.packedLight >> 20) & 15) as f32,
+                                ],
+
+                                shaderEntity: shader_entity_data(state, 1),
+                                shaderPadding: 0,
+                            }));
+                        layerMesh
+                            .indices
+                            .extend(fluid.indices.into_iter().map(|index| baseVertex + index));
                         compiledChunk.setLayerUsed(renderLayer);
                     }
                     continue;
                 }
 
                 let model = if state.getBlockId() == BlockFlowerPot::BLOCK_ID {
-                    let contents = job.flowerPotContents
+                    let contents = job
+                        .flowerPotContents
                         .get(&blockPos)
                         .map(String::as_str)
                         .unwrap_or("empty");
@@ -6347,10 +6892,7 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
                         state
                     };
                     let key = double_plant_actual_model_key(state, lower);
-                    job.atlas
-                        .doublePlantModels
-                        .get(&key)
-                        .map(Arc::as_ref)
+                    job.atlas.doublePlantModels.get(&key).map(Arc::as_ref)
                 } else if BlockFire::isBlockFire(state) {
                     let mask = BlockFire::actualStateMask(&access, blockPos);
                     job.atlas
@@ -6404,10 +6946,8 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
                     continue;
                 }
 
-                let renderLayer = BlockRenderLayer::forBlockId(
-                    state.getBlockId(),
-                    job.request.fancyGraphics,
-                );
+                let renderLayer =
+                    BlockRenderLayer::forBlockId(state.getBlockId(), job.request.fancyGraphics);
                 compiledChunk.setLayerStarted(renderLayer);
                 let layerMesh = &mut layers[renderLayer.index()];
                 let indicesBefore = layerMesh.indices.len();
@@ -6442,11 +6982,7 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
                     // occlusion. Flat lighting remains the exact fallback.
                     let lightFace = quad.cullFace.unwrap_or(quad.face);
                     let useAdjacent = quad.cullFace.is_some()
-                        || quad_uses_neighbour_light(
-                            quad.positions,
-                            quad.face,
-                            model.fullCube,
-                        );
+                        || quad_uses_neighbour_light(quad.positions, quad.face, model.fullCube);
                     let smooth = job.request.ambientOcclusion > 0
                         && state.getBlock().getLightValue() == 0
                         && model.ambientOcclusion;
@@ -6470,12 +7006,14 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
                             quad.positions,
                             useAdjacent,
                             |sample| snapshot_block_state(&job.snapshot, sample),
-                            |sample| snapshot_combined_light(
-                                &job.snapshot,
-                                sample,
-                                job.request.dimension,
-                                state,
-                            ),
+                            |sample| {
+                                snapshot_combined_light(
+                                    &job.snapshot,
+                                    sample,
+                                    job.request.dimension,
+                                    state,
+                                )
+                            },
                         )
                     } else {
                         crate::net::minecraft::client::renderer::BlockModelRenderer::AmbientOcclusionResult::flat(
@@ -6488,7 +7026,8 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
                     } else {
                         1.0
                     };
-                    let tint = dynamic_quad_tint(&job.atlas, &access, state, blockPos, &quad.material);
+                    let tint =
+                        dynamic_quad_tint(&job.atlas, &access, state, blockPos, &quad.material);
                     let baseVertex = layerMesh.vertices.len() as u32;
                     for vertexIndex in 0..4 {
                         let localPosition = quad.positions[vertexIndex];
@@ -6516,7 +7055,7 @@ fn build_chunk_mesh(job: ChunkBuildJob) -> ChunkBuildResult {
                                 ((packedLight >> 4) & 15) as f32,
                                 ((packedLight >> 20) & 15) as f32,
                             ],
-                        
+
                             shaderEntity: shader_entity_data(state, 3),
                             shaderPadding: 0,
                         });
@@ -6607,7 +7146,6 @@ fn combine_layer_meshes(
     (vertices, indices, layerRanges)
 }
 
-
 fn stair_model_state_key(state: IBlockState) -> i32 {
     (state.getBlockId() << 4) | (state.getMetadata() & 7)
 }
@@ -6621,7 +7159,10 @@ fn connected_model_state_key(state: IBlockState) -> i32 {
 }
 
 fn is_connected_model_block(blockId: i32) -> bool {
-    matches!(blockId, 85 | 101 | 102 | 113 | 139 | 160 | 188 | 189 | 190 | 191 | 192)
+    matches!(
+        blockId,
+        85 | 101 | 102 | 113 | 139 | 160 | 188 | 189 | 190 | 191 | 192
+    )
 }
 
 fn connected_variant(mask: u8, wall: bool) -> String {
@@ -6710,7 +7251,8 @@ fn should_render_face(
     if neighbour.isAir() {
         return true;
     }
-    if neighbour.getBlockId() == state.getBlockId() && self_culling_translucent(state.getBlockId()) {
+    if neighbour.getBlockId() == state.getBlockId() && self_culling_translucent(state.getBlockId())
+    {
         return false;
     }
     model_for_state(models, neighbour).map_or(true, |model| !model.opaqueCube)
@@ -6849,11 +7391,7 @@ fn snapshot_raw_light(
 }
 
 /// Exact `BlockModelRenderer.fillQuadBounds` flag 0 for flat-light sampling.
-fn quad_uses_neighbour_light(
-    positions: [[f32; 3]; 4],
-    face: EnumFacing,
-    fullCube: bool,
-) -> bool {
+fn quad_uses_neighbour_light(positions: [[f32; 3]; 4], face: EnumFacing, fullCube: bool) -> bool {
     let mut minimum = [f32::INFINITY; 3];
     let mut maximum = [f32::NEG_INFINITY; 3];
     for position in positions {
@@ -6865,12 +7403,24 @@ fn quad_uses_neighbour_light(
     let low = 1.0e-4_f32;
     let high = 0.9999_f32;
     match face {
-        EnumFacing::Down => (minimum[1] < low || fullCube) && approximately_equal(minimum[1], maximum[1]),
-        EnumFacing::Up => (maximum[1] > high || fullCube) && approximately_equal(minimum[1], maximum[1]),
-        EnumFacing::North => (minimum[2] < low || fullCube) && approximately_equal(minimum[2], maximum[2]),
-        EnumFacing::South => (maximum[2] > high || fullCube) && approximately_equal(minimum[2], maximum[2]),
-        EnumFacing::West => (minimum[0] < low || fullCube) && approximately_equal(minimum[0], maximum[0]),
-        EnumFacing::East => (maximum[0] > high || fullCube) && approximately_equal(minimum[0], maximum[0]),
+        EnumFacing::Down => {
+            (minimum[1] < low || fullCube) && approximately_equal(minimum[1], maximum[1])
+        }
+        EnumFacing::Up => {
+            (maximum[1] > high || fullCube) && approximately_equal(minimum[1], maximum[1])
+        }
+        EnumFacing::North => {
+            (minimum[2] < low || fullCube) && approximately_equal(minimum[2], maximum[2])
+        }
+        EnumFacing::South => {
+            (maximum[2] > high || fullCube) && approximately_equal(minimum[2], maximum[2])
+        }
+        EnumFacing::West => {
+            (minimum[0] < low || fullCube) && approximately_equal(minimum[0], maximum[0])
+        }
+        EnumFacing::East => {
+            (maximum[0] > high || fullCube) && approximately_equal(minimum[0], maximum[0])
+        }
     }
 }
 
@@ -6929,11 +7479,13 @@ fn fire_material_texture(material: &MaterialRegistration) -> Option<&Arc<Texture
 }
 
 fn fire_texture_layer(face: &ResolvedFace) -> Option<usize> {
-    face.layers.iter().find_map(|layer| match layer.texture.getPath() {
-        "textures/blocks/fire_layer_0.png" => Some(0),
-        "textures/blocks/fire_layer_1.png" => Some(1),
-        _ => None,
-    })
+    face.layers
+        .iter()
+        .find_map(|layer| match layer.texture.getPath() {
+            "textures/blocks/fire_layer_0.png" => Some(0),
+            "textures/blocks/fire_layer_1.png" => Some(1),
+            _ => None,
+        })
 }
 
 fn encoded_fire_alpha(alpha: f32, layer: usize) -> f32 {
@@ -6943,12 +7495,14 @@ fn encoded_fire_alpha(alpha: f32, layer: usize) -> f32 {
 
 fn is_dynamic_player_material(blockId: i32) -> bool {
     (DYNAMIC_PLAYER_MATERIAL_BASE - DYNAMIC_PLAYER_TEXTURE_RESERVE as i32 + 1
-        ..=DYNAMIC_PLAYER_MATERIAL_BASE).contains(&blockId)
+        ..=DYNAMIC_PLAYER_MATERIAL_BASE)
+        .contains(&blockId)
 }
 
 fn is_dynamic_resource_pack_icon_material(blockId: i32) -> bool {
     (DYNAMIC_RESOURCE_PACK_ICON_MATERIAL_BASE - DYNAMIC_RESOURCE_PACK_ICON_RESERVE as i32 + 1
-        ..=DYNAMIC_RESOURCE_PACK_ICON_MATERIAL_BASE).contains(&blockId)
+        ..=DYNAMIC_RESOURCE_PACK_ICON_MATERIAL_BASE)
+        .contains(&blockId)
 }
 
 fn is_full_entity_texture_material(blockId: i32) -> bool {
@@ -7006,11 +7560,15 @@ fn material_tile_size(material: &MaterialRegistration) -> u32 {
 fn stitch_material_tiles(tileSizes: &[u32]) -> (u32, u32, Vec<[u32; 3]>) {
     const MAX_ATLAS: u32 = 8192;
     let maximum = tileSizes.iter().copied().max().unwrap_or(1).max(1);
-    let area = tileSizes
-        .iter()
-        .fold(0_u64, |sum, size| sum.saturating_add((*size as u64) * (*size as u64)));
+    let area = tileSizes.iter().fold(0_u64, |sum, size| {
+        sum.saturating_add((*size as u64) * (*size as u64))
+    });
     let approximate = (area as f64).sqrt().ceil() as u32;
-    let mut width = approximate.max(maximum).max(1).next_power_of_two().min(MAX_ATLAS);
+    let mut width = approximate
+        .max(maximum)
+        .max(1)
+        .next_power_of_two()
+        .min(MAX_ATLAS);
     let mut order = (0..tileSizes.len()).collect::<Vec<_>>();
     order.sort_by_key(|index| (std::cmp::Reverse(tileSizes[*index]), *index));
 
@@ -7080,31 +7638,45 @@ fn orient_camera_112(
         let bedState = player
             .bedLocation
             .map(|bed| world.getBlockState(bed))
-            .unwrap_or_else(|| world.getBlockState(BlockPos::new(
-                position.posX.floor() as i32,
-                position.posY.floor() as i32,
-                position.posZ.floor() as i32,
-            )));
+            .unwrap_or_else(|| {
+                world.getBlockState(BlockPos::new(
+                    position.posX.floor() as i32,
+                    position.posY.floor() as i32,
+                    position.posZ.floor() as i32,
+                ))
+            });
         let bedRotation = if BlockBed::isBlockBed(bedState) {
             BlockBed::getFacing(bedState).horizontalIndex().unwrap_or(0) as f32 * 90.0
         } else {
             0.0
         };
         return (
-            [position.posX as f32, (position.posY + 0.9) as f32, position.posZ as f32],
+            [
+                position.posX as f32,
+                (position.posY + 0.9) as f32,
+                position.posZ as f32,
+            ],
             bedRotation - 180.0,
             0.0,
         );
     }
     if thirdPersonView <= 0 {
-        return ([eye.x as f32, eye.y as f32, eye.z as f32], position.rotationYaw, position.rotationPitch);
+        return (
+            [eye.x as f32, eye.y as f32, eye.z as f32],
+            position.rotationYaw,
+            position.rotationPitch,
+        );
     }
 
     // Vanilla uses the entity's current rotation for the displacement rays,
     // while the final camera orientation remains tick-interpolated.
     let currentYaw = player.map_or(position.rotationYaw, |value| value.entity.rotationYaw);
     let currentPitch = player.map_or(position.rotationPitch, |value| value.entity.rotationPitch);
-    let displacementPitch = if thirdPersonView == 2 { currentPitch + 180.0 } else { currentPitch };
+    let displacementPitch = if thirdPersonView == 2 {
+        currentPitch + 180.0
+    } else {
+        currentPitch
+    };
     let yawRadians = (currentYaw * 0.017453292_f32) as f64;
     let pitchRadians = (displacementPitch * 0.017453292_f32) as f64;
     let mut distance = 4.0_f64;
@@ -7124,7 +7696,9 @@ fn orient_camera_112(
         );
         if let Some(hit) = world.rayTraceBlocks(start, end, false, false, false) {
             let hitDistance = hit.hitVec.distance_to(eye);
-            if hitDistance < distance { distance = hitDistance; }
+            if hitDistance < distance {
+                distance = hitDistance;
+            }
         }
     }
 
@@ -7150,16 +7724,17 @@ fn orient_camera_112(
         (eye.z - finalDz) as f32,
     ];
     if thirdPersonView == 2 {
-        (camera, position.rotationYaw + 180.0, -position.rotationPitch)
+        (
+            camera,
+            position.rotationYaw + 180.0,
+            -position.rotationPitch,
+        )
     } else {
         (camera, position.rotationYaw, position.rotationPitch)
     }
 }
 
-fn interpolated_player_position(
-    state: &PlayClientState,
-    partialTicks: f32,
-) -> PlayerPositionState {
+fn interpolated_player_position(state: &PlayClientState, partialTicks: f32) -> PlayerPositionState {
     let partial = partialTicks.clamp(0.0, 1.0) as f64;
     let Some(player) = state.thePlayer.as_ref() else {
         return state.playerPosition;
@@ -7175,7 +7750,6 @@ fn interpolated_player_position(
         eyeHeight: player.getEyeHeight(),
     }
 }
-
 
 /// MCP `BlockDoublePlant#getActualState` model key. The upper half stores
 /// only HALF plus placement FACING; VARIANT belongs to the lower half.
@@ -7242,10 +7816,7 @@ fn actual_model_for_state<'a>(
             state
         };
         let key = double_plant_actual_model_key(state, lower);
-        atlas
-            .doublePlantModels
-            .get(&key)
-            .map(Arc::as_ref)
+        atlas.doublePlantModels.get(&key).map(Arc::as_ref)
     } else if BlockDoor::isBlockDoor(state) {
         let access = SnapshotBlockAccess { chunks };
         let key = BlockDoor::modelKey(state, &access, position);
@@ -7278,7 +7849,10 @@ fn actual_model_for_state<'a>(
             .get(&(connected_model_state_key(state), mask))
             .map(Arc::as_ref)
     } else if matches!(state.getBlockId(), 2 | 110)
-        && matches!(snapshot_block_state(chunks, position.up(1)).getBlockId(), 78 | 80)
+        && matches!(
+            snapshot_block_state(chunks, position.up(1)).getBlockId(),
+            78 | 80
+        )
     {
         atlas.snowyModels.get(&state.getBlockId()).map(Arc::as_ref)
     } else {
@@ -7297,7 +7871,11 @@ fn build_digging_particle_mesh(
     let mut indices = Vec::with_capacity(capture.particleStates.len() * 6);
     let yaw = capture.playerPosition.rotationYaw.to_radians();
     let pitch = capture.playerPosition.rotationPitch.to_radians();
-    let frontSign = if capture.thirdPersonView == 2 { -1.0 } else { 1.0 };
+    let frontSign = if capture.thirdPersonView == 2 {
+        -1.0
+    } else {
+        1.0
+    };
     let rotationX = yaw.cos() * frontSign;
     let rotationZ = yaw.sin() * frontSign;
     let rotationYZ = -rotationZ * pitch.sin() * frontSign;
@@ -7311,18 +7889,15 @@ fn build_digging_particle_mesh(
         // actual-state model here so a door half, redstone connection or
         // double-plant top never selects the metadata-only missing model.
         let capturedActualModel = match particle.actualModel {
-            Some(ParticleActualModel::Door { blockId, key }) => atlas
-                .doorModels
-                .get(&(blockId, key))
-                .map(Arc::as_ref),
-            Some(ParticleActualModel::FenceGate { blockId, key }) => atlas
-                .fenceGateModels
-                .get(&(blockId, key))
-                .map(Arc::as_ref),
-            Some(ParticleActualModel::RedstoneWire { key }) => atlas
-                .redstoneWireModels
-                .get(&key)
-                .map(Arc::as_ref),
+            Some(ParticleActualModel::Door { blockId, key }) => {
+                atlas.doorModels.get(&(blockId, key)).map(Arc::as_ref)
+            }
+            Some(ParticleActualModel::FenceGate { blockId, key }) => {
+                atlas.fenceGateModels.get(&(blockId, key)).map(Arc::as_ref)
+            }
+            Some(ParticleActualModel::RedstoneWire { key }) => {
+                atlas.redstoneWireModels.get(&key).map(Arc::as_ref)
+            }
             Some(ParticleActualModel::DoublePlant { variant, upper }) => atlas
                 .doublePlantModels
                 .get(&(variant, upper))
@@ -7409,13 +7984,16 @@ fn build_digging_particle_mesh(
             ((packedLight >> 20) & 15) as f32,
         ];
         let base = vertices.len() as u32;
-        for (position, uv) in positions.into_iter().zip([[u0, v1], [u0, v0], [u1, v0], [u1, v1]]) {
+        for (position, uv) in positions
+            .into_iter()
+            .zip([[u0, v1], [u0, v0], [u1, v0], [u1, v1]])
+        {
             vertices.push(WorldVertex {
                 position,
                 uv,
                 color: particle.color,
                 lightmap,
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -7424,7 +8002,6 @@ fn build_digging_particle_mesh(
     }
     (vertices, indices)
 }
-
 
 /// MCP `ParticleManager#renderParticles` layer-0 (`particles.png`) queue.
 /// Vanilla keeps transparent and depth-writing particles in distinct lists,
@@ -7436,14 +8013,22 @@ fn append_misc_particle_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(rectangle) = atlas.entityTextureRectangles.get(&RenderFish::texture()).copied() else {
+    let Some(rectangle) = atlas
+        .entityTextureRectangles
+        .get(&RenderFish::texture())
+        .copied()
+    else {
         return;
     };
     let atlasWidth = rectangle[2] - rectangle[0];
     let atlasHeight = rectangle[3] - rectangle[1];
     let yaw = capture.playerPosition.rotationYaw.to_radians();
     let pitch = capture.playerPosition.rotationPitch.to_radians();
-    let frontSign = if capture.thirdPersonView == 2 { -1.0 } else { 1.0 };
+    let frontSign = if capture.thirdPersonView == 2 {
+        -1.0
+    } else {
+        1.0
+    };
     let rotationX = yaw.cos() * frontSign;
     let rotationZ = yaw.sin() * frontSign;
     let rotationYZ = -rotationZ * pitch.sin() * frontSign;
@@ -7456,7 +8041,11 @@ fn append_misc_particle_mesh(
     ];
     let partial = capture.partialTicks.clamp(0.0, 1.0);
 
-    for particle in capture.miscParticleStates.iter().filter(|state| state.transparent == transparent) {
+    for particle in capture
+        .miscParticleStates
+        .iter()
+        .filter(|state| state.transparent == transparent)
+    {
         let textureX = particle.textureIndex.rem_euclid(16) as f32;
         let textureY = particle.textureIndex.div_euclid(16) as f32;
         let localU0 = textureX / 16.0;
@@ -7469,16 +8058,35 @@ fn append_misc_particle_mesh(
         let v1 = rectangle[1] + atlasHeight * localV1;
         let scale = 0.1 * particle.scale;
         let x = (particle.prevPosition[0]
-            + (particle.position[0] - particle.prevPosition[0]) * partial as f64) as f32;
+            + (particle.position[0] - particle.prevPosition[0]) * partial as f64)
+            as f32;
         let y = (particle.prevPosition[1]
-            + (particle.position[1] - particle.prevPosition[1]) * partial as f64) as f32;
+            + (particle.position[1] - particle.prevPosition[1]) * partial as f64)
+            as f32;
         let z = (particle.prevPosition[2]
-            + (particle.position[2] - particle.prevPosition[2]) * partial as f64) as f32;
+            + (particle.position[2] - particle.prevPosition[2]) * partial as f64)
+            as f32;
         let mut offsets = [
-            [-rotationX * scale - rotationYZ * scale, -rotationXZ * scale, -rotationZ * scale - rotationXY * scale],
-            [-rotationX * scale + rotationYZ * scale, rotationXZ * scale, -rotationZ * scale + rotationXY * scale],
-            [rotationX * scale + rotationYZ * scale, rotationXZ * scale, rotationZ * scale + rotationXY * scale],
-            [rotationX * scale - rotationYZ * scale, -rotationXZ * scale, rotationZ * scale - rotationXY * scale],
+            [
+                -rotationX * scale - rotationYZ * scale,
+                -rotationXZ * scale,
+                -rotationZ * scale - rotationXY * scale,
+            ],
+            [
+                -rotationX * scale + rotationYZ * scale,
+                rotationXZ * scale,
+                -rotationZ * scale + rotationXY * scale,
+            ],
+            [
+                rotationX * scale + rotationYZ * scale,
+                rotationXZ * scale,
+                rotationZ * scale + rotationXY * scale,
+            ],
+            [
+                rotationX * scale - rotationYZ * scale,
+                -rotationXZ * scale,
+                rotationZ * scale - rotationXY * scale,
+            ],
         ];
         if particle.particleAngle != 0.0 {
             // Particle#renderParticle rotates each billboard corner by the
@@ -7503,9 +8111,15 @@ fn append_misc_particle_mesh(
                 ];
                 let original = *offset;
                 *offset = [
-                    q[0] * (2.0 * dot) + original[0] * (halfCos * halfCos - qDot) + cross[0] * (2.0 * halfCos),
-                    q[1] * (2.0 * dot) + original[1] * (halfCos * halfCos - qDot) + cross[1] * (2.0 * halfCos),
-                    q[2] * (2.0 * dot) + original[2] * (halfCos * halfCos - qDot) + cross[2] * (2.0 * halfCos),
+                    q[0] * (2.0 * dot)
+                        + original[0] * (halfCos * halfCos - qDot)
+                        + cross[0] * (2.0 * halfCos),
+                    q[1] * (2.0 * dot)
+                        + original[1] * (halfCos * halfCos - qDot)
+                        + cross[1] * (2.0 * halfCos),
+                    q[2] * (2.0 * dot)
+                        + original[2] * (halfCos * halfCos - qDot)
+                        + cross[2] * (2.0 * halfCos),
                 ];
             }
         }
@@ -7514,17 +8128,21 @@ fn append_misc_particle_mesh(
         } else {
             let position = BlockPos::new(x.floor() as i32, y.floor() as i32, z.floor() as i32);
             let state = snapshot_block_state(&capture.snapshot, position);
-            let packed = snapshot_combined_light(&capture.snapshot, position, capture.dimension, state);
+            let packed =
+                snapshot_combined_light(&capture.snapshot, position, capture.dimension, state);
             [((packed >> 4) & 15) as f32, ((packed >> 20) & 15) as f32]
         };
         let base = vertices.len() as u32;
-        for (offset, uv) in offsets.into_iter().zip([[u1, v1], [u1, v0], [u0, v0], [u0, v1]]) {
+        for (offset, uv) in offsets
+            .into_iter()
+            .zip([[u1, v1], [u1, v0], [u0, v0], [u0, v1]])
+        {
             vertices.push(WorldVertex {
                 position: [x + offset[0], y + offset[1], z + offset[2]],
                 uv,
                 color: particle.color,
                 lightmap,
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -7557,7 +8175,10 @@ fn build_block_damage_mesh(
         }
         let state = snapshot_block_state(&capture.snapshot, position);
         if state.isAir()
-            || matches!(state.getBlockId(), 54 | 63 | 68 | 130 | 144 | 146 | 219..=234)
+            || matches!(
+                state.getBlockId(),
+                54 | 63 | 68 | 130 | 144 | 146 | 219..=234
+            )
         {
             continue;
         }
@@ -7570,13 +8191,8 @@ fn build_block_damage_mesh(
         let rectangle = atlas.destroyStageRectangles[stage as usize];
         for quad in &model.quads {
             if let Some(cullFace) = quad.cullFace {
-                if !should_render_face(
-                    &capture.snapshot,
-                    &atlas.models,
-                    state,
-                    position,
-                    cullFace,
-                ) {
+                if !should_render_face(&capture.snapshot, &atlas.models, state, position, cullFace)
+                {
                     continue;
                 }
             }
@@ -7589,12 +8205,8 @@ fn build_block_damage_mesh(
             } else {
                 position
             };
-            let flatPackedLight = snapshot_combined_light(
-                &capture.snapshot,
-                flatPosition,
-                capture.dimension,
-                state,
-            );
+            let flatPackedLight =
+                snapshot_combined_light(&capture.snapshot, flatPosition, capture.dimension, state);
             let smooth = capture.ambientOcclusion > 0
                 && state.getBlock().getLightValue() == 0
                 && model.ambientOcclusion;
@@ -7606,12 +8218,9 @@ fn build_block_damage_mesh(
                     quad.positions,
                     useAdjacent,
                     |sample| snapshot_block_state(&capture.snapshot, sample),
-                    |sample| snapshot_combined_light(
-                        &capture.snapshot,
-                        sample,
-                        capture.dimension,
-                        state,
-                    ),
+                    |sample| {
+                        snapshot_combined_light(&capture.snapshot, sample, capture.dimension, state)
+                    },
                 )
             } else {
                 crate::net::minecraft::client::renderer::BlockModelRenderer::AmbientOcclusionResult::flat(
@@ -7641,7 +8250,7 @@ fn build_block_damage_mesh(
                         ((packedLight >> 4) & 15) as f32,
                         ((packedLight >> 20) & 15) as f32,
                     ],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
@@ -7655,10 +8264,20 @@ fn build_block_damage_mesh(
 fn build_selection_box_mesh(
     selection: Option<SelectionBoxRenderState>,
 ) -> (Vec<WorldVertex>, Vec<u32>) {
-    let Some(selection) = selection else { return (Vec::new(), Vec::new()); };
+    let Some(selection) = selection else {
+        return (Vec::new(), Vec::new());
+    };
     let bounds = selection.boundingBox;
-    let min = [bounds.min_x as f32, bounds.min_y as f32, bounds.min_z as f32];
-    let max = [bounds.max_x as f32, bounds.max_y as f32, bounds.max_z as f32];
+    let min = [
+        bounds.min_x as f32,
+        bounds.min_y as f32,
+        bounds.min_z as f32,
+    ];
+    let max = [
+        bounds.max_x as f32,
+        bounds.max_y as f32,
+        bounds.max_z as f32,
+    ];
     // RenderGlobal.drawBoundingBox emits one GL_LINE_STRIP with sixteen
     // vertices. Three repeated connector vertices have alpha zero; retaining
     // those vertices preserves the original fade/edge ordering rather than
@@ -7692,7 +8311,7 @@ fn build_selection_box_mesh(
             uv: [0.0, 0.0],
             color,
             lightmap: [15.0, 15.0],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         });
@@ -7735,7 +8354,11 @@ fn append_debug_box(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let state = SelectionBoxRenderState { boundingBox: bounds, color, lineWidth: 1.0 };
+    let state = SelectionBoxRenderState {
+        boundingBox: bounds,
+        color,
+        lineWidth: 1.0,
+    };
     let (sourceVertices, sourceIndices) = build_selection_box_mesh(Some(state));
     append_existing_line_strip(vertices, indices, &sourceVertices, &sourceIndices);
 }
@@ -7746,7 +8369,11 @@ fn debug_look_vector(yaw: f32, pitch: f32) -> [f32; 3] {
     let yawCos = yaw.cos();
     let yawSin = yaw.sin();
     let pitchHorizontal = -pitch.cos();
-    [yawSin * pitchHorizontal, pitch.sin(), yawCos * pitchHorizontal]
+    [
+        yawSin * pitchHorizontal,
+        pitch.sin(),
+        yawCos * pitchHorizontal,
+    ]
 }
 
 fn append_living_debug_geometry(
@@ -7796,7 +8423,9 @@ fn append_debug_entity_boxes(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if !capture.showDebugHitboxes { return; }
+    if !capture.showDebugHitboxes {
+        return;
+    }
     let partial = capture.partialTicks.clamp(0.0, 1.0) as f64;
     let mut appendPlayer = |player: &RemotePlayerRenderState| {
         let x = player.prevPosition[0] + (player.position[0] - player.prevPosition[0]) * partial;
@@ -7805,7 +8434,14 @@ fn append_debug_entity_boxes(
         let yaw = player.prevHeadYaw + (player.headYaw - player.prevHeadYaw) * partial as f32;
         let pitch = player.prevPitch + (player.pitch - player.prevPitch) * partial as f32;
         append_living_debug_geometry(
-            AxisAlignedBB::new(x - 0.3, y, z - 0.3, x + 0.3, y + player.height as f64, z + 0.3),
+            AxisAlignedBB::new(
+                x - 0.3,
+                y,
+                z - 0.3,
+                x + 0.3,
+                y + player.height as f64,
+                z + 0.3,
+            ),
             [x, y, z],
             0.6,
             player.eyeHeight,
@@ -7815,9 +8451,13 @@ fn append_debug_entity_boxes(
             indices,
         );
     };
-    for player in &capture.remotePlayers { appendPlayer(player); }
+    for player in &capture.remotePlayers {
+        appendPlayer(player);
+    }
     if capture.thirdPersonView != 0 {
-        if let Some(player) = capture.localPlayerRenderState.as_ref() { appendPlayer(player); }
+        if let Some(player) = capture.localPlayerRenderState.as_ref() {
+            appendPlayer(player);
+        }
     }
     for entity in &capture.nonPlayerEntities {
         let x = entity.entity.prevPosX + (entity.entity.posX - entity.entity.prevPosX) * partial;
@@ -7850,7 +8490,11 @@ fn append_debug_entity_boxes(
             append_debug_line_strip(
                 &[
                     [x as f32, eyeY as f32, z as f32],
-                    [x as f32 + look[0] * 2.0, eyeY as f32 + look[1] * 2.0, z as f32 + look[2] * 2.0],
+                    [
+                        x as f32 + look[0] * 2.0,
+                        eyeY as f32 + look[1] * 2.0,
+                        z as f32 + look[2] * 2.0,
+                    ],
                 ],
                 [0.0, 0.0, 1.0, 1.0],
                 vertices,
@@ -7866,13 +8510,21 @@ fn append_debug_line_strip(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if points.len() < 2 { return; }
-    let sourceVertices = points.iter().map(|position| WorldVertex {
-        position: *position, uv: [0.0, 0.0], color, lightmap: [15.0, 15.0],
-    
-        shaderEntity: [-1, -1, -1],
-        shaderPadding: 0,
-    }).collect::<Vec<_>>();
+    if points.len() < 2 {
+        return;
+    }
+    let sourceVertices = points
+        .iter()
+        .map(|position| WorldVertex {
+            position: *position,
+            uv: [0.0, 0.0],
+            color,
+            lightmap: [15.0, 15.0],
+
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        })
+        .collect::<Vec<_>>();
     let sourceIndices = (0..sourceVertices.len() as u32).collect::<Vec<_>>();
     append_existing_line_strip(vertices, indices, &sourceVertices, &sourceIndices);
 }
@@ -7882,7 +8534,9 @@ fn append_chunk_boundaries(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if !capture.showChunkBoundaries { return; }
+    if !capture.showChunkBoundaries {
+        return;
+    }
     let chunkX = (capture.playerPosition.posX.floor() as i32).div_euclid(16) * 16;
     let chunkZ = (capture.playerPosition.posZ.floor() as i32).div_euclid(16) * 16;
     let x0 = chunkX as f32;
@@ -7895,8 +8549,10 @@ fn append_chunk_boundaries(
     for xOffset in (-16..=32).step_by(16) {
         for zOffset in (-16..=32).step_by(16) {
             append_debug_line_strip(
-                &[[x0 + xOffset as f32, 0.0, z0 + zOffset as f32],
-                  [x0 + xOffset as f32, 256.0, z0 + zOffset as f32]],
+                &[
+                    [x0 + xOffset as f32, 0.0, z0 + zOffset as f32],
+                    [x0 + xOffset as f32, 256.0, z0 + zOffset as f32],
+                ],
                 [1.0, 0.0, 0.0, 0.5],
                 vertices,
                 indices,
@@ -7907,14 +8563,40 @@ fn append_chunk_boundaries(
     // Two-block subdivisions on all four walls and horizontal Y slices.
     for offset in (2..16).step_by(2) {
         let o = offset as f32;
-        append_debug_line_strip(&[[x0 + o, 0.0, z0], [x0 + o, 256.0, z0]], [1.0, 1.0, 0.0, 1.0], vertices, indices);
-        append_debug_line_strip(&[[x0 + o, 0.0, z1], [x0 + o, 256.0, z1]], [1.0, 1.0, 0.0, 1.0], vertices, indices);
-        append_debug_line_strip(&[[x0, 0.0, z0 + o], [x0, 256.0, z0 + o]], [1.0, 1.0, 0.0, 1.0], vertices, indices);
-        append_debug_line_strip(&[[x1, 0.0, z0 + o], [x1, 256.0, z0 + o]], [1.0, 1.0, 0.0, 1.0], vertices, indices);
+        append_debug_line_strip(
+            &[[x0 + o, 0.0, z0], [x0 + o, 256.0, z0]],
+            [1.0, 1.0, 0.0, 1.0],
+            vertices,
+            indices,
+        );
+        append_debug_line_strip(
+            &[[x0 + o, 0.0, z1], [x0 + o, 256.0, z1]],
+            [1.0, 1.0, 0.0, 1.0],
+            vertices,
+            indices,
+        );
+        append_debug_line_strip(
+            &[[x0, 0.0, z0 + o], [x0, 256.0, z0 + o]],
+            [1.0, 1.0, 0.0, 1.0],
+            vertices,
+            indices,
+        );
+        append_debug_line_strip(
+            &[[x1, 0.0, z0 + o], [x1, 256.0, z0 + o]],
+            [1.0, 1.0, 0.0, 1.0],
+            vertices,
+            indices,
+        );
     }
     for y in (0..=256).step_by(2) {
         append_debug_line_strip(
-            &[[x0, y as f32, z0], [x0, y as f32, z1], [x1, y as f32, z1], [x1, y as f32, z0], [x0, y as f32, z0]],
+            &[
+                [x0, y as f32, z0],
+                [x0, y as f32, z1],
+                [x1, y as f32, z1],
+                [x1, y as f32, z0],
+                [x0, y as f32, z0],
+            ],
             [1.0, 1.0, 0.0, 1.0],
             vertices,
             indices,
@@ -7925,12 +8607,23 @@ fn append_chunk_boundaries(
     // backend retains the exact blue geometry and colour in its line pipeline.
     for x in [x0, x1] {
         for z in [z0, z1] {
-            append_debug_line_strip(&[[x, 0.0, z], [x, 256.0, z]], [0.25, 0.25, 1.0, 1.0], vertices, indices);
+            append_debug_line_strip(
+                &[[x, 0.0, z], [x, 256.0, z]],
+                [0.25, 0.25, 1.0, 1.0],
+                vertices,
+                indices,
+            );
         }
     }
     for y in (0..=256).step_by(16) {
         append_debug_line_strip(
-            &[[x0, y as f32, z0], [x0, y as f32, z1], [x1, y as f32, z1], [x1, y as f32, z0], [x0, y as f32, z0]],
+            &[
+                [x0, y as f32, z0],
+                [x0, y as f32, z1],
+                [x1, y as f32, z1],
+                [x1, y as f32, z0],
+                [x0, y as f32, z0],
+            ],
             [0.25, 0.25, 1.0, 1.0],
             vertices,
             indices,
@@ -7938,10 +8631,7 @@ fn append_chunk_boundaries(
     }
 }
 
-fn block_entity_local_snapshot_hash(
-    snapshot: &HashMap<ChunkKey, Chunk>,
-    pos: BlockPos,
-) -> u64 {
+fn block_entity_local_snapshot_hash(snapshot: &HashMap<ChunkKey, Chunk>, pos: BlockPos) -> u64 {
     // TileEntityPistonRenderer reads the moving state and immediate neighbour
     // states through BlockRendererDispatcher/BlockModelRenderer. Hash only the
     // chunks intersecting a one-block neighbourhood instead of every loaded
@@ -7954,7 +8644,10 @@ fn block_entity_local_snapshot_hash(
     for chunkX in minChunkX..=maxChunkX {
         for chunkZ in minChunkZ..=maxChunkZ {
             let key = ChunkKey::new(chunkX, chunkZ);
-            let revision = snapshot.get(&key).map(|chunk| chunk.revision()).unwrap_or(0);
+            let revision = snapshot
+                .get(&key)
+                .map(|chunk| chunk.revision())
+                .unwrap_or(0);
             write!(&mut fingerprint, "{chunkX}:{chunkZ}:{revision};")
                 .expect("local block-entity snapshot hashing cannot fail");
         }
@@ -8069,11 +8762,9 @@ fn shulker_box_tile_entity_visible(
 
 fn sign_uses_obfuscated_formatting(sign: &SignRenderState) -> bool {
     sign.lines.iter().any(|line| {
-        line.as_bytes().windows(3).any(|code| {
-            code[0] == 0xC2
-                && code[1] == 0xA7
-                && matches!(code[2], b'k' | b'K')
-        })
+        line.as_bytes()
+            .windows(3)
+            .any(|code| code[0] == 0xC2 && code[1] == 0xA7 && matches!(code[2], b'k' | b'K'))
     })
 }
 
@@ -8269,7 +8960,6 @@ fn build_block_entity_meshes(
         append_block_entity_mesh_batch(&mesh, &mut batch.vertices, &mut batch.indices);
     }
 
-
     frameMeshCache.finishBlockEntityFrame();
     batch
 }
@@ -8329,7 +9019,10 @@ fn build_dynamic_meshes(
         &capture.scoreboard,
         &capture.localPlayerName,
         capture.localPlayerSpectator,
-        capture.localPlayerRenderState.as_ref().map(|player| player.entityId),
+        capture
+            .localPlayerRenderState
+            .as_ref()
+            .map(|player| player.entityId),
         viewerPosition,
         capture.partialTicks,
         capture.cameraYaw,
@@ -8446,9 +9139,8 @@ fn build_dynamic_meshes(
         &mut worldLineVertices,
         &mut worldLineIndices,
     );
-    let tntOverlayIndexCount = entityOverlayIndices.len() as u32
-        - skyOverlayIndexCount
-        - playerGlintIndexCount;
+    let tntOverlayIndexCount =
+        entityOverlayIndices.len() as u32 - skyOverlayIndexCount - playerGlintIndexCount;
     let (beaconCoreIndexCount, beaconGlowIndexCount) = append_beacon_tile_entity_meshes(
         &capture.beacons,
         capture.totalWorldTime,
@@ -8499,7 +9191,10 @@ fn build_dynamic_meshes(
     if beaconGlowIndexCount > 0 {
         entityOverlayDrawRanges.push(EntityOverlayDrawRange {
             pipeline: EntityOverlayPipelineKind::BeaconGlow,
-            firstIndex: skyOverlayIndexCount + playerGlintIndexCount + tntOverlayIndexCount + beaconCoreIndexCount,
+            firstIndex: skyOverlayIndexCount
+                + playerGlintIndexCount
+                + tntOverlayIndexCount
+                + beaconCoreIndexCount,
             indexCount: beaconGlowIndexCount,
         });
     }
@@ -8548,7 +9243,8 @@ fn build_dynamic_meshes(
         &mut damageVertices,
         &mut damageIndices,
     );
-    let (selectionBoxVertices, selectionBoxIndices) = build_selection_box_mesh(capture.selectionBox);
+    let (selectionBoxVertices, selectionBoxIndices) =
+        build_selection_box_mesh(capture.selectionBox);
     append_existing_line_strip(
         &mut worldLineVertices,
         &mut worldLineIndices,
@@ -8560,19 +9256,8 @@ fn build_dynamic_meshes(
     let selectionVertices = worldLineVertices;
     let selectionIndices = worldLineIndices;
     let (firstPersonVertices, firstPersonIndices, firstPersonDrawRanges, firstPersonPushConstants) =
-        build_first_person_item_meshes(
-            &capture,
-            atlas,
-            aspect,
-            farPlaneDistance,
-            lightmap,
-        );
-    let (
-        hudVertices,
-        hudIndices,
-        hudDrawRanges,
-        hudPushConstants,
-    ) = build_ingame_hud(
+        build_first_person_item_meshes(&capture, atlas, aspect, farPlaneDistance, lightmap);
+    let (hudVertices, hudIndices, hudDrawRanges, hudPushConstants) = build_ingame_hud(
         &capture,
         atlas,
         guiIngame,
@@ -8583,7 +9268,6 @@ fn build_dynamic_meshes(
         standardGalacticFontRenderer,
         locale,
     );
-
 
     CachedDynamicMeshes {
         entityMeshGeneration: 0,
@@ -8683,12 +9367,8 @@ fn make_frame(
     let farPlaneDistance = capture.renderDistanceChunks as f32 * 16.0;
     let clipDistance = farPlaneDistance * 2.0;
     let modelViewMatrix = camera_view_matrix(capture.cameraYaw, capture.cameraPitch, camera);
-    let projectionMatrix = perspective_matrix(
-        capture.fov.clamp(30.0, 110.0),
-        aspect,
-        0.05,
-        clipDistance,
-    );
+    let projectionMatrix =
+        perspective_matrix(capture.fov.clamp(30.0, 110.0), aspect, 0.05, clipDistance);
     let viewProjection = multiply4(projectionMatrix, modelViewMatrix);
     let cameraRelativeClip = multiply4(viewProjection, translation4(camera));
     let mut frustum = Frustum::new(ClippingHelperImpl::fromClipMatrix(cameraRelativeClip));
@@ -8742,8 +9422,12 @@ fn make_frame(
     let mut visibleChunkOrderSignature = VISIBLE_ORDER_FNV_OFFSET;
     let mut visibleChunks = Vec::with_capacity(terrainTraversalScratch.result().len());
     for key in terrainTraversalScratch.result().iter().copied() {
-        let Some(mesh) = chunks.get(&key) else { continue; };
-        if mesh.indexCount == 0 || !mesh.ready { continue; }
+        let Some(mesh) = chunks.get(&key) else {
+            continue;
+        };
+        if mesh.indexCount == 0 || !mesh.ready {
+            continue;
+        }
         // `RenderGlobal#setupTerrain` already paid for this ordered traversal.
         // Fold the key here instead of walking the complete visible list again
         // in the Vulkan submit path every frame.
@@ -8764,10 +9448,7 @@ fn make_frame(
             ],
         });
     }
-    mixVisibleKey(
-        &mut visibleChunkOrderSignature,
-        visibleChunks.len() as u64,
-    );
+    mixVisibleKey(&mut visibleChunkOrderSignature, visibleChunks.len() as u64);
 
     let dynamicMeshes = if frameMeshCache.shouldRebuild(
         worldGeneration,
@@ -8844,7 +9525,10 @@ fn make_frame(
             dynamicMeshes.selectionMeshGeneration,
             dynamicMeshes.firstPersonMeshGeneration,
             dynamicMeshes.hudMeshGeneration,
-        ].into_iter().max().unwrap_or(0),
+        ]
+        .into_iter()
+        .max()
+        .unwrap_or(0),
         entityMeshGeneration: dynamicMeshes.entityMeshGeneration,
         blockEntityMeshGeneration: dynamicMeshes.blockEntityMeshGeneration,
         staticEntityMeshGeneration: dynamicMeshes.staticEntityMeshGeneration,
@@ -8943,7 +9627,12 @@ fn make_frame(
             )),
             cameraPosition: [camera[0], camera[1], camera[2], 0.0],
             fogColor: [fogColor[0], fogColor[1], fogColor[2], 1.0],
-            fogParameters: [farPlaneDistance * 0.75, farPlaneDistance, clipDistance * 4.0, 0.1],
+            fogParameters: [
+                farPlaneDistance * 0.75,
+                farPlaneDistance,
+                clipDistance * 4.0,
+                0.1,
+            ],
             // Clouds are texture-coloured and unlit, but remain fogged.
             lightmapParameters: [1.0, 0.0, 0.0, 98.0],
         },
@@ -8952,14 +9641,18 @@ fn make_frame(
     }
 }
 
-
 fn build_first_person_item_meshes(
     capture: &WorldRenderCapture,
     atlas: &AtlasState,
     aspect: f32,
     farPlaneDistance: f32,
     lightmap: crate::net::minecraft::client::renderer::EntityRenderer::LightmapParameters,
-) -> (Vec<WorldVertex>, Vec<u32>, Vec<FirstPersonDrawRange>, WorldPushConstants) {
+) -> (
+    Vec<WorldVertex>,
+    Vec<u32>,
+    Vec<FirstPersonDrawRange>,
+    WorldPushConstants,
+) {
     let projection = perspective_matrix(
         capture.fov.clamp(30.0, 110.0),
         aspect,
@@ -9022,7 +9715,8 @@ fn build_first_person_item_meshes(
             mainSide,
             mainSwing,
             capture.firstPersonItems.equipOffsetMainHand,
-            capture.firstPersonItems.handActive && capture.firstPersonItems.activeHand == EnumHand::MainHand,
+            capture.firstPersonItems.handActive
+                && capture.firstPersonItems.activeHand == EnumHand::MainHand,
             capture.firstPersonItems.activeUseAction,
             capture.firstPersonItems.itemInUseCount,
             capture.firstPersonItems.activeMaxUseDuration,
@@ -9053,7 +9747,8 @@ fn build_first_person_item_meshes(
             offSide,
             offSwing,
             capture.firstPersonItems.equipOffsetOffHand,
-            capture.firstPersonItems.handActive && capture.firstPersonItems.activeHand == EnumHand::OffHand,
+            capture.firstPersonItems.handActive
+                && capture.firstPersonItems.activeHand == EnumHand::OffHand,
             capture.firstPersonItems.activeUseAction,
             capture.firstPersonItems.itemInUseCount,
             capture.firstPersonItems.activeMaxUseDuration,
@@ -9148,7 +9843,7 @@ fn append_first_person_fire_overlay(
                 uv: uv[corner],
                 color: [1.0, 1.0, 1.0, encoded_fire_alpha(0.9, 1)],
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -9241,9 +9936,14 @@ fn append_first_person_item(
         return;
     }
 
-    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else { return; };
-    let Some(baseModel) = atlas.itemModels.get(&modelKey) else { return; };
-    let blockingShield = handActive && useAction == EnumAction::Block && is_unpatterned_shield(stack);
+    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else {
+        return;
+    };
+    let Some(baseModel) = atlas.itemModels.get(&modelKey) else {
+        return;
+    };
+    let blockingShield =
+        handActive && useAction == EnumAction::Block && is_unpatterned_shield(stack);
     let model = if blockingShield {
         atlas.shieldBlockingModel.as_ref().unwrap_or(baseModel)
     } else {
@@ -9272,11 +9972,14 @@ fn append_first_person_item(
     matrix = multiply4(matrix, rotation_y4(armYawOffset));
 
     let sideTransform = |matrix: [[f32; 4]; 4]| {
-        multiply4(matrix, translation4([
-            side * 0.56,
-            -0.52 + equipOffset.clamp(0.0, 1.0) * -0.6,
-            -0.72,
-        ]))
+        multiply4(
+            matrix,
+            translation4([
+                side * 0.56,
+                -0.52 + equipOffset.clamp(0.0, 1.0) * -0.6,
+                -0.72,
+            ]),
+        )
     };
 
     if handActive && itemInUseCount > 0 {
@@ -9290,7 +9993,10 @@ fn append_first_person_item(
                     matrix = multiply4(matrix, translation4([0.0, bob, 0.0]));
                 }
                 let progress = 1.0 - ratio.powf(27.0);
-                matrix = multiply4(matrix, translation4([progress * 0.6 * side, progress * -0.5, 0.0]));
+                matrix = multiply4(
+                    matrix,
+                    translation4([progress * 0.6 * side, progress * -0.5, 0.0]),
+                );
                 matrix = multiply4(matrix, rotation_y4(side * progress * 90.0));
                 matrix = multiply4(matrix, rotation_x4(progress * 10.0));
                 matrix = multiply4(matrix, rotation_z4(side * progress * 30.0));
@@ -9298,7 +10004,10 @@ fn append_first_person_item(
             }
             EnumAction::Bow => {
                 matrix = sideTransform(matrix);
-                matrix = multiply4(matrix, translation4([side * -0.2785682, 0.18344387, 0.15731531]));
+                matrix = multiply4(
+                    matrix,
+                    translation4([side * -0.2785682, 0.18344387, 0.15731531]),
+                );
                 matrix = multiply4(matrix, rotation_x4(-13.935));
                 matrix = multiply4(matrix, rotation_y4(side * 35.3));
                 matrix = multiply4(matrix, rotation_z4(side * -9.785));
@@ -9326,7 +10035,10 @@ fn append_first_person_item(
         let translateZ = -0.2 * (swing * std::f32::consts::PI).sin();
         let swingSquared = (swing * swing * std::f32::consts::PI).sin();
         let swingRootSin = (rootSwing * std::f32::consts::PI).sin();
-        matrix = multiply4(matrix, translation4([side * translateX, translateY, translateZ]));
+        matrix = multiply4(
+            matrix,
+            translation4([side * translateX, translateY, translateZ]),
+        );
         matrix = sideTransform(matrix);
         matrix = multiply4(matrix, rotation_y4(side * (45.0 + swingSquared * -20.0)));
         matrix = multiply4(matrix, rotation_z4(side * swingRootSin * -20.0));
@@ -9369,7 +10081,9 @@ fn append_first_person_item(
         ^ (itemTransform.scale[2] < 0.0);
 
     for quad in &model.quads {
-        let transformed = quad.positions.map(|position| transform_point3(matrix, position));
+        let transformed = quad
+            .positions
+            .map(|position| transform_point3(matrix, position));
         let edge1 = subtract3(transformed[1], transformed[0]);
         let edge2 = subtract3(transformed[2], transformed[0]);
         let normal = normalize3(cross3(edge1, edge2));
@@ -9388,22 +10102,15 @@ fn append_first_person_item(
         let base = vertices.len() as u32;
         for vertexIndex in 0..4 {
             let uv = [
-                rectangle[0]
-                    + (rectangle[2] - rectangle[0]) * quad.uvs[vertexIndex][0],
-                rectangle[1]
-                    + (rectangle[3] - rectangle[1]) * quad.uvs[vertexIndex][1],
+                rectangle[0] + (rectangle[2] - rectangle[0]) * quad.uvs[vertexIndex][0],
+                rectangle[1] + (rectangle[3] - rectangle[1]) * quad.uvs[vertexIndex][1],
             ];
             vertices.push(WorldVertex {
                 position: transformed[vertexIndex],
                 uv,
-                color: [
-                    tint[0] * diffuse,
-                    tint[1] * diffuse,
-                    tint[2] * diffuse,
-                    1.0,
-                ],
+                color: [tint[0] * diffuse, tint[1] * diffuse, tint[2] * diffuse, 1.0],
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -9456,11 +10163,14 @@ fn append_first_person_arm(
     let translateX = -0.3 * (rootSwing * std::f32::consts::PI).sin();
     let translateY = 0.4 * (rootSwing * std::f32::consts::TAU).sin();
     let translateZ = -0.4 * (swing * std::f32::consts::PI).sin();
-    matrix = multiply4(matrix, translation4([
-        side * (translateX + 0.64000005),
-        translateY - 0.6 + equipOffset.clamp(0.0, 1.0) * -0.6,
-        translateZ - 0.71999997,
-    ]));
+    matrix = multiply4(
+        matrix,
+        translation4([
+            side * (translateX + 0.64000005),
+            translateY - 0.6 + equipOffset.clamp(0.0, 1.0) * -0.6,
+            translateZ - 0.71999997,
+        ]),
+    );
     matrix = multiply4(matrix, rotation_y4(side * 45.0));
     let swingSquared = (swing * swing * std::f32::consts::PI).sin();
     let swingRoot = (rootSwing * std::f32::consts::PI).sin();
@@ -9485,7 +10195,6 @@ fn append_first_person_arm(
         indices,
     );
 }
-
 
 #[allow(clippy::too_many_arguments)]
 fn append_first_person_map(
@@ -9590,7 +10299,11 @@ fn append_first_person_map_two_handed(
     if !playerInvisible {
         let armsRoot = multiply4(matrix, rotation_y4(90.0));
         for side in [EnumHandSide::Right, EnumHandSide::Left] {
-            let sign = if side == EnumHandSide::Right { 1.0 } else { -1.0 };
+            let sign = if side == EnumHandSide::Right {
+                1.0
+            } else {
+                -1.0
+            };
             let mut armMatrix = armsRoot;
             armMatrix = multiply4(armMatrix, rotation_y4(92.0));
             armMatrix = multiply4(armMatrix, rotation_x4(45.0));
@@ -9635,7 +10348,11 @@ fn append_first_person_map_side(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let sign = if handSide == EnumHandSide::Right { 1.0 } else { -1.0 };
+    let sign = if handSide == EnumHandSide::Right {
+        1.0
+    } else {
+        -1.0
+    };
     let swing = swingProgress.clamp(0.0, 1.0);
     let rootSwing = swing.sqrt();
     matrix = multiply4(matrix, translation4([sign * 0.125, -0.125, 0.0]));
@@ -9671,11 +10388,7 @@ fn append_first_person_map_side(
     let translateZ = -0.3 * (swing * std::f32::consts::PI).sin();
     matrix = multiply4(
         matrix,
-        translation4([
-            sign * translateX,
-            translateY - 0.3 * swingSin,
-            translateZ,
-        ]),
+        translation4([sign * translateX, translateY - 0.3 * swingSin, translateZ]),
     );
     matrix = multiply4(matrix, rotation_x4(swingSin * -45.0));
     matrix = multiply4(matrix, rotation_y4(sign * swingSin * -30.0));
@@ -9688,7 +10401,11 @@ fn first_person_arm_matrix(
     swingProgress: f32,
     equipOffset: f32,
 ) -> [[f32; 4]; 4] {
-    let sign = if handSide == EnumHandSide::Right { 1.0 } else { -1.0 };
+    let sign = if handSide == EnumHandSide::Right {
+        1.0
+    } else {
+        -1.0
+    };
     let swing = swingProgress.clamp(0.0, 1.0);
     let rootSwing = swing.sqrt();
     let translateX = -0.3 * (rootSwing * std::f32::consts::PI).sin();
@@ -9782,15 +10499,25 @@ fn append_first_person_arm_mesh(
                 uv: map_player_skin_uv(rectangle, source.uv),
                 color: [diffuse, diffuse, diffuse, 1.0],
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
         }
         // RenderPlayer disables culling around first-person arms.
         indices.extend_from_slice(&[
-            base, base + 1, base + 2, base, base + 2, base + 3,
-            base + 2, base + 1, base, base + 3, base + 2, base,
+            base,
+            base + 1,
+            base + 2,
+            base,
+            base + 2,
+            base + 3,
+            base + 2,
+            base + 1,
+            base,
+            base + 3,
+            base + 2,
+            base,
         ]);
     }
 }
@@ -9829,7 +10556,7 @@ fn append_first_person_glint_quad(
                 uv,
                 color: [128.0 / 255.0, 64.0 / 255.0, 204.0 / 255.0, 1.0],
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -9854,9 +10581,7 @@ fn first_person_item_lights(pitch: f32, yaw: f32) -> [[f32; 3]; 2] {
 }
 
 fn standard_item_diffuse(normal: [f32; 3], lights: [[f32; 3]; 2]) -> f32 {
-    (0.4
-        + 0.6 * dot3(normal, lights[0]).max(0.0)
-        + 0.6 * dot3(normal, lights[1]).max(0.0))
+    (0.4 + 0.6 * dot3(normal, lights[0]).max(0.0) + 0.6 * dot3(normal, lights[1]).max(0.0))
         .clamp(0.0, 1.0)
 }
 
@@ -9926,14 +10651,31 @@ fn rotation_z4(degrees: f32) -> [[f32; 4]; 4] {
 
 fn rotation_axis4(degrees: f32, axis: [f32; 3]) -> [[f32; 4]; 4] {
     let length = (axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]).sqrt();
-    if length <= f32::EPSILON { return identity4(); }
+    if length <= f32::EPSILON {
+        return identity4();
+    }
     let [x, y, z] = [axis[0] / length, axis[1] / length, axis[2] / length];
     let (sin, cos) = degrees.to_radians().sin_cos();
     let oneMinusCos = 1.0 - cos;
     [
-        [cos + x * x * oneMinusCos, x * y * oneMinusCos - z * sin, x * z * oneMinusCos + y * sin, 0.0],
-        [y * x * oneMinusCos + z * sin, cos + y * y * oneMinusCos, y * z * oneMinusCos - x * sin, 0.0],
-        [z * x * oneMinusCos - y * sin, z * y * oneMinusCos + x * sin, cos + z * z * oneMinusCos, 0.0],
+        [
+            cos + x * x * oneMinusCos,
+            x * y * oneMinusCos - z * sin,
+            x * z * oneMinusCos + y * sin,
+            0.0,
+        ],
+        [
+            y * x * oneMinusCos + z * sin,
+            cos + y * y * oneMinusCos,
+            y * z * oneMinusCos - x * sin,
+            0.0,
+        ],
+        [
+            z * x * oneMinusCos - y * sin,
+            z * y * oneMinusCos + x * sin,
+            cos + z * z * oneMinusCos,
+            0.0,
+        ],
         [0.0, 0.0, 0.0, 1.0],
     ]
 }
@@ -9959,30 +10701,23 @@ fn transform_point3(matrix: [[f32; 4]; 4], position: [f32; 3]) -> [f32; 3] {
             + matrix[row][2] * vector[2]
             + matrix[row][3];
     }
-    let w = if output[3].abs() <= f32::EPSILON { 1.0 } else { output[3] };
+    let w = if output[3].abs() <= f32::EPSILON {
+        1.0
+    } else {
+        output[3]
+    };
     [output[0] / w, output[1] / w, output[2] / w]
 }
 
 fn transform_direction3(matrix: [[f32; 4]; 4], direction: [f32; 3]) -> [f32; 3] {
     [
-        matrix[0][0] * direction[0]
-            + matrix[0][1] * direction[1]
-            + matrix[0][2] * direction[2],
-        matrix[1][0] * direction[0]
-            + matrix[1][1] * direction[1]
-            + matrix[1][2] * direction[2],
-        matrix[2][0] * direction[0]
-            + matrix[2][1] * direction[1]
-            + matrix[2][2] * direction[2],
+        matrix[0][0] * direction[0] + matrix[0][1] * direction[1] + matrix[0][2] * direction[2],
+        matrix[1][0] * direction[0] + matrix[1][1] * direction[1] + matrix[1][2] * direction[2],
+        matrix[2][0] * direction[0] + matrix[2][1] * direction[1] + matrix[2][2] * direction[2],
     ]
 }
 
-fn perspective_matrix(
-    fovDegrees: f32,
-    aspect: f32,
-    near: f32,
-    far: f32,
-) -> [[f32; 4]; 4] {
+fn perspective_matrix(fovDegrees: f32, aspect: f32, near: f32, far: f32) -> [[f32; 4]; 4] {
     let cotangent = 1.0 / (fovDegrees.to_radians() * 0.5).tan();
     [
         [cotangent / aspect.max(0.0001), 0.0, 0.0, 0.0],
@@ -10002,7 +10737,12 @@ fn build_ingame_hud(
     fontRenderer: &mut FontRenderer,
     standardGalacticFontRenderer: &mut FontRenderer,
     locale: &Locale,
-) -> (Vec<WorldVertex>, Vec<u32>, Vec<HudDrawRange>, WorldPushConstants) {
+) -> (
+    Vec<WorldVertex>,
+    Vec<u32>,
+    Vec<HudDrawRange>,
+    WorldPushConstants,
+) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let mut drawRanges = Vec::new();
@@ -10011,22 +10751,41 @@ fn build_ingame_hud(
 
     let mut begin = indices.len() as u32;
     append_item_activation(capture, atlas, &mut vertices, &mut indices);
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
-    let bossFrame = guiBossOverlay.buildFrame(guiWidth, guiHeight, capture.systemTimeMillis, fontRenderer);
+    let bossFrame =
+        guiBossOverlay.buildFrame(guiWidth, guiHeight, capture.systemTimeMillis, fontRenderer);
     for quad in &bossFrame.bars {
         append_hud_quad(
-            &mut vertices, &mut indices, atlas.barsRectangle,
-            quad.x, quad.y, quad.width, quad.height,
-            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            &mut vertices,
+            &mut indices,
+            atlas.barsRectangle,
+            quad.x,
+            quad.y,
+            quad.width,
+            quad.height,
+            quad.textureX,
+            quad.textureY,
+            quad.textureWidth,
+            quad.textureHeight,
             quad.alpha,
         );
     }
     for text in &bossFrame.texts {
         append_hud_text(text, fontRenderer, atlas, &mut vertices, &mut indices);
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     let debugData = capture.showDebugInfo.then(|| DebugOverlayData {
         version: env!("CARGO_PKG_VERSION").to_owned(),
@@ -10087,7 +10846,10 @@ fn build_ingame_hud(
         capture.systemTimeMillis,
         Some(&capture.scoreboard),
         &capture.localPlayerName,
-        capture.actionBarMessage.as_ref().map(|component| component.getUnformattedText()),
+        capture
+            .actionBarMessage
+            .as_ref()
+            .map(|component| component.getUnformattedText()),
         capture.actionBarAge,
         capture.partialTicks,
         capture.showSubtitles,
@@ -10107,25 +10869,53 @@ fn build_ingame_hud(
             HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
-            &mut vertices, &mut indices, rectangle,
-            quad.x, quad.y, quad.width, quad.height,
-            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            &mut vertices,
+            &mut indices,
+            rectangle,
+            quad.x,
+            quad.y,
+            quad.width,
+            quad.height,
+            quad.textureX,
+            quad.textureY,
+            quad.textureWidth,
+            quad.textureHeight,
             quad.alpha,
         );
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     append_hotbar_item_models(capture, atlas, &mut vertices, &mut indices);
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     append_hotbar_item_glints(capture, atlas, &mut vertices, &mut indices);
-    push_hud_range(&mut drawRanges, HudPipelineKind::Glint, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Glint,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     append_hotbar_item_overlays(capture, atlas, &mut vertices, &mut indices);
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     for quad in &hud.crosshair {
@@ -10136,13 +10926,26 @@ fn build_ingame_hud(
             HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
-            &mut vertices, &mut indices, rectangle,
-            quad.x, quad.y, quad.width, quad.height,
-            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            &mut vertices,
+            &mut indices,
+            rectangle,
+            quad.x,
+            quad.y,
+            quad.width,
+            quad.height,
+            quad.textureX,
+            quad.textureY,
+            quad.textureWidth,
+            quad.textureHeight,
             quad.alpha,
         );
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Crosshair, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Crosshair,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     for quad in &hud.playerStats {
@@ -10153,13 +10956,26 @@ fn build_ingame_hud(
             HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
-            &mut vertices, &mut indices, rectangle,
-            quad.x, quad.y, quad.width, quad.height,
-            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            &mut vertices,
+            &mut indices,
+            rectangle,
+            quad.x,
+            quad.y,
+            quad.width,
+            quad.height,
+            quad.textureX,
+            quad.textureY,
+            quad.textureWidth,
+            quad.textureHeight,
             quad.alpha,
         );
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     for quad in &hud.experienceBar {
@@ -10170,16 +10986,29 @@ fn build_ingame_hud(
             HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
-            &mut vertices, &mut indices, rectangle,
-            quad.x, quad.y, quad.width, quad.height,
-            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            &mut vertices,
+            &mut indices,
+            rectangle,
+            quad.x,
+            quad.y,
+            quad.width,
+            quad.height,
+            quad.textureX,
+            quad.textureY,
+            quad.textureWidth,
+            quad.textureHeight,
             quad.alpha,
         );
     }
     if let Some(text) = &hud.experienceLevel {
         append_experience_level_text(text, fontRenderer, atlas, &mut vertices, &mut indices);
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     for quad in &hud.potionEffects {
@@ -10190,21 +11019,40 @@ fn build_ingame_hud(
             HudTexture::Inventory => atlas.inventoryRectangle,
         };
         append_hud_quad(
-            &mut vertices, &mut indices, rectangle,
-            quad.x, quad.y, quad.width, quad.height,
-            quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+            &mut vertices,
+            &mut indices,
+            rectangle,
+            quad.x,
+            quad.y,
+            quad.width,
+            quad.height,
+            quad.textureX,
+            quad.textureY,
+            quad.textureWidth,
+            quad.textureHeight,
             quad.alpha,
         );
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     // MCP GuiIngame.renderScoreboard and overlay-message draw order: both are
     // rendered before persistent chat and the player-list overlay.
     begin = indices.len() as u32;
     for rectangle in &hud.scoreboardRectangles {
         append_solid_hud_quad(
-            rectangle.x, rectangle.y, rectangle.width, rectangle.height,
-            packed_argb_to_rgba(rectangle.color), atlas, &mut vertices, &mut indices,
+            rectangle.x,
+            rectangle.y,
+            rectangle.width,
+            rectangle.height,
+            packed_argb_to_rgba(rectangle.color),
+            atlas,
+            &mut vertices,
+            &mut indices,
         );
     }
     for text in &hud.scoreboardTexts {
@@ -10215,8 +11063,14 @@ fn build_ingame_hud(
     // vanilla visual priority.
     for rectangle in &hud.debugRectangles {
         append_solid_hud_quad(
-            rectangle.x, rectangle.y, rectangle.width, rectangle.height,
-            packed_argb_to_rgba(rectangle.color), atlas, &mut vertices, &mut indices,
+            rectangle.x,
+            rectangle.y,
+            rectangle.width,
+            rectangle.height,
+            packed_argb_to_rgba(rectangle.color),
+            atlas,
+            &mut vertices,
+            &mut indices,
         );
     }
     for text in &hud.debugTexts {
@@ -10227,22 +11081,41 @@ fn build_ingame_hud(
     }
     for rectangle in &hud.subtitleRectangles {
         append_solid_hud_quad(
-            rectangle.x, rectangle.y, rectangle.width, rectangle.height,
-            packed_argb_to_rgba(rectangle.color), atlas, &mut vertices, &mut indices,
+            rectangle.x,
+            rectangle.y,
+            rectangle.width,
+            rectangle.height,
+            packed_argb_to_rgba(rectangle.color),
+            atlas,
+            &mut vertices,
+            &mut indices,
         );
     }
     for text in &hud.subtitleTexts {
         append_hud_text(text, fontRenderer, atlas, &mut vertices, &mut indices);
     }
     for scaled in &hud.titleTexts {
-        append_hud_text_scaled(&scaled.text, scaled.scale as f32, fontRenderer, atlas, &mut vertices, &mut indices);
+        append_hud_text_scaled(
+            &scaled.text,
+            scaled.scale as f32,
+            fontRenderer,
+            atlas,
+            &mut vertices,
+            &mut indices,
+        );
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     if !capture.inventoryOpen && capture.chatVisible {
         let wrapWidth = ((GuiNewChat::calculateChatboxWidth(capture.chatWidth) as f32)
-            / capture.chatScale.max(0.01)).floor() as i32;
+            / capture.chatScale.max(0.01))
+        .floor() as i32;
         for message in &capture.chatMessages {
             guiNewChat.acceptMessageWithFont(
                 message.serial,
@@ -10253,45 +11126,110 @@ fn build_ingame_hud(
             );
         }
         let chat = guiNewChat.buildFrame(
-            guiHeight, capture.playerTicksExisted, capture.chatOpen, capture.chatOpacity,
-            capture.chatScale, capture.chatWidth, capture.chatHeightFocused,
+            guiHeight,
+            capture.playerTicksExisted,
+            capture.chatOpen,
+            capture.chatOpacity,
+            capture.chatScale,
+            capture.chatWidth,
+            capture.chatHeightFocused,
             capture.chatHeightUnfocused,
         );
         let chatTextScale = chat.textScale;
         for rectangle in chat.rectangles {
             append_solid_hud_quad(
-                rectangle.x, rectangle.y, rectangle.width, rectangle.height,
-                packed_argb_to_rgba(rectangle.color), atlas, &mut vertices, &mut indices,
+                rectangle.x,
+                rectangle.y,
+                rectangle.width,
+                rectangle.height,
+                packed_argb_to_rgba(rectangle.color),
+                atlas,
+                &mut vertices,
+                &mut indices,
             );
         }
         for text in chat.texts {
-            append_hud_text_scaled(&text, chatTextScale, fontRenderer, atlas, &mut vertices, &mut indices);
+            append_hud_text_scaled(
+                &text,
+                chatTextScale,
+                fontRenderer,
+                atlas,
+                &mut vertices,
+                &mut indices,
+            );
         }
         if capture.chatOpen {
-            append_solid_hud_quad(2, guiHeight - 14, guiWidth - 4, 12, [0.0, 0.0, 0.0, 0.5], atlas, &mut vertices, &mut indices);
+            append_solid_hud_quad(
+                2,
+                guiHeight - 14,
+                guiWidth - 4,
+                12,
+                [0.0, 0.0, 0.0, 0.5],
+                atlas,
+                &mut vertices,
+                &mut indices,
+            );
             if let Some(input) = &capture.chatInput {
                 if let Some(selectionX) = input.selectionX {
                     let left = input.cursorX.min(selectionX);
                     let right = input.cursorX.max(selectionX);
-                    append_solid_hud_quad(left, input.textY - 1, right - left, 10, [0.2, 0.6, 1.0, 0.5], atlas, &mut vertices, &mut indices);
+                    append_solid_hud_quad(
+                        left,
+                        input.textY - 1,
+                        right - left,
+                        10,
+                        [0.2, 0.6, 1.0, 0.5],
+                        atlas,
+                        &mut vertices,
+                        &mut indices,
+                    );
                 }
                 let inputText = HudText {
-                    text: input.text.clone(), x: input.textX, y: input.textY,
-                    color: input.color as u32, outline: true,
+                    text: input.text.clone(),
+                    x: input.textX,
+                    y: input.textY,
+                    color: input.color as u32,
+                    outline: true,
                 };
                 append_hud_text(&inputText, fontRenderer, atlas, &mut vertices, &mut indices);
                 if input.cursorVisible {
                     if input.cursorBlock {
-                        append_solid_hud_quad(input.cursorX, input.textY - 1, 1, 10, [0.82, 0.82, 0.82, 1.0], atlas, &mut vertices, &mut indices);
+                        append_solid_hud_quad(
+                            input.cursorX,
+                            input.textY - 1,
+                            1,
+                            10,
+                            [0.82, 0.82, 0.82, 1.0],
+                            atlas,
+                            &mut vertices,
+                            &mut indices,
+                        );
                     } else {
-                        let cursorText = HudText { text: "_".to_owned(), x: input.cursorX, y: input.textY, color: 0xFFE0_E0E0, outline: true };
-                        append_hud_text(&cursorText, fontRenderer, atlas, &mut vertices, &mut indices);
+                        let cursorText = HudText {
+                            text: "_".to_owned(),
+                            x: input.cursorX,
+                            y: input.textY,
+                            color: 0xFFE0_E0E0,
+                            outline: true,
+                        };
+                        append_hud_text(
+                            &cursorText,
+                            fontRenderer,
+                            atlas,
+                            &mut vertices,
+                            &mut indices,
+                        );
                     }
                 }
             }
         }
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     begin = indices.len() as u32;
     if capture.playerListVisible && !capture.inventoryOpen && !capture.chatOpen {
@@ -10315,8 +11253,14 @@ fn build_ingame_hud(
                 alpha,
             ];
             append_solid_hud_quad(
-                rectangle.x, rectangle.y, rectangle.width, rectangle.height,
-                color, atlas, &mut vertices, &mut indices,
+                rectangle.x,
+                rectangle.y,
+                rectangle.width,
+                rectangle.height,
+                color,
+                atlas,
+                &mut vertices,
+                &mut indices,
             );
         }
         for head in tab.heads {
@@ -10330,9 +11274,17 @@ fn build_ingame_hud(
                 HudTexture::Inventory => atlas.inventoryRectangle,
             };
             append_hud_quad(
-                &mut vertices, &mut indices, rectangle,
-                quad.x, quad.y, quad.width, quad.height,
-                quad.textureX, quad.textureY, quad.textureWidth, quad.textureHeight,
+                &mut vertices,
+                &mut indices,
+                rectangle,
+                quad.x,
+                quad.y,
+                quad.width,
+                quad.height,
+                quad.textureX,
+                quad.textureY,
+                quad.textureWidth,
+                quad.textureHeight,
                 quad.alpha,
             );
         }
@@ -10342,11 +11294,24 @@ fn build_ingame_hud(
     } else {
         playerTabOverlay.hide();
     }
-    push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+    push_hud_range(
+        &mut drawRanges,
+        HudPipelineKind::Alpha,
+        begin,
+        indices.len() as u32,
+    );
 
     if capture.inventoryOpen {
         begin = indices.len() as u32;
-        append_player_inventory_background(capture, locale, fontRenderer, standardGalacticFontRenderer, atlas, &mut vertices, &mut indices);
+        append_player_inventory_background(
+            capture,
+            locale,
+            fontRenderer,
+            standardGalacticFontRenderer,
+            atlas,
+            &mut vertices,
+            &mut indices,
+        );
         // MCP 1.12.2 only calls GuiInventory.drawEntityOnScreen from the
         // survival inventory and the creative inventory tab. Dedicated
         // GuiContainer subclasses (crafting, furnace, repair, enchanting,
@@ -10359,28 +11324,57 @@ fn build_ingame_hud(
         }
         if recipe_book_narrow_open(capture) {
             append_recipe_book_panel_chrome(
-                capture, fontRenderer, atlas, &mut vertices, &mut indices,
+                capture,
+                fontRenderer,
+                atlas,
+                &mut vertices,
+                &mut indices,
             );
         }
         append_player_inventory_item_models(capture, atlas, &mut vertices, &mut indices);
-        push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+        push_hud_range(
+            &mut drawRanges,
+            HudPipelineKind::Alpha,
+            begin,
+            indices.len() as u32,
+        );
 
         begin = indices.len() as u32;
         if should_render_inventory_player(capture) {
             append_player_inventory_entity_glints(capture, atlas, &mut vertices, &mut indices);
         }
         append_player_inventory_item_glints(capture, atlas, &mut vertices, &mut indices);
-        push_hud_range(&mut drawRanges, HudPipelineKind::Glint, begin, indices.len() as u32);
+        push_hud_range(
+            &mut drawRanges,
+            HudPipelineKind::Glint,
+            begin,
+            indices.len() as u32,
+        );
 
         begin = indices.len() as u32;
         append_player_inventory_overlays(capture, atlas, &mut vertices, &mut indices);
-        push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+        push_hud_range(
+            &mut drawRanges,
+            HudPipelineKind::Alpha,
+            begin,
+            indices.len() as u32,
+        );
 
         begin = indices.len() as u32;
         append_player_inventory_tooltip(
-            capture, locale, fontRenderer, atlas, &mut vertices, &mut indices,
+            capture,
+            locale,
+            fontRenderer,
+            atlas,
+            &mut vertices,
+            &mut indices,
         );
-        push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+        push_hud_range(
+            &mut drawRanges,
+            HudPipelineKind::Alpha,
+            begin,
+            indices.len() as u32,
+        );
     }
 
     // GuiScreen is drawn after GuiIngame. This preserves the vanilla ordering
@@ -10389,7 +11383,12 @@ fn build_ingame_hud(
     if let Some(drawList) = &capture.worldGuiDrawList {
         begin = indices.len() as u32;
         append_font_draw_list(drawList, atlas, &mut vertices, &mut indices);
-        push_hud_range(&mut drawRanges, HudPipelineKind::Alpha, begin, indices.len() as u32);
+        push_hud_range(
+            &mut drawRanges,
+            HudPipelineKind::Alpha,
+            begin,
+            indices.len() as u32,
+        );
     }
 
     let width = guiWidth as f32;
@@ -10411,10 +11410,22 @@ fn build_ingame_hud(
 /// source z=-50 to Vulkan's visible [0,1] range instead of clipping it.
 fn hud_projection(width: f32, height: f32) -> [f32; 16] {
     [
-        2.0 / width.max(1.0), 0.0, 0.0, 0.0,
-        0.0, 2.0 / height.max(1.0), 0.0, 0.0,
-        0.0, 0.0, -1.0 / 2000.0, 0.0,
-        -1.0, -1.0, 0.5, 1.0,
+        2.0 / width.max(1.0),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.0 / height.max(1.0),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0 / 2000.0,
+        0.0,
+        -1.0,
+        -1.0,
+        0.5,
+        1.0,
     ]
 }
 
@@ -10522,14 +11533,9 @@ fn container_slot_limit(capture: &WorldRenderCapture, slotId: i32, stack: &ItemS
     }
 }
 
-fn player_inventory_display_stack(
-    capture: &WorldRenderCapture,
-    slotId: i32,
-) -> Option<ItemStack> {
+fn player_inventory_display_stack(capture: &WorldRenderCapture, slotId: i32) -> Option<ItemStack> {
     let actual = capture.inventorySlots.get(slotId as usize)?.clone();
-    if !capture.inventoryDragSplitting
-        || !capture.inventoryDragSplittingSlots.contains(&slotId)
-    {
+    if !capture.inventoryDragSplitting || !capture.inventoryDragSplittingSlots.contains(&slotId) {
         return Some(actual);
     }
     // GuiContainer.drawSlot returns early while exactly one slot is selected.
@@ -10543,7 +11549,11 @@ fn player_inventory_display_stack(
     {
         return Some(actual);
     }
-    let oldCount = if actual.isEmpty() { 0 } else { actual.getCount() };
+    let oldCount = if actual.isEmpty() {
+        0
+    } else {
+        actual.getCount()
+    };
     let mut preview = cursor.clone();
     Container::computeStackSize(
         capture.inventoryDragSplittingSlots.len(),
@@ -10571,10 +11581,7 @@ fn player_inventory_cursor_display_stack(capture: &WorldRenderCapture) -> ItemSt
 /// `GuiContainer.drawSlot` replaces the normal white count with a yellow
 /// clamped limit when a QUICK_CRAFT preview would exceed either the item or
 /// concrete slot limit.
-fn player_inventory_drag_preview_limit(
-    capture: &WorldRenderCapture,
-    slotId: i32,
-) -> Option<i32> {
+fn player_inventory_drag_preview_limit(capture: &WorldRenderCapture, slotId: i32) -> Option<i32> {
     if !capture.inventoryDragSplitting
         || capture.inventoryDragSplittingSlots.len() <= 1
         || !capture.inventoryDragSplittingSlots.contains(&slotId)
@@ -10589,7 +11596,11 @@ fn player_inventory_drag_preview_limit(
     {
         return None;
     }
-    let oldCount = if actual.isEmpty() { 0 } else { actual.getCount() };
+    let oldCount = if actual.isEmpty() {
+        0
+    } else {
+        actual.getCount()
+    };
     let mut preview = cursor.clone();
     Container::computeStackSize(
         capture.inventoryDragSplittingSlots.len(),
@@ -10668,7 +11679,9 @@ fn player_inventory_layout(capture: &WorldRenderCapture) -> ActiveContainerLayou
             ContainerWindowKind::Enchantment => GuiEnchantment::new().container,
             ContainerWindowKind::Hopper => GuiHopper::new().container,
             ContainerWindowKind::BrewingStand => GuiBrewingStand::new().container,
-            ContainerWindowKind::Dispenser | ContainerWindowKind::Dropper => GuiDispenser::new().container,
+            ContainerWindowKind::Dispenser | ContainerWindowKind::Dropper => {
+                GuiDispenser::new().container
+            }
             ContainerWindowKind::Beacon => GuiBeacon::new().container,
             ContainerWindowKind::Merchant => GuiMerchant::new().container,
         };
@@ -10764,11 +11777,14 @@ fn player_layer_root_matrix(bodyYaw: f32, sneaking: bool) -> [[f32; 4]; 4] {
 }
 
 fn post_render_part_matrix(mut matrix: [[f32; 4]; 4], pose: PartPose) -> [[f32; 4]; 4] {
-    matrix = multiply4(matrix, translation4([
-        pose.pivot[0] * 0.0625,
-        pose.pivot[1] * 0.0625,
-        pose.pivot[2] * 0.0625,
-    ]));
+    matrix = multiply4(
+        matrix,
+        translation4([
+            pose.pivot[0] * 0.0625,
+            pose.pivot[1] * 0.0625,
+            pose.pivot[2] * 0.0625,
+        ]),
+    );
     // ModelRenderer.postRender applies Z, then Y, then X rotations.
     matrix = multiply4(matrix, rotation_z4(pose.rotation[2].to_degrees()));
     matrix = multiply4(matrix, rotation_y4(pose.rotation[1].to_degrees()));
@@ -10791,11 +11807,13 @@ fn append_player_inventory_held_items(
     let mainStack = captured_main_hand_stack(capture);
     let offStack = &capture.offhandStack;
     let rightStack = LayerHeldItem::stackForSide(
-        capture.primaryHand, mainStack, offStack, EnumHandSide::Right,
+        capture.primaryHand,
+        mainStack,
+        offStack,
+        EnumHandSide::Right,
     );
-    let leftStack = LayerHeldItem::stackForSide(
-        capture.primaryHand, mainStack, offStack, EnumHandSide::Left,
-    );
+    let leftStack =
+        LayerHeldItem::stackForSide(capture.primaryHand, mainStack, offStack, EnumHandSide::Left);
 
     append_player_inventory_held_item(
         rightStack,
@@ -10845,8 +11863,12 @@ fn append_player_inventory_held_item(
     if stack.isEmpty() {
         return;
     }
-    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else { return; };
-    let Some(model) = atlas.itemModels.get(&modelKey) else { return; };
+    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else {
+        return;
+    };
+    let Some(model) = atlas.itemModels.get(&modelKey) else {
+        return;
+    };
     let unpatternedShield = model.builtInRenderer && is_unpatterned_shield(stack);
     let supportedBuiltIn = model.builtInRenderer
         && (unpatternedShield || TileEntityItemStackRenderer::buildMesh(stack).is_some());
@@ -10866,7 +11888,10 @@ fn append_player_inventory_held_item(
     // Exact LayerHeldItem.renderHeldItem transform sequence.
     matrix = multiply4(matrix, rotation_x4(-90.0));
     matrix = multiply4(matrix, rotation_y4(180.0));
-    matrix = multiply4(matrix, translation4(LayerHeldItem::handTranslation(handSide)));
+    matrix = multiply4(
+        matrix,
+        translation4(LayerHeldItem::handTranslation(handSide)),
+    );
     let itemTransform = model.transforms.getTransform(transformType);
     matrix = multiply4(matrix, item_camera_transform4(itemTransform, leftHanded));
     matrix = multiply4(matrix, translation4([-0.5, -0.5, -0.5]));
@@ -10875,8 +11900,14 @@ fn append_player_inventory_held_item(
     if unpatternedShield {
         let shield = ModelShield::buildMesh();
         for face in shield.indices.chunks_exact(6) {
-            let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-            let positions = source.map(|index| transform_point3(matrix, shield.vertices[index].position));
+            let source = [
+                face[0] as usize,
+                face[1] as usize,
+                face[2] as usize,
+                face[5] as usize,
+            ];
+            let positions =
+                source.map(|index| transform_point3(matrix, shield.vertices[index].position));
             let uvs = source.map(|index| shield.vertices[index].uv);
             push_inventory_entity_item_quad(
                 positions,
@@ -10897,13 +11928,26 @@ fn append_player_inventory_held_item(
         if let Some(mesh) = TileEntityItemStackRenderer::buildMesh(stack) {
             let rectangle = built_in_item_rectangle(stack, &mesh, atlas);
             for face in mesh.indices.chunks_exact(6) {
-                let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-                let positions = source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
+                let source = [
+                    face[0] as usize,
+                    face[1] as usize,
+                    face[2] as usize,
+                    face[5] as usize,
+                ];
+                let positions =
+                    source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
                 let uvs = source.map(|index| mesh.vertices[index].uv);
                 push_inventory_entity_item_quad(
-                    positions, uvs, rectangle,
-                    [mesh.color[0], mesh.color[1], mesh.color[2]], true,
-                    posX, posY, guiScale, lights, quads,
+                    positions,
+                    uvs,
+                    rectangle,
+                    [mesh.color[0], mesh.color[1], mesh.color[2]],
+                    true,
+                    posX,
+                    posY,
+                    guiScale,
+                    lights,
+                    quads,
                 );
             }
         }
@@ -10911,7 +11955,9 @@ fn append_player_inventory_held_item(
     }
 
     for quad in &model.quads {
-        let positions = quad.positions.map(|position| transform_point3(matrix, position));
+        let positions = quad
+            .positions
+            .map(|position| transform_point3(matrix, position));
         let key = item_material_key(stack.itemId, quad.texture.clone(), quad.tintIndex);
         let rectangle = atlas
             .rectangles
@@ -10957,13 +12003,19 @@ fn push_inventory_entity_item_quad(
     } else {
         1.0
     };
-    let positions = modelPositions.map(|position| [
-        posX as f32 + position[0] * guiScale,
-        posY as f32 - position[1] * guiScale,
-        position[2],
-    ]);
+    let positions = modelPositions.map(|position| {
+        [
+            posX as f32 + position[0] * guiScale,
+            posY as f32 - position[1] * guiScale,
+            position[2],
+        ]
+    });
     quads.push(GuiItemQuad {
-        depth: modelPositions.iter().map(|position| position[2]).sum::<f32>() / 4.0,
+        depth: modelPositions
+            .iter()
+            .map(|position| position[2])
+            .sum::<f32>()
+            / 4.0,
         positions,
         uvs,
         rectangle,
@@ -11014,8 +12066,14 @@ fn append_gui_text_field(
         let left = input.cursorX.min(selectionX);
         let right = input.cursorX.max(selectionX);
         append_solid_hud_quad(
-            left, input.textY - 1, right - left, 10,
-            [0.2, 0.6, 1.0, 0.5], atlas, vertices, indices,
+            left,
+            input.textY - 1,
+            right - left,
+            10,
+            [0.2, 0.6, 1.0, 0.5],
+            atlas,
+            vertices,
+            indices,
         );
     }
     let text = HudText {
@@ -11029,8 +12087,14 @@ fn append_gui_text_field(
     if input.cursorVisible {
         if input.cursorBlock {
             append_solid_hud_quad(
-                input.cursorX, input.textY - 1, 1, 10,
-                [0.82, 0.82, 0.82, 1.0], atlas, vertices, indices,
+                input.cursorX,
+                input.textY - 1,
+                1,
+                10,
+                [0.82, 0.82, 0.82, 1.0],
+                atlas,
+                vertices,
+                indices,
             );
         } else {
             let cursor = HudText {
@@ -11057,13 +12121,28 @@ fn append_creative_inventory_background(
     // tab is drawn first, the selected tab's page covers their inner seams,
     // then the selected tab is drawn last so it joins the page border.
     for tab in CREATIVE_TAB_ARRAY {
-        if tab.tabIndex == capture.creativeSelectedTab { continue; }
+        if tab.tabIndex == capture.creativeSelectedTab {
+            continue;
+        }
         if let Some((x, y, u, v)) = creative_tab_draw_position_selected(
-            container, tab.tabIndex, capture.creativeSelectedTab,
+            container,
+            tab.tabIndex,
+            capture.creativeSelectedTab,
         ) {
             append_hud_quad_colored(
-                vertices, indices, atlas.creativeTabsRectangle,
-                x, y, 28, 32, u, v, 28, 32, 256, 256,
+                vertices,
+                indices,
+                atlas.creativeTabsRectangle,
+                x,
+                y,
+                28,
+                32,
+                u,
+                v,
+                28,
+                32,
+                256,
+                256,
                 [1.0, 1.0, 1.0, 1.0],
             );
         }
@@ -11075,9 +12154,19 @@ fn append_creative_inventory_background(
         _ => atlas.creativeItemsRectangle,
     };
     append_hud_quad_colored(
-        vertices, indices, background,
-        container.guiLeft, container.guiTop,
-        195, 136, 0, 0, 195, 136, 256, 256,
+        vertices,
+        indices,
+        background,
+        container.guiLeft,
+        container.guiTop,
+        195,
+        136,
+        0,
+        0,
+        195,
+        136,
+        256,
+        256,
         [1.0, 1.0, 1.0, 1.0],
     );
 
@@ -11089,22 +12178,45 @@ fn append_creative_inventory_background(
         .is_some_and(|tab| tab.shouldHidePlayerInventory())
     {
         let needsScroll = capture.creativeCanScroll;
-        let thumbY = container.guiTop + 18
-            + ((95.0 * capture.creativeCurrentScroll.clamp(0.0, 1.0)) as i32);
+        let thumbY =
+            container.guiTop + 18 + ((95.0 * capture.creativeCurrentScroll.clamp(0.0, 1.0)) as i32);
         append_hud_quad_colored(
-            vertices, indices, atlas.creativeTabsRectangle,
-            container.guiLeft + 175, thumbY,
-            12, 15, if needsScroll { 232 } else { 244 }, 0, 12, 15, 256, 256,
+            vertices,
+            indices,
+            atlas.creativeTabsRectangle,
+            container.guiLeft + 175,
+            thumbY,
+            12,
+            15,
+            if needsScroll { 232 } else { 244 },
+            0,
+            12,
+            15,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
     }
 
     if let Some((x, y, u, v)) = creative_tab_draw_position_selected(
-        container, capture.creativeSelectedTab, capture.creativeSelectedTab,
+        container,
+        capture.creativeSelectedTab,
+        capture.creativeSelectedTab,
     ) {
         append_hud_quad_colored(
-            vertices, indices, atlas.creativeTabsRectangle,
-            x, y, 28, 32, u, v, 28, 32, 256, 256,
+            vertices,
+            indices,
+            atlas.creativeTabsRectangle,
+            x,
+            y,
+            28,
+            32,
+            u,
+            v,
+            28,
+            32,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
     }
@@ -11117,7 +12229,10 @@ fn append_creative_inventory_background(
             container.guiLeft + 8,
             container.guiTop + 6,
             4_210_752,
-            fontRenderer, atlas, vertices, indices,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
     }
 }
@@ -11273,16 +12388,8 @@ fn append_enchantment_gui_book(
 ) {
     // GuiEnchantment passes 0.0F as ModelBook's limbSwing parameter.
     // The GUI book therefore does not use the world TESR's idle sine term.
-    let mesh = ModelBook::buildMesh(
-        0.0,
-        state.pageFlipRight,
-        state.pageFlipLeft,
-        state.open,
-    );
-    let texture = ResourceLocation::new(
-        "minecraft",
-        "textures/entity/enchanting_table_book.png",
-    );
+    let mesh = ModelBook::buildMesh(0.0, state.pageFlipRight, state.pageFlipLeft, state.open);
+    let texture = ResourceLocation::new("minecraft", "textures/entity/enchanting_table_book.png");
     let rectangle = atlas
         .builtInItemRectangles
         .get(&texture)
@@ -11296,7 +12403,10 @@ fn append_enchantment_gui_book(
     model = multiply4(model, rotation_z4(180.0));
     model = multiply4(model, rotation_x4(20.0));
     let closed = 1.0 - state.open;
-    model = multiply4(model, translation4([closed * 0.2, closed * 0.1, closed * 0.25]));
+    model = multiply4(
+        model,
+        translation4([closed * 0.2, closed * 0.1, closed * 0.25]),
+    );
     model = multiply4(model, rotation_y4(-closed * 90.0 - 90.0));
     model = multiply4(model, rotation_x4(180.0));
 
@@ -11306,7 +12416,12 @@ fn append_enchantment_gui_book(
     let perspective = [
         [cotangent / (4.0 / 3.0), 0.0, 0.0, 0.0],
         [0.0, cotangent, 0.0, 0.0],
-        [0.0, 0.0, (far + near) / (near - far), (2.0 * far * near) / (near - far)],
+        [
+            0.0,
+            0.0,
+            (far + near) / (near - far),
+            (2.0 * far * near) / (near - far),
+        ],
         [0.0, 0.0, -1.0, 0.0],
     ];
     let projection = multiply4(translation4([-0.34, 0.23, 0.0]), perspective);
@@ -11322,19 +12437,24 @@ fn append_enchantment_gui_book(
     let viewportLeft = (guiWidth - 320) as f32 * 0.5;
     let viewportTop = (guiHeight - 240) as f32 * 0.5;
     for face in mesh.indices.chunks_exact(6) {
-        let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
+        let source = [
+            face[0] as usize,
+            face[1] as usize,
+            face[2] as usize,
+            face[5] as usize,
+        ];
         let eye = source.map(|index| transform_point3(model, mesh.vertices[index].position));
-        let normal = normalize3(cross3(
-            subtract3(eye[1], eye[0]),
-            subtract3(eye[2], eye[0]),
-        ));
+        let normal = normalize3(cross3(subtract3(eye[1], eye[0]), subtract3(eye[2], eye[0])));
         if normal[2] <= 1.0e-5 {
             continue;
         }
         let mut screen = [[0.0_f32; 2]; 4];
         let mut valid = true;
         for corner in 0..4 {
-            let clip = transform_homogeneous(projection, [eye[corner][0], eye[corner][1], eye[corner][2], 1.0]);
+            let clip = transform_homogeneous(
+                projection,
+                [eye[corner][0], eye[corner][1], eye[corner][2], 1.0],
+            );
             if clip[3].abs() <= 1.0e-6 {
                 valid = false;
                 break;
@@ -11346,7 +12466,9 @@ fn append_enchantment_gui_book(
                 viewportTop + (1.0 - ndcY) * 120.0,
             ];
         }
-        if !valid { continue; }
+        if !valid {
+            continue;
+        }
         let diffuse = gui_item_diffuse(normal);
         quads.push(BookQuad {
             depth: eye.iter().map(|point| point[2]).sum::<f32>() * 0.25,
@@ -11368,7 +12490,7 @@ fn append_enchantment_gui_book(
                 uv,
                 color: quad.color,
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -11379,10 +12501,22 @@ fn append_enchantment_gui_book(
 
 fn transform_homogeneous(matrix: [[f32; 4]; 4], vector: [f32; 4]) -> [f32; 4] {
     [
-        matrix[0][0] * vector[0] + matrix[0][1] * vector[1] + matrix[0][2] * vector[2] + matrix[0][3] * vector[3],
-        matrix[1][0] * vector[0] + matrix[1][1] * vector[1] + matrix[1][2] * vector[2] + matrix[1][3] * vector[3],
-        matrix[2][0] * vector[0] + matrix[2][1] * vector[1] + matrix[2][2] * vector[2] + matrix[2][3] * vector[3],
-        matrix[3][0] * vector[0] + matrix[3][1] * vector[1] + matrix[3][2] * vector[2] + matrix[3][3] * vector[3],
+        matrix[0][0] * vector[0]
+            + matrix[0][1] * vector[1]
+            + matrix[0][2] * vector[2]
+            + matrix[0][3] * vector[3],
+        matrix[1][0] * vector[0]
+            + matrix[1][1] * vector[1]
+            + matrix[1][2] * vector[2]
+            + matrix[1][3] * vector[3],
+        matrix[2][0] * vector[0]
+            + matrix[2][1] * vector[1]
+            + matrix[2][2] * vector[2]
+            + matrix[2][3] * vector[3],
+        matrix[3][0] * vector[0]
+            + matrix[3][1] * vector[1]
+            + matrix[3][2] * vector[2]
+            + matrix[3][3] * vector[3],
     ]
 }
 
@@ -11394,7 +12528,9 @@ fn append_recipe_overlay_background(
     indices: &mut Vec<u32>,
 ) {
     let overlay = &state.overlay;
-    if !overlay.visible || overlay.columns == 0 || overlay.rows == 0 { return; }
+    if !overlay.visible || overlay.columns == 0 || overlay.rows == 0 {
+        return;
+    }
     let tile = 24_i32;
     let border = 4_i32;
     let sourceX = 82_i32;
@@ -11403,9 +12539,19 @@ fn append_recipe_overlay_background(
     let rows = overlay.rows as i32;
     let mut draw = |x: i32, y: i32, u: i32, v: i32, width: i32, height: i32| {
         append_hud_quad_colored(
-            vertices, indices, atlas.recipeBookRectangle,
-            x, y, width, height,
-            u, v, width, height, 256, 256,
+            vertices,
+            indices,
+            atlas.recipeBookRectangle,
+            x,
+            y,
+            width,
+            height,
+            u,
+            v,
+            width,
+            height,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
     };
@@ -11546,13 +12692,23 @@ fn append_recipe_overlay_background(
     }
 
     for button in &overlay.buttons {
-        let hovered = button.rect.contains(capture.inventoryMouseX, capture.inventoryMouseY);
+        let hovered = button
+            .rect
+            .contains(capture.inventoryMouseX, capture.inventoryMouseY);
         append_hud_quad_colored(
-            vertices, indices, atlas.recipeBookRectangle,
-            button.rect.x, button.rect.y, button.rect.width, button.rect.height,
+            vertices,
+            indices,
+            atlas.recipeBookRectangle,
+            button.rect.x,
+            button.rect.y,
+            button.rect.width,
+            button.rect.height,
             152 + if button.craftable { 0 } else { 26 },
             78 + if hovered { 26 } else { 0 },
-            button.rect.width, button.rect.height, 256, 256,
+            button.rect.width,
+            button.rect.height,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
     }
@@ -11565,48 +12721,88 @@ fn append_recipe_book_panel_chrome(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(state) = active_recipe_book_state(capture) else { return; };
-    if !state.open { return; }
+    let Some(state) = active_recipe_book_state(capture) else {
+        return;
+    };
+    if !state.open {
+        return;
+    }
     append_hud_quad_colored(
-        vertices, indices, atlas.recipeBookRectangle,
-        state.panelLeft, state.panelTop, 147, 166,
-        1, 1, 147, 166, 256, 256,
+        vertices,
+        indices,
+        atlas.recipeBookRectangle,
+        state.panelLeft,
+        state.panelTop,
+        147,
+        166,
+        1,
+        1,
+        147,
+        166,
+        256,
+        256,
         [1.0, 1.0, 1.0, 1.0],
     );
 
-    append_gui_text_field(
-        &state.searchField, fontRenderer, atlas, vertices, indices,
-    );
+    append_gui_text_field(&state.searchField, fontRenderer, atlas, vertices, indices);
 
     for tab in &state.tabs {
         let sourceX = 153 + if tab.selected { 35 } else { 0 };
         let drawX = tab.rect.x - if tab.selected { 2 } else { 0 };
         append_hud_quad_colored(
-            vertices, indices, atlas.recipeBookRectangle,
-            drawX, tab.rect.y, tab.rect.width, tab.rect.height,
-            sourceX, 2, tab.rect.width, tab.rect.height, 256, 256,
+            vertices,
+            indices,
+            atlas.recipeBookRectangle,
+            drawX,
+            tab.rect.y,
+            tab.rect.width,
+            tab.rect.height,
+            sourceX,
+            2,
+            tab.rect.width,
+            tab.rect.height,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
     }
 
-    let filterHovered = state.filter.contains(capture.inventoryMouseX, capture.inventoryMouseY);
+    let filterHovered = state
+        .filter
+        .contains(capture.inventoryMouseX, capture.inventoryMouseY);
     append_hud_quad_colored(
-        vertices, indices, atlas.recipeBookRectangle,
-        state.filter.x, state.filter.y, state.filter.width, state.filter.height,
+        vertices,
+        indices,
+        atlas.recipeBookRectangle,
+        state.filter.x,
+        state.filter.y,
+        state.filter.width,
+        state.filter.height,
         152 + if state.filteringCraftable { 28 } else { 0 },
         41 + if filterHovered { 18 } else { 0 },
-        state.filter.width, state.filter.height, 256, 256,
+        state.filter.width,
+        state.filter.height,
+        256,
+        256,
         [1.0, 1.0, 1.0, 1.0],
     );
 
     for button in &state.buttons {
         let firstVertex = vertices.len();
         append_hud_quad_colored(
-            vertices, indices, atlas.recipeBookRectangle,
-            button.rect.x, button.rect.y, button.rect.width, button.rect.height,
+            vertices,
+            indices,
+            atlas.recipeBookRectangle,
+            button.rect.x,
+            button.rect.y,
+            button.rect.width,
+            button.rect.height,
             29 + if button.craftable { 0 } else { 25 },
             206 + if button.multiple { 25 } else { 0 },
-            button.rect.width, button.rect.height, 256, 256,
+            button.rect.width,
+            button.rect.height,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
         scale_gui_vertices_about(
@@ -11624,25 +12820,50 @@ fn append_recipe_book_panel_chrome(
             state.panelLeft + 73 - fontRenderer.get_string_width(&pageText) / 2,
             state.panelTop + 141,
             -1,
-            fontRenderer, atlas, vertices, indices,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
         if state.currentPage > 0 {
-            let hovered = state.previous.contains(capture.inventoryMouseX, capture.inventoryMouseY);
+            let hovered = state
+                .previous
+                .contains(capture.inventoryMouseX, capture.inventoryMouseY);
             append_hud_quad_colored(
-                vertices, indices, atlas.recipeBookRectangle,
-                state.previous.x, state.previous.y, state.previous.width, state.previous.height,
-                14, 208 + if hovered { 18 } else { 0 },
-                state.previous.width, state.previous.height, 256, 256,
+                vertices,
+                indices,
+                atlas.recipeBookRectangle,
+                state.previous.x,
+                state.previous.y,
+                state.previous.width,
+                state.previous.height,
+                14,
+                208 + if hovered { 18 } else { 0 },
+                state.previous.width,
+                state.previous.height,
+                256,
+                256,
                 [1.0, 1.0, 1.0, 1.0],
             );
         }
         if state.currentPage + 1 < state.pageCount {
-            let hovered = state.next.contains(capture.inventoryMouseX, capture.inventoryMouseY);
+            let hovered = state
+                .next
+                .contains(capture.inventoryMouseX, capture.inventoryMouseY);
             append_hud_quad_colored(
-                vertices, indices, atlas.recipeBookRectangle,
-                state.next.x, state.next.y, state.next.width, state.next.height,
-                1, 208 + if hovered { 18 } else { 0 },
-                state.next.width, state.next.height, 256, 256,
+                vertices,
+                indices,
+                atlas.recipeBookRectangle,
+                state.next.x,
+                state.next.y,
+                state.next.width,
+                state.next.height,
+                1,
+                208 + if hovered { 18 } else { 0 },
+                state.next.width,
+                state.next.height,
+                256,
+                256,
                 [1.0, 1.0, 1.0, 1.0],
             );
         }
@@ -11656,18 +12877,38 @@ fn append_recipe_book_toggle(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(state) = active_recipe_book_state(capture) else { return; };
-    if state.open && state.widthTooNarrow { return; }
-    let hovered = state.toggle.contains(capture.inventoryMouseX, capture.inventoryMouseY);
+    let Some(state) = active_recipe_book_state(capture) else {
+        return;
+    };
+    if state.open && state.widthTooNarrow {
+        return;
+    }
+    let hovered = state
+        .toggle
+        .contains(capture.inventoryMouseX, capture.inventoryMouseY);
     let (rectangle, sourceX, sourceY) = if state.inventoryScreen {
         (atlas.inventoryRectangle, 178, if hovered { 19 } else { 0 })
     } else {
-        (atlas.craftingRectangle, 0, 168 + if hovered { 19 } else { 0 })
+        (
+            atlas.craftingRectangle,
+            0,
+            168 + if hovered { 19 } else { 0 },
+        )
     };
     append_hud_quad_colored(
-        vertices, indices, rectangle,
-        state.toggle.x, state.toggle.y, state.toggle.width, state.toggle.height,
-        sourceX, sourceY, state.toggle.width, state.toggle.height, 256, 256,
+        vertices,
+        indices,
+        rectangle,
+        state.toggle.x,
+        state.toggle.y,
+        state.toggle.width,
+        state.toggle.height,
+        sourceX,
+        sourceY,
+        state.toggle.width,
+        state.toggle.height,
+        256,
+        256,
         [1.0, 1.0, 1.0, 1.0],
     );
 }
@@ -11681,48 +12922,73 @@ fn append_recipe_book_tab_items(
     for tab in &state.tabs {
         match tab.category {
             RecipeCategory::Search => append_item_stack_gui(
-                &RECIPE_SEARCH_TAB.getIconItemStack(), tab.rect.x + 9, tab.rect.y + 5,
-                atlas, vertices, indices,
+                &RECIPE_SEARCH_TAB.getIconItemStack(),
+                tab.rect.x + 9,
+                tab.rect.y + 5,
+                atlas,
+                vertices,
+                indices,
             ),
             RecipeCategory::Tools => {
                 append_item_stack_gui(
-                    &RECIPE_TOOLS_TAB.getIconItemStack(), tab.rect.x + 3, tab.rect.y + 5,
-                    atlas, vertices, indices,
+                    &RECIPE_TOOLS_TAB.getIconItemStack(),
+                    tab.rect.x + 3,
+                    tab.rect.y + 5,
+                    atlas,
+                    vertices,
+                    indices,
                 );
                 append_item_stack_gui(
-                    &RECIPE_COMBAT_TAB.getIconItemStack(), tab.rect.x + 14, tab.rect.y + 5,
-                    atlas, vertices, indices,
+                    &RECIPE_COMBAT_TAB.getIconItemStack(),
+                    tab.rect.x + 14,
+                    tab.rect.y + 5,
+                    atlas,
+                    vertices,
+                    indices,
                 );
             }
             RecipeCategory::BuildingBlocks => append_item_stack_gui(
-                &RECIPE_BUILDING_TAB.getIconItemStack(), tab.rect.x + 9, tab.rect.y + 5,
-                atlas, vertices, indices,
+                &RECIPE_BUILDING_TAB.getIconItemStack(),
+                tab.rect.x + 9,
+                tab.rect.y + 5,
+                atlas,
+                vertices,
+                indices,
             ),
             RecipeCategory::Misc => {
                 append_item_stack_gui(
-                    &RECIPE_MISC_TAB.getIconItemStack(), tab.rect.x + 3, tab.rect.y + 5,
-                    atlas, vertices, indices,
+                    &RECIPE_MISC_TAB.getIconItemStack(),
+                    tab.rect.x + 3,
+                    tab.rect.y + 5,
+                    atlas,
+                    vertices,
+                    indices,
                 );
                 append_item_stack_gui(
-                    &RECIPE_FOOD_TAB.getIconItemStack(), tab.rect.x + 14, tab.rect.y + 5,
-                    atlas, vertices, indices,
+                    &RECIPE_FOOD_TAB.getIconItemStack(),
+                    tab.rect.x + 14,
+                    tab.rect.y + 5,
+                    atlas,
+                    vertices,
+                    indices,
                 );
             }
             RecipeCategory::Redstone => append_item_stack_gui(
-                &RECIPE_REDSTONE_TAB.getIconItemStack(), tab.rect.x + 9, tab.rect.y + 5,
-                atlas, vertices, indices,
+                &RECIPE_REDSTONE_TAB.getIconItemStack(),
+                tab.rect.x + 9,
+                tab.rect.y + 5,
+                atlas,
+                vertices,
+                indices,
             ),
         }
     }
 }
 
-fn scale_gui_vertices_about(
-    vertices: &mut [WorldVertex],
-    pivotX: f32,
-    pivotY: f32,
-    scale: f32,
-) {
-    if (scale - 1.0).abs() <= f32::EPSILON { return; }
+fn scale_gui_vertices_about(vertices: &mut [WorldVertex], pivotX: f32, pivotY: f32, scale: f32) {
+    if (scale - 1.0).abs() <= f32::EPSILON {
+        return;
+    }
     for vertex in vertices {
         vertex.position[0] = pivotX + (vertex.position[0] - pivotX) * scale;
         vertex.position[1] = pivotY + (vertex.position[1] - pivotY) * scale;
@@ -11764,25 +13030,32 @@ fn append_item_glint_gui_gl_scaled(
     }
 }
 
-fn for_each_recipe_overlay_ingredient<F>(
-    state: &RecipeBookRenderState,
-    mut consumer: F,
-) where
+fn for_each_recipe_overlay_ingredient<F>(state: &RecipeBookRenderState, mut consumer: F)
+where
     F: FnMut(&ItemStack, i32, i32),
 {
-    if !state.overlay.visible { return; }
+    if !state.overlay.visible {
+        return;
+    }
     const SCALE: f32 = 0.42;
     for button in &state.overlay.buttons {
-        let Some(recipe) = CraftingManager::getRecipe(button.recipeId) else { continue; };
+        let Some(recipe) = CraftingManager::getRecipe(button.recipeId) else {
+            continue;
+        };
         let ingredients = recipe.getIngredients();
         let mut iterator = ingredients.iter();
         for row in 0..button.ingredientHeight {
             let ingredientY = 3 + row as i32 * 7;
             for column in 0..button.ingredientWidth {
-                let Some(ingredient) = iterator.next() else { break; };
+                let Some(ingredient) = iterator.next() else {
+                    break;
+                };
                 let alternatives = ingredient.getMatchingStacks();
-                if alternatives.is_empty() { continue; }
-                let frame = ((state.overlay.animationTicks / 30.0).floor() as usize) % alternatives.len();
+                if alternatives.is_empty() {
+                    continue;
+                }
+                let frame =
+                    ((state.overlay.animationTicks / 30.0).floor() as usize) % alternatives.len();
                 let ingredientX = 3 + column as i32 * 7;
                 let renderX = (((button.rect.x + ingredientX) as f32) / SCALE - 3.0) as i32;
                 let renderY = (((button.rect.y + ingredientY) as f32) / SCALE - 3.0) as i32;
@@ -11812,7 +13085,14 @@ fn append_recipe_overlay_item_glints(
 ) {
     for_each_recipe_overlay_ingredient(state, |stack, x, y| {
         append_item_glint_gui_gl_scaled(
-            stack, x, y, 0.42, systemTimeMillis, atlas, vertices, indices,
+            stack,
+            x,
+            y,
+            0.42,
+            systemTimeMillis,
+            atlas,
+            vertices,
+            indices,
         );
     });
 }
@@ -11823,24 +13103,38 @@ fn append_recipe_book_item_models(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(state) = active_recipe_book_state(capture) else { return; };
-    if !state.open { return; }
+    let Some(state) = active_recipe_book_state(capture) else {
+        return;
+    };
+    if !state.open {
+        return;
+    }
     append_recipe_book_tab_items(state, atlas, vertices, indices);
     for button in &state.buttons {
-        let Some(recipe) = CraftingManager::getRecipe(button.recipeId) else { continue; };
+        let Some(recipe) = CraftingManager::getRecipe(button.recipeId) else {
+            continue;
+        };
         let firstVertex = vertices.len();
         let stack = recipe.getRecipeOutput();
         let mut offset = 4;
         if button.allOutputsEqual && button.multiple {
             append_item_stack_gui(
-                &stack, button.rect.x + offset + 1, button.rect.y + offset + 1,
-                atlas, vertices, indices,
+                &stack,
+                button.rect.x + offset + 1,
+                button.rect.y + offset + 1,
+                atlas,
+                vertices,
+                indices,
             );
             offset -= 1;
         }
         append_item_stack_gui(
-            &stack, button.rect.x + offset, button.rect.y + offset,
-            atlas, vertices, indices,
+            &stack,
+            button.rect.x + offset,
+            button.rect.y + offset,
+            atlas,
+            vertices,
+            indices,
         );
         scale_gui_vertices_about(
             &mut vertices[firstVertex..],
@@ -11853,18 +13147,34 @@ fn append_recipe_book_item_models(
         for (index, ingredient) in state.ghost.iter().enumerate() {
             if index == 0 && state.inventoryScreen {
                 append_solid_hud_quad(
-                    ingredient.x - 4, ingredient.y - 4, 24, 24,
-                    packed_argb_to_rgba(822_018_048), atlas, vertices, indices,
+                    ingredient.x - 4,
+                    ingredient.y - 4,
+                    24,
+                    24,
+                    packed_argb_to_rgba(822_018_048),
+                    atlas,
+                    vertices,
+                    indices,
                 );
             } else {
                 append_solid_hud_quad(
-                    ingredient.x, ingredient.y, 16, 16,
-                    packed_argb_to_rgba(822_018_048), atlas, vertices, indices,
+                    ingredient.x,
+                    ingredient.y,
+                    16,
+                    16,
+                    packed_argb_to_rgba(822_018_048),
+                    atlas,
+                    vertices,
+                    indices,
                 );
             }
             append_item_stack_gui(
-                &ingredient.stack, ingredient.x, ingredient.y,
-                atlas, vertices, indices,
+                &ingredient.stack,
+                ingredient.x,
+                ingredient.y,
+                atlas,
+                vertices,
+                indices,
             );
         }
     }
@@ -11877,26 +13187,82 @@ fn append_recipe_book_item_glints(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(state) = active_recipe_book_state(capture) else { return; };
-    if !state.open { return; }
-    let appendGlint = |stack: &ItemStack, x: i32, y: i32, vertices: &mut Vec<WorldVertex>, indices: &mut Vec<u32>| {
+    let Some(state) = active_recipe_book_state(capture) else {
+        return;
+    };
+    if !state.open {
+        return;
+    }
+    let appendGlint = |stack: &ItemStack,
+                       x: i32,
+                       y: i32,
+                       vertices: &mut Vec<WorldVertex>,
+                       indices: &mut Vec<u32>| {
         append_item_glint_gui(
-            stack, x, y, capture.systemTimeMillis, atlas, vertices, indices,
+            stack,
+            x,
+            y,
+            capture.systemTimeMillis,
+            atlas,
+            vertices,
+            indices,
         );
     };
     for tab in &state.tabs {
         match tab.category {
-            RecipeCategory::Search => appendGlint(&RECIPE_SEARCH_TAB.getIconItemStack(), tab.rect.x + 9, tab.rect.y + 5, vertices, indices),
+            RecipeCategory::Search => appendGlint(
+                &RECIPE_SEARCH_TAB.getIconItemStack(),
+                tab.rect.x + 9,
+                tab.rect.y + 5,
+                vertices,
+                indices,
+            ),
             RecipeCategory::Tools => {
-                appendGlint(&RECIPE_TOOLS_TAB.getIconItemStack(), tab.rect.x + 3, tab.rect.y + 5, vertices, indices);
-                appendGlint(&RECIPE_COMBAT_TAB.getIconItemStack(), tab.rect.x + 14, tab.rect.y + 5, vertices, indices);
+                appendGlint(
+                    &RECIPE_TOOLS_TAB.getIconItemStack(),
+                    tab.rect.x + 3,
+                    tab.rect.y + 5,
+                    vertices,
+                    indices,
+                );
+                appendGlint(
+                    &RECIPE_COMBAT_TAB.getIconItemStack(),
+                    tab.rect.x + 14,
+                    tab.rect.y + 5,
+                    vertices,
+                    indices,
+                );
             }
-            RecipeCategory::BuildingBlocks => appendGlint(&RECIPE_BUILDING_TAB.getIconItemStack(), tab.rect.x + 9, tab.rect.y + 5, vertices, indices),
+            RecipeCategory::BuildingBlocks => appendGlint(
+                &RECIPE_BUILDING_TAB.getIconItemStack(),
+                tab.rect.x + 9,
+                tab.rect.y + 5,
+                vertices,
+                indices,
+            ),
             RecipeCategory::Misc => {
-                appendGlint(&RECIPE_MISC_TAB.getIconItemStack(), tab.rect.x + 3, tab.rect.y + 5, vertices, indices);
-                appendGlint(&RECIPE_FOOD_TAB.getIconItemStack(), tab.rect.x + 14, tab.rect.y + 5, vertices, indices);
+                appendGlint(
+                    &RECIPE_MISC_TAB.getIconItemStack(),
+                    tab.rect.x + 3,
+                    tab.rect.y + 5,
+                    vertices,
+                    indices,
+                );
+                appendGlint(
+                    &RECIPE_FOOD_TAB.getIconItemStack(),
+                    tab.rect.x + 14,
+                    tab.rect.y + 5,
+                    vertices,
+                    indices,
+                );
             }
-            RecipeCategory::Redstone => appendGlint(&RECIPE_REDSTONE_TAB.getIconItemStack(), tab.rect.x + 9, tab.rect.y + 5, vertices, indices),
+            RecipeCategory::Redstone => appendGlint(
+                &RECIPE_REDSTONE_TAB.getIconItemStack(),
+                tab.rect.x + 9,
+                tab.rect.y + 5,
+                vertices,
+                indices,
+            ),
         }
     }
     for button in &state.buttons {
@@ -11905,10 +13271,22 @@ fn append_recipe_book_item_glints(
             let stack = recipe.getRecipeOutput();
             let mut offset = 4;
             if button.allOutputsEqual && button.multiple {
-                appendGlint(&stack, button.rect.x + offset + 1, button.rect.y + offset + 1, vertices, indices);
+                appendGlint(
+                    &stack,
+                    button.rect.x + offset + 1,
+                    button.rect.y + offset + 1,
+                    vertices,
+                    indices,
+                );
                 offset -= 1;
             }
-            appendGlint(&stack, button.rect.x + offset, button.rect.y + offset, vertices, indices);
+            appendGlint(
+                &stack,
+                button.rect.x + offset,
+                button.rect.y + offset,
+                vertices,
+                indices,
+            );
             scale_gui_vertices_about(
                 &mut vertices[firstVertex..],
                 (button.rect.x + 8) as f32,
@@ -11919,12 +13297,16 @@ fn append_recipe_book_item_glints(
     }
     if !state.widthTooNarrow {
         for ingredient in &state.ghost {
-            appendGlint(&ingredient.stack, ingredient.x, ingredient.y, vertices, indices);
+            appendGlint(
+                &ingredient.stack,
+                ingredient.x,
+                ingredient.y,
+                vertices,
+                indices,
+            );
         }
     }
-    append_recipe_overlay_item_glints(
-        state, capture.systemTimeMillis, atlas, vertices, indices,
-    );
+    append_recipe_overlay_item_glints(state, capture.systemTimeMillis, atlas, vertices, indices);
 }
 
 fn append_recipe_book_overlays(
@@ -11933,17 +13315,31 @@ fn append_recipe_book_overlays(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(state) = active_recipe_book_state(capture) else { return; };
-    if !state.open || state.widthTooNarrow { return; }
+    let Some(state) = active_recipe_book_state(capture) else {
+        return;
+    };
+    if !state.open || state.widthTooNarrow {
+        return;
+    }
     for (index, ingredient) in state.ghost.iter().enumerate() {
         append_solid_hud_quad(
-            ingredient.x, ingredient.y, 16, 16,
-            packed_argb_to_rgba(822_083_583), atlas, vertices, indices,
+            ingredient.x,
+            ingredient.y,
+            16,
+            16,
+            packed_argb_to_rgba(822_083_583),
+            atlas,
+            vertices,
+            indices,
         );
         if index == 0 {
             append_item_overlay_gui(
-                &ingredient.stack, ingredient.x, ingredient.y,
-                atlas, vertices, indices,
+                &ingredient.stack,
+                ingredient.x,
+                ingredient.y,
+                atlas,
+                vertices,
+                indices,
             );
         }
     }
@@ -11957,24 +13353,53 @@ fn append_recipe_book_tooltip(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) -> bool {
-    let Some(state) = active_recipe_book_state(capture) else { return false; };
-    if !state.open { return false; }
+    let Some(state) = active_recipe_book_state(capture) else {
+        return false;
+    };
+    if !state.open {
+        return false;
+    }
     if !state.overlay.visible {
         for button in &state.buttons {
-            if !button.rect.contains(capture.inventoryMouseX, capture.inventoryMouseY) { continue; }
-            let Some(recipe) = CraftingManager::getRecipe(button.recipeId) else { return false; };
-            let mut lines = ItemTooltip::getItemToolTip(&recipe.getRecipeOutput(), locale, capture.advancedItemTooltips);
+            if !button
+                .rect
+                .contains(capture.inventoryMouseX, capture.inventoryMouseY)
+            {
+                continue;
+            }
+            let Some(recipe) = CraftingManager::getRecipe(button.recipeId) else {
+                return false;
+            };
+            let mut lines = ItemTooltip::getItemToolTip(
+                &recipe.getRecipeOutput(),
+                locale,
+                capture.advancedItemTooltips,
+            );
             if button.multiple {
-                lines.push(locale.translate_key("gui.recipebook.moreRecipes").to_owned());
+                lines.push(
+                    locale
+                        .translate_key("gui.recipebook.moreRecipes")
+                        .to_owned(),
+                );
             }
             append_hovering_text(
-                &lines, capture.inventoryMouseX, capture.inventoryMouseY,
-                capture.guiWidth, capture.guiHeight, fontRenderer, atlas, vertices, indices,
+                &lines,
+                capture.inventoryMouseX,
+                capture.inventoryMouseY,
+                capture.guiWidth,
+                capture.guiHeight,
+                fontRenderer,
+                atlas,
+                vertices,
+                indices,
             );
             return true;
         }
     }
-    if state.filter.contains(capture.inventoryMouseX, capture.inventoryMouseY) {
+    if state
+        .filter
+        .contains(capture.inventoryMouseX, capture.inventoryMouseY)
+    {
         let key = if state.filteringCraftable {
             "gui.recipebook.toggleRecipes.craftable"
         } else {
@@ -11982,19 +13407,41 @@ fn append_recipe_book_tooltip(
         };
         append_hovering_text(
             &[locale.translate_key(key).to_owned()],
-            capture.inventoryMouseX, capture.inventoryMouseY,
-            capture.guiWidth, capture.guiHeight, fontRenderer, atlas, vertices, indices,
+            capture.inventoryMouseX,
+            capture.inventoryMouseY,
+            capture.guiWidth,
+            capture.guiHeight,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
         return true;
     }
     if !state.widthTooNarrow {
         for ingredient in &state.ghost {
-            let rect = GuiRect { x: ingredient.x, y: ingredient.y, width: 16, height: 16 };
+            let rect = GuiRect {
+                x: ingredient.x,
+                y: ingredient.y,
+                width: 16,
+                height: 16,
+            };
             if rect.contains(capture.inventoryMouseX, capture.inventoryMouseY) {
-                let lines = ItemTooltip::getItemToolTip(&ingredient.stack, locale, capture.advancedItemTooltips);
+                let lines = ItemTooltip::getItemToolTip(
+                    &ingredient.stack,
+                    locale,
+                    capture.advancedItemTooltips,
+                );
                 append_hovering_text(
-                    &lines, capture.inventoryMouseX, capture.inventoryMouseY,
-                    capture.guiWidth, capture.guiHeight, fontRenderer, atlas, vertices, indices,
+                    &lines,
+                    capture.inventoryMouseX,
+                    capture.inventoryMouseY,
+                    capture.guiWidth,
+                    capture.guiHeight,
+                    fontRenderer,
+                    atlas,
+                    vertices,
+                    indices,
                 );
                 return true;
             }
@@ -12013,8 +13460,14 @@ fn append_player_inventory_background(
     indices: &mut Vec<u32>,
 ) {
     append_solid_hud_quad(
-        0, 0, capture.guiWidth, capture.guiHeight,
-        [0.0, 0.0, 0.0, 0.55], atlas, vertices, indices,
+        0,
+        0,
+        capture.guiWidth,
+        capture.guiHeight,
+        [0.0, 0.0, 0.0, 0.55],
+        atlas,
+        vertices,
+        indices,
     );
     let inventory = player_inventory_layout(capture);
     let container = inventory.container();
@@ -12022,41 +13475,83 @@ fn append_player_inventory_background(
         append_recipe_book_panel_chrome(capture, fontRenderer, atlas, vertices, indices);
     }
     if capture.inventoryIsCreative {
-        append_creative_inventory_background(capture, fontRenderer, atlas, container, vertices, indices);
+        append_creative_inventory_background(
+            capture,
+            fontRenderer,
+            atlas,
+            container,
+            vertices,
+            indices,
+        );
     } else if let Some(spec) = capture.inventoryHorseSpec {
         append_hud_quad_colored(
-            vertices, indices, atlas.horseRectangle,
-            container.guiLeft, container.guiTop,
-            GuiScreenHorseInventory::X_SIZE, GuiScreenHorseInventory::Y_SIZE,
-            0, 0, GuiScreenHorseInventory::X_SIZE, GuiScreenHorseInventory::Y_SIZE,
-            256, 256, [1.0, 1.0, 1.0, 1.0],
+            vertices,
+            indices,
+            atlas.horseRectangle,
+            container.guiLeft,
+            container.guiTop,
+            GuiScreenHorseInventory::X_SIZE,
+            GuiScreenHorseInventory::Y_SIZE,
+            0,
+            0,
+            GuiScreenHorseInventory::X_SIZE,
+            GuiScreenHorseInventory::Y_SIZE,
+            256,
+            256,
+            [1.0, 1.0, 1.0, 1.0],
         );
         if spec.chested {
             append_hud_quad_colored(
-                vertices, indices, atlas.horseRectangle,
-                container.guiLeft + 79, container.guiTop + 17,
-                spec.chestColumns.clamp(1, 5) * 18, 54,
-                0, GuiScreenHorseInventory::Y_SIZE,
-                spec.chestColumns.clamp(1, 5) * 18, 54,
-                256, 256, [1.0, 1.0, 1.0, 1.0],
+                vertices,
+                indices,
+                atlas.horseRectangle,
+                container.guiLeft + 79,
+                container.guiTop + 17,
+                spec.chestColumns.clamp(1, 5) * 18,
+                54,
+                0,
+                GuiScreenHorseInventory::Y_SIZE,
+                spec.chestColumns.clamp(1, 5) * 18,
+                54,
+                256,
+                256,
+                [1.0, 1.0, 1.0, 1.0],
             );
         }
         if spec.kind.canUseSaddleSlot() {
             append_hud_quad_colored(
-                vertices, indices, atlas.horseRectangle,
-                container.guiLeft + 7, container.guiTop + 17,
-                18, 18, 18, GuiScreenHorseInventory::Y_SIZE + 54,
-                18, 18, 256, 256, [1.0, 1.0, 1.0, 1.0],
+                vertices,
+                indices,
+                atlas.horseRectangle,
+                container.guiLeft + 7,
+                container.guiTop + 17,
+                18,
+                18,
+                18,
+                GuiScreenHorseInventory::Y_SIZE + 54,
+                18,
+                18,
+                256,
+                256,
+                [1.0, 1.0, 1.0, 1.0],
             );
         }
         if spec.kind.hasEquipmentSlot() {
             append_hud_quad_colored(
-                vertices, indices, atlas.horseRectangle,
-                container.guiLeft + 7, container.guiTop + 35,
-                18, 18,
+                vertices,
+                indices,
+                atlas.horseRectangle,
+                container.guiLeft + 7,
+                container.guiTop + 35,
+                18,
+                18,
                 if spec.kind.isLlama() { 36 } else { 0 },
                 GuiScreenHorseInventory::Y_SIZE + 54,
-                18, 18, 256, 256, [1.0, 1.0, 1.0, 1.0],
+                18,
+                18,
+                256,
+                256,
+                [1.0, 1.0, 1.0, 1.0],
             );
         }
         append_font_text_colored_no_shadow(
@@ -12064,14 +13559,20 @@ fn append_player_inventory_background(
             container.guiLeft + 8,
             container.guiTop + 6,
             4_210_752,
-            fontRenderer, atlas, vertices, indices,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
         append_font_text_colored_no_shadow(
             &capture.playerInventoryTitle,
             container.guiLeft + 8,
             container.guiTop + container.ySize - 96 + 2,
             4_210_752,
-            fontRenderer, atlas, vertices, indices,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
     } else if let Some(kind) = capture.inventoryWindowKind {
         let rectangle = match kind {
@@ -12081,7 +13582,9 @@ fn append_player_inventory_background(
             ContainerWindowKind::Enchantment => atlas.enchantingRectangle,
             ContainerWindowKind::Hopper => atlas.hopperRectangle,
             ContainerWindowKind::BrewingStand => atlas.brewingStandRectangle,
-            ContainerWindowKind::Dispenser | ContainerWindowKind::Dropper => atlas.dispenserRectangle,
+            ContainerWindowKind::Dispenser | ContainerWindowKind::Dropper => {
+                atlas.dispenserRectangle
+            }
             ContainerWindowKind::Beacon => atlas.beaconRectangle,
             ContainerWindowKind::Merchant => atlas.merchantRectangle,
         };
@@ -12117,7 +13620,11 @@ fn append_player_inventory_background(
                 ContainerWindowKind::Hopper => 8,
                 ContainerWindowKind::Beacon => unreachable!("beacon labels are drawn by GuiBeacon"),
             };
-            let titleY = if kind == ContainerWindowKind::Enchantment { 5 } else { 6 };
+            let titleY = if kind == ContainerWindowKind::Enchantment {
+                5
+            } else {
+                6
+            };
             append_font_text_colored_no_shadow(
                 &capture.inventoryTitle,
                 container.guiLeft + titleX,
@@ -12206,7 +13713,10 @@ fn append_player_inventory_background(
                 );
             }
             ContainerWindowKind::Repair => {
-                let firstEmpty = capture.inventorySlots.first().map_or(true, ItemStack::isEmpty);
+                let firstEmpty = capture
+                    .inventorySlots
+                    .first()
+                    .map_or(true, ItemStack::isEmpty);
                 append_hud_quad_colored(
                     vertices,
                     indices,
@@ -12223,9 +13733,18 @@ fn append_player_inventory_background(
                     256,
                     [1.0, 1.0, 1.0, 1.0],
                 );
-                let hasInput = capture.inventorySlots.get(0).is_some_and(|stack| !stack.isEmpty())
-                    || capture.inventorySlots.get(1).is_some_and(|stack| !stack.isEmpty());
-                let outputEmpty = capture.inventorySlots.get(2).map_or(true, ItemStack::isEmpty);
+                let hasInput = capture
+                    .inventorySlots
+                    .get(0)
+                    .is_some_and(|stack| !stack.isEmpty())
+                    || capture
+                        .inventorySlots
+                        .get(1)
+                        .is_some_and(|stack| !stack.isEmpty());
+                let outputEmpty = capture
+                    .inventorySlots
+                    .get(2)
+                    .map_or(true, ItemStack::isEmpty);
                 if hasInput && outputEmpty {
                     append_hud_quad_colored(
                         vertices,
@@ -12257,7 +13776,9 @@ fn append_player_inventory_background(
                     let cannotTake = !capture.playerCreativeMode
                         && (cost >= 40 || capture.experienceLevel < cost);
                     let color = if cannotTake { 16_736_352 } else { 8_453_920 };
-                    let x = container.guiLeft + container.xSize - 8 - fontRenderer.get_string_width(&costText);
+                    let x = container.guiLeft + container.xSize
+                        - 8
+                        - fontRenderer.get_string_width(&costText);
                     append_font_text_colored_no_shadow(
                         &costText,
                         x,
@@ -12289,7 +13810,11 @@ fn append_player_inventory_background(
                 nameParts.reseedRandomGenerator(xpSeed as i64);
                 let lapis = capture.inventorySlots.get(1).map_or(0, ItemStack::getCount);
                 for option in 0..3_i32 {
-                    let level = capture.inventoryProperties.get(option as usize).copied().unwrap_or(0);
+                    let level = capture
+                        .inventoryProperties
+                        .get(option as usize)
+                        .copied()
+                        .unwrap_or(0);
                     if level == 0 {
                         append_hud_quad_colored(
                             vertices,
@@ -12319,7 +13844,13 @@ fn append_player_inventory_background(
                         && capture.inventoryMouseX < container.guiLeft + 168
                         && capture.inventoryMouseY >= container.guiTop + 14 + 19 * option
                         && capture.inventoryMouseY < container.guiTop + 33 + 19 * option;
-                    let sourceY = if !available { 185 } else if hovered { 204 } else { 166 };
+                    let sourceY = if !available {
+                        185
+                    } else if hovered {
+                        204
+                    } else {
+                        166
+                    };
                     append_hud_quad_colored(
                         vertices,
                         indices,
@@ -12388,27 +13919,57 @@ fn append_player_inventory_background(
                 let fuel = GuiBrewingStand::fuelWidth(&capture.inventoryProperties);
                 if fuel > 0 {
                     append_hud_quad_colored(
-                        vertices, indices, rectangle,
-                        container.guiLeft + 60, container.guiTop + 44,
-                        fuel, 4, 176, 29, fuel, 4, 256, 256,
+                        vertices,
+                        indices,
+                        rectangle,
+                        container.guiLeft + 60,
+                        container.guiTop + 44,
+                        fuel,
+                        4,
+                        176,
+                        29,
+                        fuel,
+                        4,
+                        256,
+                        256,
                         [1.0, 1.0, 1.0, 1.0],
                     );
                 }
                 let brew = GuiBrewingStand::brewHeight(&capture.inventoryProperties);
                 if brew > 0 {
                     append_hud_quad_colored(
-                        vertices, indices, rectangle,
-                        container.guiLeft + 97, container.guiTop + 16,
-                        9, brew, 176, 0, 9, brew, 256, 256,
+                        vertices,
+                        indices,
+                        rectangle,
+                        container.guiLeft + 97,
+                        container.guiTop + 16,
+                        9,
+                        brew,
+                        176,
+                        0,
+                        9,
+                        brew,
+                        256,
+                        256,
                         [1.0, 1.0, 1.0, 1.0],
                     );
                 }
                 let bubbles = GuiBrewingStand::bubbleHeight(&capture.inventoryProperties);
                 if bubbles > 0 {
                     append_hud_quad_colored(
-                        vertices, indices, rectangle,
-                        container.guiLeft + 63, container.guiTop + 43 - bubbles,
-                        12, bubbles, 185, 29 - bubbles, 12, bubbles, 256, 256,
+                        vertices,
+                        indices,
+                        rectangle,
+                        container.guiLeft + 63,
+                        container.guiTop + 43 - bubbles,
+                        12,
+                        bubbles,
+                        185,
+                        29 - bubbles,
+                        12,
+                        bubbles,
+                        256,
+                        256,
                         [1.0, 1.0, 1.0, 1.0],
                     );
                 }
@@ -12422,13 +13983,45 @@ fn append_player_inventory_background(
                     gui.previousButton(capture.inventoryMouseX, capture.inventoryMouseY, recipes),
                     gui.nextButton(capture.inventoryMouseX, capture.inventoryMouseY, recipes),
                 ] {
-                    let (u,v)=button.source();
-                    append_hud_quad_colored(vertices,indices,rectangle,button.x,button.y,12,19,u,v,12,19,256,256,[1.0,1.0,1.0,1.0]);
+                    let (u, v) = button.source();
+                    append_hud_quad_colored(
+                        vertices,
+                        indices,
+                        rectangle,
+                        button.x,
+                        button.y,
+                        12,
+                        19,
+                        u,
+                        v,
+                        12,
+                        19,
+                        256,
+                        256,
+                        [1.0, 1.0, 1.0, 1.0],
+                    );
                 }
-                if let Some(recipe)=recipes.and_then(|list|list.get(gui.selectedMerchantRecipe() as usize)) {
+                if let Some(recipe) =
+                    recipes.and_then(|list| list.get(gui.selectedMerchantRecipe() as usize))
+                {
                     if recipe.isRecipeDisabled() {
-                        for y in [21,51] {
-                            append_hud_quad_colored(vertices,indices,rectangle,container.guiLeft+83,container.guiTop+y,28,21,212,0,28,21,256,256,[1.0,1.0,1.0,1.0]);
+                        for y in [21, 51] {
+                            append_hud_quad_colored(
+                                vertices,
+                                indices,
+                                rectangle,
+                                container.guiLeft + 83,
+                                container.guiTop + y,
+                                28,
+                                21,
+                                212,
+                                0,
+                                28,
+                                21,
+                                256,
+                                256,
+                                [1.0, 1.0, 1.0, 1.0],
+                            );
                         }
                     }
                 }
@@ -12441,10 +14034,19 @@ fn append_player_inventory_background(
         }
     } else if capture.inventoryIsShulker {
         append_hud_quad_colored(
-            vertices, indices, atlas.shulkerRectangle,
-            container.guiLeft, container.guiTop,
-            GuiShulkerBox::X_SIZE, GuiShulkerBox::Y_SIZE,
-            0, 0, GuiShulkerBox::X_SIZE, GuiShulkerBox::Y_SIZE, 256, 256,
+            vertices,
+            indices,
+            atlas.shulkerRectangle,
+            container.guiLeft,
+            container.guiTop,
+            GuiShulkerBox::X_SIZE,
+            GuiShulkerBox::Y_SIZE,
+            0,
+            0,
+            GuiShulkerBox::X_SIZE,
+            GuiShulkerBox::Y_SIZE,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
         append_font_text_colored_no_shadow(
@@ -12452,29 +14054,53 @@ fn append_player_inventory_background(
             container.guiLeft + 8,
             container.guiTop + 6,
             4_210_752,
-            fontRenderer, atlas, vertices, indices,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
         append_font_text_colored_no_shadow(
             &capture.playerInventoryTitle,
             container.guiLeft + 8,
             container.guiTop + container.ySize - 96 + 2,
             4_210_752,
-            fontRenderer, atlas, vertices, indices,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
     } else if capture.inventoryIsChest {
         let topHeight = capture.inventoryRows * 18 + 17;
         append_hud_quad_colored(
-            vertices, indices, atlas.chestRectangle,
-            container.guiLeft, container.guiTop,
-            container.xSize, topHeight,
-            0, 0, container.xSize, topHeight, 256, 256,
+            vertices,
+            indices,
+            atlas.chestRectangle,
+            container.guiLeft,
+            container.guiTop,
+            container.xSize,
+            topHeight,
+            0,
+            0,
+            container.xSize,
+            topHeight,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
         append_hud_quad_colored(
-            vertices, indices, atlas.chestRectangle,
-            container.guiLeft, container.guiTop + topHeight,
-            container.xSize, 96,
-            0, 126, container.xSize, 96, 256, 256,
+            vertices,
+            indices,
+            atlas.chestRectangle,
+            container.guiLeft,
+            container.guiTop + topHeight,
+            container.xSize,
+            96,
+            0,
+            126,
+            container.xSize,
+            96,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
         // GuiChest#drawGuiContainerForegroundLayer delegates both labels to
@@ -12485,32 +14111,61 @@ fn append_player_inventory_background(
             container.guiLeft + 8,
             container.guiTop + 6,
             4_210_752,
-            fontRenderer, atlas, vertices, indices,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
         append_font_text_colored_no_shadow(
             &capture.playerInventoryTitle,
             container.guiLeft + 8,
             container.guiTop + container.ySize - 94,
             4_210_752,
-            fontRenderer, atlas, vertices, indices,
+            fontRenderer,
+            atlas,
+            vertices,
+            indices,
         );
     } else {
         append_hud_quad_colored(
-            vertices, indices, atlas.inventoryRectangle,
-            container.guiLeft, container.guiTop,
-            GuiInventory::X_SIZE, GuiInventory::Y_SIZE,
-            0, 0, GuiInventory::X_SIZE, GuiInventory::Y_SIZE, 256, 256,
+            vertices,
+            indices,
+            atlas.inventoryRectangle,
+            container.guiLeft,
+            container.guiTop,
+            GuiInventory::X_SIZE,
+            GuiInventory::Y_SIZE,
+            0,
+            0,
+            GuiInventory::X_SIZE,
+            GuiInventory::Y_SIZE,
+            256,
+            256,
             [1.0, 1.0, 1.0, 1.0],
         );
         // Slot.getSlotTexture: armor and offhand slots show TextureMap sprites
         // only while their real ContainerPlayer stack is empty.
         for (slotId, textureIndex) in [(5_i32, 0_usize), (6, 1), (7, 2), (8, 3), (45, 4)] {
-            if capture.inventorySlots.get(slotId as usize).is_some_and(ItemStack::isEmpty) {
+            if capture
+                .inventorySlots
+                .get(slotId as usize)
+                .is_some_and(ItemStack::isEmpty)
+            {
                 if let Some((slotX, slotY)) = inventory.slotPosition(slotId) {
                     append_hud_quad_colored(
-                        vertices, indices, atlas.emptySlotRectangles[textureIndex],
-                        slotX, slotY, 16, 16,
-                        0, 0, 16, 16, 16, 16,
+                        vertices,
+                        indices,
+                        atlas.emptySlotRectangles[textureIndex],
+                        slotX,
+                        slotY,
+                        16,
+                        16,
+                        0,
+                        0,
+                        16,
+                        16,
+                        16,
+                        16,
                         [1.0, 1.0, 1.0, 1.0],
                     );
                 }
@@ -12525,8 +14180,14 @@ fn append_player_inventory_background(
         for &slotId in &capture.inventoryDragSplittingSlots {
             if let Some((slotX, slotY)) = inventory.slotPosition(slotId) {
                 append_solid_hud_quad(
-                    slotX, slotY, 16, 16,
-                    [0.0, 0.0, 0.0, 0.5], atlas, vertices, indices,
+                    slotX,
+                    slotY,
+                    16,
+                    16,
+                    [0.0, 0.0, 0.0, 0.5],
+                    atlas,
+                    vertices,
+                    indices,
                 );
             }
         }
@@ -12539,7 +14200,9 @@ fn append_horse_inventory_entity(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(sourceEntity) = capture.inventoryHorseEntity.as_ref() else { return; };
+    let Some(sourceEntity) = capture.inventoryHorseEntity.as_ref() else {
+        return;
+    };
     let inventory = player_inventory_layout(capture);
     let posX = inventory.container().guiLeft + 51;
     let posY = inventory.container().guiTop + 60;
@@ -12570,7 +14233,9 @@ fn append_horse_inventory_entity(
     entity.entity.posY = 0.0;
     entity.entity.posZ = 0.0;
 
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
     let entityType = *entityType;
     let mut meshes = Vec::<(LivingModelMesh, ResourceLocation)>::new();
     if RenderLlama::supports(entityType) {
@@ -12672,10 +14337,16 @@ fn append_living_mesh_gui_quads(
         let edge1 = subtract3(modelPositions[1], modelPositions[0]);
         let edge2 = subtract3(modelPositions[2], modelPositions[0]);
         let normal = normalize3(cross3(edge1, edge2));
-        if normal[2] <= 1.0e-5 { continue; }
+        if normal[2] <= 1.0e-5 {
+            continue;
+        }
         let diffuse = standard_item_diffuse(normal, lights);
         quads.push(GuiItemQuad {
-            depth: modelPositions.iter().map(|position| position[2]).sum::<f32>() / 4.0,
+            depth: modelPositions
+                .iter()
+                .map(|position| position[2])
+                .sum::<f32>()
+                / 4.0,
             positions: screenPositions,
             uvs,
             rectangle,
@@ -12697,15 +14368,12 @@ fn append_gui_item_quads(
                 uv: map_player_skin_uv(quad.rectangle, quad.uvs[index]),
                 color: quad.color,
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
         }
-        indices.extend_from_slice(&[
-            base, base + 1, base + 2,
-            base, base + 2, base + 3,
-        ]);
+        indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
     }
 }
 
@@ -12747,8 +14415,7 @@ fn append_player_inventory_entity(
     let partial = 1.0_f32;
     let limbSwingAmount = capture.localPrevLimbSwingAmount
         + (capture.localLimbSwingAmount - capture.localPrevLimbSwingAmount) * partial;
-    let limbSwing = capture.localLimbSwing
-        - capture.localLimbSwingAmount * (1.0 - partial);
+    let limbSwing = capture.localLimbSwing - capture.localLimbSwingAmount * (1.0 - partial);
     let slim = capture.localSlim;
     let (leftArmPose, rightArmPose) = inventory_player_arm_poses(capture);
     let renderInput = PlayerRenderInput {
@@ -12767,14 +14434,20 @@ fn append_player_inventory_entity(
         swingingArmIsLeft: capture.localSwingingArmIsLeft,
         leftArmPose,
         rightArmPose,
-        ticksElytraFlying: capture.localPlayerRenderState.as_ref()
+        ticksElytraFlying: capture
+            .localPlayerRenderState
+            .as_ref()
             .map_or(0, |player| player.ticksElytraFlying),
-        motion: capture.localPlayerRenderState.as_ref()
+        motion: capture
+            .localPlayerRenderState
+            .as_ref()
             .map_or([0.0; 3], |player| player.motion),
     };
     let pose = RenderPlayer::buildPose(renderInput);
     let mesh = RenderPlayer::buildMesh(renderInput);
-    if mesh.indices.is_empty() { return; }
+    if mesh.indices.is_empty() {
+        return;
+    }
 
     // RenderHelper.enableStandardItemLighting is invoked between the +135 and
     // -135 degree Y rotations in GuiInventory. This is the same two-light
@@ -12785,7 +14458,11 @@ fn append_player_inventory_entity(
         normalize3(transform_direction3(lightingRotation, [-0.2, 1.0, 0.7])),
     ];
     let entityPitch = inventory_player_entity_matrix(
-        capture.localPlayerRenderState.as_ref(), bodyYaw, headYaw, headPitch, wholeEntityPitch,
+        capture.localPlayerRenderState.as_ref(),
+        bodyYaw,
+        headYaw,
+        headPitch,
+        wholeEntityPitch,
     );
     let skinRectangle = player_skin_rectangle(atlas, &capture.localSkinLocation, slim);
     let mut quads = Vec::<GuiItemQuad>::new();
@@ -12811,10 +14488,16 @@ fn append_player_inventory_entity(
         let edge1 = subtract3(modelPositions[1], modelPositions[0]);
         let edge2 = subtract3(modelPositions[2], modelPositions[0]);
         let normal = normalize3(cross3(edge1, edge2));
-        if normal[2] <= 1.0e-5 { continue; }
+        if normal[2] <= 1.0e-5 {
+            continue;
+        }
         let diffuse = standard_item_diffuse(normal, lights);
         quads.push(GuiItemQuad {
-            depth: modelPositions.iter().map(|position| position[2]).sum::<f32>() / 4.0,
+            depth: modelPositions
+                .iter()
+                .map(|position| position[2])
+                .sum::<f32>()
+                / 4.0,
             positions: screenPositions,
             uvs,
             rectangle: skinRectangle,
@@ -12823,23 +14506,66 @@ fn append_player_inventory_entity(
     }
 
     append_player_inventory_held_items(
-        capture, atlas, pose, bodyYaw, entityPitch, posX, posY, scale, lights, &mut quads,
+        capture,
+        atlas,
+        pose,
+        bodyYaw,
+        entityPitch,
+        posX,
+        posY,
+        scale,
+        lights,
+        &mut quads,
     );
 
     if let Some(player) = capture.localPlayerRenderState.as_ref() {
         append_player_inventory_armor(
-            player, pose, bodyYaw, entityPitch, posX, posY, scale, lights, atlas, &mut quads,
+            player,
+            pose,
+            bodyYaw,
+            entityPitch,
+            posX,
+            posY,
+            scale,
+            lights,
+            atlas,
+            &mut quads,
         );
         append_player_inventory_cape(
-            player, bodyYaw, entityPitch, posX, posY, scale, lights,
-            1.0, atlas, &mut quads,
+            player,
+            bodyYaw,
+            entityPitch,
+            posX,
+            posY,
+            scale,
+            lights,
+            1.0,
+            atlas,
+            &mut quads,
         );
         append_player_inventory_custom_head(
-            player, pose, bodyYaw, limbSwing, entityPitch, posX, posY, scale, lights,
-            atlas, &mut quads,
+            player,
+            pose,
+            bodyYaw,
+            limbSwing,
+            entityPitch,
+            posX,
+            posY,
+            scale,
+            lights,
+            atlas,
+            &mut quads,
         );
         append_player_inventory_elytra(
-            player, bodyYaw, entityPitch, posX, posY, scale, lights, atlas, &mut quads,
+            player,
+            bodyYaw,
+            entityPitch,
+            posX,
+            posY,
+            scale,
+            lights,
+            atlas,
+            &mut quads,
         );
     }
 
@@ -12852,15 +14578,12 @@ fn append_player_inventory_entity(
                 uv: map_player_skin_uv(quad.rectangle, quad.uvs[index]),
                 color: quad.color,
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
         }
-        indices.extend_from_slice(&[
-            base, base + 1, base + 2,
-            base, base + 2, base + 3,
-        ]);
+        indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
     }
 }
 
@@ -12894,12 +14617,16 @@ fn append_player_glint_gui_quads(
         let edge1 = subtract3(positions[1], positions[0]);
         let edge2 = subtract3(positions[2], positions[0]);
         let normal = normalize3(cross3(edge1, edge2));
-        if normal[2] <= 1.0e-5 { continue; }
-        let screenPositions = positions.map(|position| [
-            posX as f32 + position[0] * scale,
-            posY as f32 - position[1] * scale,
-            position[2],
-        ]);
+        if normal[2] <= 1.0e-5 {
+            continue;
+        }
+        let screenPositions = positions.map(|position| {
+            [
+                posX as f32 + position[0] * scale,
+                posY as f32 - position[1] * scale,
+                position[2],
+            ]
+        });
         let uvs = [
             enchanted_glint_local_uv(face[0].uv, pass),
             enchanted_glint_local_uv(face[1].uv, pass),
@@ -12922,7 +14649,9 @@ fn append_player_inventory_entity_glints(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(player) = capture.localPlayerRenderState.as_ref() else { return; };
+    let Some(player) = capture.localPlayerRenderState.as_ref() else {
+        return;
+    };
     let inventory = player_inventory_layout(capture);
     let (posX, posY, mouseYOffset, scale) = if capture.inventoryIsCreative {
         (
@@ -12946,14 +14675,12 @@ fn append_player_inventory_entity_glints(
     let bodyYaw = horizontal * 20.0;
     let headYaw = horizontal * 40.0;
     let headPitch = -vertical * 20.0;
-    let entityPitch = inventory_player_entity_matrix(
-        Some(player), bodyYaw, headYaw, headPitch, -vertical * 20.0,
-    );
+    let entityPitch =
+        inventory_player_entity_matrix(Some(player), bodyYaw, headYaw, headPitch, -vertical * 20.0);
     let partial = 1.0_f32;
     let limbSwingAmount = capture.localPrevLimbSwingAmount
         + (capture.localLimbSwingAmount - capture.localPrevLimbSwingAmount) * partial;
-    let limbSwing = capture.localLimbSwing
-        - capture.localLimbSwingAmount * (1.0 - partial);
+    let limbSwing = capture.localLimbSwing - capture.localLimbSwingAmount * (1.0 - partial);
     let (leftArmPose, rightArmPose) = inventory_player_arm_poses(capture);
     let pose = RenderPlayer::buildPose(PlayerRenderInput {
         position: [0.0; 3],
@@ -12984,29 +14711,48 @@ fn append_player_inventory_entity_glints(
             EntityEquipmentSlot::Head,
         ] {
             let stack = player_armor_stack(player, slot);
-            let Some(definition) = ItemArmor::definition(stack.itemId) else { continue; };
-            if definition.slot != slot || !stack.isItemEnchanted() { continue; }
+            let Some(definition) = ItemArmor::definition(stack.itemId) else {
+                continue;
+            };
+            if definition.slot != slot || !stack.isItemEnchanted() {
+                continue;
+            }
             let mesh = RenderPlayer::buildBoxesMesh(
-                LayerBipedArmor::boxes(pose, slot), [0.0; 3], bodyYaw,
-                player.sneaking, 64.0, 32.0,
+                LayerBipedArmor::boxes(pose, slot),
+                [0.0; 3],
+                bodyYaw,
+                player.sneaking,
+                64.0,
+                32.0,
             );
             append_player_glint_gui_quads(
-                mesh, entityPitch, pass, atlas.glintRectangle,
-                posX, posY, scale, &mut quads,
+                mesh,
+                entityPitch,
+                pass,
+                atlas.glintRectangle,
+                posX,
+                posY,
+                scale,
+                &mut quads,
             );
         }
 
         if ItemArmor::isElytra(&player.chestStack) && player.chestStack.isItemEnchanted() {
             let elytraPose = ModelElytra::poseFromRotations(player.sneaking, player.elytraRotation);
-            let mesh = RenderPlayer::buildLocalBoxesMesh(
-                ModelElytra::boxes(elytraPose), 64.0, 32.0,
-            );
+            let mesh =
+                RenderPlayer::buildLocalBoxesMesh(ModelElytra::boxes(elytraPose), 64.0, 32.0);
             let mut matrix = player_layer_root_matrix(bodyYaw, player.sneaking);
             matrix = multiply4(matrix, translation4([0.0, 0.0, 0.125]));
             matrix = multiply4(entityPitch, matrix);
             append_player_glint_gui_quads(
-                mesh, matrix, pass, atlas.glintRectangle,
-                posX, posY, scale, &mut quads,
+                mesh,
+                matrix,
+                pass,
+                atlas.glintRectangle,
+                posX,
+                posY,
+                scale,
+                &mut quads,
             );
         }
     }
@@ -13036,8 +14782,7 @@ fn append_player_model_gui_quads(
         ];
         let uvs = [face[0].uv, face[1].uv, face[2].uv, face[3].uv];
         push_inventory_entity_item_quad(
-            positions, uvs, rectangle, tint, shaded,
-            posX, posY, scale, lights, quads,
+            positions, uvs, rectangle, tint, shaded, posX, posY, scale, lights, quads,
         );
     }
 }
@@ -13062,20 +14807,39 @@ fn append_player_inventory_armor(
         EntityEquipmentSlot::Head,
     ] {
         let stack = player_armor_stack(player, slot);
-        let Some(definition) = ItemArmor::definition(stack.itemId) else { continue; };
-        if definition.slot != slot { continue; }
+        let Some(definition) = ItemArmor::definition(stack.itemId) else {
+            continue;
+        };
+        if definition.slot != slot {
+            continue;
+        }
         let boxes = LayerBipedArmor::boxes(pose, slot);
         for tint in LayerArmorBase::tintPasses(stack) {
-            let Some(texture) = LayerArmorBase::texture(stack, tint.overlay) else { continue; };
-            let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else { continue; };
+            let Some(texture) = LayerArmorBase::texture(stack, tint.overlay) else {
+                continue;
+            };
+            let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else {
+                continue;
+            };
             let mesh = RenderPlayer::buildBoxesMesh(
-                boxes.iter().copied(), [0.0; 3], bodyYaw, player.sneaking,
-                64.0, 32.0,
+                boxes.iter().copied(),
+                [0.0; 3],
+                bodyYaw,
+                player.sneaking,
+                64.0,
+                32.0,
             );
             append_player_model_gui_quads(
-                mesh, entityPitch, rectangle,
-                [tint.color[0], tint.color[1], tint.color[2]], true,
-                posX, posY, scale, lights, quads,
+                mesh,
+                entityPitch,
+                rectangle,
+                [tint.color[0], tint.color[1], tint.color[2]],
+                true,
+                posX,
+                posY,
+                scale,
+                lights,
+                quads,
             );
         }
     }
@@ -13094,13 +14858,15 @@ fn append_player_inventory_cape(
     atlas: &AtlasState,
     quads: &mut Vec<GuiItemQuad>,
 ) {
-    let Some(capeLocation) = player.capeLocation.as_ref() else { return; };
-    if !LayerCape::shouldRender(
-        true, player.invisible, player.skinParts, &player.chestStack,
-    ) {
+    let Some(capeLocation) = player.capeLocation.as_ref() else {
+        return;
+    };
+    if !LayerCape::shouldRender(true, player.invisible, player.skinParts, &player.chestStack) {
         return;
     }
-    let Some(rectangle) = atlas.entityTextureRectangles.get(capeLocation).copied() else { return; };
+    let Some(rectangle) = atlas.entityTextureRectangles.get(capeLocation).copied() else {
+        return;
+    };
     let transform = LayerCape::transform(
         CapeMotionInput {
             prevChasingPos: player.prevChasingPosition,
@@ -13128,8 +14894,16 @@ fn append_player_inventory_cape(
     matrix = multiply4(matrix, rotation_y4(transform.finalRotateY));
     matrix = multiply4(entityPitch, matrix);
     append_player_model_gui_quads(
-        RenderPlayer::buildCapeMesh(), matrix, rectangle, [1.0; 3], true,
-        posX, posY, scale, lights, quads,
+        RenderPlayer::buildCapeMesh(),
+        matrix,
+        rectangle,
+        [1.0; 3],
+        true,
+        posX,
+        posY,
+        scale,
+        lights,
+        quads,
     );
 }
 
@@ -13148,15 +14922,23 @@ fn append_player_inventory_custom_head(
     quads: &mut Vec<GuiItemQuad>,
 ) {
     let stack = player_armor_stack(player, EntityEquipmentSlot::Head);
-    if !LayerCustomHead::isSkull(stack) { return; }
+    if !LayerCustomHead::isSkull(stack) {
+        return;
+    }
     let skullType = stack.itemDamage as i32;
-    let Some(mesh) = TileEntityItemStackRenderer::buildSkullMesh(skullType, limbSwing) else { return; };
+    let Some(mesh) = TileEntityItemStackRenderer::buildSkullMesh(skullType, limbSwing) else {
+        return;
+    };
     let rectangle = if skullType == 3 {
-        player.customHeadSkinLocation.as_ref()
+        player
+            .customHeadSkinLocation
+            .as_ref()
             .and_then(|location| atlas.entityTextureRectangles.get(location).copied())
             .unwrap_or(atlas.steveRectangle)
     } else {
-        atlas.builtInItemRectangles.get(&mesh.texture)
+        atlas
+            .builtInItemRectangles
+            .get(&mesh.texture)
             .copied()
             .unwrap_or(atlas.missingRectangle)
     };
@@ -13165,22 +14947,29 @@ fn append_player_inventory_custom_head(
         matrix = multiply4(matrix, translation4([0.0, 0.2, 0.0]));
     }
     matrix = post_render_part_matrix(matrix, pose.head);
-    matrix = multiply4(matrix, scale4_nonuniform([
-        LayerCustomHead::SKULL_SCALE,
-        -LayerCustomHead::SKULL_SCALE,
-        -LayerCustomHead::SKULL_SCALE,
-    ]));
+    matrix = multiply4(
+        matrix,
+        scale4_nonuniform([
+            LayerCustomHead::SKULL_SCALE,
+            -LayerCustomHead::SKULL_SCALE,
+            -LayerCustomHead::SKULL_SCALE,
+        ]),
+    );
     matrix = multiply4(entityPitch, matrix);
     for face in mesh.indices.chunks_exact(6) {
-        let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
+        let source = [
+            face[0] as usize,
+            face[1] as usize,
+            face[2] as usize,
+            face[5] as usize,
+        ];
         let positions = source.map(|index| {
             let vertex = mesh.vertices[index].position;
             transform_point3(matrix, [vertex[0] - 0.5, vertex[1], vertex[2] - 0.5])
         });
         let uvs = source.map(|index| mesh.vertices[index].uv);
         push_inventory_entity_item_quad(
-            positions, uvs, rectangle, [1.0; 3], true,
-            posX, posY, scale, lights, quads,
+            positions, uvs, rectangle, [1.0; 3], true, posX, posY, scale, lights, quads,
         );
     }
 }
@@ -13197,28 +14986,60 @@ fn append_player_inventory_elytra(
     atlas: &AtlasState,
     quads: &mut Vec<GuiItemQuad>,
 ) {
-    if !ItemArmor::isElytra(&player.chestStack) { return; }
-    let Some(location) = player.elytraLocation.as_ref() else { return; };
-    let Some(rectangle) = atlas.entityTextureRectangles.get(location).copied() else { return; };
+    if !ItemArmor::isElytra(&player.chestStack) {
+        return;
+    }
+    let Some(location) = player.elytraLocation.as_ref() else {
+        return;
+    };
+    let Some(rectangle) = atlas.entityTextureRectangles.get(location).copied() else {
+        return;
+    };
     let pose = ModelElytra::poseFromRotations(player.sneaking, player.elytraRotation);
     let mesh = RenderPlayer::buildLocalBoxesMesh(ModelElytra::boxes(pose), 64.0, 32.0);
     let mut matrix = player_layer_root_matrix(bodyYaw, player.sneaking);
     matrix = multiply4(matrix, translation4([0.0, 0.0, 0.125]));
     matrix = multiply4(entityPitch, matrix);
     append_player_model_gui_quads(
-        mesh, matrix, rectangle, [1.0; 3], true,
-        posX, posY, scale, lights, quads,
+        mesh, matrix, rectangle, [1.0; 3], true, posX, posY, scale, lights, quads,
     );
 }
 
 fn merchant_preview_stacks(capture: &WorldRenderCapture) -> Vec<(ItemStack, i32, i32)> {
-    if capture.inventoryWindowKind != Some(ContainerWindowKind::Merchant) { return Vec::new(); }
-    let mut gui=GuiMerchant::new(); gui.initGui(capture.guiWidth,capture.guiHeight);
-    gui.setSelectedMerchantRecipe(capture.merchantRecipeIndex,capture.merchantRecipes.as_ref());
-    let Some(recipe)=capture.merchantRecipes.as_ref().and_then(|l|l.get(gui.selectedMerchantRecipe() as usize)) else{return Vec::new();};
-    let mut result=vec![(recipe.getItemToBuy().clone(),gui.container.guiLeft+36,gui.container.guiTop+24)];
-    if recipe.hasSecondItemToBuy(){result.push((recipe.getSecondItemToBuy().clone(),gui.container.guiLeft+62,gui.container.guiTop+24));}
-    result.push((recipe.getItemToSell().clone(),gui.container.guiLeft+120,gui.container.guiTop+24)); result
+    if capture.inventoryWindowKind != Some(ContainerWindowKind::Merchant) {
+        return Vec::new();
+    }
+    let mut gui = GuiMerchant::new();
+    gui.initGui(capture.guiWidth, capture.guiHeight);
+    gui.setSelectedMerchantRecipe(
+        capture.merchantRecipeIndex,
+        capture.merchantRecipes.as_ref(),
+    );
+    let Some(recipe) = capture
+        .merchantRecipes
+        .as_ref()
+        .and_then(|l| l.get(gui.selectedMerchantRecipe() as usize))
+    else {
+        return Vec::new();
+    };
+    let mut result = vec![(
+        recipe.getItemToBuy().clone(),
+        gui.container.guiLeft + 36,
+        gui.container.guiTop + 24,
+    )];
+    if recipe.hasSecondItemToBuy() {
+        result.push((
+            recipe.getSecondItemToBuy().clone(),
+            gui.container.guiLeft + 62,
+            gui.container.guiTop + 24,
+        ));
+    }
+    result.push((
+        recipe.getItemToSell().clone(),
+        gui.container.guiLeft + 120,
+        gui.container.guiTop + 24,
+    ));
+    result
 }
 
 fn append_player_inventory_item_models(
@@ -13231,40 +15052,53 @@ fn append_player_inventory_item_models(
     let narrowRecipeBook = recipe_book_narrow_open(capture);
     let inventory = player_inventory_layout(capture);
     if !narrowRecipeBook {
-    for (stack,x,y) in merchant_preview_stacks(capture) {
-        append_item_stack_gui(&stack,x,y,atlas,vertices,indices);
-    }
-    if capture.inventoryWindowKind == Some(ContainerWindowKind::Beacon) {
-        let container = inventory.container();
-        for (itemId, offsetX) in [(388_i16, 42_i32), (264, 64), (266, 86), (265, 108)] {
-            let sample = ItemStack {
-                itemId,
-                count: 1,
-                itemDamage: 0,
-                tagCompound: None,
-            };
-            append_item_stack_gui(
-                &sample,
-                container.guiLeft + offsetX,
-                container.guiTop + 109,
-                atlas,
-                vertices,
-                indices,
-            );
+        for (stack, x, y) in merchant_preview_stacks(capture) {
+            append_item_stack_gui(&stack, x, y, atlas, vertices, indices);
         }
-    }
-    if capture.inventoryIsCreative {
-        for tab in CREATIVE_TAB_ARRAY {
-            if let Some((iconX, iconY)) = creative_tab_icon_position(inventory.container(), tab.tabIndex) {
-                append_item_stack_gui(&tab.getIconItemStack(), iconX, iconY, atlas, vertices, indices);
+        if capture.inventoryWindowKind == Some(ContainerWindowKind::Beacon) {
+            let container = inventory.container();
+            for (itemId, offsetX) in [(388_i16, 42_i32), (264, 64), (266, 86), (265, 108)] {
+                let sample = ItemStack {
+                    itemId,
+                    count: 1,
+                    itemDamage: 0,
+                    tagCompound: None,
+                };
+                append_item_stack_gui(
+                    &sample,
+                    container.guiLeft + offsetX,
+                    container.guiTop + 109,
+                    atlas,
+                    vertices,
+                    indices,
+                );
             }
         }
-    }
-    for slotId in 0..capture.inventorySlots.len() as i32 {
-        let Some((slotX, slotY)) = inventory.slotPosition(slotId) else { continue; };
-        let Some(stack) = player_inventory_display_stack(capture, slotId) else { continue; };
-        append_item_stack_gui(&stack, slotX, slotY, atlas, vertices, indices);
-    }
+        if capture.inventoryIsCreative {
+            for tab in CREATIVE_TAB_ARRAY {
+                if let Some((iconX, iconY)) =
+                    creative_tab_icon_position(inventory.container(), tab.tabIndex)
+                {
+                    append_item_stack_gui(
+                        &tab.getIconItemStack(),
+                        iconX,
+                        iconY,
+                        atlas,
+                        vertices,
+                        indices,
+                    );
+                }
+            }
+        }
+        for slotId in 0..capture.inventorySlots.len() as i32 {
+            let Some((slotX, slotY)) = inventory.slotPosition(slotId) else {
+                continue;
+            };
+            let Some(stack) = player_inventory_display_stack(capture, slotId) else {
+                continue;
+            };
+            append_item_stack_gui(&stack, slotX, slotY, atlas, vertices, indices);
+        }
     }
     let cursor = player_inventory_cursor_display_stack(capture);
     if !cursor.isEmpty() {
@@ -13272,7 +15106,9 @@ fn append_player_inventory_item_models(
             &cursor,
             capture.inventoryMouseX - 8,
             capture.inventoryMouseY - 8,
-            atlas, vertices, indices,
+            atlas,
+            vertices,
+            indices,
         );
     }
 }
@@ -13287,27 +15123,51 @@ fn append_player_inventory_item_glints(
     let narrowRecipeBook = recipe_book_narrow_open(capture);
     let inventory = player_inventory_layout(capture);
     if !narrowRecipeBook {
-    for (stack,x,y) in merchant_preview_stacks(capture) {
-        append_item_glint_gui(&stack,x,y,capture.systemTimeMillis,atlas,vertices,indices);
-    }
-    if capture.inventoryIsCreative {
-        for tab in CREATIVE_TAB_ARRAY {
-            if let Some((iconX, iconY)) = creative_tab_icon_position(inventory.container(), tab.tabIndex) {
-                append_item_glint_gui(
-                    &tab.getIconItemStack(), iconX, iconY,
-                    capture.systemTimeMillis, atlas, vertices, indices,
-                );
+        for (stack, x, y) in merchant_preview_stacks(capture) {
+            append_item_glint_gui(
+                &stack,
+                x,
+                y,
+                capture.systemTimeMillis,
+                atlas,
+                vertices,
+                indices,
+            );
+        }
+        if capture.inventoryIsCreative {
+            for tab in CREATIVE_TAB_ARRAY {
+                if let Some((iconX, iconY)) =
+                    creative_tab_icon_position(inventory.container(), tab.tabIndex)
+                {
+                    append_item_glint_gui(
+                        &tab.getIconItemStack(),
+                        iconX,
+                        iconY,
+                        capture.systemTimeMillis,
+                        atlas,
+                        vertices,
+                        indices,
+                    );
+                }
             }
         }
-    }
-    for slotId in 0..capture.inventorySlots.len() as i32 {
-        let Some((slotX, slotY)) = inventory.slotPosition(slotId) else { continue; };
-        let Some(stack) = player_inventory_display_stack(capture, slotId) else { continue; };
-        append_item_glint_gui(
-            &stack, slotX, slotY,
-            capture.systemTimeMillis, atlas, vertices, indices,
-        );
-    }
+        for slotId in 0..capture.inventorySlots.len() as i32 {
+            let Some((slotX, slotY)) = inventory.slotPosition(slotId) else {
+                continue;
+            };
+            let Some(stack) = player_inventory_display_stack(capture, slotId) else {
+                continue;
+            };
+            append_item_glint_gui(
+                &stack,
+                slotX,
+                slotY,
+                capture.systemTimeMillis,
+                atlas,
+                vertices,
+                indices,
+            );
+        }
     }
     let cursor = player_inventory_cursor_display_stack(capture);
     append_item_glint_gui(
@@ -13315,7 +15175,9 @@ fn append_player_inventory_item_glints(
         capture.inventoryMouseX - 8,
         capture.inventoryMouseY - 8,
         capture.systemTimeMillis,
-        atlas, vertices, indices,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -13328,43 +15190,62 @@ fn append_player_inventory_overlays(
     let narrowRecipeBook = recipe_book_narrow_open(capture);
     let inventory = player_inventory_layout(capture);
     if !narrowRecipeBook {
-    for (stack,x,y) in merchant_preview_stacks(capture) {
-        append_item_overlay_gui(&stack,x,y,atlas,vertices,indices);
-    }
-    if capture.inventoryIsCreative {
-        for tab in CREATIVE_TAB_ARRAY {
-            if let Some((iconX, iconY)) = creative_tab_icon_position(inventory.container(), tab.tabIndex) {
-                append_item_overlay_gui(&tab.getIconItemStack(), iconX, iconY, atlas, vertices, indices);
+        for (stack, x, y) in merchant_preview_stacks(capture) {
+            append_item_overlay_gui(&stack, x, y, atlas, vertices, indices);
+        }
+        if capture.inventoryIsCreative {
+            for tab in CREATIVE_TAB_ARRAY {
+                if let Some((iconX, iconY)) =
+                    creative_tab_icon_position(inventory.container(), tab.tabIndex)
+                {
+                    append_item_overlay_gui(
+                        &tab.getIconItemStack(),
+                        iconX,
+                        iconY,
+                        atlas,
+                        vertices,
+                        indices,
+                    );
+                }
             }
         }
-    }
-    for slotId in 0..capture.inventorySlots.len() as i32 {
-        let Some((slotX, slotY)) = inventory.slotPosition(slotId) else { continue; };
-        let Some(stack) = player_inventory_display_stack(capture, slotId) else { continue; };
-        if let Some(limit) = player_inventory_drag_preview_limit(capture, slotId) {
-            let text = limit.to_string();
-            append_item_overlay_gui_with_alt(
-                &stack,
-                slotX,
-                slotY,
-                Some((&text, [1.0, 1.0, 0.33, 1.0])),
-                atlas,
-                vertices,
-                indices,
-            );
-        } else {
-            append_item_overlay_gui(&stack, slotX, slotY, atlas, vertices, indices);
+        for slotId in 0..capture.inventorySlots.len() as i32 {
+            let Some((slotX, slotY)) = inventory.slotPosition(slotId) else {
+                continue;
+            };
+            let Some(stack) = player_inventory_display_stack(capture, slotId) else {
+                continue;
+            };
+            if let Some(limit) = player_inventory_drag_preview_limit(capture, slotId) {
+                let text = limit.to_string();
+                append_item_overlay_gui_with_alt(
+                    &stack,
+                    slotX,
+                    slotY,
+                    Some((&text, [1.0, 1.0, 0.33, 1.0])),
+                    atlas,
+                    vertices,
+                    indices,
+                );
+            } else {
+                append_item_overlay_gui(&stack, slotX, slotY, atlas, vertices, indices);
+            }
         }
-    }
 
-    if let Some(slotId) = inventory.slotAt(capture.inventoryMouseX, capture.inventoryMouseY) {
-        if let Some((slotX, slotY)) = inventory.slotPosition(slotId) {
-            append_solid_hud_quad(
-                slotX, slotY, 16, 16,
-                [1.0, 1.0, 1.0, 0.5], atlas, vertices, indices,
-            );
+        if let Some(slotId) = inventory.slotAt(capture.inventoryMouseX, capture.inventoryMouseY) {
+            if let Some((slotX, slotY)) = inventory.slotPosition(slotId) {
+                append_solid_hud_quad(
+                    slotX,
+                    slotY,
+                    16,
+                    16,
+                    [1.0, 1.0, 1.0, 0.5],
+                    atlas,
+                    vertices,
+                    indices,
+                );
+            }
         }
-    }
     }
 
     append_recipe_book_overlays(capture, atlas, vertices, indices);
@@ -13374,7 +15255,9 @@ fn append_player_inventory_overlays(
             &cursor,
             capture.inventoryMouseX - 8,
             capture.inventoryMouseY - 8,
-            atlas, vertices, indices,
+            atlas,
+            vertices,
+            indices,
         );
     } else if capture.inventoryDragSplitting
         && capture.inventoryDragSplittingSlots.len() > 1
@@ -13385,7 +15268,9 @@ fn append_player_inventory_overlays(
             capture.inventoryMouseX + 3,
             capture.inventoryMouseY + 1,
             [1.0, 1.0, 0.33, 1.0],
-            atlas, vertices, indices,
+            atlas,
+            vertices,
+            indices,
         );
     }
 }
@@ -13398,9 +15283,7 @@ fn append_player_inventory_tooltip(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if append_recipe_book_tooltip(
-        capture, locale, fontRenderer, atlas, vertices, indices,
-    ) {
+    if append_recipe_book_tooltip(capture, locale, fontRenderer, atlas, vertices, indices) {
         return;
     }
     if recipe_book_narrow_open(capture) {
@@ -13411,12 +15294,18 @@ fn append_player_inventory_tooltip(
         let container = inventory.container();
         let lapis = capture.inventorySlots.get(1).map_or(0, ItemStack::getCount);
         for option in 0..3_i32 {
-            let level = capture.inventoryProperties.get(option as usize).copied().unwrap_or(0);
-            let enchantmentId = capture.inventoryProperties
+            let level = capture
+                .inventoryProperties
+                .get(option as usize)
+                .copied()
+                .unwrap_or(0);
+            let enchantmentId = capture
+                .inventoryProperties
                 .get((4 + option) as usize)
                 .copied()
                 .unwrap_or(-1);
-            let enchantmentLevel = capture.inventoryProperties
+            let enchantmentLevel = capture
+                .inventoryProperties
                 .get((7 + option) as usize)
                 .copied()
                 .unwrap_or(-1);
@@ -13447,16 +15336,24 @@ fn append_player_inventory_tooltip(
                 } else {
                     let cost = option + 1;
                     let lapisText = if cost == 1 {
-                        locale.translate_key("container.enchant.lapis.one").to_owned()
+                        locale
+                            .translate_key("container.enchant.lapis.one")
+                            .to_owned()
                     } else {
                         format_gui_translation(
                             locale.translate_key("container.enchant.lapis.many"),
                             cost,
                         )
                     };
-                    lines.push(format!("{}{}", if lapis >= cost { "§7" } else { "§c" }, lapisText));
+                    lines.push(format!(
+                        "{}{}",
+                        if lapis >= cost { "§7" } else { "§c" },
+                        lapisText
+                    ));
                     let levelText = if cost == 1 {
-                        locale.translate_key("container.enchant.level.one").to_owned()
+                        locale
+                            .translate_key("container.enchant.level.one")
+                            .to_owned()
                     } else {
                         format_gui_translation(
                             locale.translate_key("container.enchant.level.many"),
@@ -13481,19 +15378,56 @@ fn append_player_inventory_tooltip(
         }
     }
     if capture.inventoryWindowKind == Some(ContainerWindowKind::Merchant) {
-        let mut gui=GuiMerchant::new(); gui.initGui(capture.guiWidth,capture.guiHeight);
-        gui.setSelectedMerchantRecipe(capture.merchantRecipeIndex,capture.merchantRecipes.as_ref());
-        if let Some(recipe)=capture.merchantRecipes.as_ref().and_then(|l|l.get(gui.selectedMerchantRecipe() as usize)) {
-            let stack=match gui.previewRegionAt(capture.inventoryMouseX,capture.inventoryMouseY) {
-                Some(MerchantPreviewRegion::FirstBuy)=>Some(recipe.getItemToBuy()),
-                Some(MerchantPreviewRegion::SecondBuy) if recipe.hasSecondItemToBuy()=>Some(recipe.getSecondItemToBuy()),
-                Some(MerchantPreviewRegion::Sell)=>Some(recipe.getItemToSell()),
-                Some(MerchantPreviewRegion::Disabled) if recipe.isRecipeDisabled()=>{
-                    append_hovering_text(&[locale.translate_key("merchant.deprecated").to_owned()],capture.inventoryMouseX,capture.inventoryMouseY,capture.guiWidth,capture.guiHeight,fontRenderer,atlas,vertices,indices); return;
+        let mut gui = GuiMerchant::new();
+        gui.initGui(capture.guiWidth, capture.guiHeight);
+        gui.setSelectedMerchantRecipe(
+            capture.merchantRecipeIndex,
+            capture.merchantRecipes.as_ref(),
+        );
+        if let Some(recipe) = capture
+            .merchantRecipes
+            .as_ref()
+            .and_then(|l| l.get(gui.selectedMerchantRecipe() as usize))
+        {
+            let stack = match gui.previewRegionAt(capture.inventoryMouseX, capture.inventoryMouseY)
+            {
+                Some(MerchantPreviewRegion::FirstBuy) => Some(recipe.getItemToBuy()),
+                Some(MerchantPreviewRegion::SecondBuy) if recipe.hasSecondItemToBuy() => {
+                    Some(recipe.getSecondItemToBuy())
                 }
-                _=>None,
+                Some(MerchantPreviewRegion::Sell) => Some(recipe.getItemToSell()),
+                Some(MerchantPreviewRegion::Disabled) if recipe.isRecipeDisabled() => {
+                    append_hovering_text(
+                        &[locale.translate_key("merchant.deprecated").to_owned()],
+                        capture.inventoryMouseX,
+                        capture.inventoryMouseY,
+                        capture.guiWidth,
+                        capture.guiHeight,
+                        fontRenderer,
+                        atlas,
+                        vertices,
+                        indices,
+                    );
+                    return;
+                }
+                _ => None,
             };
-            if let Some(stack)=stack { let lines=ItemTooltip::getItemToolTip(stack,locale,capture.advancedItemTooltips); append_hovering_text(&lines,capture.inventoryMouseX,capture.inventoryMouseY,capture.guiWidth,capture.guiHeight,fontRenderer,atlas,vertices,indices); return; }
+            if let Some(stack) = stack {
+                let lines =
+                    ItemTooltip::getItemToolTip(stack, locale, capture.advancedItemTooltips);
+                append_hovering_text(
+                    &lines,
+                    capture.inventoryMouseX,
+                    capture.inventoryMouseY,
+                    capture.guiWidth,
+                    capture.guiHeight,
+                    fontRenderer,
+                    atlas,
+                    vertices,
+                    indices,
+                );
+                return;
+            }
         }
     }
     if capture.inventoryWindowKind == Some(ContainerWindowKind::Beacon) {
@@ -13503,7 +15437,11 @@ fn append_player_inventory_tooltip(
         let primary = capture.inventoryProperties.get(1).copied().unwrap_or(0);
         let secondary = capture.inventoryProperties.get(2).copied().unwrap_or(0);
         let mut buttonTooltip = None;
-        for button in if levels >= 0 { gui.powerButtons(primary) } else { Vec::new() } {
+        for button in if levels >= 0 {
+            gui.powerButtons(primary)
+        } else {
+            Vec::new()
+        } {
             if capture.inventoryMouseX >= button.x
                 && capture.inventoryMouseX < button.x + 22
                 && capture.inventoryMouseY >= button.y
@@ -13556,8 +15494,12 @@ fn append_player_inventory_tooltip(
     let Some(slotId) = inventory.slotAt(capture.inventoryMouseX, capture.inventoryMouseY) else {
         return;
     };
-    let Some(stack) = player_inventory_display_stack(capture, slotId) else { return; };
-    if stack.isEmpty() { return; }
+    let Some(stack) = player_inventory_display_stack(capture, slotId) else {
+        return;
+    };
+    if stack.isEmpty() {
+        return;
+    }
     let lines = ItemTooltip::getItemToolTip(&stack, locale, capture.advancedItemTooltips);
     append_hovering_text(
         &lines,
@@ -13584,31 +15526,122 @@ fn append_hovering_text(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if textLines.is_empty() { return; }
-    let width = textLines.iter()
+    if textLines.is_empty() {
+        return;
+    }
+    let width = textLines
+        .iter()
         .map(|line| fontRenderer.get_string_width(line))
-        .max().unwrap_or(0);
+        .max()
+        .unwrap_or(0);
     let mut left = x + 12;
     let mut top = y - 12;
     let mut height = 8;
     if textLines.len() > 1 {
         height += 2 + (textLines.len() as i32 - 1) * 10;
     }
-    if left + width > screenWidth { left -= 28 + width; }
-    if top + height + 6 > screenHeight { top = screenHeight - height - 6; }
+    if left + width > screenWidth {
+        left -= 28 + width;
+    }
+    if top + height + 6 > screenHeight {
+        top = screenHeight - height - 6;
+    }
 
     let background = packed_argb_to_rgba((-267_386_864_i32) as u32);
     let borderTop = packed_argb_to_rgba(1_347_420_415_u32);
     let borderBottom = packed_argb_to_rgba(1_344_798_847_u32);
-    append_solid_hud_quad(left - 3, top - 4, width + 6, 1, background, atlas, vertices, indices);
-    append_solid_hud_quad(left - 3, top + height + 3, width + 6, 1, background, atlas, vertices, indices);
-    append_solid_hud_quad(left - 3, top - 3, width + 6, height + 6, background, atlas, vertices, indices);
-    append_solid_hud_quad(left - 4, top - 3, 1, height + 6, background, atlas, vertices, indices);
-    append_solid_hud_quad(left + width + 3, top - 3, 1, height + 6, background, atlas, vertices, indices);
-    append_gradient_hud_quad(left - 3, top - 2, 1, height + 4, borderTop, borderBottom, atlas, vertices, indices);
-    append_gradient_hud_quad(left + width + 2, top - 2, 1, height + 4, borderTop, borderBottom, atlas, vertices, indices);
-    append_solid_hud_quad(left - 3, top - 3, width + 6, 1, borderTop, atlas, vertices, indices);
-    append_solid_hud_quad(left - 3, top + height + 2, width + 6, 1, borderBottom, atlas, vertices, indices);
+    append_solid_hud_quad(
+        left - 3,
+        top - 4,
+        width + 6,
+        1,
+        background,
+        atlas,
+        vertices,
+        indices,
+    );
+    append_solid_hud_quad(
+        left - 3,
+        top + height + 3,
+        width + 6,
+        1,
+        background,
+        atlas,
+        vertices,
+        indices,
+    );
+    append_solid_hud_quad(
+        left - 3,
+        top - 3,
+        width + 6,
+        height + 6,
+        background,
+        atlas,
+        vertices,
+        indices,
+    );
+    append_solid_hud_quad(
+        left - 4,
+        top - 3,
+        1,
+        height + 6,
+        background,
+        atlas,
+        vertices,
+        indices,
+    );
+    append_solid_hud_quad(
+        left + width + 3,
+        top - 3,
+        1,
+        height + 6,
+        background,
+        atlas,
+        vertices,
+        indices,
+    );
+    append_gradient_hud_quad(
+        left - 3,
+        top - 2,
+        1,
+        height + 4,
+        borderTop,
+        borderBottom,
+        atlas,
+        vertices,
+        indices,
+    );
+    append_gradient_hud_quad(
+        left + width + 2,
+        top - 2,
+        1,
+        height + 4,
+        borderTop,
+        borderBottom,
+        atlas,
+        vertices,
+        indices,
+    );
+    append_solid_hud_quad(
+        left - 3,
+        top - 3,
+        width + 6,
+        1,
+        borderTop,
+        atlas,
+        vertices,
+        indices,
+    );
+    append_solid_hud_quad(
+        left - 3,
+        top + height + 2,
+        width + 6,
+        1,
+        borderBottom,
+        atlas,
+        vertices,
+        indices,
+    );
 
     let mut textY = top;
     for (index, line) in textLines.iter().enumerate() {
@@ -13620,7 +15653,9 @@ fn append_hovering_text(
             outline: true,
         };
         append_hud_text(&text, fontRenderer, atlas, vertices, indices);
-        if index == 0 { textY += 2; }
+        if index == 0 {
+            textY += 2;
+        }
         textY += 10;
     }
 }
@@ -13636,7 +15671,9 @@ fn append_gradient_hud_quad(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if width <= 0 || height <= 0 { return; }
+    if width <= 0 || height <= 0 {
+        return;
+    }
     let rectangle = atlas.widgetsRectangle;
     let u = rectangle[0] + (rectangle[2] - rectangle[0]) * 247.5 / 256.0;
     let v = rectangle[1] + (rectangle[3] - rectangle[1]) * 3.5 / 256.0;
@@ -13647,20 +15684,55 @@ fn append_gradient_hud_quad(
     let base = vertices.len() as u32;
     let lightmap = [15.0, 15.0];
     vertices.extend_from_slice(&[
-        WorldVertex { position: [left, bottom, 0.0], uv: [u, v], color: bottomColor, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [right, bottom, 0.0], uv: [u, v], color: bottomColor, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [right, top, 0.0], uv: [u, v], color: topColor, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [left, top, 0.0], uv: [u, v], color: topColor, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
+        WorldVertex {
+            position: [left, bottom, 0.0],
+            uv: [u, v],
+            color: bottomColor,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [right, bottom, 0.0],
+            uv: [u, v],
+            color: bottomColor,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [right, top, 0.0],
+            uv: [u, v],
+            color: topColor,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [left, top, 0.0],
+            uv: [u, v],
+            color: topColor,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
     ]);
     indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base]);
 }
 
-fn for_each_hotbar_item(capture: &WorldRenderCapture, mut operation: impl FnMut(&ItemStack, i32, i32)) {
-    if capture.gameType == GameType::Spectator { return; }
+fn for_each_hotbar_item(
+    capture: &WorldRenderCapture,
+    mut operation: impl FnMut(&ItemStack, i32, i32),
+) {
+    if capture.gameType == GameType::Spectator {
+        return;
+    }
     let center = capture.guiWidth / 2;
     let y = capture.guiHeight - 16 - 3;
     for slot in 0..9 {
-        let Some(stack) = capture.hotbarStacks.get(slot) else { continue; };
+        let Some(stack) = capture.hotbarStacks.get(slot) else {
+            continue;
+        };
         operation(stack, center - 90 + slot as i32 * 20 + 2, y);
     }
     if !capture.offhandStack.isEmpty() {
@@ -13668,14 +15740,20 @@ fn for_each_hotbar_item(capture: &WorldRenderCapture, mut operation: impl FnMut(
             EnumHandSide::Right => EnumHandSide::Left,
             EnumHandSide::Left => EnumHandSide::Right,
         };
-        let x = if offhandSide == EnumHandSide::Left { center - 91 - 26 } else { center + 91 + 10 };
+        let x = if offhandSide == EnumHandSide::Left {
+            center - 91 - 26
+        } else {
+            center + 91 + 10
+        };
         operation(&capture.offhandStack, x, y);
     }
 }
 
 fn append_hotbar_item_models(
-    capture: &WorldRenderCapture, atlas: &AtlasState,
-    vertices: &mut Vec<WorldVertex>, indices: &mut Vec<u32>,
+    capture: &WorldRenderCapture,
+    atlas: &AtlasState,
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
 ) {
     for_each_hotbar_item(capture, |stack, x, y| {
         append_item_stack_gui(stack, x, y, atlas, vertices, indices);
@@ -13683,17 +15761,29 @@ fn append_hotbar_item_models(
 }
 
 fn append_hotbar_item_glints(
-    capture: &WorldRenderCapture, atlas: &AtlasState,
-    vertices: &mut Vec<WorldVertex>, indices: &mut Vec<u32>,
+    capture: &WorldRenderCapture,
+    atlas: &AtlasState,
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
 ) {
     for_each_hotbar_item(capture, |stack, x, y| {
-        append_item_glint_gui(stack, x, y, capture.systemTimeMillis, atlas, vertices, indices);
+        append_item_glint_gui(
+            stack,
+            x,
+            y,
+            capture.systemTimeMillis,
+            atlas,
+            vertices,
+            indices,
+        );
     });
 }
 
 fn append_hotbar_item_overlays(
-    capture: &WorldRenderCapture, atlas: &AtlasState,
-    vertices: &mut Vec<WorldVertex>, indices: &mut Vec<u32>,
+    capture: &WorldRenderCapture,
+    atlas: &AtlasState,
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
 ) {
     for_each_hotbar_item(capture, |stack, x, y| {
         append_item_overlay_gui(stack, x, y, atlas, vertices, indices);
@@ -13702,7 +15792,10 @@ fn append_hotbar_item_overlays(
 
 fn is_unpatterned_shield(stack: &ItemStack) -> bool {
     stack.itemId == 442
-        && !stack.tagCompound.as_ref().is_some_and(|tag| tag.hasKey("BlockEntityTag"))
+        && !stack
+            .tagCompound
+            .as_ref()
+            .is_some_and(|tag| tag.hasKey("BlockEntityTag"))
 }
 
 fn built_in_item_rectangle(
@@ -13718,7 +15811,8 @@ fn built_in_item_rectangle(
         };
         atlas.bedRectangles[metadata]
     } else {
-        atlas.builtInItemRectangles
+        atlas
+            .builtInItemRectangles
             .get(&mesh.texture)
             .copied()
             .unwrap_or(atlas.missingRectangle)
@@ -13735,11 +15829,19 @@ fn append_builtin_item_mesh_world(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(mesh) = TileEntityItemStackRenderer::buildMesh(stack) else { return; };
+    let Some(mesh) = TileEntityItemStackRenderer::buildMesh(stack) else {
+        return;
+    };
     let rectangle = built_in_item_rectangle(stack, &mesh, atlas);
     for face in mesh.indices.chunks_exact(6) {
-        let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-        let transformed = source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
+        let source = [
+            face[0] as usize,
+            face[1] as usize,
+            face[2] as usize,
+            face[5] as usize,
+        ];
+        let transformed =
+            source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
         let normal = normalize3(cross3(
             subtract3(transformed[1], transformed[0]),
             subtract3(transformed[2], transformed[0]),
@@ -13762,7 +15864,7 @@ fn append_builtin_item_mesh_world(
                     mesh.color[3],
                 ],
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -13780,22 +15882,34 @@ fn append_builtin_item_mesh_gui(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(mesh) = TileEntityItemStackRenderer::buildMesh(stack) else { return; };
+    let Some(mesh) = TileEntityItemStackRenderer::buildMesh(stack) else {
+        return;
+    };
     let rectangle = built_in_item_rectangle(stack, &mesh, atlas);
     let mut quads = Vec::<GuiItemQuad>::new();
     for face in mesh.indices.chunks_exact(6) {
-        let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-        let modelPositions = source.map(|index| apply_item_transform(mesh.vertices[index].position, transform));
+        let source = [
+            face[0] as usize,
+            face[1] as usize,
+            face[2] as usize,
+            face[5] as usize,
+        ];
+        let modelPositions =
+            source.map(|index| apply_item_transform(mesh.vertices[index].position, transform));
         let normal = normalize3(cross3(
             subtract3(modelPositions[1], modelPositions[0]),
             subtract3(modelPositions[2], modelPositions[0]),
         ));
-        if normal[2] <= 1.0e-5 { continue; }
-        let positions = modelPositions.map(|position| [
-            x as f32 + 8.0 + position[0] * 16.0,
-            y as f32 + 8.0 - position[1] * 16.0,
-            position[2],
-        ]);
+        if normal[2] <= 1.0e-5 {
+            continue;
+        }
+        let positions = modelPositions.map(|position| {
+            [
+                x as f32 + 8.0 + position[0] * 16.0,
+                y as f32 + 8.0 - position[1] * 16.0,
+                position[2],
+            ]
+        });
         let uvs = source.map(|index| mesh.vertices[index].uv);
         let light = gui_item_diffuse(normal);
         quads.push(GuiItemQuad {
@@ -13824,7 +15938,7 @@ fn append_builtin_item_mesh_gui(
                 uv,
                 color: quad.color,
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -13844,8 +15958,14 @@ fn append_shield_model_world(
 ) {
     let shield = ModelShield::buildMesh();
     for face in shield.indices.chunks_exact(6) {
-        let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-        let transformed = source.map(|index| transform_point3(matrix, shield.vertices[index].position));
+        let source = [
+            face[0] as usize,
+            face[1] as usize,
+            face[2] as usize,
+            face[5] as usize,
+        ];
+        let transformed =
+            source.map(|index| transform_point3(matrix, shield.vertices[index].position));
         let normal = normalize3(cross3(
             subtract3(transformed[1], transformed[0]),
             subtract3(transformed[2], transformed[0]),
@@ -13863,7 +15983,7 @@ fn append_shield_model_world(
                 uv,
                 color: [diffuse, diffuse, diffuse, 1.0],
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -13883,18 +16003,28 @@ fn append_shield_model_gui(
     let shield = ModelShield::buildMesh();
     let mut quads = Vec::<GuiItemQuad>::new();
     for face in shield.indices.chunks_exact(6) {
-        let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-        let modelPositions = source.map(|index| apply_item_transform(shield.vertices[index].position, transform));
+        let source = [
+            face[0] as usize,
+            face[1] as usize,
+            face[2] as usize,
+            face[5] as usize,
+        ];
+        let modelPositions =
+            source.map(|index| apply_item_transform(shield.vertices[index].position, transform));
         let normal = normalize3(cross3(
             subtract3(modelPositions[1], modelPositions[0]),
             subtract3(modelPositions[2], modelPositions[0]),
         ));
-        if normal[2] <= 1.0e-5 { continue; }
-        let positions = modelPositions.map(|position| [
-            x as f32 + 8.0 + position[0] * 16.0,
-            y as f32 + 8.0 - position[1] * 16.0,
-            position[2],
-        ]);
+        if normal[2] <= 1.0e-5 {
+            continue;
+        }
+        let positions = modelPositions.map(|position| {
+            [
+                x as f32 + 8.0 + position[0] * 16.0,
+                y as f32 + 8.0 - position[1] * 16.0,
+                position[2],
+            ]
+        });
         let uvs = source.map(|index| shield.vertices[index].uv);
         let light = gui_item_diffuse(normal);
         quads.push(GuiItemQuad {
@@ -13918,7 +16048,7 @@ fn append_shield_model_gui(
                 uv,
                 color: quad.color,
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -13949,7 +16079,9 @@ fn append_item_activation(
     if capture.itemActivationTicks <= 0 || capture.itemActivationItem.isEmpty() {
         return;
     }
-    let Some(model) = item_model_for_stack(&capture.itemActivationItem, atlas) else { return; };
+    let Some(model) = item_model_for_stack(&capture.itemActivationItem, atlas) else {
+        return;
+    };
 
     let elapsed = 40 - capture.itemActivationTicks;
     let f = ((elapsed as f32 + capture.partialTicks) / 40.0).clamp(0.0, 1.0);
@@ -13994,22 +16126,38 @@ fn append_item_stack_gui(
     if stack.isEmpty() {
         return;
     }
-    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else { return; };
-    let Some(model) = atlas.itemModels.get(&modelKey) else { return; };
+    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else {
+        return;
+    };
+    let Some(model) = atlas.itemModels.get(&modelKey) else {
+        return;
+    };
     if model.builtInRenderer {
         if is_unpatterned_shield(stack) {
             append_shield_model_gui(
-                x, y, model.guiTransform(), atlas.shieldBaseRectangle,
-                vertices, indices,
+                x,
+                y,
+                model.guiTransform(),
+                atlas.shieldBaseRectangle,
+                vertices,
+                indices,
             );
         } else {
             append_builtin_item_mesh_gui(
-                stack, x, y, model.guiTransform(), atlas, vertices, indices,
+                stack,
+                x,
+                y,
+                model.guiTransform(),
+                atlas,
+                vertices,
+                indices,
             );
         }
         return;
     }
-    if model.quads.is_empty() { return; }
+    if model.quads.is_empty() {
+        return;
+    }
 
     let transform = model.guiTransform();
     let mut quads = Vec::<GuiItemQuad>::new();
@@ -14062,17 +16210,15 @@ fn append_item_stack_gui(
         let base = vertices.len() as u32;
         for index in 0..4 {
             let uv = [
-                quad.rectangle[0]
-                    + (quad.rectangle[2] - quad.rectangle[0]) * quad.uvs[index][0],
-                quad.rectangle[1]
-                    + (quad.rectangle[3] - quad.rectangle[1]) * quad.uvs[index][1],
+                quad.rectangle[0] + (quad.rectangle[2] - quad.rectangle[0]) * quad.uvs[index][0],
+                quad.rectangle[1] + (quad.rectangle[3] - quad.rectangle[1]) * quad.uvs[index][1],
             ];
             vertices.push(WorldVertex {
                 position: [quad.positions[index][0], quad.positions[index][1], 0.0],
                 uv,
                 color: quad.color,
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -14090,13 +16236,24 @@ fn append_item_glint_gui(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if stack.isEmpty() || !stack.hasEffect() { return; }
-    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else { return; };
-    let Some(model) = atlas.itemModels.get(&modelKey) else { return; };
-    if model.builtInRenderer || model.quads.is_empty() { return; }
+    if stack.isEmpty() || !stack.hasEffect() {
+        return;
+    }
+    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else {
+        return;
+    };
+    let Some(model) = atlas.itemModels.get(&modelKey) else {
+        return;
+    };
+    if model.builtInRenderer || model.quads.is_empty() {
+        return;
+    }
 
     let transform = model.guiTransform();
-    for (period, direction, angle) in [(3000_u64, 1.0_f32, -50.0_f32), (4873_u64, -1.0_f32, 10.0_f32)] {
+    for (period, direction, angle) in [
+        (3000_u64, 1.0_f32, -50.0_f32),
+        (4873_u64, -1.0_f32, 10.0_f32),
+    ] {
         let translation = direction * (systemTimeMillis % period) as f32 / period as f32 / 8.0;
         let (sin, cos) = angle.to_radians().sin_cos();
         let mut quads = Vec::<GuiItemQuad>::new();
@@ -14108,7 +16265,9 @@ fn append_item_glint_gui(
             let edge1 = subtract3(modelPositions[1], modelPositions[0]);
             let edge2 = subtract3(modelPositions[2], modelPositions[0]);
             let normal = normalize3(cross3(edge1, edge2));
-            if normal[2] <= 1.0e-5 { continue; }
+            if normal[2] <= 1.0e-5 {
+                continue;
+            }
             let mut transformed = [[0.0_f32; 3]; 4];
             let mut glintUvs = [[0.0_f32; 2]; 4];
             for index in 0..4 {
@@ -14141,15 +16300,17 @@ fn append_item_glint_gui(
             let base = vertices.len() as u32;
             for index in 0..4 {
                 let uv = [
-                    quad.rectangle[0] + (quad.rectangle[2] - quad.rectangle[0]) * quad.uvs[index][0],
-                    quad.rectangle[1] + (quad.rectangle[3] - quad.rectangle[1]) * quad.uvs[index][1],
+                    quad.rectangle[0]
+                        + (quad.rectangle[2] - quad.rectangle[0]) * quad.uvs[index][0],
+                    quad.rectangle[1]
+                        + (quad.rectangle[3] - quad.rectangle[1]) * quad.uvs[index][1],
                 ];
                 vertices.push(WorldVertex {
                     position: [quad.positions[index][0], quad.positions[index][1], 0.0],
                     uv,
                     color: quad.color,
                     lightmap: [15.0, 15.0],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
@@ -14179,12 +16340,12 @@ fn append_item_overlay_gui_with_alt(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if stack.isEmpty() { return; }
+    if stack.isEmpty() {
+        return;
+    }
     if let Some((text, color)) = alternateCount {
         let width = text.chars().count() as i32 * 6;
-        append_ascii_text_colored(
-            text, x + 17 - width, y + 9, color, atlas, vertices, indices,
-        );
+        append_ascii_text_colored(text, x + 17 - width, y + 9, color, atlas, vertices, indices);
     } else if stack.getCount() != 1 {
         let text = stack.getCount().to_string();
         let width = text.chars().count() as i32 * 6;
@@ -14196,7 +16357,16 @@ fn append_item_overlay_gui_with_alt(
         let remaining = ((maximum - damage) / maximum).max(0.0);
         let barWidth = (13.0 - damage * 13.0 / maximum).round().clamp(0.0, 13.0) as i32;
         let color = hsv_to_rgb(remaining / 3.0, 1.0, 1.0);
-        append_solid_hud_quad(x + 2, y + 13, 13, 2, [0.0, 0.0, 0.0, 1.0], atlas, vertices, indices);
+        append_solid_hud_quad(
+            x + 2,
+            y + 13,
+            13,
+            2,
+            [0.0, 0.0, 0.0, 1.0],
+            atlas,
+            vertices,
+            indices,
+        );
         append_solid_hud_quad(x + 2, y + 13, barWidth, 1, color, atlas, vertices, indices);
     }
 }
@@ -14209,7 +16379,16 @@ fn append_ascii_text(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    append_formatted_text_colored(text, x, y, [1.0, 1.0, 1.0, 1.0], true, atlas, vertices, indices);
+    append_formatted_text_colored(
+        text,
+        x,
+        y,
+        [1.0, 1.0, 1.0, 1.0],
+        true,
+        atlas,
+        vertices,
+        indices,
+    );
 }
 
 fn append_ascii_text_colored(
@@ -14236,14 +16415,7 @@ fn append_font_text_colored(
     indices: &mut Vec<u32>,
 ) {
     let mut drawList = GuiDrawList::new();
-    fontRenderer.draw_string(
-        &mut drawList,
-        text,
-        x as f32,
-        y as f32,
-        color,
-        shadow,
-    );
+    fontRenderer.draw_string(&mut drawList, text, x as f32, y as f32, color, shadow);
     append_font_draw_list(&drawList, atlas, vertices, indices);
 }
 
@@ -14258,7 +16430,15 @@ fn append_font_text_colored_no_shadow(
     indices: &mut Vec<u32>,
 ) {
     append_font_text_colored(
-        text, x, y, color, false, fontRenderer, atlas, vertices, indices,
+        text,
+        x,
+        y,
+        color,
+        false,
+        fontRenderer,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -14372,7 +16552,12 @@ fn append_font_draw_list(
     indices: &mut Vec<u32>,
 ) {
     for command in drawList.commands() {
-        let GuiDrawCommand::Quad { texture, topology, vertices: guiVertices } = command else {
+        let GuiDrawCommand::Quad {
+            texture,
+            topology,
+            vertices: guiVertices,
+        } = command
+        else {
             continue;
         };
         let rectangle = texture
@@ -14398,14 +16583,18 @@ fn append_font_draw_list(
                 uv: [u, v],
                 color: packed_argb_to_rgba(vertex.color),
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
         }
         match topology {
-            GuiTopology::Quads => indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base]),
-            GuiTopology::TriangleStrip => indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 1, base + 3]),
+            GuiTopology::Quads => {
+                indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base])
+            }
+            GuiTopology::TriangleStrip => {
+                indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 1, base + 3])
+            }
         }
     }
 }
@@ -14431,7 +16620,11 @@ fn append_formatted_text_colored(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let passes: &[(i32, bool)] = if shadow { &[(1, true), (0, false)] } else { &[(0, false)] };
+    let passes: &[(i32, bool)] = if shadow {
+        &[(1, true), (0, false)]
+    } else {
+        &[(0, false)]
+    };
     for (offset, shadowPass) in passes {
         let mut cursor = x + *offset;
         let mut color = baseColor;
@@ -14447,7 +16640,10 @@ fn append_formatted_text_colored(
                 } else {
                     match code {
                         'l' => bold = true,
-                        'r' => { color = baseColor; bold = false; }
+                        'r' => {
+                            color = baseColor;
+                            bold = false;
+                        }
                         _ => {}
                     }
                 }
@@ -14457,7 +16653,11 @@ fn append_formatted_text_colored(
                 formatting = true;
                 continue;
             }
-            let glyph = if (character as u32) <= 255 { character as u8 } else { b'?' };
+            let glyph = if (character as u32) <= 255 {
+                character as u8
+            } else {
+                b'?'
+            };
             let glyphX = (glyph as i32 & 15) * 8;
             let glyphY = (glyph as i32 >> 4) * 8;
             let mut drawColor = color;
@@ -14467,15 +16667,37 @@ fn append_formatted_text_colored(
                 drawColor[2] *= 0.25;
             }
             append_hud_quad_colored(
-                vertices, indices, atlas.fontRectangle,
-                cursor, y + *offset, 8, 8,
-                glyphX, glyphY, 8, 8, 128, 128, drawColor,
+                vertices,
+                indices,
+                atlas.fontRectangle,
+                cursor,
+                y + *offset,
+                8,
+                8,
+                glyphX,
+                glyphY,
+                8,
+                8,
+                128,
+                128,
+                drawColor,
             );
             if bold {
                 append_hud_quad_colored(
-                    vertices, indices, atlas.fontRectangle,
-                    cursor + 1, y + *offset, 8, 8,
-                    glyphX, glyphY, 8, 8, 128, 128, drawColor,
+                    vertices,
+                    indices,
+                    atlas.fontRectangle,
+                    cursor + 1,
+                    y + *offset,
+                    8,
+                    8,
+                    glyphX,
+                    glyphY,
+                    8,
+                    8,
+                    128,
+                    128,
+                    drawColor,
                 );
             }
             cursor += if bold { 7 } else { 6 };
@@ -14496,7 +16718,11 @@ fn append_formatted_text_colored_scaled(
     indices: &mut Vec<u32>,
 ) {
     let scale = scale.clamp(0.01, 1.0);
-    let passes: &[(f32, bool)] = if shadow { &[(1.0, true), (0.0, false)] } else { &[(0.0, false)] };
+    let passes: &[(f32, bool)] = if shadow {
+        &[(1.0, true), (0.0, false)]
+    } else {
+        &[(0.0, false)]
+    };
     for (offset, shadowPass) in passes {
         let mut cursor = x as f32 + *offset * scale;
         let mut color = baseColor;
@@ -14512,14 +16738,24 @@ fn append_formatted_text_colored_scaled(
                 } else {
                     match code {
                         'l' => bold = true,
-                        'r' => { color = baseColor; bold = false; }
+                        'r' => {
+                            color = baseColor;
+                            bold = false;
+                        }
                         _ => {}
                     }
                 }
                 continue;
             }
-            if character == '§' { formatting = true; continue; }
-            let glyph = if (character as u32) <= 255 { character as u8 } else { b'?' };
+            if character == '§' {
+                formatting = true;
+                continue;
+            }
+            let glyph = if (character as u32) <= 255 {
+                character as u8
+            } else {
+                b'?'
+            };
             let glyphX = (glyph as i32 & 15) * 8;
             let glyphY = (glyph as i32 >> 4) * 8;
             let mut drawColor = color;
@@ -14532,15 +16768,37 @@ fn append_formatted_text_colored_scaled(
             let drawY = (y as f32 + *offset * scale).round() as i32;
             let drawSize = (8.0 * scale).ceil().max(1.0) as i32;
             append_hud_quad_colored(
-                vertices, indices, atlas.fontRectangle,
-                drawX, drawY, drawSize, drawSize,
-                glyphX, glyphY, 8, 8, 128, 128, drawColor,
+                vertices,
+                indices,
+                atlas.fontRectangle,
+                drawX,
+                drawY,
+                drawSize,
+                drawSize,
+                glyphX,
+                glyphY,
+                8,
+                8,
+                128,
+                128,
+                drawColor,
             );
             if bold {
                 append_hud_quad_colored(
-                    vertices, indices, atlas.fontRectangle,
-                    (cursor + scale).round() as i32, drawY, drawSize, drawSize,
-                    glyphX, glyphY, 8, 8, 128, 128, drawColor,
+                    vertices,
+                    indices,
+                    atlas.fontRectangle,
+                    (cursor + scale).round() as i32,
+                    drawY,
+                    drawSize,
+                    drawSize,
+                    glyphX,
+                    glyphY,
+                    8,
+                    8,
+                    128,
+                    128,
+                    drawColor,
                 );
             }
             cursor += (if bold { 7.0 } else { 6.0 }) * scale;
@@ -14550,46 +16808,122 @@ fn append_formatted_text_colored_scaled(
 
 fn minecraft_format_color(index: usize, alpha: f32) -> [f32; 4] {
     const COLORS: [[f32; 3]; 16] = [
-        [0.0, 0.0, 0.0], [0.0, 0.0, 2.0 / 3.0], [0.0, 2.0 / 3.0, 0.0], [0.0, 2.0 / 3.0, 2.0 / 3.0],
-        [2.0 / 3.0, 0.0, 0.0], [2.0 / 3.0, 0.0, 2.0 / 3.0], [1.0, 2.0 / 3.0, 0.0], [2.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0],
-        [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0], [1.0 / 3.0, 1.0 / 3.0, 1.0], [1.0 / 3.0, 1.0, 1.0 / 3.0], [1.0 / 3.0, 1.0, 1.0],
-        [1.0, 1.0 / 3.0, 1.0 / 3.0], [1.0, 1.0 / 3.0, 1.0], [1.0, 1.0, 1.0 / 3.0], [1.0, 1.0, 1.0],
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 2.0 / 3.0],
+        [0.0, 2.0 / 3.0, 0.0],
+        [0.0, 2.0 / 3.0, 2.0 / 3.0],
+        [2.0 / 3.0, 0.0, 0.0],
+        [2.0 / 3.0, 0.0, 2.0 / 3.0],
+        [1.0, 2.0 / 3.0, 0.0],
+        [2.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0],
+        [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0],
+        [1.0 / 3.0, 1.0 / 3.0, 1.0],
+        [1.0 / 3.0, 1.0, 1.0 / 3.0],
+        [1.0 / 3.0, 1.0, 1.0],
+        [1.0, 1.0 / 3.0, 1.0 / 3.0],
+        [1.0, 1.0 / 3.0, 1.0],
+        [1.0, 1.0, 1.0 / 3.0],
+        [1.0, 1.0, 1.0],
     ];
     let [r, g, b] = COLORS[index.min(15)];
     [r, g, b, alpha]
 }
 
 fn append_solid_hud_quad(
-    x: i32, y: i32, width: i32, height: i32, color: [f32; 4],
-    atlas: &AtlasState, vertices: &mut Vec<WorldVertex>, indices: &mut Vec<u32>,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    color: [f32; 4],
+    atlas: &AtlasState,
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
 ) {
-    if width <= 0 || height <= 0 { return; }
+    if width <= 0 || height <= 0 {
+        return;
+    }
     // Opaque white pixel in widgets.png; vanilla disables texturing for these
     // rectangles, while the shared Vulkan shader keeps one sampled atlas.
     append_hud_quad_colored(
-        vertices, indices, atlas.widgetsRectangle,
-        x, y, width, height, 247, 3, 1, 1, 256, 256, color,
+        vertices,
+        indices,
+        atlas.widgetsRectangle,
+        x,
+        y,
+        width,
+        height,
+        247,
+        3,
+        1,
+        1,
+        256,
+        256,
+        color,
     );
 }
 
 #[allow(clippy::too_many_arguments)]
 fn append_hud_quad_colored(
-    vertices: &mut Vec<WorldVertex>, indices: &mut Vec<u32>, rectangle: [f32; 4],
-    x: i32, y: i32, width: i32, height: i32,
-    textureX: i32, textureY: i32, textureWidth: i32, textureHeight: i32,
-    sourceWidth: i32, sourceHeight: i32, color: [f32; 4],
+    vertices: &mut Vec<WorldVertex>,
+    indices: &mut Vec<u32>,
+    rectangle: [f32; 4],
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    textureX: i32,
+    textureY: i32,
+    textureWidth: i32,
+    textureHeight: i32,
+    sourceWidth: i32,
+    sourceHeight: i32,
+    color: [f32; 4],
 ) {
     let u0 = rectangle[0] + (rectangle[2] - rectangle[0]) * textureX as f32 / sourceWidth as f32;
     let v0 = rectangle[1] + (rectangle[3] - rectangle[1]) * textureY as f32 / sourceHeight as f32;
-    let u1 = rectangle[0] + (rectangle[2] - rectangle[0]) * (textureX + textureWidth) as f32 / sourceWidth as f32;
-    let v1 = rectangle[1] + (rectangle[3] - rectangle[1]) * (textureY + textureHeight) as f32 / sourceHeight as f32;
-    let left = x as f32; let top = y as f32; let right = (x + width) as f32; let bottom = (y + height) as f32;
-    let base = vertices.len() as u32; let lightmap = [15.0, 15.0];
+    let u1 = rectangle[0]
+        + (rectangle[2] - rectangle[0]) * (textureX + textureWidth) as f32 / sourceWidth as f32;
+    let v1 = rectangle[1]
+        + (rectangle[3] - rectangle[1]) * (textureY + textureHeight) as f32 / sourceHeight as f32;
+    let left = x as f32;
+    let top = y as f32;
+    let right = (x + width) as f32;
+    let bottom = (y + height) as f32;
+    let base = vertices.len() as u32;
+    let lightmap = [15.0, 15.0];
     vertices.extend_from_slice(&[
-        WorldVertex { position: [left, bottom, 0.0], uv: [u0, v1], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [right, bottom, 0.0], uv: [u1, v1], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [right, top, 0.0], uv: [u1, v0], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [left, top, 0.0], uv: [u0, v0], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
+        WorldVertex {
+            position: [left, bottom, 0.0],
+            uv: [u0, v1],
+            color,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [right, bottom, 0.0],
+            uv: [u1, v1],
+            color,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [right, top, 0.0],
+            uv: [u1, v0],
+            color,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [left, top, 0.0],
+            uv: [u0, v0],
+            color,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
     ]);
     indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base]);
 }
@@ -14601,8 +16935,12 @@ fn hsv_to_rgb(hue: f32, saturation: f32, value: f32) -> [f32; 4] {
     let q = value * (1.0 - f * saturation);
     let t = value * (1.0 - (1.0 - f) * saturation);
     let (r, g, b) = match h % 6 {
-        0 => (value, t, p), 1 => (q, value, p), 2 => (p, value, t),
-        3 => (p, q, value), 4 => (t, p, value), _ => (value, p, q),
+        0 => (value, t, p),
+        1 => (q, value, p),
+        2 => (p, value, t),
+        3 => (p, q, value),
+        4 => (t, p, value),
+        _ => (value, p, q),
     };
     [r, g, b, 1.0]
 }
@@ -14642,8 +16980,7 @@ fn gui_item_diffuse(normal: [f32; 3]) -> f32 {
     // standard item-lighting setup; diffuse contributions are clamped by GL.
     let first = normalize3([0.2, 1.0, -0.7]);
     let second = normalize3([-0.2, 1.0, 0.7]);
-    (0.4 + 0.6 * dot3(normal, first).max(0.0) + 0.6 * dot3(normal, second).max(0.0))
-        .clamp(0.0, 1.0)
+    (0.4 + 0.6 * dot3(normal, first).max(0.0) + 0.6 * dot3(normal, second).max(0.0)).clamp(0.0, 1.0)
 }
 
 fn item_tint_color(itemColors: &ItemColors, stack: &ItemStack, tintIndex: Option<i32>) -> [f32; 3] {
@@ -14707,14 +17044,22 @@ fn append_hud_quad(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
     rectangle: [f32; 4],
-    x: i32, y: i32, width: i32, height: i32,
-    textureX: i32, textureY: i32, textureWidth: i32, textureHeight: i32,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    textureX: i32,
+    textureY: i32,
+    textureWidth: i32,
+    textureHeight: i32,
     alpha: f32,
 ) {
     let u0 = rectangle[0] + (rectangle[2] - rectangle[0]) * textureX as f32 / 256.0;
     let v0 = rectangle[1] + (rectangle[3] - rectangle[1]) * textureY as f32 / 256.0;
-    let u1 = rectangle[0] + (rectangle[2] - rectangle[0]) * (textureX + textureWidth) as f32 / 256.0;
-    let v1 = rectangle[1] + (rectangle[3] - rectangle[1]) * (textureY + textureHeight) as f32 / 256.0;
+    let u1 =
+        rectangle[0] + (rectangle[2] - rectangle[0]) * (textureX + textureWidth) as f32 / 256.0;
+    let v1 =
+        rectangle[1] + (rectangle[3] - rectangle[1]) * (textureY + textureHeight) as f32 / 256.0;
     let left = x as f32;
     let top = y as f32;
     let right = (x + width) as f32;
@@ -14723,10 +17068,38 @@ fn append_hud_quad(
     let color = [1.0, 1.0, 1.0, alpha];
     let lightmap = [15.0, 15.0];
     vertices.extend_from_slice(&[
-        WorldVertex { position: [left, bottom, 0.0], uv: [u0, v1], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [right, bottom, 0.0], uv: [u1, v1], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [right, top, 0.0], uv: [u1, v0], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
-        WorldVertex { position: [left, top, 0.0], uv: [u0, v0], color, lightmap, shaderEntity: [-1, -1, -1], shaderPadding: 0, },
+        WorldVertex {
+            position: [left, bottom, 0.0],
+            uv: [u0, v1],
+            color,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [right, bottom, 0.0],
+            uv: [u1, v1],
+            color,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [right, top, 0.0],
+            uv: [u1, v0],
+            color,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
+        WorldVertex {
+            position: [left, top, 0.0],
+            uv: [u0, v0],
+            color,
+            lightmap,
+            shaderEntity: [-1, -1, -1],
+            shaderPadding: 0,
+        },
     ]);
     indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base]);
 }
@@ -14763,7 +17136,12 @@ fn append_world_player_held_items(
         bodyYaw,
         player.packedLight,
         player.itemInUseCount > 0
-            && player.activeHand == if player.primaryHand == EnumHandSide::Right { EnumHand::MainHand } else { EnumHand::OffHand },
+            && player.activeHand
+                == if player.primaryHand == EnumHandSide::Right {
+                    EnumHand::MainHand
+                } else {
+                    EnumHand::OffHand
+                },
         atlas,
         vertices,
         indices,
@@ -14777,7 +17155,12 @@ fn append_world_player_held_items(
         bodyYaw,
         player.packedLight,
         player.itemInUseCount > 0
-            && player.activeHand == if player.primaryHand == EnumHandSide::Left { EnumHand::MainHand } else { EnumHand::OffHand },
+            && player.activeHand
+                == if player.primaryHand == EnumHandSide::Left {
+                    EnumHand::MainHand
+                } else {
+                    EnumHand::OffHand
+                },
         atlas,
         vertices,
         indices,
@@ -14801,8 +17184,12 @@ fn append_world_player_held_item(
     if stack.isEmpty() {
         return;
     }
-    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else { return; };
-    let Some(baseModel) = atlas.itemModels.get(&modelKey) else { return; };
+    let Some(modelKey) = ItemModelMesher::getModelKey(stack) else {
+        return;
+    };
+    let Some(baseModel) = atlas.itemModels.get(&modelKey) else {
+        return;
+    };
     let blockingShield = activelyUsing
         && stack.getItemUseAction() == EnumAction::Block
         && is_unpatterned_shield(stack);
@@ -14833,7 +17220,10 @@ fn append_world_player_held_item(
     }
     matrix = multiply4(matrix, rotation_x4(-90.0));
     matrix = multiply4(matrix, rotation_y4(180.0));
-    matrix = multiply4(matrix, translation4(LayerHeldItem::handTranslation(handSide)));
+    matrix = multiply4(
+        matrix,
+        translation4(LayerHeldItem::handTranslation(handSide)),
+    );
 
     let leftHanded = LayerHeldItem::leftHanded(handSide);
     let transformType = LayerHeldItem::transformType(handSide);
@@ -14843,10 +17233,7 @@ fn append_world_player_held_item(
 
     let blockLight = ((packedLight >> 4) & 15) as f32;
     let skyLight = ((packedLight >> 20) & 15) as f32;
-    let itemLights = [
-        normalize3([0.2, 1.0, -0.7]),
-        normalize3([-0.2, 1.0, 0.7]),
-    ];
+    let itemLights = [normalize3([0.2, 1.0, -0.7]), normalize3([-0.2, 1.0, 0.7])];
 
     if unpatternedShield {
         append_shield_model_world(
@@ -14894,26 +17281,14 @@ fn append_world_player_held_item(
                     rectangle[0] + (rectangle[2] - rectangle[0]) * sourceUv[0],
                     rectangle[1] + (rectangle[3] - rectangle[1]) * sourceUv[1],
                 ],
-                color: [
-                    tint[0] * diffuse,
-                    tint[1] * diffuse,
-                    tint[2] * diffuse,
-                    1.0,
-                ],
+                color: [tint[0] * diffuse, tint[1] * diffuse, tint[2] * diffuse, 1.0],
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
         }
-        indices.extend_from_slice(&[
-            base,
-            base + 1,
-            base + 2,
-            base + 2,
-            base + 3,
-            base,
-        ]);
+        indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base]);
     }
 }
 
@@ -14943,7 +17318,6 @@ fn append_indexed_mesh_stream(
     targetVertices.extend(sourceVertices);
     targetIndices.extend(sourceIndices.into_iter().map(|index| base + index));
 }
-
 
 #[derive(Debug, Clone, Copy)]
 struct StaticHangingRenderContext {
@@ -14984,9 +17358,7 @@ fn static_hanging_render_context(
         EntityRendererKind::ItemFrame => {
             distanceSquared < EntityItemFrame::ENTITY_RENDER_DISTANCE_SQ
         }
-        EntityRendererKind::LeashKnot => {
-            distanceSquared < EntityLeashKnot::MAX_RENDER_DISTANCE_SQ
-        }
+        EntityRendererKind::LeashKnot => distanceSquared < EntityLeashKnot::MAX_RENDER_DISTANCE_SQ,
         EntityRendererKind::Painting => {
             Render::isInRangeToRenderDist(&entity.entity, distanceSquared)
         }
@@ -15068,8 +17440,8 @@ fn static_hanging_mesh_cache_key(
         },
         EntityRendererKind::ItemFrame => {
             let displayed = entity.itemFrameDisplayedItem();
-            let renderDisplayedItem = context.distanceSquared
-                <= EntityItemFrame::ITEM_RENDER_DISTANCE_SQ;
+            let renderDisplayedItem =
+                context.distanceSquared <= EntityItemFrame::ITEM_RENDER_DISTANCE_SQ;
             let mapRevision = if renderDisplayedItem {
                 displayed
                     .and_then(|stack| ItemMap::getMapData(stack, mapData))
@@ -15149,7 +17521,6 @@ fn build_static_hanging_mesh(
     }
     mesh
 }
-
 
 fn push_world_entity_draw_range(
     ranges: &mut Vec<WorldEntityDrawRange>,
@@ -15285,14 +17656,9 @@ fn append_non_player_entity_meshes(
             entityId: entity.entityId,
         };
         frameMeshCache.touchStaticEntity(identity);
-        let Some(context) = static_hanging_render_context(
-            entity,
-            partialTicks,
-            camera,
-            frustum,
-            chunks,
-            dimension,
-        ) else {
+        let Some(context) =
+            static_hanging_render_context(entity, partialTicks, camera, frustum, chunks, dimension)
+        else {
             continue;
         };
 
@@ -15506,9 +17872,13 @@ fn append_non_player_entity_meshes_serial(
 ) -> usize {
     let mut rendered = 0;
     for entity in entities {
-        if entity.entity.isDead { continue; }
+        if entity.entity.isDead {
+            continue;
+        }
         let renderer = RenderManager::getEntityRenderObject(&entity.kind);
-        if renderer == EntityRendererKind::Unsupported { continue; }
+        if renderer == EntityRendererKind::Unsupported {
+            continue;
+        }
         let invisible = entity.isInvisibleFlag();
         let isGuardian = renderer == EntityRendererKind::Guardian;
         let isEnderCrystal = renderer == EntityRendererKind::EnderCrystal;
@@ -15562,7 +17932,13 @@ fn append_non_player_entity_meshes_serial(
         };
         // RenderEnderCrystal#shouldRender returns true whenever a beam target
         // exists, even when the ordinary entity range/frustum test fails.
-        if !isGuardian && !shulkerTeleportActive && enderCrystalBeamTarget.is_none() && !inRenderRange { continue; }
+        if !isGuardian
+            && !shulkerTeleportActive
+            && enderCrystalBeamTarget.is_none()
+            && !inRenderRange
+        {
+            continue;
+        }
         let guardianTarget = if isGuardian {
             find_living_target(
                 entity.guardianTargetEntityId(),
@@ -15580,8 +17956,8 @@ fn append_non_player_entity_meshes_serial(
         } else {
             Render::renderBoundingBox(&entity.entity)
         };
-        let entityVisible = inRenderRange && (
-            renderer == EntityRendererKind::FishHook
+        let entityVisible = inRenderRange
+            && (renderer == EntityRendererKind::FishHook
                 || renderer == EntityRendererKind::EnderDragon // EntityDragon.ignoreFrustumCheck = true
                 || frustum.isBoxInFrustum(
                     bounds.min_x,
@@ -15590,8 +17966,7 @@ fn append_non_player_entity_meshes_serial(
                     bounds.max_x,
                     bounds.max_y,
                     bounds.max_z,
-                )
-        );
+                ));
         let beamVisible = guardianTarget.is_some_and(|target| {
             let start = [
                 entity.entity.posX,
@@ -15600,8 +17975,12 @@ fn append_non_player_entity_meshes_serial(
             ];
             let end = target.currentCenter();
             frustum.isBoxInFrustum(
-                start[0].min(end[0]), start[1].min(end[1]), start[2].min(end[2]),
-                start[0].max(end[0]), start[1].max(end[1]), start[2].max(end[2]),
+                start[0].min(end[0]),
+                start[1].min(end[1]),
+                start[2].min(end[2]),
+                start[0].max(end[0]),
+                start[1].max(end[1]),
+                start[2].max(end[2]),
             )
         });
         let enderCrystalBeamVisible = enderCrystalBeamTarget.is_some();
@@ -15631,202 +18010,320 @@ fn append_non_player_entity_meshes_serial(
         let renderModel = !invisible || isIllusioner || isGuardian || isEnderCrystal || isShulker;
         if renderModel {
             match renderer {
-            EntityRendererKind::Boat => append_boat_mesh(
-                entity,
-                position,
-                partialTicks,
-                packedLight,
-                atlas,
-                vertices,
-                indices,
-                depthVertices,
-                depthIndices,
-            ),
-            EntityRendererKind::Minecart => append_minecart_mesh(
-                entity,
-                position,
-                partialTicks,
-                packedLight,
-                chunks,
-                atlas,
-                vertices,
-                indices,
-                overlayVertices,
-                overlayIndices,
-            ),
-            EntityRendererKind::EntityItem => append_entity_item_mesh(
-                entity, position, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::FallingBlock => append_falling_block_entity_mesh(
-                entity, position, packedLight, chunks, atlas, vertices, indices,
-            ),
-            EntityRendererKind::ExperienceOrb => append_experience_orb_mesh(
-                entity, position, partialTicks, cameraYaw, cameraPitch,
-                thirdPersonView, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Snowball => append_snowball_entity_mesh(
-                entity, position, cameraYaw, cameraPitch, thirdPersonView,
-                packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Arrow => append_arrow_entity_mesh(
-                entity, position, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::TntPrimed => append_primed_tnt_mesh(
-                entity, position, partialTicks, packedLight, chunks, atlas, vertices, indices,
-            ),
-            EntityRendererKind::EnderCrystal => append_ender_crystal_mesh(
-                entity, position, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Zombie => append_zombie_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Skeleton => append_skeleton_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::ArmorStand => append_armor_stand_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Pig => append_pig_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Cow => append_cow_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Sheep => append_sheep_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Chicken => append_chicken_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Mooshroom => append_mooshroom_mesh(
-                entity, partialTicks, packedLight, chunks, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Creeper => append_creeper_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Spider => append_spider_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Enderman => append_enderman_mesh(
-                entity, partialTicks, packedLight, chunks, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Squid => append_squid_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::EnderDragon => append_dragon_mesh(
-                entity, partialTicks, packedLight, chunks, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Slime => append_slime_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::MagmaCube => append_magma_cube_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Blaze => append_blaze_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Ghast => append_ghast_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Guardian => append_guardian_mesh(
-                entity,
-                guardianTarget,
-                localPlayerTarget,
-                !invisible,
-                totalWorldTime,
-                partialTicks,
-                packedLight,
-                atlas,
-                vertices,
-                indices,
-            ),
-            EntityRendererKind::Shulker => append_shulker_mesh(
-                entity, !invisible, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::ShulkerBullet => append_shulker_bullet_mesh(
-                entity,
-                position,
-                partialTicks,
-                EntityShulkerBullet::getBrightnessForRender(),
-                atlas,
-                vertices,
-                indices,
-            ),
-            EntityRendererKind::Fireball => append_fireball_mesh(
-                entity, position, cameraYaw, cameraPitch, thirdPersonView,
-                atlas, vertices, indices,
-            ),
-            EntityRendererKind::DragonFireball => append_dragon_fireball_mesh(
-                entity, position, cameraYaw, cameraPitch, thirdPersonView,
-                atlas, vertices, indices,
-            ),
-            EntityRendererKind::WitherSkull => append_wither_skull_mesh(
-                entity, position, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::FishHook => append_fish_hook_mesh(
-                entity,
-                position,
-                remotePlayers,
-                localPlayerRenderState,
-                partialTicks,
-                cameraYaw,
-                cameraPitch,
-                thirdPersonView,
-                fov,
-                packedLight,
-                atlas,
-                vertices,
-                indices,
-                lineVertices,
-                lineIndices,
-            ),
-            EntityRendererKind::AreaEffectCloud => {},
-            EntityRendererKind::Painting => append_painting_mesh(
-                entity, chunks, dimension, atlas, vertices, indices,
-            ),
-            EntityRendererKind::ItemFrame => append_item_frame_mesh(
-                entity,
-                position,
-                distanceSquared,
-                packedLight,
-                mapData,
-                atlas,
-                vertices,
-                indices,
-            ),
-            EntityRendererKind::LeashKnot => append_leash_knot_mesh(
-                entity, position, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Wolf => append_wolf_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Ocelot => append_ocelot_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Rabbit => append_rabbit_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::PolarBear => append_polar_bear_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Horse => append_horse_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Llama => append_llama_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Villager => append_villager_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Witch => append_witch_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::Illager => append_illager_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
-            EntityRendererKind::ZombieVillager => append_zombie_villager_mesh(
-                entity, partialTicks, packedLight, atlas, vertices, indices,
-            ),
+                EntityRendererKind::Boat => append_boat_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                    depthVertices,
+                    depthIndices,
+                ),
+                EntityRendererKind::Minecart => append_minecart_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    packedLight,
+                    chunks,
+                    atlas,
+                    vertices,
+                    indices,
+                    overlayVertices,
+                    overlayIndices,
+                ),
+                EntityRendererKind::EntityItem => append_entity_item_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::FallingBlock => append_falling_block_entity_mesh(
+                    entity,
+                    position,
+                    packedLight,
+                    chunks,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::ExperienceOrb => append_experience_orb_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    cameraYaw,
+                    cameraPitch,
+                    thirdPersonView,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Snowball => append_snowball_entity_mesh(
+                    entity,
+                    position,
+                    cameraYaw,
+                    cameraPitch,
+                    thirdPersonView,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Arrow => append_arrow_entity_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::TntPrimed => append_primed_tnt_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    packedLight,
+                    chunks,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::EnderCrystal => append_ender_crystal_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Zombie => {
+                    append_zombie_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Skeleton => append_skeleton_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::ArmorStand => append_armor_stand_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Pig => {
+                    append_pig_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Cow => {
+                    append_cow_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Sheep => {
+                    append_sheep_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Chicken => {
+                    append_chicken_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Mooshroom => append_mooshroom_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    chunks,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Creeper => {
+                    append_creeper_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Spider => {
+                    append_spider_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Enderman => append_enderman_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    chunks,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Squid => {
+                    append_squid_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::EnderDragon => append_dragon_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    chunks,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Slime => {
+                    append_slime_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::MagmaCube => append_magma_cube_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Blaze => {
+                    append_blaze_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Ghast => {
+                    append_ghast_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Guardian => append_guardian_mesh(
+                    entity,
+                    guardianTarget,
+                    localPlayerTarget,
+                    !invisible,
+                    totalWorldTime,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Shulker => append_shulker_mesh(
+                    entity,
+                    !invisible,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::ShulkerBullet => append_shulker_bullet_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    EntityShulkerBullet::getBrightnessForRender(),
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Fireball => append_fireball_mesh(
+                    entity,
+                    position,
+                    cameraYaw,
+                    cameraPitch,
+                    thirdPersonView,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::DragonFireball => append_dragon_fireball_mesh(
+                    entity,
+                    position,
+                    cameraYaw,
+                    cameraPitch,
+                    thirdPersonView,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::WitherSkull => append_wither_skull_mesh(
+                    entity,
+                    position,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::FishHook => append_fish_hook_mesh(
+                    entity,
+                    position,
+                    remotePlayers,
+                    localPlayerRenderState,
+                    partialTicks,
+                    cameraYaw,
+                    cameraPitch,
+                    thirdPersonView,
+                    fov,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                    lineVertices,
+                    lineIndices,
+                ),
+                EntityRendererKind::AreaEffectCloud => {}
+                EntityRendererKind::Painting => {
+                    append_painting_mesh(entity, chunks, dimension, atlas, vertices, indices)
+                }
+                EntityRendererKind::ItemFrame => append_item_frame_mesh(
+                    entity,
+                    position,
+                    distanceSquared,
+                    packedLight,
+                    mapData,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::LeashKnot => {
+                    append_leash_knot_mesh(entity, position, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Wolf => {
+                    append_wolf_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Ocelot => {
+                    append_ocelot_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Rabbit => {
+                    append_rabbit_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::PolarBear => append_polar_bear_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Horse => {
+                    append_horse_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Llama => {
+                    append_llama_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Villager => append_villager_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
+                EntityRendererKind::Witch => {
+                    append_witch_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::Illager => {
+                    append_illager_mesh(entity, partialTicks, packedLight, atlas, vertices, indices)
+                }
+                EntityRendererKind::ZombieVillager => append_zombie_villager_mesh(
+                    entity,
+                    partialTicks,
+                    packedLight,
+                    atlas,
+                    vertices,
+                    indices,
+                ),
                 EntityRendererKind::Unsupported => {}
             }
         }
@@ -15850,8 +18347,6 @@ fn append_non_player_entity_meshes_serial(
     rendered
 }
 
-
-
 fn append_player_fire_meshes(
     players: &[RemotePlayerRenderState],
     partialTicks: f32,
@@ -15862,11 +18357,16 @@ fn append_player_fire_meshes(
 ) {
     let partial = partialTicks.clamp(0.0, 1.0) as f64;
     for player in players {
-        if !player.burning || player.invisible { continue; }
+        if !player.burning || player.invisible {
+            continue;
+        }
         let position = [
-            (player.prevPosition[0] + (player.position[0] - player.prevPosition[0]) * partial) as f32,
-            (player.prevPosition[1] + (player.position[1] - player.prevPosition[1]) * partial) as f32,
-            (player.prevPosition[2] + (player.position[2] - player.prevPosition[2]) * partial) as f32,
+            (player.prevPosition[0] + (player.position[0] - player.prevPosition[0]) * partial)
+                as f32,
+            (player.prevPosition[1] + (player.position[1] - player.prevPosition[1]) * partial)
+                as f32,
+            (player.prevPosition[2] + (player.position[2] - player.prevPosition[2]) * partial)
+                as f32,
         ];
         append_fire_billboards(
             position,
@@ -15916,7 +18416,9 @@ fn append_fire_billboards(
     indices: &mut Vec<u32>,
 ) {
     let scaleValue = width * 1.4;
-    if scaleValue <= 0.0 { return; }
+    if scaleValue <= 0.0 {
+        return;
+    }
     let mut halfWidth = 0.5_f32;
     let mut remainingHeight = height / scaleValue;
     let mut verticalOffset = entityBoxYOffset;
@@ -15955,7 +18457,7 @@ fn append_fire_billboards(
                 uv: uvs[corner],
                 color: [1.0, 1.0, 1.0, encoded_fire_alpha(1.0, (layer & 1) as usize)],
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -15968,7 +18470,6 @@ fn append_fire_billboards(
         layer += 1;
     }
 }
-
 
 fn fire_billboard_matrix(
     position: [f32; 3],
@@ -16007,16 +18508,27 @@ fn append_fish_hook_mesh(
     lineVertices: &mut Vec<WorldVertex>,
     lineIndices: &mut Vec<u32>,
 ) {
-    let Some(anglerId) = entity.fishHookAnglerId else { return; };
+    let Some(anglerId) = entity.fishHookAnglerId else {
+        return;
+    };
     let angler = localPlayer
         .filter(|player| player.entityId == anglerId)
-        .or_else(|| remotePlayers.iter().find(|player| player.entityId == anglerId));
-    let Some(angler) = angler else { return; };
+        .or_else(|| {
+            remotePlayers
+                .iter()
+                .find(|player| player.entityId == anglerId)
+        });
+    let Some(angler) = angler else {
+        return;
+    };
 
-    let Some(rectangle) = atlas.entityTextureRectangles
+    let Some(rectangle) = atlas
+        .entityTextureRectangles
         .get(&RenderFish::texture())
         .copied()
-    else { return; };
+    else {
+        return;
+    };
 
     // RenderFish: translate -> scale(0.5) -> playerViewY -> playerViewX.
     let mut hookMatrix = translation4(position);
@@ -16038,7 +18550,11 @@ fn append_fish_hook_mesh(
         indices,
     );
 
-    let mut handSign = if angler.primaryHand == EnumHandSide::Right { 1 } else { -1 };
+    let mut handSign = if angler.primaryHand == EnumHandSide::Right {
+        1
+    } else {
+        -1
+    };
     if angler.mainHandStack.itemId != 346 {
         handSign = -handSign;
     }
@@ -16049,9 +18565,8 @@ fn append_fish_hook_mesh(
     }
     let swingProgress = angler.prevSwingProgress + swingDelta * partialTicks.clamp(0.0, 1.0);
     let swing = (swingProgress.sqrt() * core::f32::consts::PI).sin();
-    let bodyYaw = (angler.prevBodyYaw
-        + (angler.bodyYaw - angler.prevBodyYaw) * partialTicks)
-        .to_radians();
+    let bodyYaw =
+        (angler.prevBodyYaw + (angler.bodyYaw - angler.prevBodyYaw) * partialTicks).to_radians();
     let bodySin = bodyYaw.sin() as f64;
     let bodyCos = bodyYaw.cos() as f64;
     let side = handSign as f64 * 0.35;
@@ -16064,9 +18579,8 @@ fn append_fish_hook_mesh(
             + (angler.position[2] - angler.prevPosition[2]) * partialTicks as f64,
     ];
 
-    let localFirstPerson = localPlayer
-        .is_some_and(|local| local.entityId == angler.entityId)
-        && thirdPersonView <= 0;
+    let localFirstPerson =
+        localPlayer.is_some_and(|local| local.entityId == angler.entityId) && thirdPersonView <= 0;
     let (handX, handY, handZ, verticalOffset) = if localFirstPerson {
         let fovScale = fov / 100.0;
         let mut hand = Vec3d::new(
@@ -16074,11 +18588,9 @@ fn append_fish_hook_mesh(
             -0.045 * fovScale as f64,
             0.4,
         );
-        let pitch = (angler.prevPitch
-            + (angler.pitch - angler.prevPitch) * partialTicks)
-            .to_radians();
-        let yaw = (angler.prevHeadYaw
-            + (angler.headYaw - angler.prevHeadYaw) * partialTicks)
+        let pitch =
+            (angler.prevPitch + (angler.pitch - angler.prevPitch) * partialTicks).to_radians();
+        let yaw = (angler.prevHeadYaw + (angler.headYaw - angler.prevHeadYaw) * partialTicks)
             .to_radians();
         hand = hand.rotate_pitch(-pitch);
         hand = hand.rotate_yaw(-yaw);
@@ -16122,7 +18634,7 @@ fn append_fish_hook_mesh(
             uv: [0.0, 0.0],
             color: [0.0, 0.0, 0.0, 1.0],
             lightmap: [15.0, 15.0],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         });
@@ -16131,10 +18643,15 @@ fn append_fish_hook_mesh(
     append_existing_line_strip(lineVertices, lineIndices, &stripVertices, &stripIndices);
 }
 
-
-
 #[derive(Debug, Clone, Copy)]
-enum ItemFrameFace { Down, Up, North, South, West, East }
+enum ItemFrameFace {
+    Down,
+    Up,
+    North,
+    South,
+    West,
+    East,
+}
 
 fn entity_texture_uv(rectangle: [f32; 4], uv: [f32; 2]) -> [f32; 2] {
     [
@@ -16173,10 +18690,15 @@ fn append_painting_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(art) = entity.paintingArt() else { return; };
-    let Some(facing) = entity.hangingFacing else { return; };
+    let Some(art) = entity.paintingArt() else {
+        return;
+    };
+    let Some(facing) = entity.hangingFacing else {
+        return;
+    };
     let data = art.data();
-    let rectangle = atlas.entityTextureRectangles
+    let rectangle = atlas
+        .entityTextureRectangles
         .get(&RenderPainting::texture())
         .copied()
         .unwrap_or(atlas.missingRectangle);
@@ -16206,16 +18728,27 @@ fn append_painting_mesh(
             let lightY = (entity.entity.posY + (centerY / 16.0) as f64).floor() as i32;
             let mut lightZ = entity.entity.posZ.floor() as i32;
             match facing {
-                EnumFacing::North => lightX = (entity.entity.posX + (centerX / 16.0) as f64).floor() as i32,
-                EnumFacing::West => lightZ = (entity.entity.posZ - (centerX / 16.0) as f64).floor() as i32,
-                EnumFacing::South => lightX = (entity.entity.posX - (centerX / 16.0) as f64).floor() as i32,
-                EnumFacing::East => lightZ = (entity.entity.posZ + (centerX / 16.0) as f64).floor() as i32,
+                EnumFacing::North => {
+                    lightX = (entity.entity.posX + (centerX / 16.0) as f64).floor() as i32
+                }
+                EnumFacing::West => {
+                    lightZ = (entity.entity.posZ - (centerX / 16.0) as f64).floor() as i32
+                }
+                EnumFacing::South => {
+                    lightX = (entity.entity.posX - (centerX / 16.0) as f64).floor() as i32
+                }
+                EnumFacing::East => {
+                    lightZ = (entity.entity.posZ + (centerX / 16.0) as f64).floor() as i32
+                }
                 _ => {}
             }
             let lightPos = BlockPos::new(lightX, lightY, lightZ);
             let state = snapshot_block_state(chunks, lightPos);
             let packedLight = snapshot_combined_light(chunks, lightPos, dimension, state);
-            let lightmap = [((packedLight >> 4) & 15) as f32, ((packedLight >> 20) & 15) as f32];
+            let lightmap = [
+                ((packedLight >> 4) & 15) as f32,
+                ((packedLight >> 20) & 15) as f32,
+            ];
 
             let u1 = (data.offsetX + data.sizeX - tileX * 16) as f32 / 256.0;
             let u0 = (data.offsetX + data.sizeX - (tileX + 1) * 16) as f32 / 256.0;
@@ -16224,24 +18757,85 @@ fn append_painting_mesh(
 
             // Front motive, back, top, bottom, left and right follow the exact
             // BufferBuilder vertex order and source UV regions from 1.12.2.
-            append_entity_texture_quad(matrix,
-                [[x1, y0, -0.5], [x0, y0, -0.5], [x0, y1, -0.5], [x1, y1, -0.5]],
-                [[u0, v1], [u1, v1], [u1, v0], [u0, v0]], rectangle, lightmap, vertices, indices);
-            append_entity_texture_quad(matrix,
+            append_entity_texture_quad(
+                matrix,
+                [
+                    [x1, y0, -0.5],
+                    [x0, y0, -0.5],
+                    [x0, y1, -0.5],
+                    [x1, y1, -0.5],
+                ],
+                [[u0, v1], [u1, v1], [u1, v0], [u0, v0]],
+                rectangle,
+                lightmap,
+                vertices,
+                indices,
+            );
+            append_entity_texture_quad(
+                matrix,
                 [[x1, y1, 0.5], [x0, y1, 0.5], [x0, y0, 0.5], [x1, y0, 0.5]],
-                [[0.75, 0.0], [0.8125, 0.0], [0.8125, 0.0625], [0.75, 0.0625]], rectangle, lightmap, vertices, indices);
-            append_entity_texture_quad(matrix,
+                [[0.75, 0.0], [0.8125, 0.0], [0.8125, 0.0625], [0.75, 0.0625]],
+                rectangle,
+                lightmap,
+                vertices,
+                indices,
+            );
+            append_entity_texture_quad(
+                matrix,
                 [[x1, y1, -0.5], [x0, y1, -0.5], [x0, y1, 0.5], [x1, y1, 0.5]],
-                [[0.75, 0.001953125], [0.8125, 0.001953125], [0.8125, 0.001953125], [0.75, 0.001953125]], rectangle, lightmap, vertices, indices);
-            append_entity_texture_quad(matrix,
+                [
+                    [0.75, 0.001953125],
+                    [0.8125, 0.001953125],
+                    [0.8125, 0.001953125],
+                    [0.75, 0.001953125],
+                ],
+                rectangle,
+                lightmap,
+                vertices,
+                indices,
+            );
+            append_entity_texture_quad(
+                matrix,
                 [[x1, y0, 0.5], [x0, y0, 0.5], [x0, y0, -0.5], [x1, y0, -0.5]],
-                [[0.75, 0.001953125], [0.8125, 0.001953125], [0.8125, 0.001953125], [0.75, 0.001953125]], rectangle, lightmap, vertices, indices);
-            append_entity_texture_quad(matrix,
+                [
+                    [0.75, 0.001953125],
+                    [0.8125, 0.001953125],
+                    [0.8125, 0.001953125],
+                    [0.75, 0.001953125],
+                ],
+                rectangle,
+                lightmap,
+                vertices,
+                indices,
+            );
+            append_entity_texture_quad(
+                matrix,
                 [[x1, y1, 0.5], [x1, y0, 0.5], [x1, y0, -0.5], [x1, y1, -0.5]],
-                [[0.751953125, 0.0], [0.751953125, 0.0625], [0.751953125, 0.0625], [0.751953125, 0.0]], rectangle, lightmap, vertices, indices);
-            append_entity_texture_quad(matrix,
+                [
+                    [0.751953125, 0.0],
+                    [0.751953125, 0.0625],
+                    [0.751953125, 0.0625],
+                    [0.751953125, 0.0],
+                ],
+                rectangle,
+                lightmap,
+                vertices,
+                indices,
+            );
+            append_entity_texture_quad(
+                matrix,
                 [[x0, y1, -0.5], [x0, y0, -0.5], [x0, y0, 0.5], [x0, y1, 0.5]],
-                [[0.751953125, 0.0], [0.751953125, 0.0625], [0.751953125, 0.0625], [0.751953125, 0.0]], rectangle, lightmap, vertices, indices);
+                [
+                    [0.751953125, 0.0],
+                    [0.751953125, 0.0625],
+                    [0.751953125, 0.0625],
+                    [0.751953125, 0.0],
+                ],
+                rectangle,
+                lightmap,
+                vertices,
+                indices,
+            );
         }
     }
 }
@@ -16291,53 +18885,149 @@ fn append_item_frame_model(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let wood = atlas.entityTextureRectangles.get(&RenderItemFrame::woodTexture()).copied().unwrap_or(atlas.missingRectangle);
-    let background = atlas.entityTextureRectangles.get(&RenderItemFrame::backgroundTexture()).copied().unwrap_or(atlas.missingRectangle);
+    let wood = atlas
+        .entityTextureRectangles
+        .get(&RenderItemFrame::woodTexture())
+        .copied()
+        .unwrap_or(atlas.missingRectangle);
+    let background = atlas
+        .entityTextureRectangles
+        .get(&RenderItemFrame::backgroundTexture())
+        .copied()
+        .unwrap_or(atlas.missingRectangle);
     if mapVariant {
         for face in [ItemFrameFace::North, ItemFrameFace::South] {
-            append_item_frame_face(matrix, [1.0, 1.0, 15.001], [15.0, 15.0, 16.0], face, [1.0, 1.0, 15.0, 15.0], background, lightmap, vertices, indices);
+            append_item_frame_face(
+                matrix,
+                [1.0, 1.0, 15.001],
+                [15.0, 15.0, 16.0],
+                face,
+                [1.0, 1.0, 15.0, 15.0],
+                background,
+                lightmap,
+                vertices,
+                indices,
+            );
         }
         let elements: [([f32; 3], [f32; 3], &[(ItemFrameFace, [f32; 4])]); 4] = [
-            ([0.0, 0.0, 15.001], [16.0, 1.0, 16.0], &[
-                (ItemFrameFace::Down, [0.0, 0.0, 16.0, 1.0]), (ItemFrameFace::Up, [0.0, 15.0, 16.0, 16.0]),
-                (ItemFrameFace::North, [0.0, 15.0, 16.0, 16.0]), (ItemFrameFace::South, [0.0, 15.0, 16.0, 16.0]),
-                (ItemFrameFace::West, [15.0, 15.0, 16.0, 16.0]), (ItemFrameFace::East, [0.0, 15.0, 1.0, 16.0])]),
-            ([0.0, 15.0, 15.001], [16.0, 16.0, 16.0], &[
-                (ItemFrameFace::Down, [0.0, 0.0, 16.0, 1.0]), (ItemFrameFace::Up, [0.0, 15.0, 16.0, 16.0]),
-                (ItemFrameFace::North, [0.0, 0.0, 16.0, 1.0]), (ItemFrameFace::South, [0.0, 0.0, 16.0, 1.0]),
-                (ItemFrameFace::West, [15.0, 0.0, 16.0, 1.0]), (ItemFrameFace::East, [0.0, 0.0, 1.0, 1.0])]),
-            ([0.0, 1.0, 15.001], [1.0, 15.0, 16.0], &[
-                (ItemFrameFace::North, [15.0, 1.0, 16.0, 15.0]), (ItemFrameFace::South, [0.0, 1.0, 1.0, 15.0]),
-                (ItemFrameFace::West, [15.0, 1.0, 16.0, 15.0]), (ItemFrameFace::East, [0.0, 1.0, 1.0, 15.0])]),
-            ([15.0, 1.0, 15.001], [16.0, 15.0, 16.0], &[
-                (ItemFrameFace::North, [0.0, 1.0, 1.0, 15.0]), (ItemFrameFace::South, [15.0, 1.0, 16.0, 15.0]),
-                (ItemFrameFace::West, [15.0, 1.0, 16.0, 15.0]), (ItemFrameFace::East, [0.0, 1.0, 1.0, 15.0])]),
+            (
+                [0.0, 0.0, 15.001],
+                [16.0, 1.0, 16.0],
+                &[
+                    (ItemFrameFace::Down, [0.0, 0.0, 16.0, 1.0]),
+                    (ItemFrameFace::Up, [0.0, 15.0, 16.0, 16.0]),
+                    (ItemFrameFace::North, [0.0, 15.0, 16.0, 16.0]),
+                    (ItemFrameFace::South, [0.0, 15.0, 16.0, 16.0]),
+                    (ItemFrameFace::West, [15.0, 15.0, 16.0, 16.0]),
+                    (ItemFrameFace::East, [0.0, 15.0, 1.0, 16.0]),
+                ],
+            ),
+            (
+                [0.0, 15.0, 15.001],
+                [16.0, 16.0, 16.0],
+                &[
+                    (ItemFrameFace::Down, [0.0, 0.0, 16.0, 1.0]),
+                    (ItemFrameFace::Up, [0.0, 15.0, 16.0, 16.0]),
+                    (ItemFrameFace::North, [0.0, 0.0, 16.0, 1.0]),
+                    (ItemFrameFace::South, [0.0, 0.0, 16.0, 1.0]),
+                    (ItemFrameFace::West, [15.0, 0.0, 16.0, 1.0]),
+                    (ItemFrameFace::East, [0.0, 0.0, 1.0, 1.0]),
+                ],
+            ),
+            (
+                [0.0, 1.0, 15.001],
+                [1.0, 15.0, 16.0],
+                &[
+                    (ItemFrameFace::North, [15.0, 1.0, 16.0, 15.0]),
+                    (ItemFrameFace::South, [0.0, 1.0, 1.0, 15.0]),
+                    (ItemFrameFace::West, [15.0, 1.0, 16.0, 15.0]),
+                    (ItemFrameFace::East, [0.0, 1.0, 1.0, 15.0]),
+                ],
+            ),
+            (
+                [15.0, 1.0, 15.001],
+                [16.0, 15.0, 16.0],
+                &[
+                    (ItemFrameFace::North, [0.0, 1.0, 1.0, 15.0]),
+                    (ItemFrameFace::South, [15.0, 1.0, 16.0, 15.0]),
+                    (ItemFrameFace::West, [15.0, 1.0, 16.0, 15.0]),
+                    (ItemFrameFace::East, [0.0, 1.0, 1.0, 15.0]),
+                ],
+            ),
         ];
         for (from, to, faces) in elements {
-            for (face, uv) in faces { append_item_frame_face(matrix, from, to, *face, *uv, wood, lightmap, vertices, indices); }
+            for (face, uv) in faces {
+                append_item_frame_face(
+                    matrix, from, to, *face, *uv, wood, lightmap, vertices, indices,
+                );
+            }
         }
     } else {
         for face in [ItemFrameFace::North, ItemFrameFace::South] {
-            append_item_frame_face(matrix, [3.0, 3.0, 15.5], [13.0, 13.0, 16.0], face, [3.0, 3.0, 13.0, 13.0], background, lightmap, vertices, indices);
+            append_item_frame_face(
+                matrix,
+                [3.0, 3.0, 15.5],
+                [13.0, 13.0, 16.0],
+                face,
+                [3.0, 3.0, 13.0, 13.0],
+                background,
+                lightmap,
+                vertices,
+                indices,
+            );
         }
         let elements: [([f32; 3], [f32; 3], &[(ItemFrameFace, [f32; 4])]); 4] = [
-            ([2.0, 2.0, 15.0], [14.0, 3.0, 16.0], &[
-                (ItemFrameFace::Down, [2.0, 0.0, 14.0, 1.0]), (ItemFrameFace::Up, [2.0, 15.0, 14.0, 16.0]),
-                (ItemFrameFace::North, [2.0, 13.0, 14.0, 14.0]), (ItemFrameFace::South, [2.0, 13.0, 14.0, 14.0]),
-                (ItemFrameFace::West, [15.0, 13.0, 16.0, 14.0]), (ItemFrameFace::East, [0.0, 13.0, 1.0, 14.0])]),
-            ([2.0, 13.0, 15.0], [14.0, 14.0, 16.0], &[
-                (ItemFrameFace::Down, [2.0, 0.0, 14.0, 1.0]), (ItemFrameFace::Up, [2.0, 15.0, 14.0, 16.0]),
-                (ItemFrameFace::North, [2.0, 2.0, 14.0, 3.0]), (ItemFrameFace::South, [2.0, 2.0, 14.0, 3.0]),
-                (ItemFrameFace::West, [15.0, 2.0, 16.0, 3.0]), (ItemFrameFace::East, [0.0, 2.0, 1.0, 3.0])]),
-            ([2.0, 3.0, 15.0], [3.0, 13.0, 16.0], &[
-                (ItemFrameFace::North, [13.0, 3.0, 14.0, 13.0]), (ItemFrameFace::South, [2.0, 3.0, 3.0, 13.0]),
-                (ItemFrameFace::West, [15.0, 3.0, 16.0, 13.0]), (ItemFrameFace::East, [0.0, 3.0, 1.0, 13.0])]),
-            ([13.0, 3.0, 15.0], [14.0, 13.0, 16.0], &[
-                (ItemFrameFace::North, [2.0, 3.0, 3.0, 13.0]), (ItemFrameFace::South, [13.0, 3.0, 14.0, 13.0]),
-                (ItemFrameFace::West, [15.0, 3.0, 16.0, 13.0]), (ItemFrameFace::East, [0.0, 3.0, 1.0, 13.0])]),
+            (
+                [2.0, 2.0, 15.0],
+                [14.0, 3.0, 16.0],
+                &[
+                    (ItemFrameFace::Down, [2.0, 0.0, 14.0, 1.0]),
+                    (ItemFrameFace::Up, [2.0, 15.0, 14.0, 16.0]),
+                    (ItemFrameFace::North, [2.0, 13.0, 14.0, 14.0]),
+                    (ItemFrameFace::South, [2.0, 13.0, 14.0, 14.0]),
+                    (ItemFrameFace::West, [15.0, 13.0, 16.0, 14.0]),
+                    (ItemFrameFace::East, [0.0, 13.0, 1.0, 14.0]),
+                ],
+            ),
+            (
+                [2.0, 13.0, 15.0],
+                [14.0, 14.0, 16.0],
+                &[
+                    (ItemFrameFace::Down, [2.0, 0.0, 14.0, 1.0]),
+                    (ItemFrameFace::Up, [2.0, 15.0, 14.0, 16.0]),
+                    (ItemFrameFace::North, [2.0, 2.0, 14.0, 3.0]),
+                    (ItemFrameFace::South, [2.0, 2.0, 14.0, 3.0]),
+                    (ItemFrameFace::West, [15.0, 2.0, 16.0, 3.0]),
+                    (ItemFrameFace::East, [0.0, 2.0, 1.0, 3.0]),
+                ],
+            ),
+            (
+                [2.0, 3.0, 15.0],
+                [3.0, 13.0, 16.0],
+                &[
+                    (ItemFrameFace::North, [13.0, 3.0, 14.0, 13.0]),
+                    (ItemFrameFace::South, [2.0, 3.0, 3.0, 13.0]),
+                    (ItemFrameFace::West, [15.0, 3.0, 16.0, 13.0]),
+                    (ItemFrameFace::East, [0.0, 3.0, 1.0, 13.0]),
+                ],
+            ),
+            (
+                [13.0, 3.0, 15.0],
+                [14.0, 13.0, 16.0],
+                &[
+                    (ItemFrameFace::North, [2.0, 3.0, 3.0, 13.0]),
+                    (ItemFrameFace::South, [13.0, 3.0, 14.0, 13.0]),
+                    (ItemFrameFace::West, [15.0, 3.0, 16.0, 13.0]),
+                    (ItemFrameFace::East, [0.0, 3.0, 1.0, 13.0]),
+                ],
+            ),
         ];
         for (from, to, faces) in elements {
-            for (face, uv) in faces { append_item_frame_face(matrix, from, to, *face, *uv, wood, lightmap, vertices, indices); }
+            for (face, uv) in faces {
+                append_item_frame_face(
+                    matrix, from, to, *face, *uv, wood, lightmap, vertices, indices,
+                );
+            }
         }
     }
 }
@@ -16353,24 +19043,37 @@ fn append_item_frame_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(anchor) = entity.hangingPosition else { return; };
+    let Some(anchor) = entity.hangingPosition else {
+        return;
+    };
     let displayed = entity.itemFrameDisplayedItem();
     let mapVariant = EntityItemFrame::isMap(displayed);
-    let center = [anchor.x as f32 + 0.5, anchor.y as f32 + 0.5, anchor.z as f32 + 0.5];
+    let center = [
+        anchor.x as f32 + 0.5,
+        anchor.y as f32 + 0.5,
+        anchor.z as f32 + 0.5,
+    ];
     let mut root = translation4(center);
     root = multiply4(root, rotation_y4(180.0 - entity.entity.rotationYaw));
     let frameMatrix = multiply4(root, translation4([-0.5, -0.5, -0.5]));
-    let lightmap = [((packedLight >> 4) & 15) as f32, ((packedLight >> 20) & 15) as f32];
+    let lightmap = [
+        ((packedLight >> 4) & 15) as f32,
+        ((packedLight >> 20) & 15) as f32,
+    ];
     append_item_frame_model(mapVariant, frameMatrix, lightmap, atlas, vertices, indices);
 
-    let Some(stack) = displayed else { return; };
-    if distanceSquared > EntityItemFrame::ITEM_RENDER_DISTANCE_SQ { return; }
-    let rotation = EntityItemFrame::renderedRotation(
-        entity.itemFrameRotation(),
-        mapVariant,
-    ) as f32 * 45.0;
+    let Some(stack) = displayed else {
+        return;
+    };
+    if distanceSquared > EntityItemFrame::ITEM_RENDER_DISTANCE_SQ {
+        return;
+    }
+    let rotation =
+        EntityItemFrame::renderedRotation(entity.itemFrameRotation(), mapVariant) as f32 * 45.0;
     if mapVariant {
-        let Some(map) = ItemMap::getMapData(stack, mapData) else { return; };
+        let Some(map) = ItemMap::getMapData(stack, mapData) else {
+            return;
+        };
         let mut mapMatrix = multiply4(
             root,
             translation4([0.0, 0.0, RenderItemFrame::ITEM_TRANSLATE_Z]),
@@ -16386,7 +19089,9 @@ fn append_item_frame_mesh(
         return;
     }
 
-    let Some(model) = item_model_for_stack(stack, atlas) else { return; };
+    let Some(model) = item_model_for_stack(stack, atlas) else {
+        return;
+    };
     let mut itemMatrix = multiply4(
         root,
         translation4([0.0, 0.0, RenderItemFrame::ITEM_TRANSLATE_Z]),
@@ -16456,9 +19161,7 @@ fn append_map_mesh(
                 continue;
             }
             let mut end = x + 1;
-            while end < MapData::WIDTH
-                && mapData.colors[end + y * MapData::WIDTH] == colorByte
-            {
+            while end < MapData::WIDTH && mapData.colors[end + y * MapData::WIDTH] == colorByte {
                 end += 1;
             }
             append_map_quad(
@@ -16592,7 +19295,7 @@ fn append_textured_quad(
             uv,
             color,
             lightmap: [15.0, 15.0],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         });
@@ -16609,7 +19312,13 @@ fn append_leash_knot_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType: ObjectSpawnType::LeashKnot, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object {
+        objectType: ObjectSpawnType::LeashKnot,
+        ..
+    } = &entity.kind
+    else {
+        return;
+    };
     let mut matrix = translation4(position);
     matrix = multiply4(matrix, scale4_nonuniform([-1.0, -1.0, 1.0]));
     append_vehicle_model_pass(
@@ -16633,8 +19342,11 @@ fn append_vehicle_model_pass(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if mesh.indices.is_empty() { return; }
-    let rectangle = atlas.entityTextureRectangles
+    if mesh.indices.is_empty() {
+        return;
+    }
+    let rectangle = atlas
+        .entityTextureRectangles
         .get(&texture)
         .copied()
         .unwrap_or(atlas.missingRectangle);
@@ -16649,7 +19361,7 @@ fn append_vehicle_model_pass(
         ],
         color: [1.0; 4],
         lightmap: [blockLight, skyLight],
-    
+
         shaderEntity: [-1, -1, -1],
         shaderPadding: 0,
     }));
@@ -16668,7 +19380,13 @@ fn append_boat_mesh(
     depthVertices: &mut Vec<WorldVertex>,
     depthIndices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object {
+        objectType: ObjectSpawnType::Boat,
+        ..
+    } = &entity.kind
+    else {
+        return;
+    };
     let partial = partialTicks.clamp(0.0, 1.0);
     // RenderManager#renderEntityStatic does a direct linear interpolation here.
     let entityYaw = entity.entity.prevRotationYaw
@@ -16734,7 +19452,13 @@ fn append_minecart_mesh(
     overlayVertices: &mut Vec<WorldVertex>,
     overlayIndices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object {
+        objectType: ObjectSpawnType::Minecart,
+        ..
+    } = &entity.kind
+    else {
+        return;
+    };
     let partial = partialTicks.clamp(0.0, 1.0);
     let d0 = position[0] as f64;
     let d1 = position[1] as f64;
@@ -16745,15 +19469,22 @@ fn append_minecart_mesh(
     let mut entityPitch = entity.entity.prevRotationPitch
         + (entity.entity.rotationPitch - entity.entity.prevRotationPitch) * partial;
 
-    if let Some(center) = EntityMinecart::getPos(d0, d1, d2, |pos| snapshot_block_state(chunks, pos)) {
-        let front = EntityMinecart::getPosOffset(
-            d0, d1, d2, EntityMinecart::RENDER_SAMPLE_OFFSET,
-            |pos| snapshot_block_state(chunks, pos),
-        ).unwrap_or(center);
+    if let Some(center) =
+        EntityMinecart::getPos(d0, d1, d2, |pos| snapshot_block_state(chunks, pos))
+    {
+        let front =
+            EntityMinecart::getPosOffset(d0, d1, d2, EntityMinecart::RENDER_SAMPLE_OFFSET, |pos| {
+                snapshot_block_state(chunks, pos)
+            })
+            .unwrap_or(center);
         let back = EntityMinecart::getPosOffset(
-            d0, d1, d2, -EntityMinecart::RENDER_SAMPLE_OFFSET,
+            d0,
+            d1,
+            d2,
+            -EntityMinecart::RENDER_SAMPLE_OFFSET,
             |pos| snapshot_block_state(chunks, pos),
-        ).unwrap_or(center);
+        )
+        .unwrap_or(center);
         renderPosition[0] += (center[0] - d0) as f32;
         renderPosition[1] += ((front[1] + back[1]) * 0.5 - d1) as f32;
         renderPosition[2] += (center[2] - d2) as f32;
@@ -16823,14 +19554,18 @@ fn append_minecart_contents(
     overlayIndices: &mut Vec<u32>,
 ) {
     let state = IBlockState::fromGlobalStateId(entity.minecartDisplayStateId());
-    if state.isAir() { return; }
+    if state.isAir() {
+        return;
+    }
     let offset = entity.minecartDisplayOffset();
-    let mut contentMatrix = multiply4(matrix, scale4_nonuniform([RenderMinecart::CONTENT_SCALE; 3]));
-    contentMatrix = multiply4(contentMatrix, translation4([
-        -0.5,
-        (offset - 8) as f32 / 16.0,
-        0.5,
-    ]));
+    let mut contentMatrix = multiply4(
+        matrix,
+        scale4_nonuniform([RenderMinecart::CONTENT_SCALE; 3]),
+    );
+    contentMatrix = multiply4(
+        contentMatrix,
+        translation4([-0.5, (offset - 8) as f32 / 16.0, 0.5]),
+    );
     if entity.minecartType() == MinecartType::Tnt {
         let pulse = RenderMinecart::tntContentScale(entity.minecartTntFuse(), partialTicks);
         if pulse != 1.0 {
@@ -16841,21 +19576,33 @@ fn append_minecart_contents(
     // with the same 90-degree Y rotation.
     contentMatrix = multiply4(contentMatrix, rotation_y4(90.0));
     if state.getBlockId() == 54 {
-        let stack = ItemStack { itemId: 54, count: 1, itemDamage: 0, tagCompound: None };
+        let stack = ItemStack {
+            itemId: 54,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
         let blockLight = ((packedLight >> 4) & 15) as f32;
         let skyLight = ((packedLight >> 20) & 15) as f32;
-        let itemLights = [
-            normalize3([0.2, 1.0, -0.7]),
-            normalize3([-0.2, 1.0, 0.7]),
-        ];
+        let itemLights = [normalize3([0.2, 1.0, -0.7]), normalize3([-0.2, 1.0, 0.7])];
         append_builtin_item_mesh_world(
-            &stack, contentMatrix, blockLight, skyLight, itemLights,
-            atlas, vertices, indices,
+            &stack,
+            contentMatrix,
+            blockLight,
+            skyLight,
+            itemLights,
+            atlas,
+            vertices,
+            indices,
         );
         return;
     }
-    let Some(model) = model_for_state(&atlas.models, state) else { return; };
-    if model.missing { return; }
+    let Some(model) = model_for_state(&atlas.models, state) else {
+        return;
+    };
+    if model.missing {
+        return;
+    }
     let colorPos = BlockPos::new(
         entity.entity.posX.floor() as i32,
         entity.entity.posY.floor() as i32,
@@ -16884,7 +19631,9 @@ fn append_minecart_contents(
     if entity.minecartType() == MinecartType::Tnt {
         if let Some(alpha) = RenderMinecart::tntFlashAlpha(entity.minecartTntFuse(), partialTicks) {
             let tntState = IBlockState::fromGlobalStateId(46 << 4);
-            if let Some(tntModel) = model_for_state(&atlas.models, tntState).filter(|model| !model.missing) {
+            if let Some(tntModel) =
+                model_for_state(&atlas.models, tntState).filter(|model| !model.missing)
+            {
                 append_block_state_model_world(
                     tntState,
                     colorPos,
@@ -16909,11 +19658,16 @@ fn find_living_target(
     remotePlayers: &[RemotePlayerRenderState],
     localPlayerTarget: Option<LivingTargetRenderState>,
 ) -> Option<LivingTargetRenderState> {
-    if entityId == 0 { return None; }
+    if entityId == 0 {
+        return None;
+    }
     if localPlayerTarget.is_some_and(|target| target.entityId == entityId) {
         return localPlayerTarget;
     }
-    if let Some(player) = remotePlayers.iter().find(|player| player.entityId == entityId) {
+    if let Some(player) = remotePlayers
+        .iter()
+        .find(|player| player.entityId == entityId)
+    {
         return Some(LivingTargetRenderState {
             entityId: player.entityId,
             prevPosition: player.prevPosition,
@@ -16922,12 +19676,21 @@ fn find_living_target(
             eyeHeight: player.eyeHeight,
         });
     }
-    entities.iter()
+    entities
+        .iter()
         .find(|candidate| candidate.entityId == entityId && candidate.isLivingBase())
         .map(|candidate| LivingTargetRenderState {
             entityId: candidate.entityId,
-            prevPosition: [candidate.entity.prevPosX, candidate.entity.prevPosY, candidate.entity.prevPosZ],
-            position: [candidate.entity.posX, candidate.entity.posY, candidate.entity.posZ],
+            prevPosition: [
+                candidate.entity.prevPosX,
+                candidate.entity.prevPosY,
+                candidate.entity.prevPosZ,
+            ],
+            position: [
+                candidate.entity.posX,
+                candidate.entity.posY,
+                candidate.entity.posZ,
+            ],
             height: candidate.entity.height,
             eyeHeight: candidate.eyeHeight(),
         })
@@ -16956,15 +19719,22 @@ fn append_guardian_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    let Some(variant) = RenderGuardian::variant(*entityType) else { return; };
-    let input = RenderLivingBase::renderInput(entity, partialTicks, RenderGuardian::preScale(variant));
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    let Some(variant) = RenderGuardian::variant(*entityType) else {
+        return;
+    };
+    let input =
+        RenderLivingBase::renderInput(entity, partialTicks, RenderGuardian::preScale(variant));
     let guardianEyes = [
         entity.entity.prevPosX,
         entity.entity.prevPosY + entity.eyeHeight() as f64,
         entity.entity.prevPosZ,
     ];
-    let focusEyes = target.or(renderViewEntity).map(LivingTargetRenderState::previousEyes);
+    let focusEyes = target
+        .or(renderViewEntity)
+        .map(LivingTargetRenderState::previousEyes);
     let modelState = GuardianModelState {
         spikesAnimation: entity.guardianSpikesAnimationAt(partialTicks),
         tailAnimation: entity.guardianTailAnimationAt(partialTicks),
@@ -16974,12 +19744,7 @@ fn append_guardian_mesh(
     };
     if renderModel {
         append_living_model_mesh(
-            RenderLivingBase::buildMesh(
-                input,
-                ModelGuardian::boxes(input, modelState),
-                64.0,
-                64.0,
-            ),
+            RenderLivingBase::buildMesh(input, ModelGuardian::boxes(input, modelState), 64.0, 64.0),
             RenderGuardian::texture(variant),
             packedLight,
             atlas,
@@ -16989,7 +19754,13 @@ fn append_guardian_mesh(
     }
     if let Some(target) = target {
         append_guardian_beam_mesh(
-            entity, target, totalWorldTime, partialTicks, atlas, vertices, indices,
+            entity,
+            target,
+            totalWorldTime,
+            partialTicks,
+            atlas,
+            vertices,
+            indices,
         );
     }
 }
@@ -17043,15 +19814,25 @@ fn append_guardian_beam_quad(
                 ((RenderGuardian::PACKED_FULL_BRIGHT >> 4) & 15) as f32,
                 ((RenderGuardian::PACKED_FULL_BRIGHT >> 20) & 15) as f32,
             ],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         });
     }
     // RenderGuardian disables culling for both crossed side sheets and the cap.
     indices.extend_from_slice(&[
-        base, base + 1, base + 2, base, base + 2, base + 3,
-        base + 2, base + 1, base, base + 3, base + 2, base,
+        base,
+        base + 1,
+        base + 2,
+        base,
+        base + 2,
+        base + 3,
+        base + 2,
+        base + 1,
+        base,
+        base + 3,
+        base + 2,
+        base,
     ]);
 }
 
@@ -17068,15 +19849,22 @@ fn append_guardian_beam_mesh(
     let partial = partialTicks.clamp(0.0, 1.0) as f64;
     let start = [
         entity.entity.prevPosX + (entity.entity.posX - entity.entity.prevPosX) * partial,
-        entity.entity.prevPosY + (entity.entity.posY - entity.entity.prevPosY) * partial
+        entity.entity.prevPosY
+            + (entity.entity.posY - entity.entity.prevPosY) * partial
             + entity.eyeHeight() as f64,
         entity.entity.prevPosZ + (entity.entity.posZ - entity.entity.prevPosZ) * partial,
     ];
     let end = target.interpolatedCenter(partialTicks);
     let delta = [end[0] - start[0], end[1] - start[1], end[2] - start[2]];
     let distance = (delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2]).sqrt();
-    if distance <= 1.0e-9 { return; }
-    let direction = [delta[0] / distance, delta[1] / distance, delta[2] / distance];
+    if distance <= 1.0e-9 {
+        return;
+    }
+    let direction = [
+        delta[0] / distance,
+        delta[1] / distance,
+        delta[2] / distance,
+    ];
     let beamLength = distance + 1.0;
     let attack = RenderGuardian::attackAnimationScale(entity, partialTicks) as f64;
     let attackSquared = attack * attack;
@@ -17094,7 +19882,8 @@ fn append_guardian_beam_mesh(
     let animationTime = totalWorldTime as f64 + partialTicks as f64;
     let textureOffset = (animationTime * 0.5).rem_euclid(1.0);
     let rotation = animationTime * 0.05 * -1.5;
-    let rectangle = atlas.entityTextureRectangles
+    let rectangle = atlas
+        .entityTextureRectangles
         .get(&RenderGuardian::beamTexture())
         .copied()
         .unwrap_or(atlas.missingRectangle);
@@ -17102,10 +19891,14 @@ fn append_guardian_beam_mesh(
     let radius = 0.2_f64;
     let a = [rotation.cos() * -radius, rotation.sin() * -radius];
     let b = [rotation.cos() * radius, rotation.sin() * radius];
-    let c = [(rotation + std::f64::consts::FRAC_PI_2).cos() * radius,
-             (rotation + std::f64::consts::FRAC_PI_2).sin() * radius];
-    let d = [(rotation + std::f64::consts::PI * 1.5).cos() * radius,
-             (rotation + std::f64::consts::PI * 1.5).sin() * radius];
+    let c = [
+        (rotation + std::f64::consts::FRAC_PI_2).cos() * radius,
+        (rotation + std::f64::consts::FRAC_PI_2).sin() * radius,
+    ];
+    let d = [
+        (rotation + std::f64::consts::PI * 1.5).cos() * radius,
+        (rotation + std::f64::consts::PI * 1.5).sin() * radius,
+    ];
 
     let vStart = -1.0 + textureOffset;
     let vEnd = beamLength * 2.5 + vStart;
@@ -17130,8 +19923,16 @@ fn append_guardian_beam_mesh(
                     guardian_beam_point(start, direction, [right[0], y0, right[1]]),
                     guardian_beam_point(start, direction, [right[0], y1, right[1]]),
                 ],
-                [[0.4999, localV1], [0.4999, localV0], [0.0, localV0], [0.0, localV1]],
-                rectangle, color, vertices, indices,
+                [
+                    [0.4999, localV1],
+                    [0.4999, localV0],
+                    [0.0, localV0],
+                    [0.0, localV1],
+                ],
+                rectangle,
+                color,
+                vertices,
+                indices,
             );
         }
         currentV = nextV;
@@ -17144,15 +19945,29 @@ fn append_guardian_beam_mesh(
         rotation + 7.0 * std::f64::consts::FRAC_PI_4,
         rotation + 5.0 * std::f64::consts::FRAC_PI_4,
     ];
-    let capV = if entity.entity.ticksExisted % 2 == 0 { 0.5 } else { 0.0 };
+    let capV = if entity.entity.ticksExisted % 2 == 0 {
+        0.5
+    } else {
+        0.0
+    };
     append_guardian_beam_quad(
-        capAngles.map(|angle| guardian_beam_point(
-            start,
-            direction,
-            [angle.cos() * capRadius, beamLength, angle.sin() * capRadius],
-        )),
-        [[0.5, capV + 0.5], [1.0, capV + 0.5], [1.0, capV], [0.5, capV]],
-        rectangle, color, vertices, indices,
+        capAngles.map(|angle| {
+            guardian_beam_point(
+                start,
+                direction,
+                [angle.cos() * capRadius, beamLength, angle.sin() * capRadius],
+            )
+        }),
+        [
+            [0.5, capV + 0.5],
+            [1.0, capV + 0.5],
+            [1.0, capV],
+            [0.5, capV],
+        ],
+        rectangle,
+        color,
+        vertices,
+        indices,
     );
 }
 
@@ -17243,8 +20058,12 @@ fn append_shulker_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderShulker::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderShulker::supports(*entityType) {
+        return;
+    }
     let mut input = RenderLivingBase::withAdultTranslation(
         RenderLivingBase::renderInput(entity, partialTicks, RenderShulker::PRE_SCALE),
         [0.0; 3],
@@ -17308,7 +20127,9 @@ fn append_fireball_billboard(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else { return; };
+    let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else {
+        return;
+    };
     let _ = thirdPersonView;
     // RenderFireball/RenderDragonFireball call translate, scale, rotateY,
     // rotateX in this exact order. `orient_camera_112` already carries the
@@ -17350,8 +20171,12 @@ fn append_fireball_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType, .. } = &entity.kind else { return; };
-    let Some(scale) = RenderFireball::scale(*objectType) else { return; };
+    let ClientEntityKind::Object { objectType, .. } = &entity.kind else {
+        return;
+    };
+    let Some(scale) = RenderFireball::scale(*objectType) else {
+        return;
+    };
     append_fireball_billboard(
         position,
         scale,
@@ -17376,7 +20201,13 @@ fn append_dragon_fireball_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType: ObjectSpawnType::DragonFireball, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object {
+        objectType: ObjectSpawnType::DragonFireball,
+        ..
+    } = &entity.kind
+    else {
+        return;
+    };
     append_fireball_billboard(
         position,
         RenderDragonFireball::SCALE,
@@ -17400,7 +20231,13 @@ fn append_wither_skull_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType: ObjectSpawnType::WitherSkull, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object {
+        objectType: ObjectSpawnType::WitherSkull,
+        ..
+    } = &entity.kind
+    else {
+        return;
+    };
     let yaw = RenderWitherSkull::getRenderYaw(
         entity.entity.prevRotationYaw,
         entity.entity.rotationYaw,
@@ -17408,10 +20245,7 @@ fn append_wither_skull_mesh(
     );
     let pitch = entity.entity.prevRotationPitch
         + (entity.entity.rotationPitch - entity.entity.prevRotationPitch) * partialTicks;
-    let matrix = multiply4(
-        translation4(position),
-        scale4_nonuniform([-1.0, -1.0, 1.0]),
-    );
+    let matrix = multiply4(translation4(position), scale4_nonuniform([-1.0, -1.0, 1.0]));
     append_vehicle_model_pass(
         ModelSkeletonHead::buildMesh(yaw, pitch),
         RenderWitherSkull::texture(entity.isWitherSkullInvulnerable()),
@@ -17444,7 +20278,7 @@ fn append_shulker_bullet_model_pass(
         ],
         color,
         lightmap: [blockLight, skyLight],
-    
+
         shaderEntity: [-1, -1, -1],
         shaderPadding: 0,
     }));
@@ -17461,14 +20295,21 @@ fn append_shulker_bullet_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType: ObjectSpawnType::ShulkerBullet, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object {
+        objectType: ObjectSpawnType::ShulkerBullet,
+        ..
+    } = &entity.kind
+    else {
+        return;
+    };
     let yaw = RenderShulkerBullet::rotLerp(
         entity.entity.prevRotationYaw,
         entity.entity.rotationYaw,
         partialTicks,
     );
     let pitch = entity.entity.prevRotationPitch
-        + (entity.entity.rotationPitch - entity.entity.prevRotationPitch) * partialTicks.clamp(0.0, 1.0);
+        + (entity.entity.rotationPitch - entity.entity.prevRotationPitch)
+            * partialTicks.clamp(0.0, 1.0);
     let age = entity.entity.ticksExisted as f32 + partialTicks.clamp(0.0, 1.0);
     let mesh = ModelShulkerBullet::buildMesh(yaw, pitch);
     let mut matrix = translation4([
@@ -17480,12 +20321,19 @@ fn append_shulker_bullet_mesh(
     matrix = multiply4(matrix, rotation_x4((age * 0.1).cos() * 180.0));
     matrix = multiply4(matrix, rotation_z4((age * 0.15).sin() * 360.0));
     matrix = multiply4(matrix, scale4_nonuniform([-1.0, -1.0, 1.0]));
-    let rectangle = atlas.entityTextureRectangles
+    let rectangle = atlas
+        .entityTextureRectangles
         .get(&RenderShulkerBullet::texture())
         .copied()
         .unwrap_or(atlas.missingRectangle);
     append_shulker_bullet_model_pass(
-        &mesh, matrix, [1.0; 4], packedLight, rectangle, vertices, indices,
+        &mesh,
+        matrix,
+        [1.0; 4],
+        packedLight,
+        rectangle,
+        vertices,
+        indices,
     );
     let outer = multiply4(
         matrix,
@@ -17510,9 +20358,14 @@ fn append_zombie_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    let Some(variant) = RenderZombie::variant(*entityType) else { return; };
-    let input = RenderLivingBase::renderInput(entity, partialTicks, RenderZombie::preScale(variant));
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    let Some(variant) = RenderZombie::variant(*entityType) else {
+        return;
+    };
+    let input =
+        RenderLivingBase::renderInput(entity, partialTicks, RenderZombie::preScale(variant));
     let pose = ModelZombie::pose(input, entity.dataManager.boolean(14, false));
     let mesh = RenderLivingBase::buildMesh(input, ModelZombie::boxes(pose, 0.0), 64.0, 64.0);
     append_living_model_mesh(
@@ -17533,11 +20386,18 @@ fn append_skeleton_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    let Some(variant) = RenderSkeleton::variant(*entityType) else { return; };
-    let input = RenderLivingBase::renderInput(entity, partialTicks, RenderSkeleton::preScale(variant));
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    let Some(variant) = RenderSkeleton::variant(*entityType) else {
+        return;
+    };
+    let input =
+        RenderLivingBase::renderInput(entity, partialTicks, RenderSkeleton::preScale(variant));
     let holdingBow = {
-        let stack = entity.equipment.getItemStackFromSlot(EntityEquipmentSlot::Mainhand);
+        let stack = entity
+            .equipment
+            .getItemStackFromSlot(EntityEquipmentSlot::Mainhand);
         !stack.isEmpty() && stack.itemId == 261
     };
     let primaryLeft = entity.dataManager.byte(11, 0) & 2 != 0;
@@ -17547,12 +20407,8 @@ fn append_skeleton_mesh(
         holdingBow,
         primaryLeft,
     );
-    let mesh = RenderLivingBase::buildMesh(
-        input,
-        ModelSkeleton::boxes(pose, 0.0, false),
-        64.0,
-        32.0,
-    );
+    let mesh =
+        RenderLivingBase::buildMesh(input, ModelSkeleton::boxes(pose, 0.0, false), 64.0, 32.0);
     append_living_model_mesh(
         mesh,
         RenderSkeleton::texture(variant),
@@ -17562,20 +20418,9 @@ fn append_skeleton_mesh(
         indices,
     );
     if let Some(overlay) = RenderSkeleton::overlayTexture(variant) {
-        let overlayMesh = RenderLivingBase::buildMesh(
-            input,
-            ModelSkeleton::boxes(pose, 0.25, true),
-            64.0,
-            32.0,
-        );
-        append_living_model_mesh(
-            overlayMesh,
-            overlay,
-            packedLight,
-            atlas,
-            vertices,
-            indices,
-        );
+        let overlayMesh =
+            RenderLivingBase::buildMesh(input, ModelSkeleton::boxes(pose, 0.25, true), 64.0, 32.0);
+        append_living_model_mesh(overlayMesh, overlay, packedLight, atlas, vertices, indices);
     }
 }
 
@@ -17587,7 +20432,13 @@ fn append_armor_stand_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType: ObjectSpawnType::ArmorStand, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object {
+        objectType: ObjectSpawnType::ArmorStand,
+        ..
+    } = &entity.kind
+    else {
+        return;
+    };
     let input = RenderArmorStand::applyCorpseRotation(
         RenderLivingBase::renderInput(entity, partialTicks, 1.0),
         entity.entity.ticksExisted,
@@ -17607,12 +20458,7 @@ fn append_armor_stand_mesh(
         status & 0x08 != 0,
         status & 0x10 != 0,
     );
-    let mesh = RenderLivingBase::buildMesh(
-        input,
-        ModelArmorStand::boxes(pose, 0.0),
-        64.0,
-        64.0,
-    );
+    let mesh = RenderLivingBase::buildMesh(input, ModelArmorStand::boxes(pose, 0.0), 64.0, 64.0);
     append_living_model_mesh(
         mesh,
         RenderArmorStand::texture(),
@@ -17631,8 +20477,12 @@ fn append_pig_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderPig::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderPig::supports(*entityType) {
+        return;
+    }
     let input = ModelPig::input(RenderLivingBase::renderInput(entity, partialTicks, 1.0));
     let pose = ModelPig::pose(input);
     append_living_model_mesh(
@@ -17645,7 +20495,12 @@ fn append_pig_mesh(
     );
     if LayerSaddle::shouldRender(entity) {
         append_living_model_mesh(
-            RenderLivingBase::buildMesh(input, ModelPig::boxes(pose, LayerSaddle::modelScale()), 64.0, 32.0),
+            RenderLivingBase::buildMesh(
+                input,
+                ModelPig::boxes(pose, LayerSaddle::modelScale()),
+                64.0,
+                32.0,
+            ),
             LayerSaddle::texture(),
             packed_light_without_living_hurt_overlay(packedLight),
             atlas,
@@ -17663,8 +20518,12 @@ fn append_cow_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderCow::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderCow::supports(*entityType) {
+        return;
+    }
     let input = ModelCow::input(RenderLivingBase::renderInput(entity, partialTicks, 1.0));
     let pose = ModelCow::pose(input);
     append_living_model_mesh(
@@ -17685,8 +20544,12 @@ fn append_sheep_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderSheep::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderSheep::supports(*entityType) {
+        return;
+    }
     let input = ModelSheep2::input(RenderLivingBase::renderInput(entity, partialTicks, 1.0));
     let pose = ModelSheep2::pose(
         input,
@@ -17723,8 +20586,12 @@ fn append_chicken_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderChicken::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderChicken::supports(*entityType) {
+        return;
+    }
     let input = ModelChicken::input(RenderLivingBase::renderInput(entity, partialTicks, 1.0));
     let pose = ModelChicken::pose(input, entity.chickenFlap(partialTicks));
     append_living_model_mesh(
@@ -17737,7 +20604,6 @@ fn append_chicken_mesh(
     );
 }
 
-
 fn append_mooshroom_mesh(
     entity: &EntityOtherClient,
     partialTicks: f32,
@@ -17747,8 +20613,12 @@ fn append_mooshroom_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderMooshroom::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderMooshroom::supports(*entityType) {
+        return;
+    }
     let input = ModelCow::input(RenderLivingBase::renderInput(entity, partialTicks, 1.0));
     let pose = ModelCow::pose(input);
     append_living_model_mesh(
@@ -17759,10 +20629,19 @@ fn append_mooshroom_mesh(
         vertices,
         indices,
     );
-    if !LayerMooshroomMushroom::shouldRender(input.child, (entity.dataManager.byte(0, 0) & 0x20) != 0) { return; }
+    if !LayerMooshroomMushroom::shouldRender(
+        input.child,
+        (entity.dataManager.byte(0, 0) & 0x20) != 0,
+    ) {
+        return;
+    }
     let state = IBlockState::fromGlobalStateId(LayerMooshroomMushroom::RED_MUSHROOM_GLOBAL_STATE);
-    let Some(model) = model_for_state(&atlas.models, state) else { return; };
-    if model.missing { return; }
+    let Some(model) = model_for_state(&atlas.models, state) else {
+        return;
+    };
+    if model.missing {
+        return;
+    }
     let colorPos = BlockPos::new(
         entity.entity.posX.floor() as i32,
         entity.entity.posY.floor() as i32,
@@ -17777,27 +20656,57 @@ fn append_mooshroom_mesh(
         rotation_y4(LayerMooshroomMushroom::FIRST_BODY_ROTATION_Y),
     );
     let first = multiply4(
-        multiply4(bodyRoot, translation4(LayerMooshroomMushroom::FIRST_MODEL_TRANSLATION)),
+        multiply4(
+            bodyRoot,
+            translation4(LayerMooshroomMushroom::FIRST_MODEL_TRANSLATION),
+        ),
         rotation_y4(LayerMooshroomMushroom::BLOCK_MODEL_ROTATION_Y),
     );
     append_block_state_model_world_with_winding(
-        state, colorPos, model, first, packedLight, chunks, atlas,
-        [1.0; 4], None, LayerMooshroomMushroom::REVERSE_WINDING, vertices, indices,
+        state,
+        colorPos,
+        model,
+        first,
+        packedLight,
+        chunks,
+        atlas,
+        [1.0; 4],
+        None,
+        LayerMooshroomMushroom::REVERSE_WINDING,
+        vertices,
+        indices,
     );
     let second = multiply4(
         multiply4(
-            multiply4(bodyRoot, translation4(LayerMooshroomMushroom::SECOND_BODY_TRANSLATION)),
+            multiply4(
+                bodyRoot,
+                translation4(LayerMooshroomMushroom::SECOND_BODY_TRANSLATION),
+            ),
             rotation_y4(LayerMooshroomMushroom::SECOND_BODY_ROTATION_Y),
         ),
         translation4(LayerMooshroomMushroom::FIRST_MODEL_TRANSLATION),
     );
-    let second = multiply4(second, rotation_y4(LayerMooshroomMushroom::BLOCK_MODEL_ROTATION_Y));
+    let second = multiply4(
+        second,
+        rotation_y4(LayerMooshroomMushroom::BLOCK_MODEL_ROTATION_Y),
+    );
     append_block_state_model_world_with_winding(
-        state, colorPos, model, second, packedLight, chunks, atlas,
-        [1.0; 4], None, LayerMooshroomMushroom::REVERSE_WINDING, vertices, indices,
+        state,
+        colorPos,
+        model,
+        second,
+        packedLight,
+        chunks,
+        atlas,
+        [1.0; 4],
+        None,
+        LayerMooshroomMushroom::REVERSE_WINDING,
+        vertices,
+        indices,
     );
 
-    let headPost = part_post_render_matrix(pose.head, LayerMooshroomMushroom::HEAD_POST_RENDER_SCALE);
+    let headPost =
+        part_post_render_matrix(pose.head, LayerMooshroomMushroom::HEAD_POST_RENDER_SCALE);
     let head = multiply4(
         multiply4(
             multiply4(
@@ -17815,8 +20724,18 @@ fn append_mooshroom_mesh(
         rotation_y4(LayerMooshroomMushroom::BLOCK_MODEL_ROTATION_Y),
     );
     append_block_state_model_world_with_winding(
-        state, colorPos, model, head, packedLight, chunks, atlas,
-        [1.0; 4], None, LayerMooshroomMushroom::REVERSE_WINDING, vertices, indices,
+        state,
+        colorPos,
+        model,
+        head,
+        packedLight,
+        chunks,
+        atlas,
+        [1.0; 4],
+        None,
+        LayerMooshroomMushroom::REVERSE_WINDING,
+        vertices,
+        indices,
     );
 }
 
@@ -17828,27 +20747,54 @@ fn append_creeper_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderCreeper::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderCreeper::supports(*entityType) {
+        return;
+    }
     let mut input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
     input = RenderLivingBase::withPreScaleXYZ(input, RenderCreeper::scale(entity, partialTicks));
     let pose = ModelCreeper::pose(input);
     let mesh = RenderLivingBase::buildMesh(input, ModelCreeper::boxes(pose, 0.0), 64.0, 32.0);
-    append_living_model_mesh(mesh.clone(), RenderCreeper::texture(), packedLight, atlas, vertices, indices);
+    append_living_model_mesh(
+        mesh.clone(),
+        RenderCreeper::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
+    );
     if packedLight & ENTITY_HURT_OVERLAY_FLAG == 0 {
         if let Some(color) = RenderCreeper::flashColor(entity, partialTicks) {
             append_living_model_mesh_tinted(
-                mesh.clone(), RenderCreeper::texture(), packedLight, color, atlas, vertices, indices,
+                mesh.clone(),
+                RenderCreeper::texture(),
+                packedLight,
+                color,
+                atlas,
+                vertices,
+                indices,
             );
         }
     }
     if RenderCreeper::powered(entity) {
         let age = entity.entity.ticksExisted as f32 + partialTicks;
-        let charged = RenderLivingBase::buildMesh(input, ModelCreeper::boxes(pose, LayerCreeperCharge::modelDelta()), 64.0, 32.0);
+        let charged = RenderLivingBase::buildMesh(
+            input,
+            ModelCreeper::boxes(pose, LayerCreeperCharge::modelDelta()),
+            64.0,
+            32.0,
+        );
         append_living_model_mesh_tinted_uv_offset(
-            charged, LayerCreeperCharge::texture(), LayerCreeperCharge::packedFullBright(),
-            LayerCreeperCharge::tint(), LayerCreeperCharge::uvOffset(age),
-            atlas, vertices, indices,
+            charged,
+            LayerCreeperCharge::texture(),
+            LayerCreeperCharge::packedFullBright(),
+            LayerCreeperCharge::tint(),
+            LayerCreeperCharge::uvOffset(age),
+            atlas,
+            vertices,
+            indices,
         );
     }
 }
@@ -17861,13 +20807,25 @@ fn append_spider_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    let Some(variant) = RenderSpider::variant(*entityType) else { return; };
-    let mut input = RenderLivingBase::renderInput(entity, partialTicks, RenderSpider::preScale(variant));
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    let Some(variant) = RenderSpider::variant(*entityType) else {
+        return;
+    };
+    let mut input =
+        RenderLivingBase::renderInput(entity, partialTicks, RenderSpider::preScale(variant));
     input.deathRotation *= 2.0;
     let pose = ModelSpider::pose(input);
     let mesh = RenderLivingBase::buildMesh(input, ModelSpider::boxes(pose), 64.0, 32.0);
-    append_living_model_mesh(mesh.clone(), RenderSpider::texture(variant), packedLight, atlas, vertices, indices);
+    append_living_model_mesh(
+        mesh.clone(),
+        RenderSpider::texture(variant),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
+    );
     append_living_model_mesh_tinted(
         mesh,
         LayerSpiderEyes::texture(),
@@ -17879,7 +20837,6 @@ fn append_spider_mesh(
     );
 }
 
-
 fn append_enderman_mesh(
     entity: &EntityOtherClient,
     partialTicks: f32,
@@ -17889,8 +20846,12 @@ fn append_enderman_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderEnderman::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderEnderman::supports(*entityType) {
+        return;
+    }
     let input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
     let pose = ModelEnderman::pose(
         input,
@@ -17899,22 +20860,40 @@ fn append_enderman_mesh(
     );
     let mesh = RenderLivingBase::buildMesh(input, ModelEnderman::boxes(pose, 0.0), 64.0, 32.0);
     append_living_model_mesh(
-        mesh.clone(), RenderEnderman::texture(), packedLight, atlas, vertices, indices,
+        mesh.clone(),
+        RenderEnderman::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
     // MCP LayerEndermanEyes: same model, full-bright eye sheet. The common
     // entity stream already carries the project's eye-overlay shader marker;
     // texture/light ownership remains identical to the Java layer.
     append_living_model_mesh_tinted(
-        mesh, LayerEndermanEyes::texture(), LayerEndermanEyes::packedFullBright(),
-        [1.0; 4], atlas, vertices, indices,
+        mesh,
+        LayerEndermanEyes::texture(),
+        LayerEndermanEyes::packedFullBright(),
+        [1.0; 4],
+        atlas,
+        vertices,
+        indices,
     );
 
     // MCP LayerHeldBlock, using the synchronized OptionalBlockState metadata.
-    let Some(globalStateId) = entity.endermanHeldBlockStateId() else { return; };
+    let Some(globalStateId) = entity.endermanHeldBlockStateId() else {
+        return;
+    };
     let state = IBlockState::fromGlobalStateId(globalStateId);
-    if state.isAir() { return; }
-    let Some(model) = model_for_state(&atlas.models, state) else { return; };
-    if model.missing { return; }
+    if state.isAir() {
+        return;
+    }
+    let Some(model) = model_for_state(&atlas.models, state) else {
+        return;
+    };
+    if model.missing {
+        return;
+    }
     let colorPos = BlockPos::new(
         entity.entity.posX.floor() as i32,
         entity.entity.posY.floor() as i32,
@@ -17927,8 +20906,18 @@ fn append_enderman_mesh(
     matrix = multiply4(matrix, translation4(LayerHeldBlock::TRANSLATION_2));
     matrix = multiply4(matrix, scale4_nonuniform(LayerHeldBlock::SCALE));
     append_block_state_model_world_with_winding(
-        state, colorPos, model, matrix, packedLight, chunks, atlas,
-        [1.0; 4], None, false, vertices, indices,
+        state,
+        colorPos,
+        model,
+        matrix,
+        packedLight,
+        chunks,
+        atlas,
+        [1.0; 4],
+        None,
+        false,
+        vertices,
+        indices,
     );
 }
 
@@ -17940,8 +20929,12 @@ fn append_squid_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderSquid::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderSquid::supports(*entityType) {
+        return;
+    }
     let mut input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
     let worldPosition = input.position;
     let bodyYaw = input.bodyYaw;
@@ -17968,7 +20961,14 @@ fn append_squid_mesh(
     for vertex in &mut mesh.vertices {
         vertex.position = transform_point3(matrix, vertex.position);
     }
-    append_living_model_mesh(mesh, RenderSquid::texture(), packedLight, atlas, vertices, indices);
+    append_living_model_mesh(
+        mesh,
+        RenderSquid::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
+    );
 }
 
 fn append_dragon_mesh(
@@ -17980,24 +20980,43 @@ fn append_dragon_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderDragon::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderDragon::supports(*entityType) {
+        return;
+    }
     let landingScale = dragon_landing_takeoff_scale(entity, chunks);
     let mesh = ModelDragon::mesh(entity, partialTicks, landingScale);
     // RenderDragon#renderModel first draws the exploding alpha-pass during the
     // 200-tick death animation, then always draws the normal dragon texture.
     if let Some(alpha) = RenderDragon::deathAlpha(entity) {
         append_living_model_mesh_tinted(
-            mesh.clone(), RenderDragon::explodingTexture(), packedLight,
-            [1.0, 1.0, 1.0, alpha.clamp(0.0, 1.0)], atlas, vertices, indices,
+            mesh.clone(),
+            RenderDragon::explodingTexture(),
+            packedLight,
+            [1.0, 1.0, 1.0, alpha.clamp(0.0, 1.0)],
+            atlas,
+            vertices,
+            indices,
         );
     }
     append_living_model_mesh(
-        mesh.clone(), RenderDragon::texture(), packedLight, atlas, vertices, indices,
+        mesh.clone(),
+        RenderDragon::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
     append_living_model_mesh_tinted(
-        mesh, RenderDragon::eyesTexture(), RenderDragon::fullBright(),
-        [1.0; 4], atlas, vertices, indices,
+        mesh,
+        RenderDragon::eyesTexture(),
+        RenderDragon::fullBright(),
+        [1.0; 4],
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18005,7 +21024,9 @@ fn dragon_landing_takeoff_scale(
     entity: &EntityOtherClient,
     chunks: &HashMap<ChunkKey, Chunk>,
 ) -> f32 {
-    if !matches!(entity.dragonPhaseId(), 3 | 4) { return 1.0; }
+    if !matches!(entity.dragonPhaseId(), 3 | 4) {
+        return 1.0;
+    }
     // WorldGenEndPodium.END_PODIUM_LOCATION is BlockPos.ORIGIN. Port the
     // World#getTopSolidOrLiquidBlock lookup needed by EntityDragon's
     // getHeadPartYOffset landing/takeoff branch from the received snapshot.
@@ -18031,18 +21052,30 @@ fn append_slime_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderSlime::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderSlime::supports(*entityType) {
+        return;
+    }
     let mut input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
     input = RenderLivingBase::withPreScaleXYZ(input, RenderSlime::scale(entity, partialTicks));
     append_living_model_mesh(
         RenderLivingBase::buildMesh(input, ModelSlime::innerBoxes(), 64.0, 32.0),
-        RenderSlime::texture(), packedLight, atlas, vertices, indices,
+        RenderSlime::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
     append_living_model_mesh_tinted(
         RenderLivingBase::buildMesh(input, ModelSlime::gelBoxes(), 64.0, 32.0),
-        RenderSlime::texture(), packedLight, LayerSlimeGel::color(),
-        atlas, vertices, indices,
+        RenderSlime::texture(),
+        packedLight,
+        LayerSlimeGel::color(),
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18054,8 +21087,12 @@ fn append_magma_cube_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderMagmaCube::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderMagmaCube::supports(*entityType) {
+        return;
+    }
     let mut input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
     input = RenderLivingBase::withPreScaleXYZ(input, RenderMagmaCube::scale(entity, partialTicks));
     append_living_model_mesh(
@@ -18065,7 +21102,11 @@ fn append_magma_cube_mesh(
             64.0,
             32.0,
         ),
-        RenderMagmaCube::texture(), packedLight, atlas, vertices, indices,
+        RenderMagmaCube::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18077,12 +21118,20 @@ fn append_blaze_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderBlaze::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderBlaze::supports(*entityType) {
+        return;
+    }
     let input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
     append_living_model_mesh(
         RenderLivingBase::buildMesh(input, ModelBlaze::boxes(input), 64.0, 32.0),
-        RenderBlaze::texture(), packedLight, atlas, vertices, indices,
+        RenderBlaze::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18094,8 +21143,12 @@ fn append_ghast_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderGhast::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderGhast::supports(*entityType) {
+        return;
+    }
     let input = ModelGhast::input(RenderLivingBase::renderInput(
         entity,
         partialTicks,
@@ -18103,7 +21156,11 @@ fn append_ghast_mesh(
     ));
     append_living_model_mesh(
         RenderLivingBase::buildMesh(input, ModelGhast::boxes(input), 64.0, 32.0),
-        RenderGhast::texture(entity), packedLight, atlas, vertices, indices,
+        RenderGhast::texture(entity),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18115,8 +21172,12 @@ fn append_wolf_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderWolf::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderWolf::supports(*entityType) {
+        return;
+    }
     let input = RenderLivingBase::withChildLayout(
         RenderLivingBase::renderInput(entity, partialTicks, 1.0),
         ModelWolf::CHILD_LAYOUT,
@@ -18124,13 +21185,23 @@ fn append_wolf_mesh(
     let pose = ModelWolf::pose(input, entity, partialTicks);
     let mesh = RenderLivingBase::buildMesh(input, ModelWolf::boxes(pose, 0.0), 64.0, 32.0);
     append_living_model_mesh_tinted(
-        mesh.clone(), RenderWolf::texture(entity), packedLight,
-        RenderWolf::wetColor(entity, partialTicks), atlas, vertices, indices,
+        mesh.clone(),
+        RenderWolf::texture(entity),
+        packedLight,
+        RenderWolf::wetColor(entity, partialTicks),
+        atlas,
+        vertices,
+        indices,
     );
     if LayerWolfCollar::shouldRender(entity) {
         append_living_model_mesh_tinted(
-            mesh, LayerWolfCollar::texture(), packedLight, LayerWolfCollar::color(entity),
-            atlas, vertices, indices,
+            mesh,
+            LayerWolfCollar::texture(),
+            packedLight,
+            LayerWolfCollar::color(entity),
+            atlas,
+            vertices,
+            indices,
         );
     }
 }
@@ -18143,8 +21214,12 @@ fn append_ocelot_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderOcelot::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderOcelot::supports(*entityType) {
+        return;
+    }
     let input = RenderLivingBase::withChildLayout(
         RenderLivingBase::renderInput(entity, partialTicks, RenderOcelot::scale(entity)),
         ModelOcelot::CHILD_LAYOUT,
@@ -18152,7 +21227,11 @@ fn append_ocelot_mesh(
     let pose = ModelOcelot::pose(input, entity);
     append_living_model_mesh(
         RenderLivingBase::buildMesh(input, ModelOcelot::boxes(pose), 64.0, 32.0),
-        RenderOcelot::texture(entity), packedLight, atlas, vertices, indices,
+        RenderOcelot::texture(entity),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18164,8 +21243,12 @@ fn append_rabbit_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderRabbit::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderRabbit::supports(*entityType) {
+        return;
+    }
     let preScale = if entity.isChild() { 1.0 } else { 0.6 };
     let mut input = RenderLivingBase::withChildLayout(
         RenderLivingBase::renderInput(entity, partialTicks, preScale),
@@ -18177,7 +21260,11 @@ fn append_rabbit_mesh(
     let pose = ModelRabbit::pose(input, entity.rabbitJumpCompletion(partialTicks));
     append_living_model_mesh(
         RenderLivingBase::buildMesh(input, ModelRabbit::boxes(pose), 64.0, 32.0),
-        RenderRabbit::texture(entity), packedLight, atlas, vertices, indices,
+        RenderRabbit::texture(entity),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18189,8 +21276,12 @@ fn append_polar_bear_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderPolarBear::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderPolarBear::supports(*entityType) {
+        return;
+    }
     let input = RenderLivingBase::withChildLayout(
         RenderLivingBase::renderInput(entity, partialTicks, 1.2),
         ModelPolarBear::CHILD_LAYOUT,
@@ -18198,7 +21289,11 @@ fn append_polar_bear_mesh(
     let pose = ModelPolarBear::pose(input, entity.polarBearStandingScale(partialTicks));
     append_living_model_mesh(
         RenderLivingBase::buildMesh(input, ModelPolarBear::boxes(pose), 128.0, 64.0),
-        RenderPolarBear::texture(), packedLight, atlas, vertices, indices,
+        RenderPolarBear::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18210,7 +21305,9 @@ fn append_horse_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
     let (variant, texture) = if RenderHorse::supports(*entityType) {
         (HorseModelVariant::Horse, RenderHorse::texture(entity))
     } else if let Some(variant) = RenderAbstractHorse::variant(*entityType) {
@@ -18243,12 +21340,21 @@ fn append_llama_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderLlama::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderLlama::supports(*entityType) {
+        return;
+    }
     let input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
     let pose = ModelLlama::pose(input);
     append_living_model_mesh(
-        RenderLivingBase::buildMesh(input, ModelLlama::boxes(pose, input, entity, 0.0), 128.0, 64.0),
+        RenderLivingBase::buildMesh(
+            input,
+            ModelLlama::boxes(pose, input, entity, 0.0),
+            128.0,
+            64.0,
+        ),
         RenderLlama::texture(entity),
         packedLight,
         atlas,
@@ -18272,7 +21378,6 @@ fn append_llama_mesh(
     }
 }
 
-
 fn append_villager_mesh(
     entity: &EntityOtherClient,
     partialTicks: f32,
@@ -18281,16 +21386,25 @@ fn append_villager_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderVillager::supports(*entityType) { return; }
-    let mut input = RenderLivingBase::renderInput(entity, partialTicks, RenderVillager::preScale(entity));
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderVillager::supports(*entityType) {
+        return;
+    }
+    let mut input =
+        RenderLivingBase::renderInput(entity, partialTicks, RenderVillager::preScale(entity));
     // ModelVillager overrides ModelBase.render and does not use ModelBase's
     // biped child split. RenderLivingBase still triples child limbSwing.
     input.child = false;
     let pose = ModelVillager::pose(input);
     append_living_model_mesh(
         RenderLivingBase::buildMesh(input, ModelVillager::boxes(pose, 0.0), 64.0, 64.0),
-        RenderVillager::texture(entity), packedLight, atlas, vertices, indices,
+        RenderVillager::texture(entity),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18302,14 +21416,22 @@ fn append_witch_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderWitch::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderWitch::supports(*entityType) {
+        return;
+    }
     let mut input = RenderLivingBase::renderInput(entity, partialTicks, RenderWitch::preScale());
     input.child = false;
     let pose = ModelWitch::pose(input, entity.entityId, RenderWitch::holdingItem(entity));
     append_living_model_mesh(
         RenderLivingBase::buildMesh(input, ModelWitch::boxes(pose), 64.0, 128.0),
-        RenderWitch::texture(), packedLight, atlas, vertices, indices,
+        RenderWitch::texture(),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18321,36 +21443,58 @@ fn append_illager_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    let (texture, preScale, armPose, showHood, renderHeldItems) = if RenderVindicator::supports(*entityType) {
-        (
-            RenderVindicator::texture(), RenderVindicator::preScale(),
-            RenderVindicator::armPose(entity), false, RenderVindicator::shouldRenderHeldItem(entity),
-        )
-    } else if RenderEvoker::supports(*entityType) {
-        (
-            RenderEvoker::texture(), RenderEvoker::preScale(),
-            RenderEvoker::armPose(entity), false, RenderEvoker::shouldRenderHeldItem(entity),
-        )
-    } else if RenderIllusionIllager::supports(*entityType) {
-        (
-            RenderIllusionIllager::texture(), RenderIllusionIllager::preScale(),
-            RenderIllusionIllager::armPose(entity), true, RenderIllusionIllager::shouldRenderHeldItem(entity),
-        )
-    } else { return; };
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    let (texture, preScale, armPose, showHood, renderHeldItems) =
+        if RenderVindicator::supports(*entityType) {
+            (
+                RenderVindicator::texture(),
+                RenderVindicator::preScale(),
+                RenderVindicator::armPose(entity),
+                false,
+                RenderVindicator::shouldRenderHeldItem(entity),
+            )
+        } else if RenderEvoker::supports(*entityType) {
+            (
+                RenderEvoker::texture(),
+                RenderEvoker::preScale(),
+                RenderEvoker::armPose(entity),
+                false,
+                RenderEvoker::shouldRenderHeldItem(entity),
+            )
+        } else if RenderIllusionIllager::supports(*entityType) {
+            (
+                RenderIllusionIllager::texture(),
+                RenderIllusionIllager::preScale(),
+                RenderIllusionIllager::armPose(entity),
+                true,
+                RenderIllusionIllager::shouldRenderHeldItem(entity),
+            )
+        } else {
+            return;
+        };
     let mut baseInput = RenderLivingBase::renderInput(entity, partialTicks, preScale);
     baseInput.child = false;
-    let offsets: Vec<[f32; 3]> = if RenderIllusionIllager::supports(*entityType) && entity.isInvisibleFlag() {
-        let age = baseInput.ageInTicks;
-        entity.illusionOffsets(partialTicks).into_iter().enumerate().map(|(i, offset)| {
-            let fi = i as f32;
-            [
-                offset[0] as f32 + (fi + age * 0.5).cos() * 0.025,
-                offset[1] as f32 + (fi + age * 0.75).cos() * 0.0125,
-                offset[2] as f32 + (fi + age * 0.7).cos() * 0.025,
-            ]
-        }).collect()
-    } else { vec![[0.0; 3]] };
+    let offsets: Vec<[f32; 3]> =
+        if RenderIllusionIllager::supports(*entityType) && entity.isInvisibleFlag() {
+            let age = baseInput.ageInTicks;
+            entity
+                .illusionOffsets(partialTicks)
+                .into_iter()
+                .enumerate()
+                .map(|(i, offset)| {
+                    let fi = i as f32;
+                    [
+                        offset[0] as f32 + (fi + age * 0.5).cos() * 0.025,
+                        offset[1] as f32 + (fi + age * 0.75).cos() * 0.0125,
+                        offset[2] as f32 + (fi + age * 0.7).cos() * 0.025,
+                    ]
+                })
+                .collect()
+        } else {
+            vec![[0.0; 3]]
+        };
     for offset in offsets {
         let mut input = baseInput;
         input.position[0] += offset[0];
@@ -18359,12 +21503,14 @@ fn append_illager_mesh(
         let pose = ModelIllager::pose(input, armPose, entity.primaryHandSide());
         append_living_model_mesh(
             RenderLivingBase::buildMesh(input, ModelIllager::boxes(pose, showHood), 64.0, 64.0),
-            texture.clone(), packedLight, atlas, vertices, indices,
+            texture.clone(),
+            packedLight,
+            atlas,
+            vertices,
+            indices,
         );
         if renderHeldItems {
-            append_illager_held_items(
-                entity, input, pose, packedLight, atlas, vertices, indices,
-            );
+            append_illager_held_items(entity, input, pose, packedLight, atlas, vertices, indices);
         }
     }
 }
@@ -18379,20 +21525,30 @@ fn append_illager_held_items(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let mainHand = entity.equipment.getItemStackFromSlot(EntityEquipmentSlot::Mainhand);
-    let offHand = entity.equipment.getItemStackFromSlot(EntityEquipmentSlot::Offhand);
+    let mainHand = entity
+        .equipment
+        .getItemStackFromSlot(EntityEquipmentSlot::Mainhand);
+    let offHand = entity
+        .equipment
+        .getItemStackFromSlot(EntityEquipmentSlot::Offhand);
     for handSide in [EnumHandSide::Right, EnumHandSide::Left] {
-        let stack = LayerHeldItem::stackForSide(
-            entity.primaryHandSide(), mainHand, offHand, handSide,
-        );
-        if stack.isEmpty() { continue; }
-        let Some(model) = item_model_for_stack(stack, atlas) else { continue; };
-        if model.builtInRenderer && !is_unpatterned_shield(stack)
+        let stack =
+            LayerHeldItem::stackForSide(entity.primaryHandSide(), mainHand, offHand, handSide);
+        if stack.isEmpty() {
+            continue;
+        }
+        let Some(model) = item_model_for_stack(stack, atlas) else {
+            continue;
+        };
+        if model.builtInRenderer
+            && !is_unpatterned_shield(stack)
             && TileEntityItemStackRenderer::buildMesh(stack).is_none()
         {
             continue;
         }
-        if !model.builtInRenderer && model.quads.is_empty() { continue; }
+        if !model.builtInRenderer && model.quads.is_empty() {
+            continue;
+        }
 
         let mut matrix = living_layer_base_matrix(input);
         if input.child {
@@ -18408,7 +21564,10 @@ fn append_illager_held_items(
         }
         matrix = multiply4(matrix, rotation_x4(-90.0));
         matrix = multiply4(matrix, rotation_y4(180.0));
-        matrix = multiply4(matrix, translation4(LayerHeldItem::handTranslation(handSide)));
+        matrix = multiply4(
+            matrix,
+            translation4(LayerHeldItem::handTranslation(handSide)),
+        );
         append_item_stack_world_transformed_side(
             stack,
             model,
@@ -18431,12 +21590,16 @@ fn append_zombie_villager_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Mob { entityType } = &entity.kind else { return; };
-    if !RenderZombieVillager::supports(*entityType) { return; }
+    let ClientEntityKind::Mob { entityType } = &entity.kind else {
+        return;
+    };
+    if !RenderZombieVillager::supports(*entityType) {
+        return;
+    }
     let mut input = RenderLivingBase::renderInput(entity, partialTicks, 1.0);
     if entity.zombieVillagerConverting() {
-        input.bodyYaw += ((entity.entity.ticksExisted as f32) * 3.25).cos()
-            * std::f32::consts::PI * 0.25;
+        input.bodyYaw +=
+            ((entity.entity.ticksExisted as f32) * 3.25).cos() * std::f32::consts::PI * 0.25;
     }
     append_living_model_mesh(
         RenderLivingBase::buildMesh(
@@ -18445,24 +21608,42 @@ fn append_zombie_villager_mesh(
             64.0,
             64.0,
         ),
-        RenderZombieVillager::texture(entity), packedLight, atlas, vertices, indices,
+        RenderZombieVillager::texture(entity),
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
-fn living_layer_base_matrix(input: crate::net::minecraft::client::renderer::entity::RenderLivingBase::LivingRenderInput) -> [[f32;4];4] {
+fn living_layer_base_matrix(
+    input: crate::net::minecraft::client::renderer::entity::RenderLivingBase::LivingRenderInput,
+) -> [[f32; 4]; 4] {
     let mut matrix = translation4(input.position);
     matrix = multiply4(matrix, rotation_y4(180.0 - input.bodyYaw));
-    if input.deathRotation != 0.0 { matrix = multiply4(matrix, rotation_z4(input.deathRotation)); }
+    if input.deathRotation != 0.0 {
+        matrix = multiply4(matrix, rotation_z4(input.deathRotation));
+    }
     matrix = multiply4(matrix, scale4_nonuniform(input.preScaleXYZ));
     matrix = multiply4(matrix, scale4_nonuniform([-1.0, -1.0, 1.0]));
     multiply4(matrix, translation4([0.0, -1.501, 0.0]))
 }
 
-fn part_post_render_matrix(pose: PartPose, scale: f32) -> [[f32;4];4] {
-    let mut matrix = translation4([pose.pivot[0]*scale, pose.pivot[1]*scale, pose.pivot[2]*scale]);
-    if pose.rotation[2] != 0.0 { matrix = multiply4(matrix, rotation_z4(pose.rotation[2].to_degrees())); }
-    if pose.rotation[1] != 0.0 { matrix = multiply4(matrix, rotation_y4(pose.rotation[1].to_degrees())); }
-    if pose.rotation[0] != 0.0 { matrix = multiply4(matrix, rotation_x4(pose.rotation[0].to_degrees())); }
+fn part_post_render_matrix(pose: PartPose, scale: f32) -> [[f32; 4]; 4] {
+    let mut matrix = translation4([
+        pose.pivot[0] * scale,
+        pose.pivot[1] * scale,
+        pose.pivot[2] * scale,
+    ]);
+    if pose.rotation[2] != 0.0 {
+        matrix = multiply4(matrix, rotation_z4(pose.rotation[2].to_degrees()));
+    }
+    if pose.rotation[1] != 0.0 {
+        matrix = multiply4(matrix, rotation_y4(pose.rotation[1].to_degrees()));
+    }
+    if pose.rotation[0] != 0.0 {
+        matrix = multiply4(matrix, rotation_x4(pose.rotation[0].to_degrees()));
+    }
     matrix
 }
 
@@ -18474,7 +21655,15 @@ fn append_living_model_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    append_living_model_mesh_tinted(mesh, texture, packedLight, [1.0; 4], atlas, vertices, indices);
+    append_living_model_mesh_tinted(
+        mesh,
+        texture,
+        packedLight,
+        [1.0; 4],
+        atlas,
+        vertices,
+        indices,
+    );
 }
 
 fn append_living_model_mesh_tinted(
@@ -18486,7 +21675,9 @@ fn append_living_model_mesh_tinted(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if mesh.indices.is_empty() { return; }
+    if mesh.indices.is_empty() {
+        return;
+    }
     let rectangle = atlas
         .entityTextureRectangles
         .get(&texture)
@@ -18503,7 +21694,7 @@ fn append_living_model_mesh_tinted(
         ],
         color,
         lightmap: [blockLight, skyLight],
-    
+
         shaderEntity: [-1, -1, -1],
         shaderPadding: 0,
     }));
@@ -18556,7 +21747,15 @@ fn append_item_stack_world_transformed(
     indices: &mut Vec<u32>,
 ) {
     append_item_stack_world_transformed_side(
-        stack, model, matrix, transformType, false, packedLight, atlas, vertices, indices,
+        stack,
+        model,
+        matrix,
+        transformType,
+        false,
+        packedLight,
+        atlas,
+        vertices,
+        indices,
     );
 }
 
@@ -18577,10 +21776,7 @@ fn append_item_stack_world_transformed_side(
     matrix = multiply4(matrix, translation4([-0.5, -0.5, -0.5]));
     let blockLight = ((packedLight >> 4) & 15) as f32;
     let skyLight = ((packedLight >> 20) & 15) as f32;
-    let itemLights = [
-        normalize3([0.2, 1.0, -0.7]),
-        normalize3([-0.2, 1.0, 0.7]),
-    ];
+    let itemLights = [normalize3([0.2, 1.0, -0.7]), normalize3([-0.2, 1.0, 0.7])];
     let unpatternedShield = model.builtInRenderer && is_unpatterned_shield(stack);
     if unpatternedShield {
         append_shield_model_world(
@@ -18596,14 +21792,7 @@ fn append_item_stack_world_transformed_side(
     }
     if model.builtInRenderer {
         append_builtin_item_mesh_world(
-            stack,
-            matrix,
-            blockLight,
-            skyLight,
-            itemLights,
-            atlas,
-            vertices,
-            indices,
+            stack, matrix, blockLight, skyLight, itemLights, atlas, vertices, indices,
         );
         return;
     }
@@ -18620,7 +21809,11 @@ fn append_item_stack_world_transformed_side(
             subtract3(transformed[2], transformed[0]),
         ));
         let key = item_material_key(stack.itemId, quad.texture.clone(), quad.tintIndex);
-        let rectangle = atlas.rectangles.get(&key).copied().unwrap_or(atlas.missingRectangle);
+        let rectangle = atlas
+            .rectangles
+            .get(&key)
+            .copied()
+            .unwrap_or(atlas.missingRectangle);
         let tint = item_tint_color(&atlas.itemColors, stack, quad.tintIndex);
         let diffuse = if model.gui3d && quad.shade {
             standard_item_diffuse(normal, itemLights)
@@ -18638,7 +21831,7 @@ fn append_item_stack_world_transformed_side(
                 ],
                 color: [tint[0] * diffuse, tint[1] * diffuse, tint[2] * diffuse, 1.0],
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -18663,8 +21856,14 @@ fn append_living_model_mesh_tinted_uv_offset(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if mesh.indices.is_empty() { return; }
-    let rectangle = atlas.entityTextureRectangles.get(&texture).copied().unwrap_or(atlas.missingRectangle);
+    if mesh.indices.is_empty() {
+        return;
+    }
+    let rectangle = atlas
+        .entityTextureRectangles
+        .get(&texture)
+        .copied()
+        .unwrap_or(atlas.missingRectangle);
     let blockLight = ((packedLight >> 4) & 15) as f32;
     let skyLight = ((packedLight >> 20) & 15) as f32;
     let base = vertices.len() as u32;
@@ -18679,7 +21878,7 @@ fn append_living_model_mesh_tinted_uv_offset(
             ],
             color,
             lightmap: [blockLight, skyLight],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         }
@@ -18696,14 +21895,22 @@ fn append_entity_item_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(stack) = entity.entityItem() else { return; };
-    let Some(model) = item_model_for_stack(stack, atlas) else { return; };
+    let Some(stack) = entity.entityItem() else {
+        return;
+    };
+    let Some(model) = item_model_for_stack(stack, atlas) else {
+        return;
+    };
     let ground = model.transforms.getTransform(TransformType::Ground);
     let count = RenderEntityItem::getModelCount(stack);
     let mut root = translation4([
         position[0],
         position[1]
-            + RenderEntityItem::bobOffset(entity.entity.ticksExisted, partialTicks, entity.hoverStart)
+            + RenderEntityItem::bobOffset(
+                entity.entity.ticksExisted,
+                partialTicks,
+                entity.hoverStart,
+            )
             + 0.25 * ground.scale[1],
         position[2],
     ]);
@@ -18719,7 +21926,11 @@ fn append_entity_item_mesh(
     if !model.gui3d {
         root = multiply4(
             root,
-            translation4([0.0, 0.0, -0.09375 * (count - 1) as f32 * 0.5 * ground.scale[2]]),
+            translation4([
+                0.0,
+                0.0,
+                -0.09375 * (count - 1) as f32 * 0.5 * ground.scale[2],
+            ]),
         );
     }
     for copy in 0..count {
@@ -18773,11 +21984,15 @@ fn append_snowball_entity_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object { objectType, .. } = &entity.kind else {
+        return;
+    };
     let Some(stack) = RenderSnowball::getStackToRender(*objectType, entity.metadataItem()) else {
         return;
     };
-    let Some(model) = item_model_for_stack(&stack, atlas) else { return; };
+    let Some(model) = item_model_for_stack(&stack, atlas) else {
+        return;
+    };
     let _ = thirdPersonView;
     let mut matrix = translation4(position);
     matrix = multiply4(matrix, rotation_y4(-cameraYaw));
@@ -18807,7 +22022,9 @@ fn append_falling_block_entity_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { data, .. } = &entity.kind else { return; };
+    let ClientEntityKind::Object { data, .. } = &entity.kind else {
+        return;
+    };
     let state = RenderFallingBlock::getBlockState(*data);
     if state.isAir() {
         return;
@@ -18820,12 +22037,18 @@ fn append_falling_block_entity_mesh(
     if snapshot_block_state(chunks, currentPos) == state {
         return;
     }
-    let Some(model) = model_for_state(&atlas.models, state) else { return; };
+    let Some(model) = model_for_state(&atlas.models, state) else {
+        return;
+    };
     if model.missing {
         return;
     }
     let renderPos = RenderFallingBlock::renderBlockPos(
-        [entity.entity.posX as f32, entity.entity.posY as f32, entity.entity.posZ as f32],
+        [
+            entity.entity.posX as f32,
+            entity.entity.posY as f32,
+            entity.entity.posZ as f32,
+        ],
         entity.entity.height,
     );
     let matrix = translation4([position[0] - 0.5, position[1], position[2] - 0.5]);
@@ -18859,8 +22082,18 @@ fn append_block_state_model_world(
     indices: &mut Vec<u32>,
 ) {
     append_block_state_model_world_with_winding(
-        state, colorPos, model, matrix, packedLight, chunks, atlas,
-        colorMultiplier, forceUv, false, vertices, indices,
+        state,
+        colorPos,
+        model,
+        matrix,
+        packedLight,
+        chunks,
+        atlas,
+        colorMultiplier,
+        forceUv,
+        false,
+        vertices,
+        indices,
     );
 }
 
@@ -18880,8 +22113,19 @@ fn append_block_state_model_world_with_winding(
     indices: &mut Vec<u32>,
 ) {
     append_block_state_model_world_outset(
-        state, colorPos, model, matrix, packedLight, chunks, atlas,
-        colorMultiplier, forceUv, 0.0, reverseWinding, vertices, indices,
+        state,
+        colorPos,
+        model,
+        matrix,
+        packedLight,
+        chunks,
+        atlas,
+        colorMultiplier,
+        forceUv,
+        0.0,
+        reverseWinding,
+        vertices,
+        indices,
     );
 }
 
@@ -18910,13 +22154,21 @@ fn append_block_state_model_world_outset(
         }
         let materialKey = material_key(state.getBlockId(), &quad.material);
         let fireLayer = fire_texture_layer(&quad.material);
-        let rectangle = atlas.rectangles.get(&materialKey).copied().unwrap_or(atlas.missingRectangle);
+        let rectangle = atlas
+            .rectangles
+            .get(&materialKey)
+            .copied()
+            .unwrap_or(atlas.missingRectangle);
         let (tint, shade) = if forceUv.is_some() {
             ([1.0; 3], 1.0)
         } else {
             (
                 dynamic_quad_tint(atlas, &access, state, colorPos, &quad.material),
-                if quad.shade { face_brightness(quad.face) } else { 1.0 },
+                if quad.shade {
+                    face_brightness(quad.face)
+                } else {
+                    1.0
+                },
             )
         };
         let base = vertices.len() as u32;
@@ -18950,7 +22202,7 @@ fn append_block_state_model_world_outset(
                     }),
                 ],
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -18976,9 +22228,13 @@ fn append_experience_orb_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::ExperienceOrb { xpValue } = &entity.kind else { return; };
+    let ClientEntityKind::ExperienceOrb { xpValue } = &entity.kind else {
+        return;
+    };
     let texture = RenderXPOrb::texture();
-    let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else { return; };
+    let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else {
+        return;
+    };
     let sprite = RenderXPOrb::textureCoordinates(*xpValue);
     let u0 = rectangle[0] + (rectangle[2] - rectangle[0]) * sprite[0];
     let v0 = rectangle[1] + (rectangle[3] - rectangle[1]) * sprite[1];
@@ -18996,7 +22252,12 @@ fn append_experience_orb_mesh(
     let sky = ((packedLight >> 20) & 15) as f32;
     append_textured_quad_world(
         matrix,
-        [[-0.5, -0.25, 0.0], [0.5, -0.25, 0.0], [0.5, 0.75, 0.0], [-0.5, 0.75, 0.0]],
+        [
+            [-0.5, -0.25, 0.0],
+            [0.5, -0.25, 0.0],
+            [0.5, 0.75, 0.0],
+            [-0.5, 0.75, 0.0],
+        ],
         [[u0, v1], [u1, v1], [u1, v0], [u0, v0]],
         color,
         [block, sky],
@@ -19015,9 +22276,15 @@ fn append_arrow_entity_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType, .. } = &entity.kind else { return; };
-    let Some(texture) = RenderArrow::texture(*objectType) else { return; };
-    let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else { return; };
+    let ClientEntityKind::Object { objectType, .. } = &entity.kind else {
+        return;
+    };
+    let Some(texture) = RenderArrow::texture(*objectType) else {
+        return;
+    };
+    let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else {
+        return;
+    };
     let partial = partialTicks.clamp(0.0, 1.0);
     let yaw = entity.entity.prevRotationYaw
         + (entity.entity.rotationYaw - entity.entity.prevRotationYaw) * partial;
@@ -19026,11 +22293,17 @@ fn append_arrow_entity_mesh(
     let mut matrix = translation4(position);
     matrix = multiply4(matrix, rotation_y4(yaw - 90.0));
     matrix = multiply4(matrix, rotation_z4(pitch));
-    matrix = multiply4(matrix, rotation_z4(RenderArrow::shakeRotation(entity.arrowShake, partial)));
+    matrix = multiply4(
+        matrix,
+        rotation_z4(RenderArrow::shakeRotation(entity.arrowShake, partial)),
+    );
     matrix = multiply4(matrix, rotation_x4(45.0));
     matrix = multiply4(matrix, scale4_nonuniform([0.05625, 0.05625, 0.05625]));
     matrix = multiply4(matrix, translation4([-4.0, 0.0, 0.0]));
-    let lightmap = [((packedLight >> 4) & 15) as f32, ((packedLight >> 20) & 15) as f32];
+    let lightmap = [
+        ((packedLight >> 4) & 15) as f32,
+        ((packedLight >> 20) & 15) as f32,
+    ];
     let uv = |u: f32, v: f32| -> [f32; 2] {
         [
             rectangle[0] + (rectangle[2] - rectangle[0]) * u,
@@ -19039,8 +22312,18 @@ fn append_arrow_entity_mesh(
     };
     append_textured_quad_world(
         matrix,
-        [[-7.0, -2.0, -2.0], [-7.0, -2.0, 2.0], [-7.0, 2.0, 2.0], [-7.0, 2.0, -2.0]],
-        [uv(0.0, 0.15625), uv(0.15625, 0.15625), uv(0.15625, 0.3125), uv(0.0, 0.3125)],
+        [
+            [-7.0, -2.0, -2.0],
+            [-7.0, -2.0, 2.0],
+            [-7.0, 2.0, 2.0],
+            [-7.0, 2.0, -2.0],
+        ],
+        [
+            uv(0.0, 0.15625),
+            uv(0.15625, 0.15625),
+            uv(0.15625, 0.3125),
+            uv(0.0, 0.3125),
+        ],
         [1.0; 4],
         lightmap,
         vertices,
@@ -19048,8 +22331,18 @@ fn append_arrow_entity_mesh(
     );
     append_textured_quad_world(
         matrix,
-        [[-7.0, 2.0, -2.0], [-7.0, 2.0, 2.0], [-7.0, -2.0, 2.0], [-7.0, -2.0, -2.0]],
-        [uv(0.0, 0.15625), uv(0.15625, 0.15625), uv(0.15625, 0.3125), uv(0.0, 0.3125)],
+        [
+            [-7.0, 2.0, -2.0],
+            [-7.0, 2.0, 2.0],
+            [-7.0, -2.0, 2.0],
+            [-7.0, -2.0, -2.0],
+        ],
+        [
+            uv(0.0, 0.15625),
+            uv(0.15625, 0.15625),
+            uv(0.15625, 0.3125),
+            uv(0.0, 0.3125),
+        ],
         [1.0; 4],
         lightmap,
         vertices,
@@ -19059,8 +22352,18 @@ fn append_arrow_entity_mesh(
         let bladeMatrix = multiply4(matrix, rotation_x4(90.0 * quarter as f32));
         append_textured_quad_world(
             bladeMatrix,
-            [[-8.0, -2.0, 0.0], [8.0, -2.0, 0.0], [8.0, 2.0, 0.0], [-8.0, 2.0, 0.0]],
-            [uv(0.0, 0.0), uv(0.5, 0.0), uv(0.5, 0.15625), uv(0.0, 0.15625)],
+            [
+                [-8.0, -2.0, 0.0],
+                [8.0, -2.0, 0.0],
+                [8.0, 2.0, 0.0],
+                [-8.0, 2.0, 0.0],
+            ],
+            [
+                uv(0.0, 0.0),
+                uv(0.5, 0.0),
+                uv(0.5, 0.15625),
+                uv(0.0, 0.15625),
+            ],
             [1.0; 4],
             lightmap,
             vertices,
@@ -19085,7 +22388,7 @@ fn append_textured_quad_world(
             uv: uvs[index],
             color,
             lightmap,
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         });
@@ -19105,7 +22408,9 @@ fn append_primed_tnt_mesh(
     indices: &mut Vec<u32>,
 ) {
     let state = RenderTNTPrimed::TNT_STATE;
-    let Some(model) = model_for_state(&atlas.models, state) else { return; };
+    let Some(model) = model_for_state(&atlas.models, state) else {
+        return;
+    };
     if model.missing {
         return;
     }
@@ -19114,7 +22419,11 @@ fn append_primed_tnt_mesh(
     matrix = multiply4(matrix, scale4_nonuniform([scale, scale, scale]));
     matrix = multiply4(matrix, rotation_y4(-90.0));
     matrix = multiply4(matrix, translation4([-0.5, -0.5, 0.5]));
-    let colorPos = BlockPos::new(position[0].floor() as i32, position[1].floor() as i32, position[2].floor() as i32);
+    let colorPos = BlockPos::new(
+        position[0].floor() as i32,
+        position[1].floor() as i32,
+        position[2].floor() as i32,
+    );
     append_block_state_model_world(
         state,
         colorPos,
@@ -19148,7 +22457,12 @@ fn append_primed_tnt_mesh(
             15_728_880,
             chunks,
             atlas,
-            [1.0, 1.0, 1.0, RenderTNTPrimed::flashAlpha(entity.tntFuse, partialTicks)],
+            [
+                1.0,
+                1.0,
+                1.0,
+                RenderTNTPrimed::flashAlpha(entity.tntFuse, partialTicks),
+            ],
             Some(whiteUv),
             0.002,
             false,
@@ -19168,11 +22482,21 @@ fn append_ender_crystal_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let ClientEntityKind::Object { objectType: ObjectSpawnType::EnderCrystal, .. } = &entity.kind else { return; };
-    let (rotation, bob) = RenderEnderCrystal::animation(entity.enderCrystalInnerRotation, partialTicks);
+    let ClientEntityKind::Object {
+        objectType: ObjectSpawnType::EnderCrystal,
+        ..
+    } = &entity.kind
+    else {
+        return;
+    };
+    let (rotation, bob) =
+        RenderEnderCrystal::animation(entity.enderCrystalInnerRotation, partialTicks);
     let mut root = translation4(position);
     root = multiply4(root, scale4_nonuniform([ModelEnderCrystal::ROOT_SCALE; 3]));
-    root = multiply4(root, translation4([0.0, ModelEnderCrystal::ROOT_TRANSLATE_Y, 0.0]));
+    root = multiply4(
+        root,
+        translation4([0.0, ModelEnderCrystal::ROOT_TRANSLATE_Y, 0.0]),
+    );
 
     if entity.enderCrystalShouldShowBottom() {
         append_vehicle_model_pass(
@@ -19187,15 +22511,17 @@ fn append_ender_crystal_mesh(
     }
 
     let mut glassOne = multiply4(root, rotation_y4(rotation * 3.0));
-    glassOne = multiply4(glassOne, translation4([
-        0.0,
-        ModelEnderCrystal::FLOAT_TRANSLATE_Y + bob * 0.2,
-        0.0,
-    ]));
-    glassOne = multiply4(glassOne, rotation_axis4(
-        ModelEnderCrystal::DIAGONAL_ROTATION_DEGREES,
-        ModelEnderCrystal::DIAGONAL_ROTATION_AXIS,
-    ));
+    glassOne = multiply4(
+        glassOne,
+        translation4([0.0, ModelEnderCrystal::FLOAT_TRANSLATE_Y + bob * 0.2, 0.0]),
+    );
+    glassOne = multiply4(
+        glassOne,
+        rotation_axis4(
+            ModelEnderCrystal::DIAGONAL_ROTATION_DEGREES,
+            ModelEnderCrystal::DIAGONAL_ROTATION_AXIS,
+        ),
+    );
     append_vehicle_model_pass(
         ModelEnderCrystal::glassMesh(),
         RenderEnderCrystal::texture(),
@@ -19206,11 +22532,17 @@ fn append_ender_crystal_mesh(
         indices,
     );
 
-    let mut glassTwo = multiply4(glassOne, scale4_nonuniform([ModelEnderCrystal::NESTED_SCALE; 3]));
-    glassTwo = multiply4(glassTwo, rotation_axis4(
-        ModelEnderCrystal::DIAGONAL_ROTATION_DEGREES,
-        ModelEnderCrystal::DIAGONAL_ROTATION_AXIS,
-    ));
+    let mut glassTwo = multiply4(
+        glassOne,
+        scale4_nonuniform([ModelEnderCrystal::NESTED_SCALE; 3]),
+    );
+    glassTwo = multiply4(
+        glassTwo,
+        rotation_axis4(
+            ModelEnderCrystal::DIAGONAL_ROTATION_DEGREES,
+            ModelEnderCrystal::DIAGONAL_ROTATION_AXIS,
+        ),
+    );
     glassTwo = multiply4(glassTwo, rotation_y4(rotation * 3.0));
     append_vehicle_model_pass(
         ModelEnderCrystal::glassMesh(),
@@ -19222,11 +22554,17 @@ fn append_ender_crystal_mesh(
         indices,
     );
 
-    let mut cube = multiply4(glassTwo, scale4_nonuniform([ModelEnderCrystal::NESTED_SCALE; 3]));
-    cube = multiply4(cube, rotation_axis4(
-        ModelEnderCrystal::DIAGONAL_ROTATION_DEGREES,
-        ModelEnderCrystal::DIAGONAL_ROTATION_AXIS,
-    ));
+    let mut cube = multiply4(
+        glassTwo,
+        scale4_nonuniform([ModelEnderCrystal::NESTED_SCALE; 3]),
+    );
+    cube = multiply4(
+        cube,
+        rotation_axis4(
+            ModelEnderCrystal::DIAGONAL_ROTATION_DEGREES,
+            ModelEnderCrystal::DIAGONAL_ROTATION_AXIS,
+        ),
+    );
     cube = multiply4(cube, rotation_y4(rotation * 3.0));
     append_vehicle_model_pass(
         ModelEnderCrystal::cubeMesh(),
@@ -19285,20 +22623,28 @@ fn append_ender_crystal_beam(
     let dz = (entity.entity.posZ - targetCenter[2]) as f32;
     let horizontal = (dx * dx + dz * dz).sqrt();
     let length = (dx * dx + dy * dy + dz * dz).sqrt();
-    if length <= f32::EPSILON { return; }
+    if length <= f32::EPSILON {
+        return;
+    }
 
     let mut matrix = translation4(origin);
     matrix = multiply4(matrix, rotation_y4(-dz.atan2(dx).to_degrees() - 90.0));
-    matrix = multiply4(matrix, rotation_x4(-horizontal.atan2(dy).to_degrees() - 90.0));
+    matrix = multiply4(
+        matrix,
+        rotation_x4(-horizontal.atan2(dy).to_degrees() - 90.0),
+    );
 
-    let rectangle = atlas.entityTextureRectangles
+    let rectangle = atlas
+        .entityTextureRectangles
         .get(&RenderEnderCrystal::beamTexture())
         .copied()
         .unwrap_or(atlas.missingRectangle);
     let startV = -(rotation * 0.01);
     let endV = length / 32.0 - rotation * 0.01;
     let vSpan = endV - startV;
-    if vSpan.abs() <= f32::EPSILON { return; }
+    if vSpan.abs() <= f32::EPSILON {
+        return;
+    }
 
     // Vanilla emits a triangle strip with nine angular samples. Atlas-backed
     // Vulkan must split longitudinally at every integer V boundary so GL_REPEAT
@@ -19308,7 +22654,9 @@ fn append_ender_crystal_beam(
     let high = startV.max(endV).ceil() as i32;
     for boundary in low..=high {
         let t = (boundary as f32 - startV) / vSpan;
-        if t > 0.0 && t < 1.0 { cuts.push(t); }
+        if t > 0.0 && t < 1.0 {
+            cuts.push(t);
+        }
     }
     cuts.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     cuts.dedup_by(|a, b| (*a - *b).abs() < 1.0e-6);
@@ -19356,15 +22704,25 @@ fn append_ender_crystal_beam(
                     ],
                     color: colors[corner],
                     lightmap: [15.0, 15.0],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
             }
             // RenderDragon disables culling for the strip.
             indices.extend_from_slice(&[
-                base, base + 1, base + 2, base, base + 2, base + 3,
-                base + 2, base + 1, base, base + 3, base + 2, base,
+                base,
+                base + 1,
+                base + 2,
+                base,
+                base + 2,
+                base + 3,
+                base + 2,
+                base + 1,
+                base,
+                base + 3,
+                base + 2,
+                base,
             ]);
         }
     }
@@ -19380,7 +22738,8 @@ fn append_built_in_world_mesh(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let rectangle = atlas.builtInItemRectangles
+    let rectangle = atlas
+        .builtInItemRectangles
         .get(&mesh.texture)
         .copied()
         .unwrap_or(atlas.missingRectangle);
@@ -19389,8 +22748,14 @@ fn append_built_in_world_mesh(
     let block_light = ((packedLight >> 4) & 15) as f32;
     let sky_light = ((packedLight >> 20) & 15) as f32;
     for face in mesh.indices.chunks_exact(6) {
-        let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-        let transformed = source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
+        let source = [
+            face[0] as usize,
+            face[1] as usize,
+            face[2] as usize,
+            face[5] as usize,
+        ];
+        let transformed =
+            source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
         let normal = normalize3(cross3(
             subtract3(transformed[1], transformed[0]),
             subtract3(transformed[2], transformed[0]),
@@ -19405,9 +22770,14 @@ fn append_built_in_world_mesh(
                     rectangle[0] + (rectangle[2] - rectangle[0]) * uv0[0],
                     rectangle[1] + (rectangle[3] - rectangle[1]) * uv0[1],
                 ],
-                color: [diffuse * mesh.color[0], diffuse * mesh.color[1], diffuse * mesh.color[2], mesh.color[3]],
+                color: [
+                    diffuse * mesh.color[0],
+                    diffuse * mesh.color[1],
+                    diffuse * mesh.color[2],
+                    mesh.color[3],
+                ],
                 lightmap: [block_light, sky_light],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -19429,8 +22799,14 @@ fn append_built_in_world_damage_mesh(
     let blockLight = ((packedLight >> 4) & 15) as f32;
     let skyLight = ((packedLight >> 20) & 15) as f32;
     for face in mesh.indices.chunks_exact(6) {
-        let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-        let transformed = source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
+        let source = [
+            face[0] as usize,
+            face[1] as usize,
+            face[2] as usize,
+            face[5] as usize,
+        ];
+        let transformed =
+            source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
         let normal = normalize3(cross3(
             subtract3(transformed[1], transformed[0]),
             subtract3(transformed[2], transformed[0]),
@@ -19452,7 +22828,7 @@ fn append_built_in_world_damage_mesh(
                 ],
                 color: [diffuse, diffuse, diffuse, 1.0],
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -19501,7 +22877,13 @@ fn append_shulker_box_damage_meshes(
     }
 }
 
-fn tile_entity_visible(pos: BlockPos, camera: [f32; 3], frustum: &Frustum, width: f64, height: f64) -> bool {
+fn tile_entity_visible(
+    pos: BlockPos,
+    camera: [f32; 3],
+    frustum: &Frustum,
+    width: f64,
+    height: f64,
+) -> bool {
     let center = [pos.x as f32 + 0.5, pos.y as f32 + 0.5, pos.z as f32 + 0.5];
     let dx = center[0] - camera[0];
     let dy = center[1] - camera[1];
@@ -19526,9 +22908,13 @@ fn append_bed_tile_entity_meshes(
     indices: &mut Vec<u32>,
 ) {
     for bed in beds {
-        if !tile_entity_visible(bed.pos, camera, frustum, 1.0, 1.0) { continue; }
+        if !tile_entity_visible(bed.pos, camera, frustum, 1.0, 1.0) {
+            continue;
+        }
         let mesh = TileEntityItemStackRenderer::buildWorldBedHalf(
-            bed.colorMetadata, bed.head, bed.horizontalIndex,
+            bed.colorMetadata,
+            bed.head,
+            bed.horizontalIndex,
         );
         append_built_in_world_mesh(
             &mesh,
@@ -19551,7 +22937,9 @@ fn append_chest_tile_entity_meshes(
 ) {
     for chest in chests {
         let width = if chest.large { 2.0 } else { 1.0 };
-        if !tile_entity_visible(chest.pos, camera, frustum, width, 1.0) { continue; }
+        if !tile_entity_visible(chest.pos, camera, frustum, width, 1.0) {
+            continue;
+        }
         let mesh = TileEntityChestRenderer::buildMesh(ChestRenderInput {
             trapped: chest.trapped,
             ender: chest.ender,
@@ -19592,9 +22980,21 @@ fn append_shulker_box_tile_entity_meshes(
         let mut max_x = min_x + 1.0;
         let mut max_y = min_y + 1.0;
         let mut max_z = min_z + 1.0;
-        if offset_x < 0 { min_x -= extension; } else if offset_x > 0 { max_x += extension; }
-        if offset_y < 0 { min_y -= extension; } else if offset_y > 0 { max_y += extension; }
-        if offset_z < 0 { min_z -= extension; } else if offset_z > 0 { max_z += extension; }
+        if offset_x < 0 {
+            min_x -= extension;
+        } else if offset_x > 0 {
+            max_x += extension;
+        }
+        if offset_y < 0 {
+            min_y -= extension;
+        } else if offset_y > 0 {
+            max_y += extension;
+        }
+        if offset_z < 0 {
+            min_z -= extension;
+        } else if offset_z > 0 {
+            max_z += extension;
+        }
 
         let center = [
             shulker.pos.x as f32 + 0.5,
@@ -19606,8 +23006,12 @@ fn append_shulker_box_tile_entity_meshes(
         let dz = center[2] - camera[2];
         if dx * dx + dy * dy + dz * dz > 4096.0
             || !frustum.isBoxInFrustum(
-                min_x - 0.01, min_y - 0.01, min_z - 0.01,
-                max_x + 0.01, max_y + 0.01, max_z + 0.01,
+                min_x - 0.01,
+                min_y - 0.01,
+                min_z - 0.01,
+                max_x + 0.01,
+                max_y + 0.01,
+                max_z + 0.01,
             )
         {
             continue;
@@ -19620,7 +23024,11 @@ fn append_shulker_box_tile_entity_meshes(
         );
         append_built_in_world_mesh(
             &mesh,
-            [shulker.pos.x as f32, shulker.pos.y as f32, shulker.pos.z as f32],
+            [
+                shulker.pos.x as f32,
+                shulker.pos.y as f32,
+                shulker.pos.z as f32,
+            ],
             shulker.packedLight,
             atlas,
             vertices,
@@ -19628,8 +23036,6 @@ fn append_shulker_box_tile_entity_meshes(
         );
     }
 }
-
-
 
 /// Converts a repeating standalone texture coordinate quad into atlas-safe
 /// sub-quads. MCP binds `textures/environment/clouds.png` with GL_REPEAT;
@@ -19741,7 +23147,12 @@ fn append_cloud_mesh(
     else {
         return;
     };
-    let color = [capture.cloudColor[0], capture.cloudColor[1], capture.cloudColor[2], 0.8];
+    let color = [
+        capture.cloudColor[0],
+        capture.cloudColor[1],
+        capture.cloudColor[2],
+        0.8,
+    ];
     let camera = capture.cameraPosition;
     let tick = capture.cloudTickCounter as f32 + capture.partialTicks;
 
@@ -19799,7 +23210,8 @@ fn append_cloud_mesh(
     let zSide = [color[0] * 0.8, color[1] * 0.8, color[2] * 0.8, color[3]];
     let relativeCloudY = capture.cloudHeight - camera[1] + 0.33;
 
-    let world = |x: f32, y: f32, z: f32| [camera[0] + x * cloudScale, y, camera[2] + z * cloudScale];
+    let world =
+        |x: f32, y: f32, z: f32| [camera[0] + x * cloudScale, y, camera[2] + z * cloudScale];
     for cellX in -3..=4 {
         for cellZ in -3..=4 {
             let textureX = (cellX * 8) as f32;
@@ -19812,16 +23224,42 @@ fn append_cloud_mesh(
 
             if relativeCloudY > -5.0 {
                 append_wrapped_cloud_quad(
-                    [world(x0, bottomY, z1), world(x1, bottomY, z1), world(x1, bottomY, z0), world(x0, bottomY, z0)],
-                    [uv(textureX, textureZ + 8.0), uv(textureX + 8.0, textureZ + 8.0), uv(textureX + 8.0, textureZ), uv(textureX, textureZ)],
-                    rectangle, bottom, vertices, indices,
+                    [
+                        world(x0, bottomY, z1),
+                        world(x1, bottomY, z1),
+                        world(x1, bottomY, z0),
+                        world(x0, bottomY, z0),
+                    ],
+                    [
+                        uv(textureX, textureZ + 8.0),
+                        uv(textureX + 8.0, textureZ + 8.0),
+                        uv(textureX + 8.0, textureZ),
+                        uv(textureX, textureZ),
+                    ],
+                    rectangle,
+                    bottom,
+                    vertices,
+                    indices,
                 );
             }
             if relativeCloudY <= 5.0 {
                 append_wrapped_cloud_quad(
-                    [world(x0, topY, z1), world(x1, topY, z1), world(x1, topY, z0), world(x0, topY, z0)],
-                    [uv(textureX, textureZ + 8.0), uv(textureX + 8.0, textureZ + 8.0), uv(textureX + 8.0, textureZ), uv(textureX, textureZ)],
-                    rectangle, color, vertices, indices,
+                    [
+                        world(x0, topY, z1),
+                        world(x1, topY, z1),
+                        world(x1, topY, z0),
+                        world(x0, topY, z0),
+                    ],
+                    [
+                        uv(textureX, textureZ + 8.0),
+                        uv(textureX + 8.0, textureZ + 8.0),
+                        uv(textureX + 8.0, textureZ),
+                        uv(textureX, textureZ),
+                    ],
+                    rectangle,
+                    color,
+                    vertices,
+                    indices,
                 );
             }
             if cellX > -1 {
@@ -19829,9 +23267,22 @@ fn append_cloud_mesh(
                     let x = x0 + strip as f32;
                     let u = textureX + strip as f32 + 0.5;
                     append_wrapped_cloud_quad(
-                        [world(x, bottomY, z1), world(x, topY + 9.765625e-4, z1), world(x, topY + 9.765625e-4, z0), world(x, bottomY, z0)],
-                        [uv(u, textureZ + 8.0), uv(u, textureZ + 8.0), uv(u, textureZ), uv(u, textureZ)],
-                        rectangle, xSide, vertices, indices,
+                        [
+                            world(x, bottomY, z1),
+                            world(x, topY + 9.765625e-4, z1),
+                            world(x, topY + 9.765625e-4, z0),
+                            world(x, bottomY, z0),
+                        ],
+                        [
+                            uv(u, textureZ + 8.0),
+                            uv(u, textureZ + 8.0),
+                            uv(u, textureZ),
+                            uv(u, textureZ),
+                        ],
+                        rectangle,
+                        xSide,
+                        vertices,
+                        indices,
                     );
                 }
             }
@@ -19840,9 +23291,22 @@ fn append_cloud_mesh(
                     let x = x0 + strip as f32 + 1.0 - 9.765625e-4;
                     let u = textureX + strip as f32 + 0.5;
                     append_wrapped_cloud_quad(
-                        [world(x, bottomY, z1), world(x, topY + 9.765625e-4, z1), world(x, topY + 9.765625e-4, z0), world(x, bottomY, z0)],
-                        [uv(u, textureZ + 8.0), uv(u, textureZ + 8.0), uv(u, textureZ), uv(u, textureZ)],
-                        rectangle, xSide, vertices, indices,
+                        [
+                            world(x, bottomY, z1),
+                            world(x, topY + 9.765625e-4, z1),
+                            world(x, topY + 9.765625e-4, z0),
+                            world(x, bottomY, z0),
+                        ],
+                        [
+                            uv(u, textureZ + 8.0),
+                            uv(u, textureZ + 8.0),
+                            uv(u, textureZ),
+                            uv(u, textureZ),
+                        ],
+                        rectangle,
+                        xSide,
+                        vertices,
+                        indices,
                     );
                 }
             }
@@ -19851,9 +23315,22 @@ fn append_cloud_mesh(
                     let z = z0 + strip as f32;
                     let v = textureZ + strip as f32 + 0.5;
                     append_wrapped_cloud_quad(
-                        [world(x0, topY + 9.765625e-4, z), world(x1, topY + 9.765625e-4, z), world(x1, bottomY, z), world(x0, bottomY, z)],
-                        [uv(textureX, v), uv(textureX + 8.0, v), uv(textureX + 8.0, v), uv(textureX, v)],
-                        rectangle, zSide, vertices, indices,
+                        [
+                            world(x0, topY + 9.765625e-4, z),
+                            world(x1, topY + 9.765625e-4, z),
+                            world(x1, bottomY, z),
+                            world(x0, bottomY, z),
+                        ],
+                        [
+                            uv(textureX, v),
+                            uv(textureX + 8.0, v),
+                            uv(textureX + 8.0, v),
+                            uv(textureX, v),
+                        ],
+                        rectangle,
+                        zSide,
+                        vertices,
+                        indices,
                     );
                 }
             }
@@ -19862,9 +23339,22 @@ fn append_cloud_mesh(
                     let z = z0 + strip as f32 + 1.0 - 9.765625e-4;
                     let v = textureZ + strip as f32 + 0.5;
                     append_wrapped_cloud_quad(
-                        [world(x0, topY + 9.765625e-4, z), world(x1, topY + 9.765625e-4, z), world(x1, bottomY, z), world(x0, bottomY, z)],
-                        [uv(textureX, v), uv(textureX + 8.0, v), uv(textureX + 8.0, v), uv(textureX, v)],
-                        rectangle, zSide, vertices, indices,
+                        [
+                            world(x0, topY + 9.765625e-4, z),
+                            world(x1, topY + 9.765625e-4, z),
+                            world(x1, bottomY, z),
+                            world(x0, bottomY, z),
+                        ],
+                        [
+                            uv(textureX, v),
+                            uv(textureX + 8.0, v),
+                            uv(textureX + 8.0, v),
+                            uv(textureX, v),
+                        ],
+                        rectangle,
+                        zSide,
+                        vertices,
+                        indices,
                     );
                 }
             }
@@ -19900,14 +23390,17 @@ fn append_sky_mesh(
         }
         matrix = multiply4(matrix, rotation_z4(90.0));
         let rectangle = atlas.solidWhiteRectangle;
-        let uv = [(rectangle[0] + rectangle[2]) * 0.5, (rectangle[1] + rectangle[3]) * 0.5];
+        let uv = [
+            (rectangle[0] + rectangle[2]) * 0.5,
+            (rectangle[1] + rectangle[3]) * 0.5,
+        ];
         let base = vertices.len() as u32;
         vertices.push(WorldVertex {
             position: transform_point3(matrix, [0.0, 100.0, 0.0]),
             uv,
             color: colors,
             lightmap: [15.0, 15.0],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         });
@@ -19923,7 +23416,7 @@ fn append_sky_mesh(
                 uv,
                 color: [colors[0], colors[1], colors[2], 0.0],
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             });
@@ -19939,13 +23432,19 @@ fn append_sky_mesh(
     celestialMatrix = multiply4(celestialMatrix, rotation_y4(-90.0));
     celestialMatrix = multiply4(celestialMatrix, rotation_x4(celestialAngle * 360.0));
 
-    if let Some(rectangle) = atlas.entityTextureRectangles
+    if let Some(rectangle) = atlas
+        .entityTextureRectangles
         .get(&ResourceLocation::parse("textures/environment/sun.png"))
         .copied()
     {
         append_textured_quad(
             celestialMatrix,
-            [[-30.0, 100.0, -30.0], [30.0, 100.0, -30.0], [30.0, 100.0, 30.0], [-30.0, 100.0, 30.0]],
+            [
+                [-30.0, 100.0, -30.0],
+                [30.0, 100.0, -30.0],
+                [30.0, 100.0, 30.0],
+                [-30.0, 100.0, 30.0],
+            ],
             [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
             rectangle,
             [1.0, 1.0, 1.0, 1.0],
@@ -19954,8 +23453,11 @@ fn append_sky_mesh(
         );
     }
 
-    if let Some(rectangle) = atlas.entityTextureRectangles
-        .get(&ResourceLocation::parse("textures/environment/moon_phases.png"))
+    if let Some(rectangle) = atlas
+        .entityTextureRectangles
+        .get(&ResourceLocation::parse(
+            "textures/environment/moon_phases.png",
+        ))
         .copied()
     {
         let phase = capture.worldTime.div_euclid(24_000).rem_euclid(8) as i32;
@@ -19967,7 +23469,12 @@ fn append_sky_mesh(
         let v1 = (row + 1) as f32 / 2.0;
         append_textured_quad(
             celestialMatrix,
-            [[-20.0, -100.0, 20.0], [20.0, -100.0, 20.0], [20.0, -100.0, -20.0], [-20.0, -100.0, -20.0]],
+            [
+                [-20.0, -100.0, 20.0],
+                [20.0, -100.0, 20.0],
+                [20.0, -100.0, -20.0],
+                [-20.0, -100.0, -20.0],
+            ],
             [[u1, v1], [u0, v1], [u0, v0], [u1, v0]],
             rectangle,
             [1.0, 1.0, 1.0, 1.0],
@@ -19979,16 +23486,24 @@ fn append_sky_mesh(
     let starBrightness = star_brightness(celestialAngle);
     if starBrightness > 0.0 {
         let rectangle = atlas.solidWhiteRectangle;
-        let uv = [(rectangle[0] + rectangle[2]) * 0.5, (rectangle[1] + rectangle[3]) * 0.5];
+        let uv = [
+            (rectangle[0] + rectangle[2]) * 0.5,
+            (rectangle[1] + rectangle[3]) * 0.5,
+        ];
         for quad in vanilla_star_quads() {
             let base = vertices.len() as u32;
             for point in quad {
                 vertices.push(WorldVertex {
                     position: transform_point3(celestialMatrix, *point),
                     uv,
-                    color: [starBrightness, starBrightness, starBrightness, starBrightness],
+                    color: [
+                        starBrightness,
+                        starBrightness,
+                        starBrightness,
+                        starBrightness,
+                    ],
                     lightmap: [15.0, 15.0],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
@@ -20036,7 +23551,12 @@ fn append_end_sky_mesh(
                 let z1 = -100.0 + 200.0 * (v + 1) as f32 / 16.0;
                 append_textured_quad(
                     matrix,
-                    [[x0, -100.0, z0], [x0, -100.0, z1], [x1, -100.0, z1], [x1, -100.0, z0]],
+                    [
+                        [x0, -100.0, z0],
+                        [x0, -100.0, z1],
+                        [x1, -100.0, z1],
+                        [x1, -100.0, z0],
+                    ],
                     [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0]],
                     rectangle,
                     color,
@@ -20098,7 +23618,6 @@ fn vanilla_star_quads() -> &'static Vec<[[f32; 3]; 4]> {
     })
 }
 
-
 fn append_beacon_tile_entity_meshes(
     beacons: &[BeaconRenderState],
     totalWorldTime: i64,
@@ -20115,7 +23634,9 @@ fn append_beacon_tile_entity_meshes(
     let firstIndex = indices.len() as u32;
 
     for beacon in beacons {
-        if beacon.beamScale <= 0.0 || beacon.segments.is_empty() { continue; }
+        if beacon.beamScale <= 0.0 || beacon.segments.is_empty() {
+            continue;
+        }
         let mut yOffset = 0_i32;
         for segment in &beacon.segments {
             let geometry = TileEntityBeaconRenderer::segmentGeometry(
@@ -20144,7 +23665,9 @@ fn append_beacon_tile_entity_meshes(
     let coreCount = indices.len() as u32 - firstIndex;
 
     for beacon in beacons {
-        if beacon.beamScale <= 0.0 || beacon.segments.is_empty() { continue; }
+        if beacon.beamScale <= 0.0 || beacon.segments.is_empty() {
+            continue;
+        }
         let mut yOffset = 0_i32;
         for segment in &beacon.segments {
             let geometry = TileEntityBeaconRenderer::segmentGeometry(
@@ -20191,7 +23714,9 @@ fn append_beacon_layer(
     let vStart = rawV[0] as f64;
     let vEnd = rawV[1] as f64;
     let span = vEnd - vStart;
-    if span.abs() <= 1.0e-9 { return; }
+    if span.abs() <= 1.0e-9 {
+        return;
+    }
 
     // The beam texture uses GL_REPEAT, while the shared Vulkan atlas cannot
     // repeat a sub-rectangle. Split each side at every integer V boundary so
@@ -20214,12 +23739,33 @@ fn append_beacon_layer(
 
         for (a, b) in pairs {
             let p = [
-                [pos.x as f32 + corners[a][0], y1, pos.z as f32 + corners[a][1]],
-                [pos.x as f32 + corners[a][0], y0, pos.z as f32 + corners[a][1]],
-                [pos.x as f32 + corners[b][0], y0, pos.z as f32 + corners[b][1]],
-                [pos.x as f32 + corners[b][0], y1, pos.z as f32 + corners[b][1]],
+                [
+                    pos.x as f32 + corners[a][0],
+                    y1,
+                    pos.z as f32 + corners[a][1],
+                ],
+                [
+                    pos.x as f32 + corners[a][0],
+                    y0,
+                    pos.z as f32 + corners[a][1],
+                ],
+                [
+                    pos.x as f32 + corners[b][0],
+                    y0,
+                    pos.z as f32 + corners[b][1],
+                ],
+                [
+                    pos.x as f32 + corners[b][0],
+                    y1,
+                    pos.z as f32 + corners[b][1],
+                ],
             ];
-            let localUvs = [[1.0, localV1], [1.0, localV0], [0.0, localV0], [0.0, localV1]];
+            let localUvs = [
+                [1.0, localV1],
+                [1.0, localV0],
+                [0.0, localV0],
+                [0.0, localV1],
+            ];
             let base = vertices.len() as u32;
             for corner in 0..4 {
                 vertices.push(WorldVertex {
@@ -20230,15 +23776,25 @@ fn append_beacon_layer(
                     ],
                     color: [rgb[0], rgb[1], rgb[2], alpha],
                     lightmap: [15.0, 15.0],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
             }
             // TileEntityBeaconRenderer disables culling.
             indices.extend_from_slice(&[
-                base, base + 1, base + 2, base, base + 2, base + 3,
-                base + 2, base + 1, base, base + 3, base + 2, base,
+                base,
+                base + 1,
+                base + 2,
+                base,
+                base + 2,
+                base + 3,
+                base + 2,
+                base + 1,
+                base,
+                base + 3,
+                base + 2,
+                base,
             ]);
         }
         current = next;
@@ -20303,7 +23859,11 @@ fn append_end_portal_tile_entity_meshes(
                 .into_iter()
                 .filter(|layer| layer.additive == additivePass)
             {
-                let rectangle = if layer.index == 0 { skyRectangle } else { portalRectangle };
+                let rectangle = if layer.index == 0 {
+                    skyRectangle
+                } else {
+                    portalRectangle
+                };
                 let base = vertices.len() as u32;
                 for position in positions {
                     let rawUv = end_portal_projective_uv(
@@ -20324,7 +23884,7 @@ fn append_end_portal_tile_entity_meshes(
                         // Lighting is disabled by TileEntityEndPortalRenderer;
                         // the draw pass uses the unlit shader sentinel.
                         lightmap: [15.0, 15.0],
-                    
+
                         shaderEntity: [-1, -1, -1],
                         shaderPadding: 0,
                     });
@@ -20371,7 +23931,11 @@ fn end_portal_projective_uv(
         matrix,
         [worldPosition[0], worldPosition[1], worldPosition[2], 1.0],
     );
-    let q = if projected[3].abs() < 1.0e-6 { 1.0 } else { projected[3] };
+    let q = if projected[3].abs() < 1.0e-6 {
+        1.0
+    } else {
+        projected[3]
+    };
     [projected[0] / q, projected[1] / q]
 }
 
@@ -20390,10 +23954,7 @@ fn append_sign_tile_entity_meshes(
         .get(&texture)
         .copied()
         .unwrap_or(atlas.missingRectangle);
-    let lights = [
-        normalize3([0.2, 1.0, -0.7]),
-        normalize3([-0.2, 1.0, 0.7]),
-    ];
+    let lights = [normalize3([0.2, 1.0, -0.7]), normalize3([-0.2, 1.0, 0.7])];
 
     for sign in signs {
         if !tile_entity_visible(sign.pos, camera, frustum, 1.0, 1.0) {
@@ -20416,8 +23977,14 @@ fn append_sign_tile_entity_meshes(
         let skyLight = ((sign.packedLight >> 20) & 15) as f32;
 
         for face in mesh.indices.chunks_exact(6) {
-            let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-            let transformed = source.map(|index| transform_point3(modelMatrix, mesh.vertices[index].position));
+            let source = [
+                face[0] as usize,
+                face[1] as usize,
+                face[2] as usize,
+                face[5] as usize,
+            ];
+            let transformed =
+                source.map(|index| transform_point3(modelMatrix, mesh.vertices[index].position));
             let normal = normalize3(cross3(
                 subtract3(transformed[1], transformed[0]),
                 subtract3(transformed[2], transformed[0]),
@@ -20434,7 +24001,7 @@ fn append_sign_tile_entity_meshes(
                     ],
                     color: [diffuse, diffuse, diffuse, 1.0],
                     lightmap: [blockLight, skyLight],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
@@ -20467,7 +24034,12 @@ fn append_sign_tile_entity_meshes(
             fontRenderer.draw_string(&mut drawList, &line, x as f32, y as f32, 0, false);
         }
         for command in drawList.commands() {
-            let GuiDrawCommand::Quad { texture, topology, vertices: glyphVertices } = command else {
+            let GuiDrawCommand::Quad {
+                texture,
+                topology,
+                vertices: glyphVertices,
+            } = command
+            else {
                 continue;
             };
             let glyphRectangle = texture
@@ -20484,7 +24056,8 @@ fn append_sign_tile_entity_meshes(
                     )
                 } else {
                     (
-                        glyphRectangle[0] + (glyphRectangle[2] - glyphRectangle[0]) * (247.5 / 256.0),
+                        glyphRectangle[0]
+                            + (glyphRectangle[2] - glyphRectangle[0]) * (247.5 / 256.0),
                         glyphRectangle[1] + (glyphRectangle[3] - glyphRectangle[1]) * (3.5 / 256.0),
                     )
                 };
@@ -20493,17 +24066,22 @@ fn append_sign_tile_entity_meshes(
                     uv: [u, v],
                     color: packed_argb_to_rgba(vertex.color),
                     lightmap: [blockLight, skyLight],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
             }
             match topology {
-                GuiTopology::Quads => indices.extend_from_slice(&[
-                    base, base + 1, base + 2, base + 2, base + 3, base,
-                ]),
+                GuiTopology::Quads => {
+                    indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base])
+                }
                 GuiTopology::TriangleStrip => indices.extend_from_slice(&[
-                    base, base + 1, base + 2, base + 2, base + 1, base + 3,
+                    base,
+                    base + 1,
+                    base + 2,
+                    base + 2,
+                    base + 1,
+                    base + 3,
                 ]),
             }
         }
@@ -20518,19 +24096,13 @@ fn append_enchantment_table_tile_entity_meshes(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let texture = ResourceLocation::new(
-        "minecraft",
-        "textures/entity/enchanting_table_book.png",
-    );
+    let texture = ResourceLocation::new("minecraft", "textures/entity/enchanting_table_book.png");
     let rectangle = atlas
         .builtInItemRectangles
         .get(&texture)
         .copied()
         .unwrap_or(atlas.missingRectangle);
-    let lights = [
-        normalize3([0.2, 1.0, -0.7]),
-        normalize3([-0.2, 1.0, 0.7]),
-    ];
+    let lights = [normalize3([0.2, 1.0, -0.7]), normalize3([-0.2, 1.0, 0.7])];
 
     for table in tables {
         if !tile_entity_visible(table.pos, camera, frustum, 1.0, 1.5) {
@@ -20571,9 +24143,8 @@ fn append_enchantment_table_tile_entity_meshes(
                 face[2] as usize,
                 face[5] as usize,
             ];
-            let transformed = source.map(|index| {
-                transform_point3(matrix, mesh.vertices[index].position)
-            });
+            let transformed =
+                source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
             let normal = normalize3(cross3(
                 subtract3(transformed[1], transformed[0]),
                 subtract3(transformed[2], transformed[0]),
@@ -20590,19 +24161,12 @@ fn append_enchantment_table_tile_entity_meshes(
                     ],
                     color: [diffuse, diffuse, diffuse, 1.0],
                     lightmap: [block_light, sky_light],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
             }
-            indices.extend_from_slice(&[
-                base,
-                base + 1,
-                base + 2,
-                base,
-                base + 2,
-                base + 3,
-            ]);
+            indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
         }
     }
 }
@@ -20615,7 +24179,9 @@ fn append_piston_tile_entity_meshes(
     indices: &mut Vec<u32>,
 ) {
     for piston in pistons {
-        if piston.progress >= 1.0 || piston.pistonState.getBlockId() == 0 { continue; }
+        if piston.progress >= 1.0 || piston.pistonState.getBlockId() == 0 {
+            continue;
+        }
         let pos = piston.pos;
         let moving_matrix = translation4([
             pos.x as f32 + piston.offset[0],
@@ -20628,8 +24194,17 @@ fn append_piston_tile_entity_meshes(
             let key = (piston.facing.index() as u8, sticky, true);
             if let Some(model) = atlas.pistonHeadModels.get(&key) {
                 append_block_state_model_world(
-                    piston.pistonState, pos, model, moving_matrix, piston.packedLight,
-                    chunks, atlas, [1.0; 4], None, vertices, indices,
+                    piston.pistonState,
+                    pos,
+                    model,
+                    moving_matrix,
+                    piston.packedLight,
+                    chunks,
+                    atlas,
+                    [1.0; 4],
+                    None,
+                    vertices,
+                    indices,
                 );
             }
         } else if piston.shouldHeadBeRendered && !piston.extending && matches!(block_id, 29 | 33) {
@@ -20641,8 +24216,17 @@ fn append_piston_tile_entity_meshes(
                     (34 << 4) | piston.facing.index() | (if sticky { 8 } else { 0 }),
                 );
                 append_block_state_model_world(
-                    head_state, pos, model, moving_matrix, piston.packedLight,
-                    chunks, atlas, [1.0; 4], None, vertices, indices,
+                    head_state,
+                    pos,
+                    model,
+                    moving_matrix,
+                    piston.packedLight,
+                    chunks,
+                    atlas,
+                    [1.0; 4],
+                    None,
+                    vertices,
+                    indices,
                 );
             }
             let extended_state = IBlockState::fromGlobalStateId(
@@ -20650,15 +24234,32 @@ fn append_piston_tile_entity_meshes(
             );
             if let Some(model) = model_for_state(&atlas.models, extended_state) {
                 append_block_state_model_world(
-                    extended_state, pos, model,
+                    extended_state,
+                    pos,
+                    model,
                     translation4([pos.x as f32, pos.y as f32, pos.z as f32]),
-                    piston.packedLight, chunks, atlas, [1.0; 4], None, vertices, indices,
+                    piston.packedLight,
+                    chunks,
+                    atlas,
+                    [1.0; 4],
+                    None,
+                    vertices,
+                    indices,
                 );
             }
         } else if let Some(model) = actual_model_for_state(atlas, chunks, piston.pistonState, pos) {
             append_block_state_model_world(
-                piston.pistonState, pos, model, moving_matrix, piston.packedLight,
-                chunks, atlas, [1.0; 4], None, vertices, indices,
+                piston.pistonState,
+                pos,
+                model,
+                moving_matrix,
+                piston.packedLight,
+                chunks,
+                atlas,
+                [1.0; 4],
+                None,
+                vertices,
+                indices,
             );
         }
     }
@@ -20693,21 +24294,29 @@ fn append_skull_tile_entity_meshes(
             continue;
         }
         if !frustum.isBoxInFrustum(
-            bounds.min_x, bounds.min_y, bounds.min_z,
-            bounds.max_x, bounds.max_y, bounds.max_z,
+            bounds.min_x,
+            bounds.min_y,
+            bounds.min_z,
+            bounds.max_x,
+            bounds.max_y,
+            bounds.max_z,
         ) {
             continue;
         }
-        let Some(mesh) = TileEntityItemStackRenderer::buildSkullMesh(
-            skull.skullType,
-            skull.animateTicks,
-        ) else { continue; };
+        let Some(mesh) =
+            TileEntityItemStackRenderer::buildSkullMesh(skull.skullType, skull.animateTicks)
+        else {
+            continue;
+        };
         let rectangle = if skull.skullType == 3 {
-            skull.playerSkinLocation.as_ref()
+            skull
+                .playerSkinLocation
+                .as_ref()
                 .and_then(|location| atlas.entityTextureRectangles.get(location).copied())
                 .unwrap_or(atlas.steveRectangle)
         } else {
-            atlas.builtInItemRectangles
+            atlas
+                .builtInItemRectangles
                 .get(&mesh.texture)
                 .copied()
                 .unwrap_or(atlas.missingRectangle)
@@ -20734,8 +24343,14 @@ fn append_skull_tile_entity_meshes(
         let block_light = ((skull.packedLight >> 4) & 15) as f32;
         let sky_light = ((skull.packedLight >> 20) & 15) as f32;
         for face in mesh.indices.chunks_exact(6) {
-            let source = [face[0] as usize, face[1] as usize, face[2] as usize, face[5] as usize];
-            let transformed = source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
+            let source = [
+                face[0] as usize,
+                face[1] as usize,
+                face[2] as usize,
+                face[5] as usize,
+            ];
+            let transformed =
+                source.map(|index| transform_point3(matrix, mesh.vertices[index].position));
             let normal = normalize3(cross3(
                 subtract3(transformed[1], transformed[0]),
                 subtract3(transformed[2], transformed[0]),
@@ -20752,7 +24367,7 @@ fn append_skull_tile_entity_meshes(
                     ],
                     color: [diffuse, diffuse, diffuse, 1.0],
                     lightmap: [block_light, sky_light],
-                
+
                     shaderEntity: [-1, -1, -1],
                     shaderPadding: 0,
                 });
@@ -20837,7 +24452,9 @@ fn inventory_player_entity_matrix(
     wholeEntityPitch: f32,
 ) -> [[f32; 4]; 4] {
     let guiPitch = rotation_x4(wholeEntityPitch);
-    let Some(player) = player.filter(|player| player.elytraFlying) else { return guiPitch; };
+    let Some(player) = player.filter(|player| player.elytraFlying) else {
+        return guiPitch;
+    };
     // GuiInventory.drawEntityOnScreen invokes RenderManager with partialTicks=1.
     let rotation = RenderPlayer::elytraCorpseRotation(
         player.ticksElytraFlying,
@@ -20848,7 +24465,6 @@ fn inventory_player_entity_matrix(
     );
     multiply4(guiPitch, player_elytra_corpse_matrix(bodyYaw, rotation))
 }
-
 
 fn can_render_player_name_for_teams(
     playerTeam: Option<&crate::net::minecraft::scoreboard::ScorePlayerTeam::ScorePlayerTeam>,
@@ -20866,9 +24482,7 @@ fn can_render_player_name_for_teams(
     // enabled remain visible.
     let visibleToLocal = !playerInvisible
         || localPlayerSpectator
-        || playerTeam.is_some_and(|team| {
-            sameTeam && team.getSeeFriendlyInvisiblesEnabled()
-        });
+        || playerTeam.is_some_and(|team| sameTeam && team.getSeeFriendlyInvisiblesEnabled());
 
     if let Some(team) = playerTeam {
         return match team.getNameTagVisibility() {
@@ -20877,9 +24491,7 @@ fn can_render_player_name_for_teams(
             "hideForOtherTeams" => localTeam.map_or(visibleToLocal, |_| {
                 sameTeam && (team.getSeeFriendlyInvisiblesEnabled() || visibleToLocal)
             }),
-            "hideForOwnTeam" => {
-                localTeam.map_or(visibleToLocal, |_| !sameTeam && visibleToLocal)
-            }
+            "hideForOwnTeam" => localTeam.map_or(visibleToLocal, |_| !sameTeam && visibleToLocal),
             // `RenderLivingBase#canRenderName` returns true from the default
             // switch branch for unknown enum values.
             _ => true,
@@ -20980,7 +24592,12 @@ fn append_nameplate_text(
         false,
     );
     for command in drawList.commands() {
-        let GuiDrawCommand::Quad { texture, topology, vertices: glyphVertices } = command else {
+        let GuiDrawCommand::Quad {
+            texture,
+            topology,
+            vertices: glyphVertices,
+        } = command
+        else {
             continue;
         };
         let rectangle = texture
@@ -21011,12 +24628,12 @@ fn append_nameplate_text(
             });
         }
         match topology {
-            GuiTopology::Quads => indices.extend_from_slice(&[
-                base, base + 1, base + 2, base + 2, base + 3, base,
-            ]),
-            GuiTopology::TriangleStrip => indices.extend_from_slice(&[
-                base, base + 1, base + 2, base + 2, base + 1, base + 3,
-            ]),
+            GuiTopology::Quads => {
+                indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 3, base])
+            }
+            GuiTopology::TriangleStrip => {
+                indices.extend_from_slice(&[base, base + 1, base + 2, base + 2, base + 1, base + 3])
+            }
         }
     }
 }
@@ -21039,14 +24656,7 @@ fn append_remote_player_nameplate_label(
     let matrix = remote_player_nameplate_matrix(anchor, cameraYaw, cameraPitch);
 
     let backgroundPass = indices.len() as u32;
-    append_nameplate_background(
-        halfWidth,
-        verticalShift,
-        matrix,
-        atlas,
-        vertices,
-        indices,
-    );
+    append_nameplate_background(halfWidth, verticalShift, matrix, atlas, vertices, indices);
     push_world_entity_draw_range(
         ranges,
         if sneaking {
@@ -21129,12 +24739,8 @@ fn append_remote_player_nameplates(
         if is_local_render_view_player(player.entityId, localPlayerEntityId) {
             continue;
         }
-        if !can_render_remote_player_name(
-            player,
-            scoreboard,
-            localPlayerName,
-            localPlayerSpectator,
-        ) {
+        if !can_render_remote_player_name(player, scoreboard, localPlayerName, localPlayerSpectator)
+        {
             continue;
         }
         let deltaX = player.position[0] - viewerPosition[0];
@@ -21187,10 +24793,11 @@ fn append_remote_player_nameplates(
             }
         }
 
-        let displayName = crate::net::minecraft::scoreboard::ScorePlayerTeam::ScorePlayerTeam::formatPlayerName(
-            scoreboard.getPlayersTeam(&player.name),
-            &player.name,
-        );
+        let displayName =
+            crate::net::minecraft::scoreboard::ScorePlayerTeam::ScorePlayerTeam::formatPlayerName(
+                scoreboard.getPlayersTeam(&player.name),
+                &player.name,
+            );
         append_remote_player_nameplate_label(
             &displayName,
             anchor,
@@ -21220,7 +24827,13 @@ fn build_remote_player_meshes(
     camera: [f32; 3],
     frustum: &Frustum,
     atlas: &AtlasState,
-) -> (Vec<WorldVertex>, Vec<u32>, Vec<WorldVertex>, Vec<u32>, usize) {
+) -> (
+    Vec<WorldVertex>,
+    Vec<u32>,
+    Vec<WorldVertex>,
+    Vec<u32>,
+    usize,
+) {
     let threadCount = rayon::current_num_threads().max(1);
     if players.len() < PARALLEL_PLAYER_BATCH_THRESHOLD || threadCount <= 1 {
         return build_remote_player_meshes_serial(players, partialTicks, camera, frustum, atlas);
@@ -21266,7 +24879,13 @@ fn build_remote_player_meshes_serial(
     camera: [f32; 3],
     frustum: &Frustum,
     atlas: &AtlasState,
-) -> (Vec<WorldVertex>, Vec<u32>, Vec<WorldVertex>, Vec<u32>, usize) {
+) -> (
+    Vec<WorldVertex>,
+    Vec<u32>,
+    Vec<WorldVertex>,
+    Vec<u32>,
+    usize,
+) {
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let mut glintVertices = Vec::new();
@@ -21309,8 +24928,8 @@ fn build_remote_player_meshes_serial(
         let limbAmount = player.prevLimbSwingAmount
             + (player.limbSwingAmount - player.prevLimbSwingAmount) * partial;
         let limbSwing = player.limbSwing - player.limbSwingAmount * (1.0 - partial);
-        let swing = player.prevSwingProgress
-            + (player.swingProgress - player.prevSwingProgress) * partial;
+        let swing =
+            player.prevSwingProgress + (player.swingProgress - player.prevSwingProgress) * partial;
         let ageInTicks = player.ticksExisted as f32 + partial;
         let slim = player.slim;
         let (leftArmPose, rightArmPose) = player_arm_poses(
@@ -21320,9 +24939,18 @@ fn build_remote_player_meshes_serial(
             player.primaryHand,
         );
         let renderInput = PlayerRenderInput {
-            position, bodyYaw: modelBodyYaw, headYaw, headPitch, limbSwing,
-            limbSwingAmount: limbAmount, ageInTicks, swingProgress: swing,
-            sneaking: player.sneaking && !player.sleeping, riding: player.riding && !player.sleeping, slim, skinParts: player.skinParts,
+            position,
+            bodyYaw: modelBodyYaw,
+            headYaw,
+            headPitch,
+            limbSwing,
+            limbSwingAmount: limbAmount,
+            ageInTicks,
+            swingProgress: swing,
+            sneaking: player.sneaking && !player.sleeping,
+            riding: player.riding && !player.sleeping,
+            slim,
+            skinParts: player.skinParts,
             swingingArmIsLeft: player.swingingArmIsLeft,
             leftArmPose,
             rightArmPose,
@@ -21341,7 +24969,9 @@ fn build_remote_player_meshes_serial(
                 );
             }
         }
-        if model.indices.is_empty() { continue; }
+        if model.indices.is_empty() {
+            continue;
+        }
         let rectangle = player_skin_rectangle(atlas, &player.skinLocation, slim);
         let base = vertices.len() as u32;
         let blockLight = ((player.packedLight >> 4) & 15) as f32;
@@ -21350,17 +24980,14 @@ fn build_remote_player_meshes_serial(
         // alpha 0.3 while hurtTime/deathTime is active. Players carry the same
         // out-of-range block-light sentinel used by non-player living models;
         // held items are submitted after the model with ordinary packed light.
-        let modelBlockLight = encoded_living_hurt_block_light(
-            blockLight,
-            player.hurtTime,
-            player.deathTime,
-        );
+        let modelBlockLight =
+            encoded_living_hurt_block_light(blockLight, player.hurtTime, player.deathTime);
         vertices.extend(model.vertices.into_iter().map(|vertex| WorldVertex {
             position: vertex.position,
             uv: map_player_skin_uv(rectangle, vertex.uv),
             color: [1.0, 1.0, 1.0, 1.0],
             lightmap: [modelBlockLight, skyLight],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         }));
@@ -21370,57 +24997,85 @@ fn build_remote_player_meshes_serial(
         // Deadmau5 ears, cape, custom head, elytra, shoulder entities.
         let armorVertexStart = vertices.len();
         append_world_player_armor(
-            player, pose, position, modelBodyYaw, atlas, blockLight, skyLight,
-            &mut vertices, &mut indices,
+            player,
+            pose,
+            position,
+            modelBodyYaw,
+            atlas,
+            blockLight,
+            skyLight,
+            &mut vertices,
+            &mut indices,
         );
         if player.sleeping {
-            apply_sleeping_transform_to_range(
-                &mut vertices[armorVertexStart..], position, player,
-            );
+            apply_sleeping_transform_to_range(&mut vertices[armorVertexStart..], position, player);
         }
 
         let heldVertexStart = vertices.len();
         append_world_player_held_items(
-            player, pose, position, modelBodyYaw, atlas, &mut vertices, &mut indices,
+            player,
+            pose,
+            position,
+            modelBodyYaw,
+            atlas,
+            &mut vertices,
+            &mut indices,
         );
         if player.sleeping {
-            apply_sleeping_transform_to_range(
-                &mut vertices[heldVertexStart..], position, player,
-            );
+            apply_sleeping_transform_to_range(&mut vertices[heldVertexStart..], position, player);
         }
 
         // LayerCape does not combine with the hurt/death brightness layer.
         let capeVertexStart = vertices.len();
         append_world_player_cape(
-            player, position, modelBodyYaw, partial, atlas, blockLight, skyLight,
-            &mut vertices, &mut indices,
+            player,
+            position,
+            modelBodyYaw,
+            partial,
+            atlas,
+            blockLight,
+            skyLight,
+            &mut vertices,
+            &mut indices,
         );
         if player.sleeping {
-            apply_sleeping_transform_to_range(
-                &mut vertices[capeVertexStart..], position, player,
-            );
+            apply_sleeping_transform_to_range(&mut vertices[capeVertexStart..], position, player);
         }
 
         let customHeadVertexStart = vertices.len();
         append_world_player_custom_head(
-            player, pose, position, modelBodyYaw, limbSwing, atlas, blockLight, skyLight,
-            &mut vertices, &mut indices,
+            player,
+            pose,
+            position,
+            modelBodyYaw,
+            limbSwing,
+            atlas,
+            blockLight,
+            skyLight,
+            &mut vertices,
+            &mut indices,
         );
         if player.sleeping {
             apply_sleeping_transform_to_range(
-                &mut vertices[customHeadVertexStart..], position, player,
+                &mut vertices[customHeadVertexStart..],
+                position,
+                player,
             );
         }
 
         let elytraVertexStart = vertices.len();
         append_world_player_elytra(
-            player, position, modelBodyYaw, atlas, blockLight, skyLight,
-            &mut vertices, &mut indices,
+            player,
+            position,
+            modelBodyYaw,
+            atlas,
+            blockLight,
+            skyLight,
+            &mut vertices,
+            &mut indices,
         );
         if player.sleeping {
-            apply_sleeping_transform_to_range(
-                &mut vertices[elytraVertexStart..], position, player,
-            );
+            apply_sleeping_transform_to_range(&mut vertices[elytraVertexStart..], position, player);
         }
 
         append_world_player_glint(
@@ -21479,10 +25134,7 @@ fn apply_sleeping_transform_to_range(
     }
 }
 
-fn player_armor_stack(
-    player: &RemotePlayerRenderState,
-    slot: EntityEquipmentSlot,
-) -> &ItemStack {
+fn player_armor_stack(player: &RemotePlayerRenderState, slot: EntityEquipmentSlot) -> &ItemStack {
     match slot {
         EntityEquipmentSlot::Feet => &player.armorStacks[0],
         EntityEquipmentSlot::Legs => &player.armorStacks[1],
@@ -21544,7 +25196,7 @@ fn append_glint_mesh(
             uv: enchanted_glint_uv(rectangle, vertex.uv, pass),
             color: pass.color,
             lightmap: [15.0, 15.0],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         }));
@@ -21563,10 +25215,13 @@ fn append_world_player_glint(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(rectangle) = atlas.textureRectangles
+    let Some(rectangle) = atlas
+        .textureRectangles
         .get(&LayerArmorBase::glintTexture())
         .copied()
-    else { return; };
+    else {
+        return;
+    };
 
     for slot in [
         EntityEquipmentSlot::Chest,
@@ -21575,8 +25230,12 @@ fn append_world_player_glint(
         EntityEquipmentSlot::Head,
     ] {
         let stack = player_armor_stack(player, slot);
-        let Some(definition) = ItemArmor::definition(stack.itemId) else { continue; };
-        if definition.slot != slot || !stack.isItemEnchanted() { continue; }
+        let Some(definition) = ItemArmor::definition(stack.itemId) else {
+            continue;
+        };
+        if definition.slot != slot || !stack.isItemEnchanted() {
+            continue;
+        }
         let mesh = RenderPlayer::buildBoxesMesh(
             LayerBipedArmor::boxes(pose, slot),
             position,
@@ -21595,11 +25254,7 @@ fn append_world_player_glint(
             player.sneaking && !player.sleeping,
             player.elytraRotation,
         );
-        let mut mesh = RenderPlayer::buildLocalBoxesMesh(
-            ModelElytra::boxes(pose),
-            64.0,
-            32.0,
-        );
+        let mut mesh = RenderPlayer::buildLocalBoxesMesh(ModelElytra::boxes(pose), 64.0, 32.0);
         let mut matrix = multiply4(
             translation4(position),
             player_layer_root_matrix(modelBodyYaw, player.sneaking && !player.sleeping),
@@ -21633,12 +25288,20 @@ fn append_world_player_armor(
         EntityEquipmentSlot::Head,
     ] {
         let stack = player_armor_stack(player, slot);
-        let Some(definition) = ItemArmor::definition(stack.itemId) else { continue; };
-        if definition.slot != slot { continue; }
+        let Some(definition) = ItemArmor::definition(stack.itemId) else {
+            continue;
+        };
+        if definition.slot != slot {
+            continue;
+        }
         let boxes = LayerBipedArmor::boxes(pose, slot);
         for tint in LayerArmorBase::tintPasses(stack) {
-            let Some(texture) = LayerArmorBase::texture(stack, tint.overlay) else { continue; };
-            let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else { continue; };
+            let Some(texture) = LayerArmorBase::texture(stack, tint.overlay) else {
+                continue;
+            };
+            let Some(rectangle) = atlas.entityTextureRectangles.get(&texture).copied() else {
+                continue;
+            };
             let mesh = RenderPlayer::buildBoxesMesh(
                 boxes.iter().copied(),
                 position,
@@ -21653,7 +25316,7 @@ fn append_world_player_armor(
                 uv: map_player_skin_uv(rectangle, vertex.uv),
                 color: tint.color,
                 lightmap: [blockLight, skyLight],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             }));
@@ -21684,11 +25347,15 @@ fn append_world_player_custom_head(
         return;
     };
     let rectangle = if skullType == 3 {
-        player.customHeadSkinLocation.as_ref()
+        player
+            .customHeadSkinLocation
+            .as_ref()
             .and_then(|location| atlas.entityTextureRectangles.get(location).copied())
             .unwrap_or(atlas.steveRectangle)
     } else {
-        atlas.builtInItemRectangles.get(&mesh.texture)
+        atlas
+            .builtInItemRectangles
+            .get(&mesh.texture)
             .copied()
             .unwrap_or(atlas.missingRectangle)
     };
@@ -21705,11 +25372,14 @@ fn append_world_player_custom_head(
         matrix = multiply4(matrix, translation4([0.0, 0.2, 0.0]));
     }
     matrix = post_render_part_matrix(matrix, pose.head);
-    matrix = multiply4(matrix, scale4_nonuniform([
-        LayerCustomHead::SKULL_SCALE,
-        -LayerCustomHead::SKULL_SCALE,
-        -LayerCustomHead::SKULL_SCALE,
-    ]));
+    matrix = multiply4(
+        matrix,
+        scale4_nonuniform([
+            LayerCustomHead::SKULL_SCALE,
+            -LayerCustomHead::SKULL_SCALE,
+            -LayerCustomHead::SKULL_SCALE,
+        ]),
+    );
 
     let base = vertices.len() as u32;
     vertices.extend(mesh.vertices.into_iter().map(|vertex| {
@@ -21723,7 +25393,7 @@ fn append_world_player_custom_head(
             uv: map_player_skin_uv(rectangle, vertex.uv),
             color: [1.0; 4],
             lightmap: [blockLight, skyLight],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         }
@@ -21742,13 +25412,17 @@ fn append_world_player_elytra(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    if !ItemArmor::isElytra(&player.chestStack) { return; }
-    let Some(location) = player.elytraLocation.as_ref() else { return; };
-    let Some(rectangle) = atlas.entityTextureRectangles.get(location).copied() else { return; };
-    let pose = ModelElytra::poseFromRotations(
-        player.sneaking && !player.sleeping,
-        player.elytraRotation,
-    );
+    if !ItemArmor::isElytra(&player.chestStack) {
+        return;
+    }
+    let Some(location) = player.elytraLocation.as_ref() else {
+        return;
+    };
+    let Some(rectangle) = atlas.entityTextureRectangles.get(location).copied() else {
+        return;
+    };
+    let pose =
+        ModelElytra::poseFromRotations(player.sneaking && !player.sleeping, player.elytraRotation);
     let mesh = RenderPlayer::buildLocalBoxesMesh(ModelElytra::boxes(pose), 64.0, 32.0);
     let mut matrix = multiply4(
         translation4(position),
@@ -21762,7 +25436,7 @@ fn append_world_player_elytra(
         uv: map_player_skin_uv(rectangle, vertex.uv),
         color: [1.0; 4],
         lightmap: [blockLight, skyLight],
-    
+
         shaderEntity: [-1, -1, -1],
         shaderPadding: 0,
     }));
@@ -21781,13 +25455,10 @@ fn append_world_player_cape(
     vertices: &mut Vec<WorldVertex>,
     indices: &mut Vec<u32>,
 ) {
-    let Some(capeLocation) = player.capeLocation.as_ref() else { return; };
-    if !LayerCape::shouldRender(
-        true,
-        player.invisible,
-        player.skinParts,
-        &player.chestStack,
-    ) {
+    let Some(capeLocation) = player.capeLocation.as_ref() else {
+        return;
+    };
+    if !LayerCape::shouldRender(true, player.invisible, player.skinParts, &player.chestStack) {
         return;
     }
     let Some(rectangle) = atlas.entityTextureRectangles.get(capeLocation).copied() else {
@@ -21831,7 +25502,7 @@ fn append_world_player_cape(
         uv: map_player_skin_uv(rectangle, vertex.uv),
         color: [1.0, 1.0, 1.0, 1.0],
         lightmap: [blockLight, skyLight],
-    
+
         shaderEntity: [-1, -1, -1],
         shaderPadding: 0,
     }));
@@ -21857,13 +25528,21 @@ fn sleeping_player_point(
 fn rotate_y_degrees(point: [f32; 3], degrees: f32) -> [f32; 3] {
     let radians = degrees.to_radians();
     let (sin, cos) = radians.sin_cos();
-    [point[0] * cos + point[2] * sin, point[1], -point[0] * sin + point[2] * cos]
+    [
+        point[0] * cos + point[2] * sin,
+        point[1],
+        -point[0] * sin + point[2] * cos,
+    ]
 }
 
 fn rotate_z_degrees(point: [f32; 3], degrees: f32) -> [f32; 3] {
     let radians = degrees.to_radians();
     let (sin, cos) = radians.sin_cos();
-    [point[0] * cos - point[1] * sin, point[0] * sin + point[1] * cos, point[2]]
+    [
+        point[0] * cos - point[1] * sin,
+        point[0] * sin + point[1] * cos,
+        point[2],
+    ]
 }
 
 fn skull_profile_cache_key(profile: &GameProfile) -> String {
@@ -21886,14 +25565,18 @@ fn skull_profile_cache_key(profile: &GameProfile) -> String {
     key
 }
 
-fn player_skin_rectangle(
-    atlas: &AtlasState,
-    location: &ResourceLocation,
-    slim: bool,
-) -> [f32; 4] {
-    atlas.entityTextureRectangles.get(location).copied().unwrap_or_else(|| {
-        if slim { atlas.alexRectangle } else { atlas.steveRectangle }
-    })
+fn player_skin_rectangle(atlas: &AtlasState, location: &ResourceLocation, slim: bool) -> [f32; 4] {
+    atlas
+        .entityTextureRectangles
+        .get(location)
+        .copied()
+        .unwrap_or_else(|| {
+            if slim {
+                atlas.alexRectangle
+            } else {
+                atlas.steveRectangle
+            }
+        })
 }
 
 fn map_player_skin_uv(rectangle: [f32; 4], uv: [f32; 2]) -> [f32; 2] {
@@ -21909,8 +25592,12 @@ fn lerp_f64(start: f64, end: f64, partial: f32) -> f64 {
 
 fn interpolate_rotation(previous: f32, current: f32, partial: f32) -> f32 {
     let mut difference = current - previous;
-    while difference < -180.0 { difference += 360.0; }
-    while difference >= 180.0 { difference -= 360.0; }
+    while difference < -180.0 {
+        difference += 360.0;
+    }
+    while difference >= 180.0 {
+        difference -= 360.0;
+    }
     previous + difference * partial
 }
 
@@ -21953,7 +25640,6 @@ fn normalize3(value: [f32; 3]) -> [f32; 3] {
         [value[0] / length, value[1] / length, value[2] / length]
     }
 }
-
 
 fn camera_axes(yaw: f32, pitch: f32) -> ([f32; 3], [f32; 3], [f32; 3]) {
     let yawRadians = (-yaw as f64).to_radians() - std::f64::consts::PI;
@@ -22030,12 +25716,7 @@ fn to_column_major(matrix: [[f32; 4]; 4]) -> [f32; 16] {
     output
 }
 
-fn cube_face(
-    x: i32,
-    y: i32,
-    z: i32,
-    facing: EnumFacing,
-) -> ([[f32; 3]; 4], [[f32; 2]; 4]) {
+fn cube_face(x: i32, y: i32, z: i32, facing: EnumFacing) -> ([[f32; 3]; 4], [[f32; 2]; 4]) {
     let x0 = x as f32;
     let x1 = x0 + 1.0;
     let y0 = y as f32;
@@ -22096,7 +25777,6 @@ fn face_brightness(facing: EnumFacing) -> f32 {
     }
 }
 
-
 fn sky_color(
     dimension: i32,
     biomeSkyColor: [f32; 3],
@@ -22114,8 +25794,7 @@ fn sky_color(
     // `World#getSkyColor`: weather strengths are currently zero until the
     // corresponding WorldInfo interpolation is ported, but celestial and
     // lightning terms exactly follow MCP 1.12.2.
-    let daylight = ((celestialAngle * std::f32::consts::TAU).cos() * 2.0 + 0.5)
-        .clamp(0.0, 1.0);
+    let daylight = ((celestialAngle * std::f32::consts::TAU).cos() * 2.0 + 0.5).clamp(0.0, 1.0);
     let mut color = [
         biomeSkyColor[0] * daylight,
         biomeSkyColor[1] * daylight,
@@ -22136,8 +25815,8 @@ fn fog_color(dimension: i32, celestialAngle: f32) -> [f32; 4] {
         1 => [0.0, 0.0, 0.0, 1.0],
         _ => {
             // MCP `WorldProvider#getFogColor` for the surface provider.
-            let daylight = ((celestialAngle * std::f32::consts::TAU).cos() * 2.0 + 0.5)
-                .clamp(0.0, 1.0);
+            let daylight =
+                ((celestialAngle * std::f32::consts::TAU).cos() * 2.0 + 0.5).clamp(0.0, 1.0);
             [
                 0.752_941_2 * (daylight * 0.94 + 0.06),
                 0.847_058_83 * (daylight * 0.94 + 0.06),
@@ -22156,17 +25835,12 @@ fn sunrise_sunset_colors(celestialAngle: f32) -> Option<[f32; 4]> {
     let phase = cosine / 0.4 * 0.5 + 0.5;
     let mut alpha = 1.0 - (1.0 - (phase * std::f32::consts::PI).sin()) * 0.99;
     alpha *= alpha;
-    Some([
-        phase * 0.3 + 0.7,
-        phase * phase * 0.7 + 0.2,
-        0.2,
-        alpha,
-    ])
+    Some([phase * 0.3 + 0.7, phase * phase * 0.7 + 0.2, 0.2, alpha])
 }
 
 fn star_brightness(celestialAngle: f32) -> f32 {
-    let darkness = (1.0 - ((celestialAngle * std::f32::consts::TAU).cos() * 2.0 + 0.25))
-        .clamp(0.0, 1.0);
+    let darkness =
+        (1.0 - ((celestialAngle * std::f32::consts::TAU).cos() * 2.0 + 0.25)).clamp(0.0, 1.0);
     darkness * darkness * 0.5
 }
 
@@ -22181,7 +25855,9 @@ fn dynamic_quad_tint(
         return [1.0; 3];
     }
     let tintIndex = face.layers[0].tintIndex.unwrap_or(-1);
-    let color = atlas.blockColors.colorMultiplier(state, access, pos, tintIndex);
+    let color = atlas
+        .blockColors
+        .colorMultiplier(state, access, pos, tintIndex);
     if color < 0 {
         [1.0; 3]
     } else {
@@ -22197,10 +25873,9 @@ fn dynamic_quad_tint(
 /// item-damage order: black through white.
 fn dye_color_value_by_damage(damage: usize) -> i32 {
     const DYE_RGB: [i32; 16] = [
-        1_908_001, 11_546_150, 6_192_150, 8_606_770,
-        3_949_738, 8_991_416, 1_481_884, 10_329_495,
-        4_673_362, 15_961_002, 8_439_583, 16_701_501,
-        3_847_130, 13_061_821, 16_351_261, 16_383_998,
+        1_908_001, 11_546_150, 6_192_150, 8_606_770, 3_949_738, 8_991_416, 1_481_884, 10_329_495,
+        4_673_362, 15_961_002, 8_439_583, 16_701_501, 3_847_130, 13_061_821, 16_351_261,
+        16_383_998,
     ];
     DYE_RGB[damage.min(15)]
 }
@@ -22260,10 +25935,8 @@ fn tint_color(blockId: i32, tintIndex: Option<i32>) -> [f32; 3] {
 }
 
 fn missing_atlas() -> BlockTextureAtlas {
-    let source = TextureSource::missing(ResourceLocation::new(
-        "minecraft",
-        "textures/missingno.png",
-    ));
+    let source =
+        TextureSource::missing(ResourceLocation::new("minecraft", "textures/missingno.png"));
     BlockTextureAtlas {
         width: source.image.width(),
         height: source.image.height(),
@@ -22317,10 +25990,18 @@ mod tests {
         ));
 
         assert!(can_render_player_name_for_teams(
-            Some(&red), Some(&red), false, false, false,
+            Some(&red),
+            Some(&red),
+            false,
+            false,
+            false,
         ));
         assert!(!can_render_player_name_for_teams(
-            Some(&red), Some(&red), true, false, false,
+            Some(&red),
+            Some(&red),
+            true,
+            false,
+            false,
         ));
         assert!(can_render_player_name_for_teams(
             Some(&redFriendlyInvisible),
@@ -22332,23 +26013,43 @@ mod tests {
 
         let never = test_team("red", "never", 2);
         assert!(!can_render_player_name_for_teams(
-            Some(&never), Some(&never), false, false, false,
+            Some(&never),
+            Some(&never),
+            false,
+            false,
+            false,
         ));
 
         let hideOther = test_team("red", "hideForOtherTeams", 0);
         assert!(can_render_player_name_for_teams(
-            Some(&hideOther), Some(&hideOther), false, false, false,
+            Some(&hideOther),
+            Some(&hideOther),
+            false,
+            false,
+            false,
         ));
         assert!(!can_render_player_name_for_teams(
-            Some(&hideOther), Some(&blue), false, false, false,
+            Some(&hideOther),
+            Some(&blue),
+            false,
+            false,
+            false,
         ));
 
         let hideOwn = test_team("red", "hideForOwnTeam", 0);
         assert!(!can_render_player_name_for_teams(
-            Some(&hideOwn), Some(&hideOwn), false, false, false,
+            Some(&hideOwn),
+            Some(&hideOwn),
+            false,
+            false,
+            false,
         ));
         assert!(can_render_player_name_for_teams(
-            Some(&hideOwn), Some(&blue), false, false, false,
+            Some(&hideOwn),
+            Some(&blue),
+            false,
+            false,
+            false,
         ));
     }
 
@@ -22598,12 +26299,15 @@ mod tests {
         let second = cache.store(second_input, Duration::ZERO);
 
         assert_eq!(second.entityMeshGeneration, first.entityMeshGeneration);
-        assert_eq!(second.entityDrawRanges.as_ref(), &vec![WorldEntityDrawRange {
-            pipeline: WorldEntityPipelineKind::BlockEntities,
-            mesh: WorldEntityMeshKind::Dynamic,
-            firstIndex: 0,
-            indexCount: 1,
-        }]);
+        assert_eq!(
+            second.entityDrawRanges.as_ref(),
+            &vec![WorldEntityDrawRange {
+                pipeline: WorldEntityPipelineKind::BlockEntities,
+                mesh: WorldEntityMeshKind::Dynamic,
+                firstIndex: 0,
+                indexCount: 1,
+            }]
+        );
     }
 
     #[test]
@@ -22664,10 +26368,18 @@ mod tests {
 
     #[test]
     fn obfuscated_sign_text_bypasses_persistent_mesh_cache() {
-        assert!(sign_uses_obfuscated_formatting(&sign_state_with_line("§kobfuscated")));
-        assert!(sign_uses_obfuscated_formatting(&sign_state_with_line("§KOBFUSCATED")));
-        assert!(!sign_uses_obfuscated_formatting(&sign_state_with_line("§aordinary")));
-        assert!(!sign_uses_obfuscated_formatting(&sign_state_with_line("plain text")));
+        assert!(sign_uses_obfuscated_formatting(&sign_state_with_line(
+            "§kobfuscated"
+        )));
+        assert!(sign_uses_obfuscated_formatting(&sign_state_with_line(
+            "§KOBFUSCATED"
+        )));
+        assert!(!sign_uses_obfuscated_formatting(&sign_state_with_line(
+            "§aordinary"
+        )));
+        assert!(!sign_uses_obfuscated_formatting(&sign_state_with_line(
+            "plain text"
+        )));
     }
 
     #[test]
@@ -22692,9 +26404,15 @@ mod tests {
             textures: vec![texture],
         };
         assert_eq!(material_tile_size(&material), 64);
-        let extent = material.textures.iter().fold((1_u32, 1_u32), |size, texture| {
-            (size.0.max(texture.image.width()), size.1.max(texture.image.height()))
-        });
+        let extent = material
+            .textures
+            .iter()
+            .fold((1_u32, 1_u32), |size, texture| {
+                (
+                    size.0.max(texture.image.width()),
+                    size.1.max(texture.image.height()),
+                )
+            });
         assert_eq!(extent, (64, 32));
     }
 
@@ -22762,7 +26480,10 @@ mod tests {
             layered_color_mask_pixel(base, [127, 255, 255, 255], 0xFFFFFF),
             [128, 64, 32, 255],
         );
-        assert_eq!(layered_color_mask_pixel(base, [255, 255, 255, 0], 0xFFFFFF), base);
+        assert_eq!(
+            layered_color_mask_pixel(base, [255, 255, 255, 0], 0xFFFFFF),
+            base
+        );
     }
 
     #[test]
@@ -22820,34 +26541,52 @@ mod tests {
 
     #[test]
     fn block_model_renderer_bounds_choose_adjacent_light_exactly() {
-        let eastBoundary = [[1.0, 0.0, 0.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.0]];
-        let eastInset = [[0.5, 0.0, 0.0], [0.5, 0.0, 1.0], [0.5, 1.0, 1.0], [0.5, 1.0, 0.0]];
-        assert!(quad_uses_neighbour_light(eastBoundary, EnumFacing::East, false));
-        assert!(!quad_uses_neighbour_light(eastInset, EnumFacing::East, false));
+        let eastBoundary = [
+            [1.0, 0.0, 0.0],
+            [1.0, 0.0, 1.0],
+            [1.0, 1.0, 1.0],
+            [1.0, 1.0, 0.0],
+        ];
+        let eastInset = [
+            [0.5, 0.0, 0.0],
+            [0.5, 0.0, 1.0],
+            [0.5, 1.0, 1.0],
+            [0.5, 1.0, 0.0],
+        ];
+        assert!(quad_uses_neighbour_light(
+            eastBoundary,
+            EnumFacing::East,
+            false
+        ));
+        assert!(!quad_uses_neighbour_light(
+            eastInset,
+            EnumFacing::East,
+            false
+        ));
         assert!(quad_uses_neighbour_light(eastInset, EnumFacing::East, true));
     }
 
     #[test]
     fn stairs_and_slabs_use_world_neighbour_brightness() {
-        assert!(crate::net::minecraft::block::Block::Block::getBlockById(53).useNeighborBrightness());
-        assert!(crate::net::minecraft::block::Block::Block::getBlockById(44).useNeighborBrightness());
-        assert!(!crate::net::minecraft::block::Block::Block::getBlockById(1).useNeighborBrightness());
+        assert!(
+            crate::net::minecraft::block::Block::Block::getBlockById(53).useNeighborBrightness()
+        );
+        assert!(
+            crate::net::minecraft::block::Block::Block::getBlockById(44).useNeighborBrightness()
+        );
+        assert!(
+            !crate::net::minecraft::block::Block::Block::getBlockById(1).useNeighborBrightness()
+        );
     }
 
     #[test]
     fn compiled_chunk_layer_ranges_are_contiguous_and_rebased() {
         let mut layers: [LayerMesh; 4] = std::array::from_fn(|_| LayerMesh::default());
-        layers[BlockRenderLayer::Solid.index()].vertices = vec![
-            test_vertex(0.0),
-            test_vertex(1.0),
-            test_vertex(2.0),
-        ];
+        layers[BlockRenderLayer::Solid.index()].vertices =
+            vec![test_vertex(0.0), test_vertex(1.0), test_vertex(2.0)];
         layers[BlockRenderLayer::Solid.index()].indices = vec![0, 1, 2];
-        layers[BlockRenderLayer::Translucent.index()].vertices = vec![
-            test_vertex(3.0),
-            test_vertex(4.0),
-            test_vertex(5.0),
-        ];
+        layers[BlockRenderLayer::Translucent.index()].vertices =
+            vec![test_vertex(3.0), test_vertex(4.0), test_vertex(5.0)];
         layers[BlockRenderLayer::Translucent.index()].indices = vec![0, 2, 1];
 
         let (vertices, indices, ranges) = combine_layer_meshes(layers);
@@ -22874,10 +26613,22 @@ mod tests {
         let width = 320.0_f32;
         let height = 180.0_f32;
         let matrix = [
-            2.0 / width, 0.0, 0.0, 0.0,
-            0.0, 2.0 / height, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            -1.0, -1.0, 0.0, 1.0,
+            2.0 / width,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.0 / height,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            -1.0,
+            -1.0,
+            0.0,
+            1.0,
         ];
         let top = transform_column_major(matrix, [0.0, 0.0, 0.0, 1.0]);
         let bottom = transform_column_major(matrix, [0.0, height, 0.0, 1.0]);
@@ -22885,13 +26636,13 @@ mod tests {
         assert!((bottom[1] - 1.0).abs() < 1.0e-6);
     }
 
-
     #[test]
     fn camera_basis_remains_finite_and_yaw_stable_at_vertical_pitch() {
         for yaw in [0.0_f32, 45.0, 90.0, 180.0, 271.0] {
             for pitch in [-90.0_f32, 90.0] {
                 let (right, up, forward) = camera_axes(yaw, pitch);
-                let matrix = camera_matrix(yaw, pitch, [0.0, 64.0, 0.0], 70.0, 16.0 / 9.0, 0.05, 512.0);
+                let matrix =
+                    camera_matrix(yaw, pitch, [0.0, 64.0, 0.0], 70.0, 16.0 / 9.0, 0.05, 512.0);
                 assert!(matrix.into_iter().flatten().all(f32::is_finite));
                 let yawRadians = (-yaw as f64).to_radians() - std::f64::consts::PI;
                 let expectedRight = [yawRadians.cos() as f32, 0.0, -yawRadians.sin() as f32];
@@ -22911,7 +26662,8 @@ mod tests {
     #[test]
     fn third_person_camera_world_offset_uses_interpolated_view_rotation() {
         let world = WorldClient::new(0);
-        let mut player = crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP::new(1);
+        let mut player =
+            crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP::new(1);
         player.entity.rotationYaw = 90.0;
         player.entity.rotationPitch = 0.0;
         let position = PlayerPositionState {
@@ -22934,7 +26686,8 @@ mod tests {
     #[test]
     fn front_third_person_camera_uses_interpolated_forward_direction() {
         let world = WorldClient::new(0);
-        let mut player = crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP::new(1);
+        let mut player =
+            crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP::new(1);
         player.entity.rotationYaw = 90.0;
         let position = PlayerPositionState {
             posX: 0.0,
@@ -22956,7 +26709,8 @@ mod tests {
     #[test]
     fn local_camera_position_interpolates_between_client_ticks() {
         let mut state = PlayClientState::default();
-        let mut player = crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP::new(1);
+        let mut player =
+            crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP::new(1);
         player.entity.prevPosX = 10.0;
         player.entity.prevPosY = 64.0;
         player.entity.prevPosZ = -4.0;
@@ -22995,7 +26749,10 @@ mod tests {
             assert_eq!(double_plant_actual_model_key(upper, lowerRose), (4, true));
         }
         let lowerFern = IBlockState::fromGlobalStateId((175 << 4) | 3);
-        assert_eq!(double_plant_actual_model_key(lowerFern, lowerFern), (3, false));
+        assert_eq!(
+            double_plant_actual_model_key(lowerFern, lowerFern),
+            (3, false)
+        );
     }
 
     #[test]
@@ -23013,7 +26770,9 @@ mod tests {
         let mut zombie = EntityOtherClient::new(
             1,
             None,
-            ClientEntityKind::Mob { entityType: MobEntityType::fromId(54).unwrap() },
+            ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(54).unwrap(),
+            },
             0.0,
             64.0,
             0.0,
@@ -23045,8 +26804,7 @@ mod tests {
         );
         item.hurtTime = 10;
         assert_eq!(
-            packed_light_with_living_hurt_overlay(&item, 0x00F0_00F0)
-                & ENTITY_HURT_OVERLAY_FLAG,
+            packed_light_with_living_hurt_overlay(&item, 0x00F0_00F0) & ENTITY_HURT_OVERLAY_FLAG,
             0,
         );
     }
@@ -23095,19 +26853,13 @@ mod tests {
                 });
             }
         }
-        let mut indices = vec![
-            0, 1, 2, 0, 2, 3,
-            4, 5, 6, 4, 6, 7,
-        ];
+        let mut indices = vec![0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7];
         assert!(sort_translucent_indices(
             vertices.as_slice(),
             indices.as_mut_slice(),
             [0.0, 0.0, 0.0],
         ));
-        assert_eq!(
-            indices,
-            vec![4, 5, 6, 4, 6, 7, 0, 1, 2, 0, 2, 3],
-        );
+        assert_eq!(indices, vec![4, 5, 6, 4, 6, 7, 0, 1, 2, 0, 2, 3],);
     }
 
     #[test]
@@ -23157,10 +26909,7 @@ mod tests {
         let orderCapacity = scratch.order.capacity();
         let mut sorted = original.clone();
         assert!(apply_translucent_sort(sorted.as_mut_slice(), &scratch));
-        assert_eq!(
-            sorted,
-            vec![4, 5, 6, 4, 6, 7, 0, 1, 2, 0, 2, 3]
-        );
+        assert_eq!(sorted, vec![4, 5, 6, 4, 6, 7, 0, 1, 2, 0, 2, 3]);
 
         // A second prepare reuses the same retained storage.
         assert!(!prepare_translucent_sort(
@@ -23189,9 +26938,7 @@ mod tests {
             test_vertex(8.0),
             test_vertex(8.0),
         ];
-        let mut indices = vec![
-            0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11,
-        ];
+        let mut indices = vec![0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11];
         let opaque = indices[..6].to_vec();
         assert!(sort_translucent_index_range(
             vertices.as_slice(),
@@ -23215,7 +26962,7 @@ mod tests {
                 uv: [0.0, 0.0],
                 color: [1.0; 4],
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             },
@@ -23224,7 +26971,7 @@ mod tests {
                 uv: [1.0, 1.0],
                 color: [1.0; 4],
                 lightmap: [15.0, 15.0],
-            
+
                 shaderEntity: [-1, -1, -1],
                 shaderPadding: 0,
             },
@@ -23251,7 +26998,7 @@ mod tests {
             uv: [0.0, 0.0],
             color: [1.0; 4],
             lightmap: [15.0, 15.0],
-        
+
             shaderEntity: [-1, -1, -1],
             shaderPadding: 0,
         }];
@@ -23259,7 +27006,10 @@ mod tests {
             &mut vertices,
             [0.0, 0.0, 0.0],
             180.0,
-            ElytraCorpseRotation { pitchDegrees: -90.0, yawDegrees: 0.0 },
+            ElytraCorpseRotation {
+                pitchDegrees: -90.0,
+                yawDegrees: 0.0,
+            },
         );
         assert!(vertices[0].position[0].abs() < 1.0e-6);
         assert!(vertices[0].position[1].abs() < 1.0e-6);
@@ -23268,9 +27018,24 @@ mod tests {
 
     #[test]
     fn render_player_arm_poses_follow_primary_hand_and_active_item_actions() {
-        let paper = ItemStack { itemId: 339, count: 1, itemDamage: 0, tagCompound: None };
-        let bow = ItemStack { itemId: 261, count: 1, itemDamage: 0, tagCompound: None };
-        let shield = ItemStack { itemId: 442, count: 1, itemDamage: 0, tagCompound: None };
+        let paper = ItemStack {
+            itemId: 339,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
+        let bow = ItemStack {
+            itemId: 261,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
+        let shield = ItemStack {
+            itemId: 442,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
 
         assert_eq!(
             player_arm_poses(&paper, &ItemStack::EMPTY, 0, EnumHandSide::Right),
@@ -23292,14 +27057,20 @@ mod tests {
 
     #[test]
     fn model_renderer_post_arm_translation_uses_one_sixteenth_scale() {
-        let pose = PartPose { pivot: [16.0, 8.0, -4.0], rotation: [0.0; 3] };
+        let pose = PartPose {
+            pivot: [16.0, 8.0, -4.0],
+            rotation: [0.0; 3],
+        };
         let transformed = transform_point3(post_render_part_matrix(identity4(), pose), [0.0; 3]);
         assert_eq!(transformed, [1.0, 0.5, -0.25]);
     }
 
     #[test]
     fn world_held_item_anchor_uses_render_player_root_and_layer_transform_order() {
-        let arm = PartPose { pivot: [-5.0, 2.0, 0.0], rotation: [0.0; 3] };
+        let arm = PartPose {
+            pivot: [-5.0, 2.0, 0.0],
+            rotation: [0.0; 3],
+        };
         let mut matrix = multiply4(
             translation4([10.0, 64.0, -3.0]),
             player_layer_root_matrix(0.0, false),
@@ -23314,7 +27085,11 @@ mod tests {
         let anchor = transform_point3(matrix, [0.0; 3]);
         let expected = [9.6484375, 64.70406, -2.8828125];
         for axis in 0..3 {
-            assert!((anchor[axis] - expected[axis]).abs() < 1.0e-5, "axis {axis}: {:?}", anchor);
+            assert!(
+                (anchor[axis] - expected[axis]).abs() < 1.0e-5,
+                "axis {axis}: {:?}",
+                anchor
+            );
         }
     }
 
@@ -23380,13 +27155,13 @@ mod tests {
     #[test]
     fn first_person_fire_keeps_mcp_half_block_depth_instead_of_near_plane() {
         for sign in [-1.0_f32, 1.0] {
-            let transformed = transform_point3(
-                first_person_fire_matrix(sign),
-                [0.0, 0.0, -0.5],
-            );
+            let transformed = transform_point3(first_person_fire_matrix(sign), [0.0, 0.0, -0.5]);
             // Rotation changes X/Z slightly, but the quad must remain around
             // the source z=-0.5 plane rather than Batch 77's z≈-0.05.
-            assert!(transformed[2] < -0.45, "unexpected near-plane fire: {transformed:?}");
+            assert!(
+                transformed[2] < -0.45,
+                "unexpected near-plane fire: {transformed:?}"
+            );
         }
     }
 

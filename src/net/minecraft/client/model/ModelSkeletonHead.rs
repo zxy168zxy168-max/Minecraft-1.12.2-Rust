@@ -1,4 +1,6 @@
-use crate::net::minecraft::client::model::ModelVehicleBox::{append_box, VehicleBox, VehicleModelMesh};
+use crate::net::minecraft::client::model::ModelVehicleBox::{
+    append_box, VehicleBox, VehicleModelMesh,
+};
 
 /// Exact one-box MCP 1.12.2 `ModelSkeletonHead` used by `RenderWitherSkull`.
 pub struct ModelSkeletonHead;
@@ -8,14 +10,17 @@ impl ModelSkeletonHead {
 
     pub fn buildMesh(netHeadYaw: f32, headPitch: f32) -> VehicleModelMesh {
         let mut mesh = VehicleModelMesh::default();
-        append_box(&mut mesh, VehicleBox {
-            texture: [0, 35],
-            textureSize: Self::TEXTURE_SIZE,
-            origin: [-4.0, -8.0, -4.0],
-            size: [8, 8, 8],
-            pivot: [0.0, 0.0, 0.0],
-            rotation: [headPitch.to_radians(), netHeadYaw.to_radians(), 0.0],
-        });
+        append_box(
+            &mut mesh,
+            VehicleBox {
+                texture: [0, 35],
+                textureSize: Self::TEXTURE_SIZE,
+                origin: [-4.0, -8.0, -4.0],
+                size: [8, 8, 8],
+                pivot: [0.0, 0.0, 0.0],
+                rotation: [headPitch.to_radians(), netHeadYaw.to_radians(), 0.0],
+            },
+        );
         mesh
     }
 }

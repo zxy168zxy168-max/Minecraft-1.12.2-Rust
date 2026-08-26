@@ -6,6 +6,9 @@ pub struct RawPacket {
 
 impl RawPacket {
     pub fn new(id: i32, payload: impl Into<Vec<u8>>) -> Self {
-        Self { id, payload: payload.into() }
+        Self {
+            id,
+            payload: payload.into(),
+        }
     }
 }

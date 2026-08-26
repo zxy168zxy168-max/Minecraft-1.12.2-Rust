@@ -20,9 +20,15 @@ impl EntityItemFrame {
         stack.is_some_and(|value| !value.isEmpty() && value.itemId == Self::FILLED_MAP_ITEM_ID)
     }
 
-    pub fn normalizedRotation(rotation: i32) -> i32 { rotation.rem_euclid(8) }
+    pub fn normalizedRotation(rotation: i32) -> i32 {
+        rotation.rem_euclid(8)
+    }
     pub fn renderedRotation(rotation: i32, isMap: bool) -> i32 {
-        if isMap { rotation.rem_euclid(4) * 2 } else { rotation.rem_euclid(8) }
+        if isMap {
+            rotation.rem_euclid(4) * 2
+        } else {
+            rotation.rem_euclid(8)
+        }
     }
 }
 

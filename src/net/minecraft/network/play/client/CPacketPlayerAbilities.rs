@@ -26,17 +26,27 @@ impl CPacketPlayerAbilities {
 
     pub fn writePacketData(&self) -> RawPacket {
         let mut flags = 0_u8;
-        if self.invulnerable { flags |= 0x01; }
-        if self.flying { flags |= 0x02; }
-        if self.allowFlying { flags |= 0x04; }
-        if self.creativeMode { flags |= 0x08; }
+        if self.invulnerable {
+            flags |= 0x01;
+        }
+        if self.flying {
+            flags |= 0x02;
+        }
+        if self.allowFlying {
+            flags |= 0x04;
+        }
+        if self.creativeMode {
+            flags |= 0x08;
+        }
         let mut payload = vec![flags];
         write_f32_be(self.flySpeed, &mut payload);
         write_f32_be(self.walkSpeed, &mut payload);
         RawPacket::new(0x13, payload)
     }
 
-    pub const fn isFlying(&self) -> bool { self.flying }
+    pub const fn isFlying(&self) -> bool {
+        self.flying
+    }
 }
 
 #[cfg(test)]

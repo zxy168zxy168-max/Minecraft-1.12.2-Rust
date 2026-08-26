@@ -1,5 +1,5 @@
-use core::ops::{Add, Mul, Sub};
 use super::Vec3i::Vec3i;
+use core::ops::{Add, Mul, Sub};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Vec3d {
@@ -9,13 +9,23 @@ pub struct Vec3d {
 }
 
 impl Vec3d {
-    pub const ZERO: Self = Self { x: 0.0, y: 0.0, z: 0.0 };
+    pub const ZERO: Self = Self {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+    };
     const INTERSECTION_EPSILON_SQ: f64 = 1.000_000_011_686_097_4E-7;
 
     pub fn new(mut x: f64, mut y: f64, mut z: f64) -> Self {
-        if x == -0.0 { x = 0.0; }
-        if y == -0.0 { y = 0.0; }
-        if z == -0.0 { z = 0.0; }
+        if x == -0.0 {
+            x = 0.0;
+        }
+        if y == -0.0 {
+            y = 0.0;
+        }
+        if z == -0.0 {
+            z = 0.0;
+        }
         Self { x, y, z }
     }
 
@@ -29,7 +39,11 @@ impl Vec3d {
 
     pub fn normalize(self) -> Self {
         let length = self.length();
-        if length < 1.0E-4 { Self::ZERO } else { self.scale(1.0 / length) }
+        if length < 1.0E-4 {
+            Self::ZERO
+        } else {
+            self.scale(1.0 / length)
+        }
     }
 
     pub fn dot(self, vector: Self) -> f64 {
@@ -85,7 +99,9 @@ impl Vec3d {
             return None;
         }
         let factor = (x - self.x) / delta.x;
-        (0.0..=1.0).contains(&factor).then(|| self + delta.scale(factor))
+        (0.0..=1.0)
+            .contains(&factor)
+            .then(|| self + delta.scale(factor))
     }
 
     pub fn intermediate_y(self, vector: Self, y: f64) -> Option<Self> {
@@ -94,7 +110,9 @@ impl Vec3d {
             return None;
         }
         let factor = (y - self.y) / delta.y;
-        (0.0..=1.0).contains(&factor).then(|| self + delta.scale(factor))
+        (0.0..=1.0)
+            .contains(&factor)
+            .then(|| self + delta.scale(factor))
     }
 
     pub fn intermediate_z(self, vector: Self, z: f64) -> Option<Self> {
@@ -103,35 +121,51 @@ impl Vec3d {
             return None;
         }
         let factor = (z - self.z) / delta.z;
-        (0.0..=1.0).contains(&factor).then(|| self + delta.scale(factor))
+        (0.0..=1.0)
+            .contains(&factor)
+            .then(|| self + delta.scale(factor))
     }
 
     pub fn rotate_pitch(self, pitch: f32) -> Self {
         let cos = super::cos(pitch) as f64;
         let sin = super::sin(pitch) as f64;
-        Self::new(self.x, self.y * cos + self.z * sin, self.z * cos - self.y * sin)
+        Self::new(
+            self.x,
+            self.y * cos + self.z * sin,
+            self.z * cos - self.y * sin,
+        )
     }
 
     pub fn rotate_yaw(self, yaw: f32) -> Self {
         let cos = super::cos(yaw) as f64;
         let sin = super::sin(yaw) as f64;
-        Self::new(self.x * cos + self.z * sin, self.y, self.z * cos - self.x * sin)
+        Self::new(
+            self.x * cos + self.z * sin,
+            self.y,
+            self.z * cos - self.x * sin,
+        )
     }
 }
 
 impl Add for Vec3d {
     type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output { Self::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z) }
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+    }
 }
 
 impl Sub for Vec3d {
     type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output { Self::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z) }
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+    }
 }
 
 impl Mul<f64> for Vec3d {
     type Output = Self;
-    fn mul(self, rhs: f64) -> Self::Output { self.scale(rhs) }
+    fn mul(self, rhs: f64) -> Self::Output {
+        self.scale(rhs)
+    }
 }
 
 #[cfg(test)]

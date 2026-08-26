@@ -122,20 +122,38 @@ impl FoodStats {
         tag.setFloat("foodExhaustionLevel", self.foodExhaustionLevel);
     }
 
-    pub const fn getFoodLevel(&self) -> i32 { self.foodLevel }
-    pub const fn getPrevFoodLevel(&self) -> i32 { self.prevFoodLevel }
-    pub const fn needFood(&self) -> bool { self.foodLevel < 20 }
+    pub const fn getFoodLevel(&self) -> i32 {
+        self.foodLevel
+    }
+    pub const fn getPrevFoodLevel(&self) -> i32 {
+        self.prevFoodLevel
+    }
+    pub const fn needFood(&self) -> bool {
+        self.foodLevel < 20
+    }
 
     pub fn addExhaustion(&mut self, exhaustion: f32) {
         self.foodExhaustionLevel = (self.foodExhaustionLevel + exhaustion).min(40.0);
     }
 
-    pub const fn getSaturationLevel(&self) -> f32 { self.foodSaturationLevel }
-    pub const fn getExhaustionLevel(&self) -> f32 { self.foodExhaustionLevel }
-    pub const fn getFoodTimer(&self) -> i32 { self.foodTimer }
-    pub fn setFoodLevel(&mut self, value: i32) { self.foodLevel = value; }
-    pub fn setFoodSaturationLevel(&mut self, value: f32) { self.foodSaturationLevel = value; }
-    pub fn setFoodExhaustionLevel(&mut self, value: f32) { self.foodExhaustionLevel = value; }
+    pub const fn getSaturationLevel(&self) -> f32 {
+        self.foodSaturationLevel
+    }
+    pub const fn getExhaustionLevel(&self) -> f32 {
+        self.foodExhaustionLevel
+    }
+    pub const fn getFoodTimer(&self) -> i32 {
+        self.foodTimer
+    }
+    pub fn setFoodLevel(&mut self, value: i32) {
+        self.foodLevel = value;
+    }
+    pub fn setFoodSaturationLevel(&mut self, value: f32) {
+        self.foodSaturationLevel = value;
+    }
+    pub fn setFoodExhaustionLevel(&mut self, value: f32) {
+        self.foodExhaustionLevel = value;
+    }
 }
 
 #[cfg(test)]

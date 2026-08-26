@@ -1,8 +1,8 @@
 use crate::net::minecraft::block::state::BlockFaceShape::BlockFaceShape;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 pub const fn isBlockFenceGate(state: IBlockState) -> bool {
@@ -72,7 +72,11 @@ pub fn getCollisionBoxes(state: IBlockState) -> Vec<AxisAlignedBB> {
 /// `BlockFenceGate#getBoundingBox` after `getActualState`. Unlike collision,
 /// an open gate still has a selectable visible model. A gate embedded in a
 /// cobblestone wall is shortened to 0.8125 exactly as the source AABBs.
-pub fn getBoundingBox<A: IBlockAccess>(state: IBlockState, world: &A, pos: BlockPos) -> AxisAlignedBB {
+pub fn getBoundingBox<A: IBlockAccess>(
+    state: IBlockState,
+    world: &A,
+    pos: BlockPos,
+) -> AxisAlignedBB {
     let axis = facing(state).axis();
     let inWall = if axis == Axis::Z {
         world.getBlockState(pos.west(1)).getBlockId() == 139
@@ -91,8 +95,8 @@ pub fn getBoundingBox<A: IBlockAccess>(state: IBlockState, world: &A, pos: Block
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     struct Access(HashMap<BlockPos, IBlockState>);
     impl IBlockAccess for Access {
@@ -110,8 +114,14 @@ mod tests {
     #[test]
     fn gate_face_shape_uses_cross_axis() {
         let south = IBlockState::fromGlobalStateId(107 << 4);
-        assert_eq!(getBlockFaceShape(south, EnumFacing::East), BlockFaceShape::MIDDLE_POLE);
-        assert_eq!(getBlockFaceShape(south, EnumFacing::South), BlockFaceShape::UNDEFINED);
+        assert_eq!(
+            getBlockFaceShape(south, EnumFacing::East),
+            BlockFaceShape::MIDDLE_POLE
+        );
+        assert_eq!(
+            getBlockFaceShape(south, EnumFacing::South),
+            BlockFaceShape::UNDEFINED
+        );
     }
 
     #[test]

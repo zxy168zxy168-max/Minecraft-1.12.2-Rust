@@ -6,5 +6,7 @@ impl LayerEndermanEyes {
     pub fn texture() -> ResourceLocation {
         ResourceLocation::new("minecraft", "textures/entity/enderman/enderman_eyes.png")
     }
-    pub const fn packedFullBright() -> u32 { (15 << 20) | (15 << 4) }
+    pub const fn packedFullBright() -> u32 {
+        (15 << 20) | (15 << 4)
+    }
 }

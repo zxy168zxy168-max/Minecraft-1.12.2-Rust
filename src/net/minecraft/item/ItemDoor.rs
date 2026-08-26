@@ -1,9 +1,9 @@
 use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::item::ItemStack::ItemStack;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::EnumActionResult::EnumActionResult;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 pub struct ItemDoor;
 
@@ -34,11 +34,17 @@ impl ItemDoor {
         side: EnumFacing,
         stack: &ItemStack,
     ) -> EnumActionResult {
-        let Some(_blockId) = Self::blockIdForItem(stack.itemId) else { return EnumActionResult::Pass; };
+        let Some(_blockId) = Self::blockIdForItem(stack.itemId) else {
+            return EnumActionResult::Pass;
+        };
         if side != EnumFacing::Up || !player.capabilities.allowEdit {
             return EnumActionResult::Fail;
         }
-        let target = if world.isBlockReplaceable(pos) { pos } else { pos.up(1) };
+        let target = if world.isBlockReplaceable(pos) {
+            pos
+        } else {
+            pos.up(1)
+        };
         if target.y >= 255
             || !world.getBlockState(target.down(1)).isTopSolid()
             || !world.isBlockReplaceable(target)

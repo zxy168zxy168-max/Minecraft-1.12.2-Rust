@@ -1,16 +1,28 @@
-#[path = "NoiseGenerator.rs"] pub mod NoiseGenerator;
-#[path = "NoiseGeneratorImproved.rs"] pub mod NoiseGeneratorImproved;
-#[path = "NoiseGeneratorOctaves.rs"] pub mod NoiseGeneratorOctaves;
-#[path = "NoiseGeneratorSimplex.rs"] pub mod NoiseGeneratorSimplex;
-#[path = "NoiseGeneratorPerlin.rs"] pub mod NoiseGeneratorPerlin;
-#[path = "ChunkProviderServer.rs"] pub mod ChunkProviderServer;
-#[path = "FlatLayerInfo.rs"] pub mod FlatLayerInfo;
-#[path = "FlatGeneratorInfo.rs"] pub mod FlatGeneratorInfo;
-#[path = "IChunkGenerator.rs"] pub mod IChunkGenerator;
-#[path = "ChunkGeneratorFlat.rs"] pub mod ChunkGeneratorFlat;
-#[path = "ChunkGeneratorSettings.rs"] pub mod ChunkGeneratorSettings;
-#[path = "layer/mod.rs"] pub mod layer;
+#[path = "ChunkGeneratorFlat.rs"]
+pub mod ChunkGeneratorFlat;
 pub mod ChunkGeneratorOverworld;
+#[path = "ChunkGeneratorSettings.rs"]
+pub mod ChunkGeneratorSettings;
+#[path = "ChunkProviderServer.rs"]
+pub mod ChunkProviderServer;
+#[path = "FlatGeneratorInfo.rs"]
+pub mod FlatGeneratorInfo;
+#[path = "FlatLayerInfo.rs"]
+pub mod FlatLayerInfo;
+#[path = "IChunkGenerator.rs"]
+pub mod IChunkGenerator;
 pub mod MapGenBase;
 pub mod MapGenCaves;
 pub mod MapGenRavine;
+#[path = "NoiseGenerator.rs"]
+pub mod NoiseGenerator;
+#[path = "NoiseGeneratorImproved.rs"]
+pub mod NoiseGeneratorImproved;
+#[path = "NoiseGeneratorOctaves.rs"]
+pub mod NoiseGeneratorOctaves;
+#[path = "NoiseGeneratorPerlin.rs"]
+pub mod NoiseGeneratorPerlin;
+#[path = "NoiseGeneratorSimplex.rs"]
+pub mod NoiseGeneratorSimplex;
+#[path = "layer/mod.rs"]
+pub mod layer;

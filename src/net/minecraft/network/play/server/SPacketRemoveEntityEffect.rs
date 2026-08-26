@@ -24,6 +24,10 @@ impl SPacketRemoveEntityEffect {
         Ok(result)
     }
 
-    pub const fn getEntityId(&self) -> i32 { self.entityId }
-    pub const fn getPotionId(&self) -> u8 { self.potionId }
+    pub const fn getEntityId(&self) -> i32 {
+        self.entityId
+    }
+    pub const fn getPotionId(&self) -> u8 {
+        self.potionId
+    }
 }

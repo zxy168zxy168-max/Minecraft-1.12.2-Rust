@@ -1,10 +1,9 @@
 use std::{collections::HashMap, io, path::Path, sync::Arc};
 
-use crate::net::optifine::shader::IShaderPack::IShaderPack;
 use crate::net::optifine::shader::config::ShaderPackOptions::ShaderPackOptions;
+use crate::net::optifine::shader::IShaderPack::IShaderPack;
 
 const MAX_INCLUDE_DEPTH: usize = 10;
-
 
 /// Shared include-expansion cache used only while discovering shader options.
 ///
@@ -357,7 +356,6 @@ fn load_file(
     Ok(Some(output))
 }
 
-
 // Do not rewrite or deduplicate pack macros here. OptiFine 1.12.2 only
 // expands includes and injects its MC_* macro block. Rewriting top-level
 // definitions changes preprocessor branch structure and can unbalance #if/#endif.
@@ -403,11 +401,15 @@ mod tests {
     }
 
     impl IShaderPack for MemoryPack {
-        fn getName(&self) -> &str { &self.name }
+        fn getName(&self) -> &str {
+            &self.name
+        }
         fn getResourceAsStream(&mut self, name: &str) -> io::Result<Option<Vec<u8>>> {
             Ok(self.resources.get(name).cloned())
         }
-        fn hasDirectory(&mut self, _name: &str) -> bool { false }
+        fn hasDirectory(&mut self, _name: &str) -> bool {
+            false
+        }
         fn close(&mut self) {}
     }
 
@@ -467,14 +469,20 @@ mod tests {
     #[test]
     fn rejects_include_recursion_beyond_optifine_limit() {
         let mut resources = HashMap::new();
-        resources.insert("/shaders/root.vsh".to_owned(), b"#version 120\n#include \"0.glsl\"\n".to_vec());
+        resources.insert(
+            "/shaders/root.vsh".to_owned(),
+            b"#version 120\n#include \"0.glsl\"\n".to_vec(),
+        );
         for index in 0..11 {
             resources.insert(
                 format!("/shaders/{index}.glsl"),
                 format!("#include \"{}.glsl\"\n", index + 1).into_bytes(),
             );
         }
-        let mut pack = MemoryPack { name: "test".to_owned(), resources };
+        let mut pack = MemoryPack {
+            name: "test".to_owned(),
+            resources,
+        };
         let error = loadShaderSource(
             &mut pack,
             "/shaders/root.vsh",
@@ -522,17 +530,12 @@ mod tests {
             "MC_GL_EXT_gpu_shader4".to_owned(),
             "MC_GL_ARB_shader_texture_lod".to_owned(),
         ];
-        let source = loadShaderSource(
-            &mut pack,
-            "/shaders/composite.fsh",
-            &environment,
-        )
-        .unwrap()
-        .unwrap();
+        let source = loadShaderSource(&mut pack, "/shaders/composite.fsh", &environment)
+            .unwrap()
+            .unwrap();
         assert!(source.contains("#define MC_GL_EXT_gpu_shader4\n"));
         assert!(!source.contains("#define MC_GL_ARB_shader_texture_lod\n"));
     }
-
 
     #[test]
     fn option_source_cache_reuses_shared_include_at_same_depth() {
@@ -542,29 +545,44 @@ mod tests {
             reads: HashMap<String, usize>,
         }
         impl IShaderPack for CountingPack {
-            fn getName(&self) -> &str { &self.name }
+            fn getName(&self) -> &str {
+                &self.name
+            }
             fn getResourceAsStream(&mut self, name: &str) -> io::Result<Option<Vec<u8>>> {
                 *self.reads.entry(name.to_owned()).or_default() += 1;
                 Ok(self.resources.get(name).cloned())
             }
-            fn hasDirectory(&mut self, _name: &str) -> bool { false }
+            fn hasDirectory(&mut self, _name: &str) -> bool {
+                false
+            }
             fn close(&mut self) {}
         }
 
         let mut pack = CountingPack {
             name: "test".to_owned(),
             resources: HashMap::from([
-                ("/shaders/a.vsh".to_owned(), b"#version 120\n#include \"lib/options.glsl\"\n".to_vec()),
-                ("/shaders/b.vsh".to_owned(), b"#version 120\n#include \"lib/options.glsl\"\n".to_vec()),
-                ("/shaders/lib/options.glsl".to_owned(), b"#define TEST_OPTION // [0 1]\n".to_vec()),
+                (
+                    "/shaders/a.vsh".to_owned(),
+                    b"#version 120\n#include \"lib/options.glsl\"\n".to_vec(),
+                ),
+                (
+                    "/shaders/b.vsh".to_owned(),
+                    b"#version 120\n#include \"lib/options.glsl\"\n".to_vec(),
+                ),
+                (
+                    "/shaders/lib/options.glsl".to_owned(),
+                    b"#define TEST_OPTION // [0 1]\n".to_vec(),
+                ),
             ]),
             reads: HashMap::new(),
         };
         let mut cache = ShaderOptionSourceCache::default();
         let first = loadShaderOptionSource(&mut pack, "/shaders/a.vsh", &mut cache)
-            .unwrap().unwrap();
+            .unwrap()
+            .unwrap();
         let second = loadShaderOptionSource(&mut pack, "/shaders/b.vsh", &mut cache)
-            .unwrap().unwrap();
+            .unwrap()
+            .unwrap();
         assert!(first.contains("#define TEST_OPTION"));
         assert!(second.contains("#define TEST_OPTION"));
         assert_eq!(pack.reads.get("/shaders/lib/options.glsl"), Some(&1));
@@ -578,30 +596,45 @@ mod tests {
                 "/shaders/root.vsh".to_owned(),
                 b"#version 120\n#include \"lib/common.glsl\"\n#include \"/global.glsl\"\n".to_vec(),
             ),
-            ("/shaders/lib/common.glsl".to_owned(), b"const int RELATIVE_OPTION = 1;\n".to_vec()),
-            ("/shaders/global.glsl".to_owned(), b"const int ROOT_OPTION = 2;\n".to_vec()),
+            (
+                "/shaders/lib/common.glsl".to_owned(),
+                b"const int RELATIVE_OPTION = 1;\n".to_vec(),
+            ),
+            (
+                "/shaders/global.glsl".to_owned(),
+                b"const int ROOT_OPTION = 2;\n".to_vec(),
+            ),
         ]);
-        let mut pack = MemoryPack { name: "test".to_owned(), resources: resources.clone() };
+        let mut pack = MemoryPack {
+            name: "test".to_owned(),
+            resources: resources.clone(),
+        };
         let mut cache = ShaderOptionSourceCache::default();
         let source = loadShaderOptionSource(&mut pack, "/shaders/root.vsh", &mut cache)
-            .unwrap().unwrap();
+            .unwrap()
+            .unwrap();
         assert!(source.contains("const int RELATIVE_OPTION = 1;"));
         assert!(source.contains("const int ROOT_OPTION = 2;"));
         assert!(!source.contains("#define MC_VERSION"));
         assert!(!source.contains("#line"));
 
-        resources.insert("/shaders/deep.vsh".to_owned(), b"#include \"0.glsl\"\n".to_vec());
+        resources.insert(
+            "/shaders/deep.vsh".to_owned(),
+            b"#include \"0.glsl\"\n".to_vec(),
+        );
         for index in 0..11 {
             resources.insert(
                 format!("/shaders/{index}.glsl"),
                 format!("#include \"{}.glsl\"\n", index + 1).into_bytes(),
             );
         }
-        let mut deepPack = MemoryPack { name: "test".to_owned(), resources };
+        let mut deepPack = MemoryPack {
+            name: "test".to_owned(),
+            resources,
+        };
         let mut deepCache = ShaderOptionSourceCache::default();
-        let error = loadShaderOptionSource(&mut deepPack, "/shaders/deep.vsh", &mut deepCache)
-            .unwrap_err();
+        let error =
+            loadShaderOptionSource(&mut deepPack, "/shaders/deep.vsh", &mut deepCache).unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     }
-
 }

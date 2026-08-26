@@ -1,1 +1,2 @@
-#[path = "Enchantment.rs"] pub mod Enchantment;
+#[path = "Enchantment.rs"]
+pub mod Enchantment;

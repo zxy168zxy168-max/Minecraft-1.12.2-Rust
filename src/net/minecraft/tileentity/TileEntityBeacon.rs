@@ -12,8 +12,12 @@ pub struct BeamSegment {
 }
 
 impl BeamSegment {
-    pub const fn new(colors: [f32; 3]) -> Self { Self { colors, height: 1 } }
-    pub fn incrementHeight(&mut self) { self.height += 1; }
+    pub const fn new(colors: [f32; 3]) -> Self {
+        Self { colors, height: 1 }
+    }
+    pub fn incrementHeight(&mut self) {
+        self.height += 1;
+    }
 }
 
 /// Client-visible state from MCP 1.12.2 `TileEntityBeacon`.
@@ -33,18 +37,13 @@ pub struct TileEntityBeacon {
     secondaryEffect: i32,
 }
 
-
 impl Clone for TileEntityBeacon {
     fn clone(&self) -> Self {
         Self {
             pos: self.pos,
             beamSegments: self.beamSegments.clone(),
-            beamRenderCounter: AtomicI64::new(
-                self.beamRenderCounter.load(Ordering::Relaxed),
-            ),
-            beamRenderScaleBits: AtomicU32::new(
-                self.beamRenderScaleBits.load(Ordering::Relaxed),
-            ),
+            beamRenderCounter: AtomicI64::new(self.beamRenderCounter.load(Ordering::Relaxed)),
+            beamRenderScaleBits: AtomicU32::new(self.beamRenderScaleBits.load(Ordering::Relaxed)),
             isComplete: self.isComplete,
             levels: self.levels,
             primaryEffect: self.primaryEffect,
@@ -75,7 +74,9 @@ impl TileEntityBeacon {
             return None;
         }
         let mut beacon = Self::new(BlockPos::new(
-            tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z"),
+            tag.getInteger("x"),
+            tag.getInteger("y"),
+            tag.getInteger("z"),
         ));
         beacon.levels = tag.getInteger("Levels");
         beacon.primaryEffect = tag.getInteger("Primary");
@@ -102,7 +103,9 @@ impl TileEntityBeacon {
             return 0.0;
         }
 
-        let previousCounter = self.beamRenderCounter.swap(totalWorldTime, Ordering::Relaxed);
+        let previousCounter = self
+            .beamRenderCounter
+            .swap(totalWorldTime, Ordering::Relaxed);
         let elapsed = totalWorldTime.saturating_sub(previousCounter) as i32;
         let mut scale = f32::from_bits(self.beamRenderScaleBits.load(Ordering::Relaxed));
         if elapsed > 1 {
@@ -112,7 +115,8 @@ impl TileEntityBeacon {
             }
         }
         scale = (scale + 0.025).min(1.0);
-        self.beamRenderScaleBits.store(scale.to_bits(), Ordering::Relaxed);
+        self.beamRenderScaleBits
+            .store(scale.to_bits(), Ordering::Relaxed);
         scale
     }
 
@@ -124,9 +128,15 @@ impl TileEntityBeacon {
         }
     }
 
-    pub fn getBeamSegments(&self) -> &[BeamSegment] { &self.beamSegments }
-    pub const fn getLevels(&self) -> i32 { self.levels }
-    pub const fn isComplete(&self) -> bool { self.isComplete }
+    pub fn getBeamSegments(&self) -> &[BeamSegment] {
+        &self.beamSegments
+    }
+    pub const fn getLevels(&self) -> i32 {
+        self.levels
+    }
+    pub const fn isComplete(&self) -> bool {
+        self.isComplete
+    }
 
     /// Port of `TileEntityBeacon#updateSegmentColors`.
     fn updateSegmentColors<F>(&mut self, getState: &mut F)
@@ -149,7 +159,9 @@ impl TileEntityBeacon {
                 _ => None,
             };
             if let Some(mut color) = color {
-                let currentColors = self.beamSegments.last()
+                let currentColors = self
+                    .beamSegments
+                    .last()
                     .map(|segment| segment.colors)
                     .unwrap_or_else(|| dye_color(0));
                 if !firstColor {
@@ -160,7 +172,9 @@ impl TileEntityBeacon {
                     ];
                 }
                 if colors_equal(color, currentColors) {
-                    if let Some(last) = self.beamSegments.last_mut() { last.incrementHeight(); }
+                    if let Some(last) = self.beamSegments.last_mut() {
+                        last.incrementHeight();
+                    }
                 } else {
                     self.beamSegments.push(BeamSegment::new(color));
                 }
@@ -170,27 +184,38 @@ impl TileEntityBeacon {
                 self.beamSegments.clear();
                 break;
             } else {
-                if let Some(last) = self.beamSegments.last_mut() { last.incrementHeight(); }
+                if let Some(last) = self.beamSegments.last_mut() {
+                    last.incrementHeight();
+                }
             }
         }
 
         if self.isComplete {
             for level in 1..=4 {
                 let y = j - level;
-                if y < 0 { break; }
+                if y < 0 {
+                    break;
+                }
                 let mut valid = true;
                 'outer: for x in (i - level)..=(i + level) {
                     for z in (k - level)..=(k + level) {
-                        if !matches!(getState(BlockPos::new(x, y, z)).getBlockId(), 42 | 41 | 57 | 133) {
+                        if !matches!(
+                            getState(BlockPos::new(x, y, z)).getBlockId(),
+                            42 | 41 | 57 | 133
+                        ) {
                             valid = false;
                             break 'outer;
                         }
                     }
                 }
-                if !valid { break; }
+                if !valid {
+                    break;
+                }
                 self.levels = level;
             }
-            if self.levels == 0 { self.isComplete = false; }
+            if self.levels == 0 {
+                self.isComplete = false;
+            }
         }
     }
 }
@@ -205,16 +230,19 @@ fn light_opacity(state: IBlockState) -> i32 {
     // `IBlockState#getLightOpacity` delegates to the block's configured
     // opacity. For beacon scanning, the relevant 1.12.2 distinction is
     // opaque full blocks (15) versus transparent/cutout blocks (0).
-    if state.getBlock().isOpaqueCube() { 15 } else { 0 }
+    if state.getBlock().isOpaqueCube() {
+        15
+    } else {
+        0
+    }
 }
 
 fn dye_color(meta: usize) -> [f32; 3] {
     // `EnumDyeColor.field_193351_w`, metadata order.
     const COLORS: [u32; 16] = [
-        16_383_998, 16_351_261, 13_061_821, 3_847_130,
-        16_701_501, 8_439_583, 15_961_002, 4_673_362,
-        10_329_495, 1_481_884, 8_991_416, 3_949_738,
-        8_606_770, 6_192_150, 11_546_150, 1_908_001,
+        16_383_998, 16_351_261, 13_061_821, 3_847_130, 16_701_501, 8_439_583, 15_961_002,
+        4_673_362, 10_329_495, 1_481_884, 8_991_416, 3_949_738, 8_606_770, 6_192_150, 11_546_150,
+        1_908_001,
     ];
     let color = COLORS[meta.min(15)];
     [
@@ -239,10 +267,7 @@ mod tests {
     fn four_layer_pyramid_completes_and_beam_reaches_build_height() {
         let mut beacon = TileEntityBeacon::new(BlockPos::new(0, 10, 0));
         beacon.update(0, |pos| {
-            if (6..=9).contains(&pos.y)
-                && pos.x.abs() <= 10 - pos.y
-                && pos.z.abs() <= 10 - pos.y
-            {
+            if (6..=9).contains(&pos.y) && pos.x.abs() <= 10 - pos.y && pos.z.abs() <= 10 - pos.y {
                 IBlockState::fromGlobalStateId(42 << 4)
             } else {
                 IBlockState::fromGlobalStateId(0)

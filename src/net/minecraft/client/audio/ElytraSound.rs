@@ -19,7 +19,11 @@ pub struct ElytraSound {
 
 impl Default for ElytraSound {
     fn default() -> Self {
-        Self { channel: None, time: 0, donePlaying: false }
+        Self {
+            channel: None,
+            time: 0,
+            donePlaying: false,
+        }
     }
 }
 
@@ -35,7 +39,10 @@ impl ElytraSound {
             AttenuationType::Linear,
             position,
         ));
-        Self { channel, ..Self::default() }
+        Self {
+            channel,
+            ..Self::default()
+        }
     }
 
     pub fn update(
@@ -88,8 +95,12 @@ impl ElytraSound {
         }
     }
 
-    pub const fn isDonePlaying(&self) -> bool { self.donePlaying }
-    pub const fn time(&self) -> i32 { self.time }
+    pub const fn isDonePlaying(&self) -> bool {
+        self.donePlaying
+    }
+    pub const fn time(&self) -> i32 {
+        self.time
+    }
 }
 
 #[cfg(test)]
@@ -101,7 +112,9 @@ mod tests {
         let speed = 1.0_f32;
         let mut volume = ((speed / 2.0) * (speed / 2.0)).clamp(0.0, 1.0);
         let time = 10;
-        if time < 20 { volume = 0.0; }
+        if time < 20 {
+            volume = 0.0;
+        }
         assert_eq!(volume, 0.0);
     }
 }

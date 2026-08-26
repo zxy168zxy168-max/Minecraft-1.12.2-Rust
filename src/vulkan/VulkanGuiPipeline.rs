@@ -143,7 +143,10 @@ impl VulkanGuiPipeline {
         swapchainExtent: vk::Extent2D,
         framesInFlight: usize,
     ) -> anyhow::Result<Self> {
-        anyhow::ensure!(framesInFlight > 0, "Vulkan GUI requires at least one frame slot");
+        anyhow::ensure!(
+            framesInFlight > 0,
+            "Vulkan GUI requires at least one frame slot"
+        );
 
         let guiBinding = vk::DescriptorSetLayoutBinding::default()
             .binding(0)
@@ -152,10 +155,9 @@ impl VulkanGuiPipeline {
             .stage_flags(vk::ShaderStageFlags::FRAGMENT);
         let guiBindings = [guiBinding];
         let guiLayoutInfo = vk::DescriptorSetLayoutCreateInfo::default().bindings(&guiBindings);
-        let guiDescriptorSetLayout = unsafe {
-            device.create_descriptor_set_layout(&guiLayoutInfo, None)
-        }
-        .context("failed creating Vulkan GUI descriptor-set layout")?;
+        let guiDescriptorSetLayout =
+            unsafe { device.create_descriptor_set_layout(&guiLayoutInfo, None) }
+                .context("failed creating Vulkan GUI descriptor-set layout")?;
 
         let panoramaBindings = (0..6)
             .map(|binding| {
@@ -168,15 +170,16 @@ impl VulkanGuiPipeline {
             .collect::<Vec<_>>();
         let panoramaLayoutInfo =
             vk::DescriptorSetLayoutCreateInfo::default().bindings(&panoramaBindings);
-        let panoramaDescriptorSetLayout = match unsafe {
-            device.create_descriptor_set_layout(&panoramaLayoutInfo, None)
-        } {
-            Ok(layout) => layout,
-            Err(error) => {
-                unsafe { device.destroy_descriptor_set_layout(guiDescriptorSetLayout, None) };
-                return Err(anyhow!("failed creating panorama descriptor-set layout: {error:?}"));
-            }
-        };
+        let panoramaDescriptorSetLayout =
+            match unsafe { device.create_descriptor_set_layout(&panoramaLayoutInfo, None) } {
+                Ok(layout) => layout,
+                Err(error) => {
+                    unsafe { device.destroy_descriptor_set_layout(guiDescriptorSetLayout, None) };
+                    return Err(anyhow!(
+                        "failed creating panorama descriptor-set layout: {error:?}"
+                    ));
+                }
+            };
 
         let blurBinding = vk::DescriptorSetLayoutBinding::default()
             .binding(0)
@@ -185,25 +188,26 @@ impl VulkanGuiPipeline {
             .stage_flags(vk::ShaderStageFlags::FRAGMENT);
         let blurBindings = [blurBinding];
         let blurLayoutInfo = vk::DescriptorSetLayoutCreateInfo::default().bindings(&blurBindings);
-        let blurDescriptorSetLayout = match unsafe {
-            device.create_descriptor_set_layout(&blurLayoutInfo, None)
-        } {
-            Ok(layout) => layout,
-            Err(error) => {
-                unsafe {
-                    device.destroy_descriptor_set_layout(panoramaDescriptorSetLayout, None);
-                    device.destroy_descriptor_set_layout(guiDescriptorSetLayout, None);
+        let blurDescriptorSetLayout =
+            match unsafe { device.create_descriptor_set_layout(&blurLayoutInfo, None) } {
+                Ok(layout) => layout,
+                Err(error) => {
+                    unsafe {
+                        device.destroy_descriptor_set_layout(panoramaDescriptorSetLayout, None);
+                        device.destroy_descriptor_set_layout(guiDescriptorSetLayout, None);
+                    }
+                    return Err(anyhow!(
+                        "failed creating blur descriptor-set layout: {error:?}"
+                    ));
                 }
-                return Err(anyhow!("failed creating blur descriptor-set layout: {error:?}"));
-            }
-        };
+            };
 
         // A texture replacement allocates the new descriptor immediately and
         // retires the old descriptor behind the current frame-slot fence. Keep
         // one full texture-cache generation per in-flight frame so resource
         // reloads never need `device_wait_idle` merely to recycle descriptors.
-        let textureDescriptorCapacity = MAX_GUI_TEXTURES
-            .saturating_mul((framesInFlight as u32).saturating_add(1));
+        let textureDescriptorCapacity =
+            MAX_GUI_TEXTURES.saturating_mul((framesInFlight as u32).saturating_add(1));
         let descriptorCount = textureDescriptorCapacity
             .saturating_add(1)
             .saturating_add((framesInFlight as u32).saturating_mul(10));
@@ -219,17 +223,20 @@ impl VulkanGuiPipeline {
                     .saturating_add(1)
                     .saturating_add((framesInFlight as u32).saturating_mul(5)),
             );
-        let descriptorPool = match unsafe { device.create_descriptor_pool(&descriptorPoolInfo, None) } {
-            Ok(pool) => pool,
-            Err(error) => {
-                unsafe {
-                    device.destroy_descriptor_set_layout(blurDescriptorSetLayout, None);
-                    device.destroy_descriptor_set_layout(panoramaDescriptorSetLayout, None);
-                    device.destroy_descriptor_set_layout(guiDescriptorSetLayout, None);
+        let descriptorPool =
+            match unsafe { device.create_descriptor_pool(&descriptorPoolInfo, None) } {
+                Ok(pool) => pool,
+                Err(error) => {
+                    unsafe {
+                        device.destroy_descriptor_set_layout(blurDescriptorSetLayout, None);
+                        device.destroy_descriptor_set_layout(panoramaDescriptorSetLayout, None);
+                        device.destroy_descriptor_set_layout(guiDescriptorSetLayout, None);
+                    }
+                    return Err(anyhow!(
+                        "failed creating Vulkan GUI descriptor pool: {error:?}"
+                    ));
                 }
-                return Err(anyhow!("failed creating Vulkan GUI descriptor pool: {error:?}"));
-            }
-        };
+            };
 
         let guiPipelineLayout = create_pipeline_layout::<GuiPushConstants>(
             device,
@@ -336,7 +343,10 @@ impl VulkanGuiPipeline {
             swapchainImageViews: Vec::new(),
             swapchainFramebuffers: Vec::new(),
             frameGeometry: (0..framesInFlight)
-                .map(|_| FrameGeometry { vertex: None, index: None })
+                .map(|_| FrameGeometry {
+                    vertex: None,
+                    index: None,
+                })
                 .collect(),
             offscreen,
             panoramaDescriptorSets,
@@ -439,15 +449,25 @@ impl VulkanGuiPipeline {
         frame: &GuiRenderFrame,
     ) -> anyhow::Result<()> {
         let submitStarted = Instant::now();
-        anyhow::ensure!(frameSlot < self.frameGeometry.len(), "Vulkan GUI frame slot out of range");
-        anyhow::ensure!(frameSlot < self.offscreen.len(), "Vulkan GUI panorama frame slot out of range");
+        anyhow::ensure!(
+            frameSlot < self.frameGeometry.len(),
+            "Vulkan GUI frame slot out of range"
+        );
+        anyhow::ensure!(
+            frameSlot < self.offscreen.len(),
+            "Vulkan GUI panorama frame slot out of range"
+        );
         anyhow::ensure!(
             frameSlot < self.panoramaDescriptorSets.len(),
             "Vulkan GUI panorama descriptor slot out of range",
         );
-        anyhow::ensure!(imageIndex < self.swapchainFramebuffers.len(), "Vulkan GUI swapchain image out of range");
         anyhow::ensure!(
-            frame.outputWidth == swapchainExtent.width && frame.outputHeight == swapchainExtent.height,
+            imageIndex < self.swapchainFramebuffers.len(),
+            "Vulkan GUI swapchain image out of range"
+        );
+        anyhow::ensure!(
+            frame.outputWidth == swapchainExtent.width
+                && frame.outputHeight == swapchainExtent.height,
             "native GUI frame {}x{} does not match Vulkan swapchain {}x{}",
             frame.outputWidth,
             frame.outputHeight,
@@ -502,7 +522,9 @@ impl VulkanGuiPipeline {
         }
 
         let clearValues = [vk::ClearValue {
-            color: vk::ClearColorValue { float32: [0.0, 0.0, 0.0, 1.0] },
+            color: vk::ClearColorValue {
+                float32: [0.0, 0.0, 0.0, 1.0],
+            },
         }];
         let renderPassInfo = vk::RenderPassBeginInfo::default()
             .render_pass(self.guiRenderPass)
@@ -513,8 +535,16 @@ impl VulkanGuiPipeline {
             })
             .clear_values(&clearValues);
         unsafe {
-            device.cmd_begin_render_pass(commandBuffer, &renderPassInfo, vk::SubpassContents::INLINE);
-            device.cmd_bind_pipeline(commandBuffer, vk::PipelineBindPoint::GRAPHICS, self.guiPipeline);
+            device.cmd_begin_render_pass(
+                commandBuffer,
+                &renderPassInfo,
+                vk::SubpassContents::INLINE,
+            );
+            device.cmd_bind_pipeline(
+                commandBuffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.guiPipeline,
+            );
             let viewport = vk::Viewport {
                 x: 0.0,
                 y: 0.0,
@@ -530,8 +560,14 @@ impl VulkanGuiPipeline {
             device.cmd_set_viewport(commandBuffer, 0, &[viewport]);
             device.cmd_set_scissor(commandBuffer, 0, &[scissor]);
             if let Some(geometry) = self.frameGeometry.get(frameSlot) {
-                let vertex = geometry.vertex.as_ref().context("missing Vulkan GUI vertex buffer")?;
-                let index = geometry.index.as_ref().context("missing Vulkan GUI index buffer")?;
+                let vertex = geometry
+                    .vertex
+                    .as_ref()
+                    .context("missing Vulkan GUI vertex buffer")?;
+                let index = geometry
+                    .index
+                    .as_ref()
+                    .context("missing Vulkan GUI index buffer")?;
                 device.cmd_bind_vertex_buffers(commandBuffer, 0, &[vertex.buffer], &[0]);
                 device.cmd_bind_index_buffer(commandBuffer, index.buffer, 0, vk::IndexType::UINT32);
             }
@@ -609,14 +645,29 @@ impl VulkanGuiPipeline {
         for step in &frame.compiled.steps {
             match step {
                 CompiledGuiStep::Draw(batch) => {
-                    let (descriptorSet, useTexture) = if let Some(location) = batch.texture.as_ref() {
-                        let texture = self.textures.get(location)
-                            .with_context(|| format!("missing cached Vulkan GUI texture {location}"))?;
+                    let (descriptorSet, useTexture) = if let Some(location) = batch.texture.as_ref()
+                    {
+                        let texture = self.textures.get(location).with_context(|| {
+                            format!("missing cached Vulkan GUI texture {location}")
+                        })?;
                         (texture.descriptorSet, true)
                     } else {
-                        (self.whiteTexture.as_ref().context("missing Vulkan GUI white texture")?.descriptorSet, false)
+                        (
+                            self.whiteTexture
+                                .as_ref()
+                                .context("missing Vulkan GUI white texture")?
+                                .descriptorSet,
+                            false,
+                        )
                     };
-                    append_prepared_batch(batch, descriptorSet, useTexture, &mut vertices, &mut indices, &mut draws)?;
+                    append_prepared_batch(
+                        batch,
+                        descriptorSet,
+                        useTexture,
+                        &mut vertices,
+                        &mut indices,
+                        &mut draws,
+                    )?;
                 }
                 CompiledGuiStep::Panorama(plan) => {
                     let finalIndex = panoramaFinal.context("missing panorama final target")?;
@@ -644,7 +695,10 @@ impl VulkanGuiPipeline {
         vertices: &[VulkanGuiVertex],
         indices: &[u32],
     ) -> anyhow::Result<()> {
-        let geometry = self.frameGeometry.get_mut(frameSlot).context("Vulkan GUI frame slot out of range")?;
+        let geometry = self
+            .frameGeometry
+            .get_mut(frameSlot)
+            .context("Vulkan GUI frame slot out of range")?;
         let vertexBytes = as_bytes(vertices);
         let indexBytes = as_bytes(indices);
         ensure_mapped_buffer(
@@ -666,12 +720,22 @@ impl VulkanGuiPipeline {
         unsafe {
             std::ptr::copy_nonoverlapping(
                 vertexBytes.as_ptr(),
-                geometry.vertex.as_ref().expect("created vertex buffer").mapped.as_ptr(),
+                geometry
+                    .vertex
+                    .as_ref()
+                    .expect("created vertex buffer")
+                    .mapped
+                    .as_ptr(),
                 vertexBytes.len(),
             );
             std::ptr::copy_nonoverlapping(
                 indexBytes.as_ptr(),
-                geometry.index.as_ref().expect("created index buffer").mapped.as_ptr(),
+                geometry
+                    .index
+                    .as_ref()
+                    .expect("created index buffer")
+                    .mapped
+                    .as_ptr(),
                 indexBytes.len(),
             );
         }
@@ -690,9 +754,14 @@ impl VulkanGuiPipeline {
             plan.target_width == PANORAMA_SIZE && plan.target_height == PANORAMA_SIZE,
             "MCP panorama target must remain {PANORAMA_SIZE}x{PANORAMA_SIZE}",
         );
-        let extent = vk::Extent2D { width: PANORAMA_SIZE, height: PANORAMA_SIZE };
+        let extent = vk::Extent2D {
+            width: PANORAMA_SIZE,
+            height: PANORAMA_SIZE,
+        };
         let clearValues = [vk::ClearValue {
-            color: vk::ClearColorValue { float32: [0.0, 0.0, 0.0, 1.0] },
+            color: vk::ClearColorValue {
+                float32: [0.0, 0.0, 0.0, 1.0],
+            },
         }];
         let viewport = vk::Viewport {
             x: 0.0,
@@ -702,7 +771,10 @@ impl VulkanGuiPipeline {
             min_depth: 0.0,
             max_depth: 1.0,
         };
-        let scissor = vk::Rect2D { offset: vk::Offset2D { x: 0, y: 0 }, extent };
+        let scissor = vk::Rect2D {
+            offset: vk::Offset2D { x: 0, y: 0 },
+            extent,
+        };
 
         let begin = vk::RenderPassBeginInfo::default()
             .render_pass(self.offscreenRenderPass)
@@ -711,7 +783,11 @@ impl VulkanGuiPipeline {
             .clear_values(&clearValues);
         unsafe {
             device.cmd_begin_render_pass(commandBuffer, &begin, vk::SubpassContents::INLINE);
-            device.cmd_bind_pipeline(commandBuffer, vk::PipelineBindPoint::GRAPHICS, self.panoramaPipeline);
+            device.cmd_bind_pipeline(
+                commandBuffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                self.panoramaPipeline,
+            );
             device.cmd_set_viewport(commandBuffer, 0, &[viewport]);
             device.cmd_set_scissor(commandBuffer, 0, &[scissor]);
             device.cmd_bind_descriptor_sets(
@@ -722,7 +798,10 @@ impl VulkanGuiPipeline {
                 &[self.panoramaDescriptorSets[frameSlot]],
                 &[],
             );
-            let firstSample = plan.samples.first().context("panorama plan has no sample")?;
+            let firstSample = plan
+                .samples
+                .first()
+                .context("panorama plan has no sample")?;
             let push = PanoramaPushConstants {
                 // Consume the MCP/MathHelper-derived angles from PanoramaPassPlan
                 // directly. Recomputing pitch with GLSL sin() is observably not
@@ -753,7 +832,11 @@ impl VulkanGuiPipeline {
                 .clear_values(&clearValues);
             unsafe {
                 device.cmd_begin_render_pass(commandBuffer, &begin, vk::SubpassContents::INLINE);
-                device.cmd_bind_pipeline(commandBuffer, vk::PipelineBindPoint::GRAPHICS, self.blurPipeline);
+                device.cmd_bind_pipeline(
+                    commandBuffer,
+                    vk::PipelineBindPoint::GRAPHICS,
+                    self.blurPipeline,
+                );
                 device.cmd_set_viewport(commandBuffer, 0, &[viewport]);
                 device.cmd_set_scissor(commandBuffer, 0, &[scissor]);
                 device.cmd_bind_descriptor_sets(
@@ -765,7 +848,12 @@ impl VulkanGuiPipeline {
                     &[],
                 );
                 let push = BlurPushConstants {
-                    values: [invocation.layers.len().min(i32::MAX as usize) as i32, 0, 0, 0],
+                    values: [
+                        invocation.layers.len().min(i32::MAX as usize) as i32,
+                        0,
+                        0,
+                        0,
+                    ],
                 };
                 device.cmd_push_constants(
                     commandBuffer,
@@ -788,10 +876,15 @@ impl VulkanGuiPipeline {
         frameSlot: usize,
         plan: &PanoramaPassPlan,
     ) -> anyhow::Result<()> {
-        let sample = plan.samples.first().context("panorama plan has no sample")?;
+        let sample = plan
+            .samples
+            .first()
+            .context("panorama plan has no sample")?;
         let mut infos = [vk::DescriptorImageInfo::default(); 6];
         for (index, face) in sample.faces.iter().enumerate() {
-            let texture = self.textures.get(&face.texture)
+            let texture = self
+                .textures
+                .get(&face.texture)
                 .with_context(|| format!("missing Vulkan panorama texture {}", face.texture))?;
             infos[index] = vk::DescriptorImageInfo::default()
                 .sampler(texture.sampler)
@@ -818,8 +911,7 @@ impl VulkanGuiPipeline {
         frameSlot: usize,
     ) -> anyhow::Result<()> {
         anyhow::ensure!(
-            frameSlot < self.retiredTextures.len()
-                && frameSlot < self.retiredTextureStaging.len(),
+            frameSlot < self.retiredTextures.len() && frameSlot < self.retiredTextureStaging.len(),
             "Vulkan GUI retired-resource frame slot out of range",
         );
         let descriptorPool = self.descriptorPool;
@@ -854,15 +946,15 @@ impl VulkanGuiPipeline {
         self.profileTextureUploads = self
             .profileTextureUploads
             .saturating_add(pending.len() as u64);
-        self.profileTextureUploadBytes = self.profileTextureUploadBytes.saturating_add(
-            pending.iter().fold(0_u64, |total, upload| {
-                total.saturating_add(
-                    u64::from(upload.width)
-                        .saturating_mul(u64::from(upload.height))
-                        .saturating_mul(4),
-                )
-            }),
-        );
+        self.profileTextureUploadBytes =
+            self.profileTextureUploadBytes
+                .saturating_add(pending.iter().fold(0_u64, |total, upload| {
+                    total.saturating_add(
+                        u64::from(upload.width)
+                            .saturating_mul(u64::from(upload.height))
+                            .saturating_mul(4),
+                    )
+                }));
         let toTransfer = pending
             .iter()
             .map(|upload| {
@@ -1058,12 +1150,20 @@ fn append_prepared_batch(
     if batch.vertices.is_empty() || batch.indices.is_empty() {
         return Ok(());
     }
-    let vertexOffset = i32::try_from(vertices.len()).context("Vulkan GUI vertex offset overflow")?;
+    let vertexOffset =
+        i32::try_from(vertices.len()).context("Vulkan GUI vertex offset overflow")?;
     let firstIndex = u32::try_from(indices.len()).context("Vulkan GUI index offset overflow")?;
-    let indexCount = u32::try_from(batch.indices.len()).context("Vulkan GUI index count overflow")?;
+    let indexCount =
+        u32::try_from(batch.indices.len()).context("Vulkan GUI index count overflow")?;
     vertices.extend_from_slice(&batch.vertices);
     indices.extend_from_slice(&batch.indices);
-    draws.push(PreparedDraw { firstIndex, indexCount, vertexOffset, descriptorSet, useTexture });
+    draws.push(PreparedDraw {
+        firstIndex,
+        indexCount,
+        vertexOffset,
+        descriptorSet,
+        useTexture,
+    });
     Ok(())
 }
 
@@ -1285,7 +1385,9 @@ fn create_graphics_pipeline(
         Ok(module) => module,
         Err(error) => {
             unsafe { device.destroy_shader_module(vertexModule, None) };
-            return Err(anyhow!("failed creating Vulkan {label} fragment module: {error:?}"));
+            return Err(anyhow!(
+                "failed creating Vulkan {label} fragment module: {error:?}"
+            ));
         }
     };
     let entry = CString::new("main").expect("static shader entry");
@@ -1327,8 +1429,8 @@ fn create_graphics_pipeline(
         .alpha_blend_op(vk::BlendOp::ADD)
         .color_write_mask(vk::ColorComponentFlags::RGBA);
     let blendAttachments = [blendAttachment];
-    let colorBlend = vk::PipelineColorBlendStateCreateInfo::default()
-        .attachments(&blendAttachments);
+    let colorBlend =
+        vk::PipelineColorBlendStateCreateInfo::default().attachments(&blendAttachments);
     let dynamicStates = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
     let dynamic = vk::PipelineDynamicStateCreateInfo::default().dynamic_states(&dynamicStates);
     let info = vk::GraphicsPipelineCreateInfo::default()
@@ -1343,9 +1445,8 @@ fn create_graphics_pipeline(
         .layout(pipelineLayout)
         .render_pass(renderPass)
         .subpass(0);
-    let result = unsafe {
-        device.create_graphics_pipelines(vk::PipelineCache::null(), &[info], None)
-    };
+    let result =
+        unsafe { device.create_graphics_pipelines(vk::PipelineCache::null(), &[info], None) };
     unsafe {
         device.destroy_shader_module(fragmentModule, None);
         device.destroy_shader_module(vertexModule, None);
@@ -1373,7 +1474,10 @@ fn create_offscreen_image(
     let view = match create_image_view(device, image, vk::Format::R8G8B8A8_UNORM) {
         Ok(view) => view,
         Err(error) => {
-            unsafe { device.destroy_image(image, None); device.free_memory(memory, None); }
+            unsafe {
+                device.destroy_image(image, None);
+                device.free_memory(memory, None);
+            }
             return Err(error);
         }
     };
@@ -1394,7 +1498,9 @@ fn create_offscreen_image(
                 device.destroy_image(image, None);
                 device.free_memory(memory, None);
             }
-            return Err(anyhow!("failed creating Vulkan panorama sampler: {error:?}"));
+            return Err(anyhow!(
+                "failed creating Vulkan panorama sampler: {error:?}"
+            ));
         }
     };
     let attachments = [view];
@@ -1413,7 +1519,9 @@ fn create_offscreen_image(
                 device.destroy_image(image, None);
                 device.free_memory(memory, None);
             }
-            return Err(anyhow!("failed creating Vulkan panorama framebuffer: {error:?}"));
+            return Err(anyhow!(
+                "failed creating Vulkan panorama framebuffer: {error:?}"
+            ));
         }
     };
     let imageInfo = [vk::DescriptorImageInfo::default()
@@ -1603,17 +1711,25 @@ fn create_host_buffer(
         Ok(memory) => memory,
         Err(error) => {
             unsafe { device.destroy_buffer(buffer, None) };
-            return Err(anyhow!("failed allocating Vulkan {label} memory: {error:?}"));
+            return Err(anyhow!(
+                "failed allocating Vulkan {label} memory: {error:?}"
+            ));
         }
     };
     if let Err(error) = unsafe { device.bind_buffer_memory(buffer, memory, 0) } {
-        unsafe { device.free_memory(memory, None); device.destroy_buffer(buffer, None); }
+        unsafe {
+            device.free_memory(memory, None);
+            device.destroy_buffer(buffer, None);
+        }
         return Err(anyhow!("failed binding Vulkan {label} memory: {error:?}"));
     }
     let pointer = match unsafe { device.map_memory(memory, 0, size, vk::MemoryMapFlags::empty()) } {
         Ok(pointer) => pointer,
         Err(error) => {
-            unsafe { device.free_memory(memory, None); device.destroy_buffer(buffer, None); }
+            unsafe {
+                device.free_memory(memory, None);
+                device.destroy_buffer(buffer, None);
+            }
             return Err(anyhow!("failed mapping Vulkan {label} memory: {error:?}"));
         }
     };
@@ -1632,7 +1748,10 @@ fn ensure_mapped_buffer(
     usage: vk::BufferUsageFlags,
     label: &str,
 ) -> anyhow::Result<()> {
-    if slot.as_ref().is_some_and(|buffer| buffer.capacity >= required.max(1)) {
+    if slot
+        .as_ref()
+        .is_some_and(|buffer| buffer.capacity >= required.max(1))
+    {
         return Ok(());
     }
     destroy_mapped_buffer(device, slot.take());
@@ -1657,22 +1776,36 @@ fn ensure_mapped_buffer(
         Ok(memory) => memory,
         Err(error) => {
             unsafe { device.destroy_buffer(buffer, None) };
-            return Err(anyhow!("failed allocating Vulkan {label} memory: {error:?}"));
+            return Err(anyhow!(
+                "failed allocating Vulkan {label} memory: {error:?}"
+            ));
         }
     };
     if let Err(error) = unsafe { device.bind_buffer_memory(buffer, memory, 0) } {
-        unsafe { device.free_memory(memory, None); device.destroy_buffer(buffer, None); }
+        unsafe {
+            device.free_memory(memory, None);
+            device.destroy_buffer(buffer, None);
+        }
         return Err(anyhow!("failed binding Vulkan {label} memory: {error:?}"));
     }
-    let mapped = match unsafe { device.map_memory(memory, 0, capacity, vk::MemoryMapFlags::empty()) } {
-        Ok(pointer) => NonNull::new(pointer.cast::<u8>())
-            .with_context(|| format!("Vulkan returned null {label} mapping"))?,
-        Err(error) => {
-            unsafe { device.free_memory(memory, None); device.destroy_buffer(buffer, None); }
-            return Err(anyhow!("failed mapping Vulkan {label} memory: {error:?}"));
-        }
-    };
-    *slot = Some(MappedBuffer { buffer, memory, mapped, capacity });
+    let mapped =
+        match unsafe { device.map_memory(memory, 0, capacity, vk::MemoryMapFlags::empty()) } {
+            Ok(pointer) => NonNull::new(pointer.cast::<u8>())
+                .with_context(|| format!("Vulkan returned null {label} mapping"))?,
+            Err(error) => {
+                unsafe {
+                    device.free_memory(memory, None);
+                    device.destroy_buffer(buffer, None);
+                }
+                return Err(anyhow!("failed mapping Vulkan {label} memory: {error:?}"));
+            }
+        };
+    *slot = Some(MappedBuffer {
+        buffer,
+        memory,
+        mapped,
+        capacity,
+    });
     Ok(())
 }
 
@@ -1687,7 +1820,11 @@ fn create_image(
     let info = vk::ImageCreateInfo::default()
         .image_type(vk::ImageType::TYPE_2D)
         .format(format)
-        .extent(vk::Extent3D { width, height, depth: 1 })
+        .extent(vk::Extent3D {
+            width,
+            height,
+            depth: 1,
+        })
         .mip_levels(1)
         .array_layers(1)
         .samples(vk::SampleCountFlags::TYPE_1)
@@ -1695,8 +1832,8 @@ fn create_image(
         .usage(usage)
         .sharing_mode(vk::SharingMode::EXCLUSIVE)
         .initial_layout(vk::ImageLayout::UNDEFINED);
-    let image = unsafe { device.create_image(&info, None) }
-        .context("failed creating Vulkan GUI image")?;
+    let image =
+        unsafe { device.create_image(&info, None) }.context("failed creating Vulkan GUI image")?;
     let requirements = unsafe { device.get_image_memory_requirements(image) };
     let memoryType = find_memory_type(
         memoryProperties,
@@ -1711,11 +1848,16 @@ fn create_image(
         Ok(memory) => memory,
         Err(error) => {
             unsafe { device.destroy_image(image, None) };
-            return Err(anyhow!("failed allocating Vulkan GUI image memory: {error:?}"));
+            return Err(anyhow!(
+                "failed allocating Vulkan GUI image memory: {error:?}"
+            ));
         }
     };
     if let Err(error) = unsafe { device.bind_image_memory(image, memory, 0) } {
-        unsafe { device.free_memory(memory, None); device.destroy_image(image, None); }
+        unsafe {
+            device.free_memory(memory, None);
+            device.destroy_image(image, None);
+        }
         return Err(anyhow!("failed binding Vulkan GUI image memory: {error:?}"));
     }
     Ok((image, memory))
@@ -1742,7 +1884,9 @@ fn find_memory_type(
 ) -> Option<u32> {
     (0..properties.memory_type_count).find(|&index| {
         allowedTypes & (1 << index) != 0
-            && properties.memory_types[index as usize].property_flags.contains(required)
+            && properties.memory_types[index as usize]
+                .property_flags
+                .contains(required)
     })
 }
 
@@ -1793,19 +1937,13 @@ fn destroy_buffer(device: &Device, buffer: HostBuffer) {
 
 fn as_bytes<T>(values: &[T]) -> &[u8] {
     unsafe {
-        std::slice::from_raw_parts(
-            values.as_ptr().cast::<u8>(),
-            std::mem::size_of_val(values),
-        )
+        std::slice::from_raw_parts(values.as_ptr().cast::<u8>(), std::mem::size_of_val(values))
     }
 }
 
 fn bytes_of<T>(value: &T) -> &[u8] {
     unsafe {
-        std::slice::from_raw_parts(
-            (value as *const T).cast::<u8>(),
-            std::mem::size_of::<T>(),
-        )
+        std::slice::from_raw_parts((value as *const T).cast::<u8>(), std::mem::size_of::<T>())
     }
 }
 

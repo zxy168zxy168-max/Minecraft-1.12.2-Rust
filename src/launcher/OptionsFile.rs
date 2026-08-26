@@ -30,13 +30,22 @@ impl OptionsFile {
     }
 
     pub fn get(&self, key: &str) -> Option<&str> {
-        self.entries.iter().rev().find(|(candidate, _)| candidate == key).map(|(_, value)| value.as_str())
+        self.entries
+            .iter()
+            .rev()
+            .find(|(candidate, _)| candidate == key)
+            .map(|(_, value)| value.as_str())
     }
 
     pub fn set(&mut self, key: impl Into<String>, value: impl Into<String>) {
         let key = key.into();
         let value = value.into();
-        if let Some((_, current)) = self.entries.iter_mut().rev().find(|(candidate, _)| candidate == &key) {
+        if let Some((_, current)) = self
+            .entries
+            .iter_mut()
+            .rev()
+            .find(|(candidate, _)| candidate == &key)
+        {
             *current = value;
         } else {
             self.entries.push((key, value));
@@ -47,7 +56,9 @@ impl OptionsFile {
         self.entries.retain(|(candidate, _)| candidate != key);
     }
 
-    pub fn entries(&self) -> &[(String, String)] { &self.entries }
+    pub fn entries(&self) -> &[(String, String)] {
+        &self.entries
+    }
 
     pub fn render(&self) -> String {
         let mut output = String::new();

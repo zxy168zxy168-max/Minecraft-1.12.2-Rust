@@ -1,5 +1,9 @@
-#[path = "BlockStateContainer.rs"] pub mod BlockStateContainer;
-#[path = "Chunk.rs"] pub mod Chunk;
-#[path = "NibbleArray.rs"] pub mod NibbleArray;
+#[path = "BlockStateContainer.rs"]
+pub mod BlockStateContainer;
+#[path = "Chunk.rs"]
+pub mod Chunk;
+#[path = "ChunkPrimer.rs"]
+pub mod ChunkPrimer;
+#[path = "NibbleArray.rs"]
+pub mod NibbleArray;
 pub mod storage;
-#[path = "ChunkPrimer.rs"] pub mod ChunkPrimer;

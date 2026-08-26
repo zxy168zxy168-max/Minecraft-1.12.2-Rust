@@ -1,5 +1,5 @@
-use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::item::EnumAction::EnumAction;
+use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::util::EnumHand::EnumHand;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 
@@ -109,10 +109,8 @@ impl ItemRenderer {
         self.prevEquippedProgressOffHand = self.equippedProgressOffHand;
 
         if rowingBoat {
-            self.equippedProgressMainHand =
-                (self.equippedProgressMainHand - 0.4).clamp(0.0, 1.0);
-            self.equippedProgressOffHand =
-                (self.equippedProgressOffHand - 0.4).clamp(0.0, 1.0);
+            self.equippedProgressMainHand = (self.equippedProgressMainHand - 0.4).clamp(0.0, 1.0);
+            self.equippedProgressOffHand = (self.equippedProgressOffHand - 0.4).clamp(0.0, 1.0);
         } else {
             let mainTarget = if self.itemStackMainHand == *mainHand {
                 let strength = cooledAttackStrength.clamp(0.0, 1.0);
@@ -120,7 +118,11 @@ impl ItemRenderer {
             } else {
                 0.0
             };
-            let offTarget = if self.itemStackOffHand == *offHand { 1.0 } else { 0.0 };
+            let offTarget = if self.itemStackOffHand == *offHand {
+                1.0
+            } else {
+                0.0
+            };
             self.equippedProgressMainHand +=
                 (mainTarget - self.equippedProgressMainHand).clamp(-0.4, 0.4);
             self.equippedProgressOffHand +=
@@ -163,9 +165,17 @@ impl ItemRenderer {
     ) {
         self.handActive = active;
         self.activeHand = hand;
-        self.activeUseAction = if active { stack.getItemUseAction() } else { EnumAction::None };
+        self.activeUseAction = if active {
+            stack.getItemUseAction()
+        } else {
+            EnumAction::None
+        };
         self.itemInUseCount = if active { itemInUseCount.max(0) } else { 0 };
-        self.activeMaxUseDuration = if active { stack.getMaxItemUseDuration() } else { 0 };
+        self.activeMaxUseDuration = if active {
+            stack.getMaxItemUseDuration()
+        } else {
+            0
+        };
     }
 
     pub fn resetEquippedProgressMainHand(&mut self) {
@@ -186,7 +196,12 @@ mod tests {
     use super::*;
 
     fn stack(id: i16) -> ItemStack {
-        ItemStack { itemId: id, count: 1, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]

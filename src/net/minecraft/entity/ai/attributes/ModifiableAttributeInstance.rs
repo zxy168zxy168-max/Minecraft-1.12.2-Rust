@@ -13,35 +13,61 @@ pub struct ModifiableAttributeInstance {
 
 impl ModifiableAttributeInstance {
     pub const fn new(baseValue: f64) -> Self {
-        Self { baseValue, modifiers: Vec::new() }
+        Self {
+            baseValue,
+            modifiers: Vec::new(),
+        }
     }
 
-    pub const fn getBaseValue(&self) -> f64 { self.baseValue }
-    pub fn setBaseValue(&mut self, value: f64) { self.baseValue = value; }
-    pub fn removeAllModifiers(&mut self) { self.modifiers.clear(); }
+    pub const fn getBaseValue(&self) -> f64 {
+        self.baseValue
+    }
+    pub fn setBaseValue(&mut self, value: f64) {
+        self.baseValue = value;
+    }
+    pub fn removeAllModifiers(&mut self) {
+        self.modifiers.clear();
+    }
     pub fn applyModifier(&mut self, modifier: AttributeModifier) {
-        self.modifiers.retain(|existing| existing.getID() != modifier.getID());
+        self.modifiers
+            .retain(|existing| existing.getID() != modifier.getID());
         self.modifiers.push(modifier);
     }
     pub fn removeModifier(&mut self, id: uuid::Uuid) {
         self.modifiers.retain(|existing| existing.getID() != id);
     }
     pub fn getModifier(&self, id: uuid::Uuid) -> Option<&AttributeModifier> {
-        self.modifiers.iter().find(|modifier| modifier.getID() == id)
+        self.modifiers
+            .iter()
+            .find(|modifier| modifier.getID() == id)
     }
-    pub fn getModifiers(&self) -> &[AttributeModifier] { &self.modifiers }
+    pub fn getModifiers(&self) -> &[AttributeModifier] {
+        &self.modifiers
+    }
 
     pub fn getAttributeValue(&self) -> f64 {
         let mut adjustedBase = self.baseValue;
-        for modifier in self.modifiers.iter().filter(|modifier| modifier.getOperation() == 0) {
+        for modifier in self
+            .modifiers
+            .iter()
+            .filter(|modifier| modifier.getOperation() == 0)
+        {
             adjustedBase += modifier.getAmount();
         }
 
         let mut value = adjustedBase;
-        for modifier in self.modifiers.iter().filter(|modifier| modifier.getOperation() == 1) {
+        for modifier in self
+            .modifiers
+            .iter()
+            .filter(|modifier| modifier.getOperation() == 1)
+        {
             value += adjustedBase * modifier.getAmount();
         }
-        for modifier in self.modifiers.iter().filter(|modifier| modifier.getOperation() == 2) {
+        for modifier in self
+            .modifiers
+            .iter()
+            .filter(|modifier| modifier.getOperation() == 2)
+        {
             value *= 1.0 + modifier.getAmount();
         }
         value
@@ -50,8 +76,8 @@ impl ModifiableAttributeInstance {
 
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
     use super::*;
+    use uuid::Uuid;
 
     #[test]
     fn modifier_operations_follow_mcp_order() {

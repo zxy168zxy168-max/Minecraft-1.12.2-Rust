@@ -65,10 +65,18 @@ impl PlayerCapabilities {
         }
     }
 
-    pub const fn getFlySpeed(&self) -> f32 { self.flySpeed }
-    pub fn setFlySpeed(&mut self, speed: f32) { self.flySpeed = speed; }
-    pub const fn getWalkSpeed(&self) -> f32 { self.walkSpeed }
-    pub fn setPlayerWalkSpeed(&mut self, speed: f32) { self.walkSpeed = speed; }
+    pub const fn getFlySpeed(&self) -> f32 {
+        self.flySpeed
+    }
+    pub fn setFlySpeed(&mut self, speed: f32) {
+        self.flySpeed = speed;
+    }
+    pub const fn getWalkSpeed(&self) -> f32 {
+        self.walkSpeed
+    }
+    pub fn setPlayerWalkSpeed(&mut self, speed: f32) {
+        self.walkSpeed = speed;
+    }
 }
 
 #[cfg(test)]

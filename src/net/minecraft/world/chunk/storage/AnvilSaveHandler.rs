@@ -1,12 +1,12 @@
 use std::io;
 use std::path::Path;
 
-use crate::net::minecraft::world::storage::SaveHandler::SaveHandler;
-use crate::net::minecraft::world::WorldProvider::WorldProvider;
 use crate::net::minecraft::world::chunk::storage::AnvilChunkLoader::AnvilChunkLoader;
 use crate::net::minecraft::world::chunk::storage::RegionFileCache;
-use crate::net::minecraft::world::storage::WorldInfo::WorldInfo;
+use crate::net::minecraft::world::storage::SaveHandler::SaveHandler;
 use crate::net::minecraft::world::storage::ThreadedFileIOBase::ThreadedFileIOBase;
+use crate::net::minecraft::world::storage::WorldInfo::WorldInfo;
+use crate::net::minecraft::world::WorldProvider::WorldProvider;
 
 /// MCP 1.12.2 `AnvilSaveHandler` storage responsibilities used by the
 /// integrated-server launch prefix.  Chunk I/O itself remains a later
@@ -23,7 +23,9 @@ impl AnvilSaveHandler {
         saveName: &str,
         storePlayerdata: bool,
     ) -> io::Result<Self> {
-        Ok(Self { base: SaveHandler::new(savesDirectory, saveName, storePlayerdata)? })
+        Ok(Self {
+            base: SaveHandler::new(savesDirectory, saveName, storePlayerdata)?,
+        })
     }
 
     pub fn loadWorldInfo(&self) -> io::Result<Option<WorldInfo>> {
@@ -56,9 +58,10 @@ impl AnvilSaveHandler {
         RegionFileCache::clearRegionFileReferences();
     }
 
-    pub fn base(&self) -> &SaveHandler { &self.base }
+    pub fn base(&self) -> &SaveHandler {
+        &self.base
+    }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -73,9 +76,21 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
         let handler = AnvilSaveHandler::new(&root, "World", false).unwrap();
-        assert!(handler.getChunkLoader(&WorldProvider::new(0)).unwrap().chunkSaveLocation().ends_with("World"));
-        assert!(handler.getChunkLoader(&WorldProvider::new(-1)).unwrap().chunkSaveLocation().ends_with("World/DIM-1"));
-        assert!(handler.getChunkLoader(&WorldProvider::new(1)).unwrap().chunkSaveLocation().ends_with("World/DIM1"));
+        assert!(handler
+            .getChunkLoader(&WorldProvider::new(0))
+            .unwrap()
+            .chunkSaveLocation()
+            .ends_with("World"));
+        assert!(handler
+            .getChunkLoader(&WorldProvider::new(-1))
+            .unwrap()
+            .chunkSaveLocation()
+            .ends_with("World/DIM-1"));
+        assert!(handler
+            .getChunkLoader(&WorldProvider::new(1))
+            .unwrap()
+            .chunkSaveLocation()
+            .ends_with("World/DIM1"));
         let _ = std::fs::remove_dir_all(root);
     }
 
@@ -90,7 +105,10 @@ mod tests {
         assert_eq!(info.getSaveVersion(), 0);
         handler.saveWorldInfo(&mut info).unwrap();
         assert_eq!(info.getSaveVersion(), 19133);
-        assert_eq!(handler.loadWorldInfo().unwrap().unwrap().getSaveVersion(), 19133);
+        assert_eq!(
+            handler.loadWorldInfo().unwrap().unwrap().getSaveVersion(),
+            19133
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 }

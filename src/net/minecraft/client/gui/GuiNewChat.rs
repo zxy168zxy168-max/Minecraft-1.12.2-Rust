@@ -26,14 +26,18 @@ pub struct GuiNewChat {
 }
 
 impl GuiNewChat {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn clearChatMessages(&mut self, clearSent: bool) {
         self.drawnChatLines.clear();
         self.chatLines.clear();
         self.scrollPos = 0;
         self.isScrolled = false;
-        if clearSent { self.sentMessages.clear(); }
+        if clearSent {
+            self.sentMessages.clear();
+        }
     }
 
     pub fn acceptMessage(
@@ -43,7 +47,9 @@ impl GuiNewChat {
         updateCounter: i32,
         wrapWidth: i32,
     ) {
-        if serial <= self.lastMessageSerial { return; }
+        if serial <= self.lastMessageSerial {
+            return;
+        }
         self.lastMessageSerial = serial;
         self.printChatMessage(chatComponent, updateCounter, wrapWidth);
     }
@@ -56,7 +62,9 @@ impl GuiNewChat {
         wrapWidth: i32,
         fontRenderer: &FontRenderer,
     ) {
-        if serial <= self.lastMessageSerial { return; }
+        if serial <= self.lastMessageSerial {
+            return;
+        }
         self.lastMessageSerial = serial;
         self.printChatMessageWithFont(chatComponent, updateCounter, wrapWidth, fontRenderer);
     }
@@ -69,7 +77,12 @@ impl GuiNewChat {
         fontRenderer: &FontRenderer,
     ) {
         self.setChatLineWithFont(
-            chatComponent, 0, updateCounter, false, wrapWidth.max(1), fontRenderer,
+            chatComponent,
+            0,
+            updateCounter,
+            false,
+            wrapWidth.max(1),
+            fontRenderer,
         );
     }
 
@@ -82,11 +95,21 @@ impl GuiNewChat {
         fontRenderer: &FontRenderer,
     ) {
         self.setChatLineWithFont(
-            chatComponent, chatLineId, updateCounter, false, wrapWidth.max(1), fontRenderer,
+            chatComponent,
+            chatLineId,
+            updateCounter,
+            false,
+            wrapWidth.max(1),
+            fontRenderer,
         );
     }
 
-    pub fn printChatMessage(&mut self, chatComponent: ITextComponent, updateCounter: i32, wrapWidth: i32) {
+    pub fn printChatMessage(
+        &mut self,
+        chatComponent: ITextComponent,
+        updateCounter: i32,
+        wrapWidth: i32,
+    ) {
         self.printChatMessageWithOptionalDeletion(chatComponent, 0, updateCounter, wrapWidth);
     }
 
@@ -97,7 +120,13 @@ impl GuiNewChat {
         updateCounter: i32,
         wrapWidth: i32,
     ) {
-        self.setChatLine(chatComponent, chatLineId, updateCounter, false, wrapWidth.max(1));
+        self.setChatLine(
+            chatComponent,
+            chatLineId,
+            updateCounter,
+            false,
+            wrapWidth.max(1),
+        );
     }
 
     fn setChatLine(
@@ -108,19 +137,27 @@ impl GuiNewChat {
         displayOnly: bool,
         wrapWidth: i32,
     ) {
-        if chatLineId != 0 { self.deleteChatLine(chatLineId); }
+        if chatLineId != 0 {
+            self.deleteChatLine(chatLineId);
+        }
         let lines = split_formatted_text(chatComponent.getFormattedText(), wrapWidth);
         for line in lines {
-            if self.isScrolled && self.scrollPos > 0 { self.scroll(1, 20); }
-            self.drawnChatLines.insert(0, ChatLine::new(
-                updateCounter,
-                ITextComponent::fromPlainText(line),
-                chatLineId,
-            ));
+            if self.isScrolled && self.scrollPos > 0 {
+                self.scroll(1, 20);
+            }
+            self.drawnChatLines.insert(
+                0,
+                ChatLine::new(
+                    updateCounter,
+                    ITextComponent::fromPlainText(line),
+                    chatLineId,
+                ),
+            );
         }
         self.drawnChatLines.truncate(100);
         if !displayOnly {
-            self.chatLines.insert(0, ChatLine::new(updateCounter, chatComponent, chatLineId));
+            self.chatLines
+                .insert(0, ChatLine::new(updateCounter, chatComponent, chatLineId));
             self.chatLines.truncate(100);
         }
     }
@@ -134,19 +171,28 @@ impl GuiNewChat {
         wrapWidth: i32,
         fontRenderer: &FontRenderer,
     ) {
-        if chatLineId != 0 { self.deleteChatLine(chatLineId); }
-        let lines = fontRenderer.list_formatted_string_to_width(
-            chatComponent.getFormattedText(), wrapWidth.max(1),
-        );
+        if chatLineId != 0 {
+            self.deleteChatLine(chatLineId);
+        }
+        let lines = fontRenderer
+            .list_formatted_string_to_width(chatComponent.getFormattedText(), wrapWidth.max(1));
         for line in lines {
-            if self.isScrolled && self.scrollPos > 0 { self.scroll(1, 20); }
-            self.drawnChatLines.insert(0, ChatLine::new(
-                updateCounter, ITextComponent::fromPlainText(line), chatLineId,
-            ));
+            if self.isScrolled && self.scrollPos > 0 {
+                self.scroll(1, 20);
+            }
+            self.drawnChatLines.insert(
+                0,
+                ChatLine::new(
+                    updateCounter,
+                    ITextComponent::fromPlainText(line),
+                    chatLineId,
+                ),
+            );
         }
         self.drawnChatLines.truncate(100);
         if !displayOnly {
-            self.chatLines.insert(0, ChatLine::new(updateCounter, chatComponent, chatLineId));
+            self.chatLines
+                .insert(0, ChatLine::new(updateCounter, chatComponent, chatLineId));
             self.chatLines.truncate(100);
         }
     }
@@ -155,8 +201,13 @@ impl GuiNewChat {
     /// `GuiNewChat#deleteChatLine`. All wrapped display lines with the ID
     /// are removed, while only the first stored source line is removed.
     pub fn deleteChatLine(&mut self, id: i32) {
-        self.drawnChatLines.retain(|line| line.getChatLineID() != id);
-        if let Some(index) = self.chatLines.iter().position(|line| line.getChatLineID() == id) {
+        self.drawnChatLines
+            .retain(|line| line.getChatLineID() != id);
+        if let Some(index) = self
+            .chatLines
+            .iter()
+            .position(|line| line.getChatLineID() == id)
+        {
             self.chatLines.remove(index);
         }
     }
@@ -176,11 +227,15 @@ impl GuiNewChat {
         }
     }
 
-    pub fn getSentMessages(&self) -> &[String] { &self.sentMessages }
+    pub fn getSentMessages(&self) -> &[String] {
+        &self.sentMessages
+    }
 
     pub fn addToSentMessages(&mut self, message: impl Into<String>) {
         let message = message.into();
-        if self.sentMessages.last() != Some(&message) { self.sentMessages.push(message); }
+        if self.sentMessages.last() != Some(&message) {
+            self.sentMessages.push(message);
+        }
     }
 
     pub fn resetScroll(&mut self) {
@@ -192,8 +247,11 @@ impl GuiNewChat {
         self.scrollPos += amount;
         let maximum = (self.drawnChatLines.len() as i32 - lineCount).max(0);
         self.scrollPos = self.scrollPos.clamp(0, maximum);
-        if self.scrollPos == 0 { self.isScrolled = false; }
-        else { self.isScrolled = true; }
+        if self.scrollPos == 0 {
+            self.isScrolled = false;
+        } else {
+            self.isScrolled = true;
+        }
     }
 
     pub fn calculateChatboxWidth(scale: f32) -> i32 {
@@ -218,20 +276,32 @@ impl GuiNewChat {
     ) -> ChatFrame {
         let chatScale = chatScale.clamp(0.0, 1.0).max(0.01);
         let chatWidth = Self::calculateChatboxWidth(chatWidthSetting.clamp(0.0, 1.0));
-        let chatHeightSetting = if chatOpen { chatHeightFocused } else { chatHeightUnfocused };
-        let lineCount = (Self::calculateChatboxHeight(chatHeightSetting.clamp(0.0, 1.0)) / 9).max(1);
+        let chatHeightSetting = if chatOpen {
+            chatHeightFocused
+        } else {
+            chatHeightUnfocused
+        };
+        let lineCount =
+            (Self::calculateChatboxHeight(chatHeightSetting.clamp(0.0, 1.0)) / 9).max(1);
         let opacity = chatOpacity.clamp(0.0, 1.0) * 0.9 + 0.1;
         let scaledWidth = ((chatWidth as f32) / chatScale).ceil() as i32;
         let baseX = 2.0_f32;
         let baseY = (guiHeight - 40) as f32;
         let mut visibleLines = 0_i32;
-        let mut frame = ChatFrame { textScale: chatScale, ..ChatFrame::default() };
+        let mut frame = ChatFrame {
+            textScale: chatScale,
+            ..ChatFrame::default()
+        };
 
         for lineIndex in 0..lineCount {
             let sourceIndex = lineIndex + self.scrollPos;
-            let Some(line) = self.drawnChatLines.get(sourceIndex as usize) else { break; };
+            let Some(line) = self.drawnChatLines.get(sourceIndex as usize) else {
+                break;
+            };
             let age = updateCounter - line.getUpdatedCounter();
-            if age >= 200 && !chatOpen { continue; }
+            if age >= 200 && !chatOpen {
+                continue;
+            }
             let alpha = if chatOpen {
                 255
             } else {
@@ -240,7 +310,9 @@ impl GuiNewChat {
                 (255.0 * fade * fade) as i32
             };
             let alpha = ((alpha as f32) * opacity) as i32;
-            if alpha <= 3 { continue; }
+            if alpha <= 3 {
+                continue;
+            }
             visibleLines += 1;
             let rowY = -lineIndex * 9;
             let rectX = (baseX - 2.0 * chatScale).floor() as i32;
@@ -270,10 +342,26 @@ impl GuiNewChat {
                 let scrollOffset = self.scrollPos * visibleHeight / total;
                 let thumbHeight = visibleHeight * visibleHeight / totalHeight.max(1);
                 let alpha = if scrollOffset > 0 { 170 } else { 96 };
-                let color = if self.isScrolled { 0x00CC_3333 } else { 0x0033_3333 };
+                let color = if self.isScrolled {
+                    0x00CC_3333
+                } else {
+                    0x0033_3333
+                };
                 let y = guiHeight - 40 - scrollOffset;
-                frame.rectangles.push(HudSolidRect::new(0, y - thumbHeight, 2, thumbHeight, ((alpha as u32) << 24) | color));
-                frame.rectangles.push(HudSolidRect::new(2, y - thumbHeight, 1, thumbHeight, ((alpha as u32) << 24) | 0x00CC_CCCC));
+                frame.rectangles.push(HudSolidRect::new(
+                    0,
+                    y - thumbHeight,
+                    2,
+                    thumbHeight,
+                    ((alpha as u32) << 24) | color,
+                ));
+                frame.rectangles.push(HudSolidRect::new(
+                    2,
+                    y - thumbHeight,
+                    1,
+                    thumbHeight,
+                    ((alpha as u32) << 24) | 0x00CC_CCCC,
+                ));
             }
         }
         frame
@@ -291,8 +379,9 @@ pub(crate) fn split_formatted_text(text: &str, maximumWidth: i32) -> Vec<String>
         for character in logicalLine.chars() {
             if formatting {
                 current.push(character);
-                if character.eq_ignore_ascii_case(&'r') { activeCodes.clear(); }
-                else {
+                if character.eq_ignore_ascii_case(&'r') {
+                    activeCodes.clear();
+                } else {
                     activeCodes.push('§');
                     activeCodes.push(character);
                 }
@@ -314,7 +403,9 @@ pub(crate) fn split_formatted_text(text: &str, maximumWidth: i32) -> Vec<String>
         }
         output.push(current);
     }
-    if output.is_empty() { output.push(String::new()); }
+    if output.is_empty() {
+        output.push(String::new());
+    }
     output
 }
 
@@ -344,7 +435,10 @@ mod tests {
         assert!(chat.drawnChatLines.len() > 1);
         assert_eq!(chat.chatLines.len(), 1);
         chat.deleteChatLine(7);
-        assert!(chat.drawnChatLines.iter().all(|line| line.getChatLineID() != 7));
+        assert!(chat
+            .drawnChatLines
+            .iter()
+            .all(|line| line.getChatLineID() != 7));
         assert!(chat.chatLines.iter().all(|line| line.getChatLineID() != 7));
     }
 

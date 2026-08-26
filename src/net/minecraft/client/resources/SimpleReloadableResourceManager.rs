@@ -1,7 +1,6 @@
 use std::{
     collections::HashSet,
-    fs,
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -92,7 +91,9 @@ impl ResourcePackSource {
 }
 
 impl ResourceManager {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     /// Adds a direct namespace root. The runtime asset root already has the
     /// shape `<root>/<namespace>/<path>`, while a folder resource pack passes
@@ -113,7 +114,10 @@ impl ResourceManager {
     ) -> Result<(), ResourceManagerError> {
         let archive_path = archive_path.into();
         let pack = FileResourcePack::new(&archive_path).map_err(|source| {
-            ResourceManagerError::OpenPack { path: archive_path.clone(), source }
+            ResourceManagerError::OpenPack {
+                path: archive_path.clone(),
+                source,
+            }
         })?;
         self.packs.push(NamedResourcePack {
             name: name.into(),
@@ -136,12 +140,16 @@ impl ResourceManager {
                     // a parent metadata file; LanguageManager supplies the
                     // canonical en_us DefaultResourcePack fallback in that case.
                     let file = format!("{name}.mcmeta");
-                    let path = directory.assets_root().parent()
+                    let path = directory
+                        .assets_root()
+                        .parent()
                         .map(|root| root.join(&file))
                         .filter(|candidate| candidate.is_file())
                         .unwrap_or_else(|| directory.assets_root().join(&file));
                     if path.is_file() {
-                        if let Ok(bytes) = fs::read(path) { sections.push(bytes); }
+                        if let Ok(bytes) = fs::read(path) {
+                            sections.push(bytes);
+                        }
                     }
                 }
                 ResourcePackSource::Zip(zip) => {
@@ -154,13 +162,18 @@ impl ResourceManager {
         sections
     }
 
-    pub fn pack_count(&self) -> usize { self.packs.len() }
+    pub fn pack_count(&self) -> usize {
+        self.packs.len()
+    }
 
     pub fn pack_names(&self) -> Vec<&str> {
         self.packs.iter().map(|pack| pack.name.as_str()).collect()
     }
 
-    pub fn get_resource(&self, location: &ResourceLocation) -> Result<ResourceBytes, ResourceManagerError> {
+    pub fn get_resource(
+        &self,
+        location: &ResourceLocation,
+    ) -> Result<ResourceBytes, ResourceManagerError> {
         validate_path(location)?;
         let metadata_location = metadata_location(location);
         let mut metadata_source: Option<&NamedResourcePack> = None;
@@ -185,12 +198,17 @@ impl ResourceManager {
         Err(ResourceManagerError::NotFound(location.clone()))
     }
 
-    pub fn get_all_resources(&self, location: &ResourceLocation) -> Result<Vec<ResourceBytes>, ResourceManagerError> {
+    pub fn get_all_resources(
+        &self,
+        location: &ResourceLocation,
+    ) -> Result<Vec<ResourceBytes>, ResourceManagerError> {
         validate_path(location)?;
         let metadata_location = metadata_location(location);
         let mut resources = Vec::new();
         for candidate in &self.packs {
-            if !candidate.pack.contains(location) { continue; }
+            if !candidate.pack.contains(location) {
+                continue;
+            }
             resources.push(ResourceBytes {
                 pack_name: candidate.name.clone(),
                 location: location.clone(),
@@ -211,23 +229,30 @@ impl ResourceManager {
 
     pub fn resource_exists(&self, location: &ResourceLocation) -> bool {
         validate_path(location).is_ok()
-            && self.packs.iter().rev().any(|pack| pack.pack.contains(location))
+            && self
+                .packs
+                .iter()
+                .rev()
+                .any(|pack| pack.pack.contains(location))
     }
-
 
     /// MCP `IResourceManager#getResourceDomains`: union of all namespaces
     /// visible through the ordered fallback managers. Java resource packs may
     /// add their own domains; limiting reloads to `minecraft` would silently
     /// drop custom sounds, models and language resources.
     pub fn get_resource_domains(&self) -> HashSet<String> {
-        self.packs.iter()
+        self.packs
+            .iter()
             .flat_map(|pack| pack.pack.resource_domains())
             .collect()
     }
 }
 
 fn metadata_location(location: &ResourceLocation) -> ResourceLocation {
-    ResourceLocation::new(location.getNamespace(), format!("{}.mcmeta", location.getPath()))
+    ResourceLocation::new(
+        location.getNamespace(),
+        format!("{}.mcmeta", location.getPath()),
+    )
 }
 
 fn validate_path(location: &ResourceLocation) -> Result<(), ResourceManagerError> {
@@ -242,11 +267,13 @@ fn read_resource(
     pack: &NamedResourcePack,
     location: &ResourceLocation,
 ) -> Result<Vec<u8>, ResourceManagerError> {
-    pack.pack.read(location).map_err(|source| ResourceManagerError::Read {
-        location: location.clone(),
-        path: pack.pack.source_path(location),
-        source,
-    })
+    pack.pack
+        .read(location)
+        .map_err(|source| ResourceManagerError::Read {
+            location: location.clone(),
+            path: pack.pack.source_path(location),
+            source,
+        })
 }
 
 pub fn directory_pack_assets_root(root: impl AsRef<Path>) -> PathBuf {
@@ -262,7 +289,10 @@ mod tests {
     use zip::ZipWriter;
 
     fn temp_dir(label: &str) -> PathBuf {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let path = std::env::temp_dir().join(format!("mc112-{label}-{unique}"));
         fs::create_dir_all(path.join("minecraft/test")).unwrap();
         path
@@ -277,11 +307,17 @@ mod tests {
         let mut manager = ResourceManager::new();
         manager.add_directory_pack("base", &base);
         manager.add_directory_pack("overlay", &overlay);
-        let resource = manager.get_resource(&ResourceLocation::new("minecraft", "test/value.txt")).unwrap();
+        let resource = manager
+            .get_resource(&ResourceLocation::new("minecraft", "test/value.txt"))
+            .unwrap();
         assert_eq!(resource.bytes, b"overlay");
-        let all = manager.get_all_resources(&ResourceLocation::new("minecraft", "test/value.txt")).unwrap();
+        let all = manager
+            .get_all_resources(&ResourceLocation::new("minecraft", "test/value.txt"))
+            .unwrap();
         assert_eq!(
-            all.iter().map(|resource| resource.bytes.as_slice()).collect::<Vec<_>>(),
+            all.iter()
+                .map(|resource| resource.bytes.as_slice())
+                .collect::<Vec<_>>(),
             vec![b"base".as_slice(), b"overlay".as_slice()]
         );
         let _ = fs::remove_dir_all(base);
@@ -294,18 +330,28 @@ mod tests {
         fs::write(base.join("minecraft/test/value.txt"), b"base").unwrap();
         let zip_path = base.parent().unwrap().join(format!(
             "mc112-overlay-{}.zip",
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
         ));
         let file = fs::File::create(&zip_path).unwrap();
         let mut writer = ZipWriter::new(file);
-        writer.start_file("assets/minecraft/test/value.txt", SimpleFileOptions::default()).unwrap();
+        writer
+            .start_file(
+                "assets/minecraft/test/value.txt",
+                SimpleFileOptions::default(),
+            )
+            .unwrap();
         writer.write_all(b"zip-overlay").unwrap();
         writer.finish().unwrap();
 
         let mut manager = ResourceManager::new();
         manager.add_directory_pack("runtime", &base);
         manager.add_zip_pack("overlay.zip", &zip_path).unwrap();
-        let resource = manager.get_resource(&ResourceLocation::new("minecraft", "test/value.txt")).unwrap();
+        let resource = manager
+            .get_resource(&ResourceLocation::new("minecraft", "test/value.txt"))
+            .unwrap();
         assert_eq!(resource.bytes, b"zip-overlay");
         assert_eq!(resource.pack_name, "overlay.zip");
         let _ = fs::remove_dir_all(base);
@@ -321,13 +367,23 @@ mod tests {
 
         let zip_path = base.parent().unwrap().join(format!(
             "mc112-domains-{}.zip",
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
         ));
         let file = fs::File::create(&zip_path).unwrap();
         let mut writer = ZipWriter::new(file);
-        writer.start_file("assets/another-domain/sounds.json", SimpleFileOptions::default()).unwrap();
+        writer
+            .start_file(
+                "assets/another-domain/sounds.json",
+                SimpleFileOptions::default(),
+            )
+            .unwrap();
         writer.write_all(b"{}").unwrap();
-        writer.start_file("assets/BadDomain/sounds.json", SimpleFileOptions::default()).unwrap();
+        writer
+            .start_file("assets/BadDomain/sounds.json", SimpleFileOptions::default())
+            .unwrap();
         writer.write_all(b"{}").unwrap();
         writer.finish().unwrap();
 

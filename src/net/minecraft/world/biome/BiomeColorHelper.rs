@@ -1,7 +1,7 @@
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::world::biome::Biome::Biome;
 use crate::net::minecraft::world::ColorizerFoliage::ColorizerFoliage;
 use crate::net::minecraft::world::ColorizerGrass::ColorizerGrass;
-use crate::net::minecraft::world::biome::Biome::Biome;
 
 /// Minimal biome lookup contract corresponding to `IBlockAccess.getBiome`.
 pub trait BiomeAccess {
@@ -24,7 +24,9 @@ impl BiomeColorHelper {
         pos: BlockPos,
         grass: &ColorizerGrass,
     ) -> i32 {
-        average_color(access, pos, |biome, sample| biome.getGrassColorAtPos(sample, grass))
+        average_color(access, pos, |biome, sample| {
+            biome.getGrassColorAtPos(sample, grass)
+        })
     }
 
     pub fn getFoliageColorAtPos<A: BiomeAccess>(
@@ -32,7 +34,9 @@ impl BiomeColorHelper {
         pos: BlockPos,
         foliage: &ColorizerFoliage,
     ) -> i32 {
-        average_color(access, pos, |biome, sample| biome.getFoliageColorAtPos(sample, foliage))
+        average_color(access, pos, |biome, sample| {
+            biome.getFoliageColorAtPos(sample, foliage)
+        })
     }
 
     pub fn getWaterColorAtPos<A: BiomeAccess>(access: &A, pos: BlockPos) -> i32 {

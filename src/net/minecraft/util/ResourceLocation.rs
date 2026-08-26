@@ -13,7 +13,11 @@ impl ResourceLocation {
         let colon = value.find(':');
         let (namespace, path) = match colon {
             Some(index) => {
-                let namespace = if index > 1 { &value[..index] } else { "minecraft" };
+                let namespace = if index > 1 {
+                    &value[..index]
+                } else {
+                    "minecraft"
+                };
                 (namespace, &value[index + 1..])
             }
             None => ("minecraft", value),
@@ -24,14 +28,22 @@ impl ResourceLocation {
     pub fn new(namespace: impl AsRef<str>, path: impl AsRef<str>) -> Self {
         let namespace = namespace.as_ref();
         Self {
-            namespace: if namespace.is_empty() { "minecraft".to_owned() } else { namespace.to_lowercase() },
+            namespace: if namespace.is_empty() {
+                "minecraft".to_owned()
+            } else {
+                namespace.to_lowercase()
+            },
             // MCP 1.12.2 validates non-null, not non-empty.
             path: path.as_ref().to_lowercase(),
         }
     }
 
-    pub fn getNamespace(&self) -> &str { &self.namespace }
-    pub fn getPath(&self) -> &str { &self.path }
+    pub fn getNamespace(&self) -> &str {
+        &self.namespace
+    }
+    pub fn getPath(&self) -> &str {
+        &self.path
+    }
 }
 
 impl fmt::Display for ResourceLocation {
@@ -42,7 +54,8 @@ impl fmt::Display for ResourceLocation {
 
 impl Serialize for ResourceLocation {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer,
+    where
+        S: Serializer,
     {
         serializer.serialize_str(&self.to_string())
     }
@@ -50,7 +63,8 @@ impl Serialize for ResourceLocation {
 
 impl<'de> Deserialize<'de> for ResourceLocation {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         Ok(Self::parse(String::deserialize(deserializer)?))
     }
@@ -69,9 +83,21 @@ mod tests {
 
     #[test]
     fn preserves_mcp_112_colon_behavior() {
-        assert_eq!(ResourceLocation::parse("modid:block").to_string(), "modid:block");
-        assert_eq!(ResourceLocation::parse(":stone").to_string(), "minecraft:stone");
-        assert_eq!(ResourceLocation::parse("a:stone").to_string(), "minecraft:stone");
-        assert_eq!(ResourceLocation::parse("minecraft:").to_string(), "minecraft:");
+        assert_eq!(
+            ResourceLocation::parse("modid:block").to_string(),
+            "modid:block"
+        );
+        assert_eq!(
+            ResourceLocation::parse(":stone").to_string(),
+            "minecraft:stone"
+        );
+        assert_eq!(
+            ResourceLocation::parse("a:stone").to_string(),
+            "minecraft:stone"
+        );
+        assert_eq!(
+            ResourceLocation::parse("minecraft:").to_string(),
+            "minecraft:"
+        );
     }
 }

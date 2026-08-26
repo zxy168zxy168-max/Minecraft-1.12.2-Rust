@@ -1,9 +1,9 @@
-use crate::net::minecraft::block::BlockFenceGate;
 use crate::net::minecraft::block::state::BlockFaceShape::BlockFaceShape;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
+use crate::net::minecraft::block::BlockFenceGate;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 pub const fn isBlockFence(state: IBlockState) -> bool {
@@ -15,7 +15,8 @@ pub const fn isWoodFence(state: IBlockState) -> bool {
 }
 
 pub const fn sameMaterial(left: IBlockState, right: IBlockState) -> bool {
-    (isWoodFence(left) && isWoodFence(right)) || (left.getBlockId() == 113 && right.getBlockId() == 113)
+    (isWoodFence(left) && isWoodFence(right))
+        || (left.getBlockId() == 113 && right.getBlockId() == 113)
 }
 
 pub fn getBlockFaceShape(face: EnumFacing) -> BlockFaceShape {
@@ -31,8 +32,23 @@ pub fn getBlockFaceShape(face: EnumFacing) -> BlockFaceShape {
 pub const fn excludesSolidConnection(blockId: i32) -> bool {
     matches!(
         blockId,
-        18 | 29 | 33 | 34 | 79 | 86 | 89 | 91 | 95 | 96 | 103 | 118 | 138 | 161 | 166 | 167 | 169 | 219..=234
-            | 20
+        18 | 29
+            | 33
+            | 34
+            | 79
+            | 86
+            | 89
+            | 91
+            | 95
+            | 96
+            | 103
+            | 118
+            | 138
+            | 161
+            | 166
+            | 167
+            | 169
+            | 219..=234 | 20
     )
 }
 
@@ -68,10 +84,18 @@ pub fn connectionMask<A: IBlockAccess>(state: IBlockState, world: &A, pos: Block
 /// Port of `BlockFence.addCollisionBoxToList` after `getActualState`.
 pub fn getCollisionBoxes(mask: u8) -> Vec<AxisAlignedBB> {
     let mut boxes = vec![AxisAlignedBB::new(0.375, 0.0, 0.375, 0.625, 1.5, 0.625)];
-    if mask & 1 != 0 { boxes.push(AxisAlignedBB::new(0.375, 0.0, 0.0, 0.625, 1.5, 0.375)); }
-    if mask & 2 != 0 { boxes.push(AxisAlignedBB::new(0.625, 0.0, 0.375, 1.0, 1.5, 0.625)); }
-    if mask & 4 != 0 { boxes.push(AxisAlignedBB::new(0.375, 0.0, 0.625, 0.625, 1.5, 1.0)); }
-    if mask & 8 != 0 { boxes.push(AxisAlignedBB::new(0.0, 0.0, 0.375, 0.375, 1.5, 0.625)); }
+    if mask & 1 != 0 {
+        boxes.push(AxisAlignedBB::new(0.375, 0.0, 0.0, 0.625, 1.5, 0.375));
+    }
+    if mask & 2 != 0 {
+        boxes.push(AxisAlignedBB::new(0.625, 0.0, 0.375, 1.0, 1.5, 0.625));
+    }
+    if mask & 4 != 0 {
+        boxes.push(AxisAlignedBB::new(0.375, 0.0, 0.625, 0.625, 1.5, 1.0));
+    }
+    if mask & 8 != 0 {
+        boxes.push(AxisAlignedBB::new(0.0, 0.0, 0.375, 0.375, 1.5, 0.625));
+    }
     boxes
 }
 
@@ -91,8 +115,8 @@ pub fn getBoundingBox(mask: u8) -> AxisAlignedBB {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     struct Access(HashMap<BlockPos, IBlockState>);
     impl IBlockAccess for Access {
@@ -101,7 +125,9 @@ mod tests {
         }
     }
 
-    fn state(id: i32) -> IBlockState { IBlockState::fromGlobalStateId(id << 4) }
+    fn state(id: i32) -> IBlockState {
+        IBlockState::fromGlobalStateId(id << 4)
+    }
 
     #[test]
     fn wood_fences_share_material_but_do_not_join_nether_fence() {

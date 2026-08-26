@@ -13,12 +13,18 @@ pub struct Locale {
 }
 
 impl Locale {
-    pub fn load(resource_manager: &ResourceManager, language_codes: &[&str], domains: &[&str]) -> Self {
+    pub fn load(
+        resource_manager: &ResourceManager,
+        language_codes: &[&str],
+        domains: &[&str],
+    ) -> Self {
         let mut locale = Self::default();
         for language in language_codes {
             for domain in domains {
                 let location = ResourceLocation::new(*domain, format!("lang/{language}.lang"));
-                let Ok(resources) = resource_manager.get_all_resources(&location) else { continue; };
+                let Ok(resources) = resource_manager.get_all_resources(&location) else {
+                    continue;
+                };
                 for resource in resources {
                     locale.load_bytes(&resource.bytes);
                 }
@@ -43,9 +49,14 @@ impl Locale {
     pub fn load_bytes(&mut self, bytes: &[u8]) {
         let text = String::from_utf8_lossy(bytes);
         for line in text.lines() {
-            if line.is_empty() || line.starts_with('#') { continue; }
-            let Some((key, value)) = line.split_once('=') else { continue; };
-            self.properties.insert(key.to_owned(), normalize_numeric_formats(value));
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let Some((key, value)) = line.split_once('=') else {
+                continue;
+            };
+            self.properties
+                .insert(key.to_owned(), normalize_numeric_formats(value));
         }
     }
 
@@ -53,10 +64,18 @@ impl Locale {
         self.properties.get(key).map(String::as_str).unwrap_or(key)
     }
 
-    pub fn has_key(&self, key: &str) -> bool { self.properties.contains_key(key) }
-    pub const fn is_unicode(&self) -> bool { self.unicode }
-    pub fn len(&self) -> usize { self.properties.len() }
-    pub fn is_empty(&self) -> bool { self.properties.is_empty() }
+    pub fn has_key(&self, key: &str) -> bool {
+        self.properties.contains_key(key)
+    }
+    pub const fn is_unicode(&self) -> bool {
+        self.unicode
+    }
+    pub fn len(&self) -> usize {
+        self.properties.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.properties.is_empty()
+    }
 
     fn check_unicode(&mut self) {
         let mut unicode_count = 0_usize;
@@ -64,7 +83,9 @@ impl Locale {
         for value in self.properties.values() {
             for ch in value.chars() {
                 total += 1;
-                if ch as u32 >= 256 { unicode_count += 1; }
+                if ch as u32 >= 256 {
+                    unicode_count += 1;
+                }
             }
         }
         self.unicode = total != 0 && unicode_count as f32 / total as f32 > 0.1;
@@ -85,7 +106,9 @@ fn normalize_numeric_formats(input: &str) -> String {
         let start = index;
         index += 1;
         let digits_start = index;
-        while index < chars.len() && chars[index].is_ascii_digit() { index += 1; }
+        while index < chars.len() && chars[index].is_ascii_digit() {
+            index += 1;
+        }
         let positional = if index < chars.len() && chars[index] == '$' && index > digits_start {
             let value: String = chars[digits_start..=index].iter().collect();
             index += 1;
@@ -94,10 +117,14 @@ fn normalize_numeric_formats(input: &str) -> String {
             index = digits_start;
             None
         };
-        while index < chars.len() && (chars[index].is_ascii_digit() || chars[index] == '.') { index += 1; }
+        while index < chars.len() && (chars[index].is_ascii_digit() || chars[index] == '.') {
+            index += 1;
+        }
         if index < chars.len() && matches!(chars[index], 'd' | 'f') {
             output.push('%');
-            if let Some(positional) = positional { output.push_str(&positional); }
+            if let Some(positional) = positional {
+                output.push_str(&positional);
+            }
             output.push('s');
             index += 1;
         } else {

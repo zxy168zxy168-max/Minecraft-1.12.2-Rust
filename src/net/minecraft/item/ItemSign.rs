@@ -2,9 +2,9 @@ use crate::net::minecraft::block::BlockSign;
 use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::item::ItemStack::ItemStack;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::EnumActionResult::EnumActionResult;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 /// MCP `ItemSign` client-side result path. Vanilla returns SUCCESS on the
 /// remote world before mutating a block; the server later places the sign,
@@ -54,16 +54,29 @@ mod tests {
     use crate::net::minecraft::block::state::IBlockState::IBlockState;
 
     fn stack() -> ItemStack {
-        ItemStack { itemId: 323, count: 1, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: 323,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]
     fn downward_face_is_rejected() {
         let mut world = WorldClient::new(0);
         let pos = BlockPos::new(0, 64, 0);
-        world.invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(1 << 4))
+            .unwrap();
         assert_eq!(
-            ItemSign::predictOnItemUse(&world, &EntityPlayerSP::new(1), pos, EnumFacing::Down, &stack()),
+            ItemSign::predictOnItemUse(
+                &world,
+                &EntityPlayerSP::new(1),
+                pos,
+                EnumFacing::Down,
+                &stack()
+            ),
             EnumActionResult::Fail,
         );
     }
@@ -72,9 +85,17 @@ mod tests {
     fn solid_clicked_block_and_empty_target_succeed_client_side() {
         let mut world = WorldClient::new(0);
         let pos = BlockPos::new(0, 64, 0);
-        world.invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(1 << 4))
+            .unwrap();
         assert_eq!(
-            ItemSign::predictOnItemUse(&world, &EntityPlayerSP::new(1), pos, EnumFacing::Up, &stack()),
+            ItemSign::predictOnItemUse(
+                &world,
+                &EntityPlayerSP::new(1),
+                pos,
+                EnumFacing::Up,
+                &stack()
+            ),
             EnumActionResult::Success,
         );
     }

@@ -3,15 +3,17 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
-use crate::net::minecraft::client::gui::GuiIngame::{HudSolidRect, HudText, HudTexturedQuad, HudTexture};
+use crate::net::minecraft::client::gui::GuiIngame::{
+    HudSolidRect, HudText, HudTexture, HudTexturedQuad,
+};
 use crate::net::minecraft::client::gui::GuiNewChat::split_formatted_text;
 use crate::net::minecraft::client::network::NetworkPlayerInfo::NetworkPlayerInfo;
-use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
-use crate::net::minecraft::world::GameType::GameType;
-use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
-use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
-use crate::net::minecraft::scoreboard::ScorePlayerTeam::ScorePlayerTeam;
 use crate::net::minecraft::scoreboard::IScoreCriteria::EnumRenderType;
+use crate::net::minecraft::scoreboard::ScorePlayerTeam::ScorePlayerTeam;
+use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
+use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
+use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
+use crate::net::minecraft::world::GameType::GameType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlayerTabHead {
@@ -41,7 +43,9 @@ pub struct GuiPlayerTabOverlay {
 }
 
 impl GuiPlayerTabOverlay {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn updatePlayerList(&mut self, willBeRendered: bool, systemTimeMillis: u64) {
         if willBeRendered && !self.isBeingRendered {
@@ -74,15 +78,24 @@ impl GuiPlayerTabOverlay {
             let right_team = scoreboard
                 .and_then(|board| board.getPlayersTeam(right.getGameProfile().getName()))
                 .map_or("", ScorePlayerTeam::getRegisteredName);
-            right_normal.cmp(&left_normal)
+            right_normal
+                .cmp(&left_normal)
                 .then_with(|| left_team.cmp(right_team))
-                .then_with(|| left.getGameProfile().getName().cmp(right.getGameProfile().getName()))
+                .then_with(|| {
+                    left.getGameProfile()
+                        .getName()
+                        .cmp(right.getGameProfile().getName())
+                })
         });
         if list.is_empty() && header.is_none() && footer.is_none() {
             return PlayerTabFrame::default();
         }
 
-        let max_name_width = list.iter().map(|entry| fontRenderer.get_string_width(&player_name(entry, scoreboard))).max().unwrap_or(0);
+        let max_name_width = list
+            .iter()
+            .map(|entry| fontRenderer.get_string_width(&player_name(entry, scoreboard)))
+            .max()
+            .unwrap_or(0);
         // GuiIngame supplies display slot 0 to the tab overlay. Integer
         // objectives use the exact right-aligned score branch. HEARTS keeps
         // its dedicated animated icon branch separate until NetworkPlayerInfo
@@ -95,8 +108,9 @@ impl GuiPlayerTabOverlay {
             list.iter()
                 .filter(|entry| entry.getGameType() != GameType::Spectator)
                 .map(|entry| {
-                    let points = scoreboard
-                        .map_or(0, |board| board.getScorePoints(entry.getGameProfile().getName(), objective.getName()));
+                    let points = scoreboard.map_or(0, |board| {
+                        board.getScorePoints(entry.getGameProfile().getName(), objective.getName())
+                    });
                     fontRenderer.get_string_width(&format!(" {points}"))
                 })
                 .max()
@@ -116,34 +130,60 @@ impl GuiPlayerTabOverlay {
         // NetworkPlayerInfo's downloaded skin rather than a GUI atlas icon.
         let headWidth = if showHeads { 9 } else { 0 };
         let column_width = (columns * (max_name_width + scoreWidth + headWidth + 13))
-            .min((width - 50).max(0)) / columns;
+            .min((width - 50).max(0))
+            / columns;
         let table_width = column_width * columns + (columns - 1) * 5;
         let table_left = width / 2 - table_width / 2;
         let mut y = 10;
         let header_lines = wrap_component_with_font(header, width - 50, fontRenderer);
         let footer_lines = wrap_component_with_font(footer, width - 50, fontRenderer);
-        let widest_aux = header_lines.iter().chain(footer_lines.iter()).map(|line| fontRenderer.get_string_width(line)).max().unwrap_or(0);
+        let widest_aux = header_lines
+            .iter()
+            .chain(footer_lines.iter())
+            .map(|line| fontRenderer.get_string_width(line))
+            .max()
+            .unwrap_or(0);
         let overall_width = table_width.max(widest_aux);
         let mut frame = PlayerTabFrame::default();
 
         if !header_lines.is_empty() {
-            frame.rectangles.push(HudSolidRect::new(width / 2 - overall_width / 2 - 1, y - 1, overall_width + 2, header_lines.len() as i32 * 9 + 1, 0x8000_0000));
+            frame.rectangles.push(HudSolidRect::new(
+                width / 2 - overall_width / 2 - 1,
+                y - 1,
+                overall_width + 2,
+                header_lines.len() as i32 * 9 + 1,
+                0x8000_0000,
+            ));
             for line in header_lines {
                 let line_width = fontRenderer.get_string_width(&line);
-                frame.texts.push(HudText { text: line, x: width / 2 - line_width / 2, y, color: 0x00FF_FFFF, outline: true });
+                frame.texts.push(HudText {
+                    text: line,
+                    x: width / 2 - line_width / 2,
+                    y,
+                    color: 0x00FF_FFFF,
+                    outline: true,
+                });
                 y += 9;
             }
             y += 1;
         }
 
-        frame.rectangles.push(HudSolidRect::new(width / 2 - overall_width / 2 - 1, y - 1, overall_width + 2, rows * 9 + 1, 0x8000_0000));
+        frame.rectangles.push(HudSolidRect::new(
+            width / 2 - overall_width / 2 - 1,
+            y - 1,
+            overall_width + 2,
+            rows * 9 + 1,
+            0x8000_0000,
+        ));
         for (index, entry) in list.iter().enumerate() {
             let index = index as i32;
             let column = index / rows.max(1);
             let row = index % rows.max(1);
             let x = table_left + column * (column_width + 5);
             let row_y = y + row * 9;
-            frame.rectangles.push(HudSolidRect::new(x, row_y, column_width, 8, 0x20FF_FFFF));
+            frame
+                .rectangles
+                .push(HudSolidRect::new(x, row_y, column_width, 8, 0x20FF_FFFF));
             let mut nameX = x;
             if showHeads {
                 let entityParts = entry
@@ -165,7 +205,11 @@ impl GuiPlayerTabOverlay {
             let name = player_name(entry, scoreboard);
             let spectator = entry.getGameType() == GameType::Spectator;
             frame.texts.push(HudText {
-                text: if spectator { format!("§o{name}") } else { name },
+                text: if spectator {
+                    format!("§o{name}")
+                } else {
+                    name
+                },
                 x: nameX,
                 y: row_y,
                 color: if spectator { 0x90FF_FFFF } else { 0xFFFF_FFFF },
@@ -173,7 +217,10 @@ impl GuiPlayerTabOverlay {
             });
             if !spectator {
                 if let (Some(board), Some(objective)) = (scoreboard, tabObjective) {
-                    let score = format!("§e{}", board.getScorePoints(entry.getGameProfile().getName(), objective.getName()));
+                    let score = format!(
+                        "§e{}",
+                        board.getScorePoints(entry.getGameProfile().getName(), objective.getName())
+                    );
                     let scoreLeft = nameX + max_name_width + 1;
                     let scoreRight = scoreLeft + scoreWidth;
                     if scoreRight - scoreLeft > 5 {
@@ -204,10 +251,22 @@ impl GuiPlayerTabOverlay {
 
         if !footer_lines.is_empty() {
             y += rows * 9 + 1;
-            frame.rectangles.push(HudSolidRect::new(width / 2 - overall_width / 2 - 1, y - 1, overall_width + 2, footer_lines.len() as i32 * 9 + 1, 0x8000_0000));
+            frame.rectangles.push(HudSolidRect::new(
+                width / 2 - overall_width / 2 - 1,
+                y - 1,
+                overall_width + 2,
+                footer_lines.len() as i32 * 9 + 1,
+                0x8000_0000,
+            ));
             for line in footer_lines {
                 let line_width = fontRenderer.get_string_width(&line);
-                frame.texts.push(HudText { text: line, x: width / 2 - line_width / 2, y, color: 0x00FF_FFFF, outline: true });
+                frame.texts.push(HudText {
+                    text: line,
+                    x: width / 2 - line_width / 2,
+                    y,
+                    color: 0x00FF_FFFF,
+                    outline: true,
+                });
                 y += 9;
             }
         }
@@ -237,12 +296,17 @@ impl GuiPlayerTabOverlay {
         )
     }
 
-    pub fn hide(&mut self) { self.isBeingRendered = false; }
-    pub const fn lastTimeOpened(&self) -> u64 { self.lastTimeOpened }
+    pub fn hide(&mut self) {
+        self.isBeingRendered = false;
+    }
+    pub const fn lastTimeOpened(&self) -> u64 {
+        self.lastTimeOpened
+    }
 }
 
 fn player_name(entry: &NetworkPlayerInfo, scoreboard: Option<&Scoreboard>) -> String {
-    entry.getDisplayName()
+    entry
+        .getDisplayName()
         .map(|name| name.getFormattedText().to_owned())
         .unwrap_or_else(|| {
             ScorePlayerTeam::formatPlayerName(
@@ -256,8 +320,15 @@ fn visible_width(text: &str) -> i32 {
     let mut width = 0;
     let mut formatting = false;
     for character in text.chars() {
-        if formatting { formatting = false; continue; }
-        if character == '§' { formatting = true; } else { width += 6; }
+        if formatting {
+            formatting = false;
+            continue;
+        }
+        if character == '§' {
+            formatting = true;
+        } else {
+            width += 6;
+        }
     }
     width
 }
@@ -267,26 +338,41 @@ fn wrap_component_with_font(
     width: i32,
     fontRenderer: &FontRenderer,
 ) -> Vec<String> {
-    let Some(component) = component else { return Vec::new(); };
+    let Some(component) = component else {
+        return Vec::new();
+    };
     let text = component.getFormattedText();
-    if text.is_empty() { return Vec::new(); }
+    if text.is_empty() {
+        return Vec::new();
+    }
     fontRenderer.list_formatted_string_to_width(text, width.max(1))
 }
 
 fn wrap_component(component: Option<&ITextComponent>, width: i32) -> Vec<String> {
-    let Some(component) = component else { return Vec::new(); };
+    let Some(component) = component else {
+        return Vec::new();
+    };
     let text = component.getFormattedText();
-    if text.is_empty() { return Vec::new(); }
+    if text.is_empty() {
+        return Vec::new();
+    }
     split_formatted_text(text, width.max(6))
 }
 
 const fn ping_icon(response_time: i32) -> i32 {
-    if response_time < 0 { 5 }
-    else if response_time < 150 { 0 }
-    else if response_time < 300 { 1 }
-    else if response_time < 600 { 2 }
-    else if response_time < 1000 { 3 }
-    else { 4 }
+    if response_time < 0 {
+        5
+    } else if response_time < 150 {
+        0
+    } else if response_time < 300 {
+        1
+    } else if response_time < 600 {
+        2
+    } else if response_time < 1000 {
+        3
+    } else {
+        4
+    }
 }
 
 #[cfg(test)]
@@ -300,7 +386,9 @@ mod tests {
 
     #[test]
     fn caps_to_eighty_and_uses_twenty_rows_per_column() {
-        let entries = (0..81).map(|index| player(&format!("P{index:02}"), GameType::Survival, 20)).collect::<Vec<_>>();
+        let entries = (0..81)
+            .map(|index| player(&format!("P{index:02}"), GameType::Survival, 20))
+            .collect::<Vec<_>>();
         let frame = GuiPlayerTabOverlay::new().buildFrame(500, &entries, None, None, None, 100);
         assert_eq!(frame.texts.len(), 80);
         assert_eq!(frame.icons.len(), 80);
@@ -309,7 +397,10 @@ mod tests {
 
     #[test]
     fn spectator_players_sort_after_normal_players() {
-        let entries = vec![player("A", GameType::Spectator, 20), player("B", GameType::Survival, 20)];
+        let entries = vec![
+            player("A", GameType::Spectator, 20),
+            player("B", GameType::Survival, 20),
+        ];
         let frame = GuiPlayerTabOverlay::new().buildFrame(320, &entries, None, None, None, 100);
         assert_eq!(frame.texts[0].text, "B");
         assert_eq!(frame.texts[1].text, "§oA");
@@ -350,5 +441,4 @@ mod tests {
         assert!(frame.heads[0].renderHat);
         assert_eq!(frame.texts[0].x, frame.heads[0].x + 9);
     }
-
 }

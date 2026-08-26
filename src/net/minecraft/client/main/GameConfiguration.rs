@@ -99,11 +99,7 @@ pub struct GameInformation {
 }
 
 impl GameInformation {
-    pub fn new(
-        demo: bool,
-        versionIn: impl Into<String>,
-        versionTypeIn: impl Into<String>,
-    ) -> Self {
+    pub fn new(demo: bool, versionIn: impl Into<String>, versionTypeIn: impl Into<String>) -> Self {
         Self {
             isDemo: demo,
             version: versionIn.into(),

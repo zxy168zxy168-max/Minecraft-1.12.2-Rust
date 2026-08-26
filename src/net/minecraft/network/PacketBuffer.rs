@@ -1,7 +1,7 @@
-use std::io::{Read, Write};
-use flate2::{Compression, read::ZlibDecoder, write::ZlibEncoder};
-use thiserror::Error;
 use crate::net::minecraft::network::Packet::RawPacket;
+use flate2::{read::ZlibDecoder, write::ZlibEncoder, Compression};
+use std::io::{Read, Write};
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum CodecError {
@@ -17,7 +17,9 @@ pub enum CodecError {
     PacketTooLarge { actual: usize, maximum: usize },
     #[error("compressed packet below negotiated threshold: {actual} < {threshold}")]
     CompressedBelowThreshold { actual: usize, threshold: usize },
-    #[error("uncompressed packet reached negotiated compression threshold: {actual} >= {threshold}")]
+    #[error(
+        "uncompressed packet reached negotiated compression threshold: {actual} >= {threshold}"
+    )]
     UncompressedAboveThreshold { actual: usize, threshold: usize },
     #[error("decompressed packet length mismatch: declared {declared}, actual {actual}")]
     DecompressedLengthMismatch { declared: usize, actual: usize },
@@ -48,9 +50,13 @@ pub fn read_var_i32(input: &mut &[u8]) -> Result<i32, CodecError> {
     loop {
         let byte = take_byte(input)?;
         value |= ((byte & 0x7F) as i32) << position;
-        if byte & 0x80 == 0 { return Ok(value); }
+        if byte & 0x80 == 0 {
+            return Ok(value);
+        }
         position += 7;
-        if position >= 35 { return Err(CodecError::VarIntTooLarge); }
+        if position >= 35 {
+            return Err(CodecError::VarIntTooLarge);
+        }
     }
 }
 
@@ -71,18 +77,35 @@ pub fn read_var_i64(input: &mut &[u8]) -> Result<i64, CodecError> {
     loop {
         let byte = take_byte(input)?;
         value |= ((byte & 0x7F) as i64) << position;
-        if byte & 0x80 == 0 { return Ok(value); }
+        if byte & 0x80 == 0 {
+            return Ok(value);
+        }
         position += 7;
-        if position >= 70 { return Err(CodecError::VarLongTooLarge); }
+        if position >= 70 {
+            return Err(CodecError::VarLongTooLarge);
+        }
     }
 }
 
-
-pub fn write_string(value: &str, maximum_characters: usize, output: &mut Vec<u8>) -> Result<(), CodecError> {
+pub fn write_string(
+    value: &str,
+    maximum_characters: usize,
+    output: &mut Vec<u8>,
+) -> Result<(), CodecError> {
     let characters = value.encode_utf16().count();
-    if characters > maximum_characters { return Err(CodecError::StringTooLong { actual: characters, maximum: maximum_characters }); }
+    if characters > maximum_characters {
+        return Err(CodecError::StringTooLong {
+            actual: characters,
+            maximum: maximum_characters,
+        });
+    }
     let bytes = value.as_bytes();
-    if bytes.len() > maximum_characters.saturating_mul(4) { return Err(CodecError::StringTooLong { actual: bytes.len(), maximum: maximum_characters.saturating_mul(4) }); }
+    if bytes.len() > maximum_characters.saturating_mul(4) {
+        return Err(CodecError::StringTooLong {
+            actual: bytes.len(),
+            maximum: maximum_characters.saturating_mul(4),
+        });
+    }
     write_var_i32(bytes.len() as i32, output);
     output.extend_from_slice(bytes);
     Ok(())
@@ -90,30 +113,49 @@ pub fn write_string(value: &str, maximum_characters: usize, output: &mut Vec<u8>
 
 pub fn read_string(input: &mut &[u8], maximum_characters: usize) -> Result<String, CodecError> {
     let byte_length = read_var_i32(input)?;
-    if byte_length < 0 { return Err(CodecError::NegativeLength(byte_length)); }
+    if byte_length < 0 {
+        return Err(CodecError::NegativeLength(byte_length));
+    }
     let byte_length = byte_length as usize;
     let maximum_bytes = maximum_characters.saturating_mul(4);
-    if byte_length > maximum_bytes { return Err(CodecError::StringTooLong { actual: byte_length, maximum: maximum_bytes }); }
-    if input.len() < byte_length { return Err(CodecError::UnexpectedEof); }
+    if byte_length > maximum_bytes {
+        return Err(CodecError::StringTooLong {
+            actual: byte_length,
+            maximum: maximum_bytes,
+        });
+    }
+    if input.len() < byte_length {
+        return Err(CodecError::UnexpectedEof);
+    }
     let (bytes, remainder) = input.split_at(byte_length);
     *input = remainder;
     let value = std::str::from_utf8(bytes)?;
     let characters = value.encode_utf16().count();
-    if characters > maximum_characters { return Err(CodecError::StringTooLong { actual: characters, maximum: maximum_characters }); }
+    if characters > maximum_characters {
+        return Err(CodecError::StringTooLong {
+            actual: characters,
+            maximum: maximum_characters,
+        });
+    }
     Ok(value.to_owned())
 }
 
-
-
-pub fn write_nbt_compound(value: Option<&crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound>, output: &mut Vec<u8>) -> Result<(), CodecError> {
+pub fn write_nbt_compound(
+    value: Option<&crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound>,
+    output: &mut Vec<u8>,
+) -> Result<(), CodecError> {
     match value {
         None => output.push(0),
-        Some(compound) => crate::net::minecraft::nbt::CompressedStreamTools::writeRoot(compound, output)?,
+        Some(compound) => {
+            crate::net::minecraft::nbt::CompressedStreamTools::writeRoot(compound, output)?
+        }
     }
     Ok(())
 }
 
-pub fn read_nbt_compound(input: &mut &[u8]) -> Result<Option<crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound>, CodecError> {
+pub fn read_nbt_compound(
+    input: &mut &[u8],
+) -> Result<Option<crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound>, CodecError> {
     if input.first().copied().ok_or(CodecError::UnexpectedEof)? == 0 {
         *input = &input[1..];
         return Ok(None);
@@ -124,90 +166,164 @@ pub fn read_nbt_compound(input: &mut &[u8]) -> Result<Option<crate::net::minecra
 }
 
 pub fn write_byte_array(value: &[u8], output: &mut Vec<u8>) -> Result<(), CodecError> {
-    write_var_i32(i32::try_from(value.len()).map_err(|_| CodecError::PacketTooLarge { actual: value.len(), maximum: i32::MAX as usize })?, output);
+    write_var_i32(
+        i32::try_from(value.len()).map_err(|_| CodecError::PacketTooLarge {
+            actual: value.len(),
+            maximum: i32::MAX as usize,
+        })?,
+        output,
+    );
     output.extend_from_slice(value);
     Ok(())
 }
 
 pub fn read_byte_array(input: &mut &[u8], maximum: usize) -> Result<Vec<u8>, CodecError> {
     let length = read_var_i32(input)?;
-    if length < 0 { return Err(CodecError::NegativeLength(length)); }
+    if length < 0 {
+        return Err(CodecError::NegativeLength(length));
+    }
     let length = length as usize;
-    if length > maximum { return Err(CodecError::PacketTooLarge { actual: length, maximum }); }
-    if input.len() < length { return Err(CodecError::UnexpectedEof); }
+    if length > maximum {
+        return Err(CodecError::PacketTooLarge {
+            actual: length,
+            maximum,
+        });
+    }
+    if input.len() < length {
+        return Err(CodecError::UnexpectedEof);
+    }
     let (bytes, remainder) = input.split_at(length);
     *input = remainder;
     Ok(bytes.to_vec())
 }
 
-pub fn write_f64_be(value: f64, output: &mut Vec<u8>) { output.extend_from_slice(&value.to_bits().to_be_bytes()); }
-pub fn read_f64_be(input: &mut &[u8]) -> Result<f64, CodecError> { if input.len()<8{return Err(CodecError::UnexpectedEof);}let(bytes,remainder)=input.split_at(8);*input=remainder;Ok(f64::from_bits(u64::from_be_bytes(bytes.try_into().expect("exactly eight bytes")))) }
-pub fn write_f32_be(value: f32, output: &mut Vec<u8>) { output.extend_from_slice(&value.to_bits().to_be_bytes()); }
-pub fn read_f32_be(input: &mut &[u8]) -> Result<f32, CodecError> { if input.len()<4{return Err(CodecError::UnexpectedEof);}let(bytes,remainder)=input.split_at(4);*input=remainder;Ok(f32::from_bits(u32::from_be_bytes(bytes.try_into().expect("exactly four bytes")))) }
-
-pub fn write_i32_be(value: i32, output: &mut Vec<u8>) { output.extend_from_slice(&value.to_be_bytes()); }
-
-pub fn read_i32_be(input: &mut &[u8]) -> Result<i32, CodecError> {
-    if input.len() < 4 { return Err(CodecError::UnexpectedEof); }
-    let (bytes, remainder) = input.split_at(4);
-    *input = remainder;
-    Ok(i32::from_be_bytes(bytes.try_into().expect("exactly four bytes")))
+pub fn write_f64_be(value: f64, output: &mut Vec<u8>) {
+    output.extend_from_slice(&value.to_bits().to_be_bytes());
 }
-
-pub fn read_u8(input: &mut &[u8]) -> Result<u8, CodecError> { take_byte(input) }
-pub fn read_bool(input: &mut &[u8]) -> Result<bool, CodecError> { Ok(take_byte(input)? != 0) }
-pub fn write_bool(value: bool, output: &mut Vec<u8>) { output.push(u8::from(value)); }
-
-pub fn write_i64_be(value: i64, output: &mut Vec<u8>) { output.extend_from_slice(&value.to_be_bytes()); }
-
-pub fn read_i64_be(input: &mut &[u8]) -> Result<i64, CodecError> {
-    if input.len() < 8 { return Err(CodecError::UnexpectedEof); }
+pub fn read_f64_be(input: &mut &[u8]) -> Result<f64, CodecError> {
+    if input.len() < 8 {
+        return Err(CodecError::UnexpectedEof);
+    }
     let (bytes, remainder) = input.split_at(8);
     *input = remainder;
-    Ok(i64::from_be_bytes(bytes.try_into().expect("exactly eight bytes")))
+    Ok(f64::from_bits(u64::from_be_bytes(
+        bytes.try_into().expect("exactly eight bytes"),
+    )))
+}
+pub fn write_f32_be(value: f32, output: &mut Vec<u8>) {
+    output.extend_from_slice(&value.to_bits().to_be_bytes());
+}
+pub fn read_f32_be(input: &mut &[u8]) -> Result<f32, CodecError> {
+    if input.len() < 4 {
+        return Err(CodecError::UnexpectedEof);
+    }
+    let (bytes, remainder) = input.split_at(4);
+    *input = remainder;
+    Ok(f32::from_bits(u32::from_be_bytes(
+        bytes.try_into().expect("exactly four bytes"),
+    )))
 }
 
+pub fn write_i32_be(value: i32, output: &mut Vec<u8>) {
+    output.extend_from_slice(&value.to_be_bytes());
+}
 
-pub fn write_i16_be(value: i16, output: &mut Vec<u8>) { output.extend_from_slice(&value.to_be_bytes()); }
+pub fn read_i32_be(input: &mut &[u8]) -> Result<i32, CodecError> {
+    if input.len() < 4 {
+        return Err(CodecError::UnexpectedEof);
+    }
+    let (bytes, remainder) = input.split_at(4);
+    *input = remainder;
+    Ok(i32::from_be_bytes(
+        bytes.try_into().expect("exactly four bytes"),
+    ))
+}
+
+pub fn read_u8(input: &mut &[u8]) -> Result<u8, CodecError> {
+    take_byte(input)
+}
+pub fn read_bool(input: &mut &[u8]) -> Result<bool, CodecError> {
+    Ok(take_byte(input)? != 0)
+}
+pub fn write_bool(value: bool, output: &mut Vec<u8>) {
+    output.push(u8::from(value));
+}
+
+pub fn write_i64_be(value: i64, output: &mut Vec<u8>) {
+    output.extend_from_slice(&value.to_be_bytes());
+}
+
+pub fn read_i64_be(input: &mut &[u8]) -> Result<i64, CodecError> {
+    if input.len() < 8 {
+        return Err(CodecError::UnexpectedEof);
+    }
+    let (bytes, remainder) = input.split_at(8);
+    *input = remainder;
+    Ok(i64::from_be_bytes(
+        bytes.try_into().expect("exactly eight bytes"),
+    ))
+}
+
+pub fn write_i16_be(value: i16, output: &mut Vec<u8>) {
+    output.extend_from_slice(&value.to_be_bytes());
+}
 
 pub fn read_i16_be(input: &mut &[u8]) -> Result<i16, CodecError> {
-    if input.len() < 2 { return Err(CodecError::UnexpectedEof); }
+    if input.len() < 2 {
+        return Err(CodecError::UnexpectedEof);
+    }
     let (bytes, remainder) = input.split_at(2);
     *input = remainder;
-    Ok(i16::from_be_bytes(bytes.try_into().expect("exactly two bytes")))
+    Ok(i16::from_be_bytes(
+        bytes.try_into().expect("exactly two bytes"),
+    ))
 }
 
-pub fn read_i8(input: &mut &[u8]) -> Result<i8, CodecError> { Ok(take_byte(input)? as i8) }
+pub fn read_i8(input: &mut &[u8]) -> Result<i8, CodecError> {
+    Ok(take_byte(input)? as i8)
+}
 
 pub fn write_uuid(value: uuid::Uuid, output: &mut Vec<u8>) {
     output.extend_from_slice(value.as_bytes());
 }
 
 pub fn read_uuid(input: &mut &[u8]) -> Result<uuid::Uuid, CodecError> {
-    if input.len() < 16 { return Err(CodecError::UnexpectedEof); }
+    if input.len() < 16 {
+        return Err(CodecError::UnexpectedEof);
+    }
     let (bytes, remainder) = input.split_at(16);
     *input = remainder;
     uuid::Uuid::from_slice(bytes).map_err(|error| CodecError::InvalidData(error.to_string()))
 }
 
-pub fn read_text_component(input: &mut &[u8]) -> Result<crate::net::minecraft::util::text::ITextComponent::ITextComponent, CodecError> {
+pub fn read_text_component(
+    input: &mut &[u8],
+) -> Result<crate::net::minecraft::util::text::ITextComponent::ITextComponent, CodecError> {
     let json = read_string(input, 32767)?;
     crate::net::minecraft::util::text::ITextComponent::ITextComponent::fromJsonLenient(&json)
         .map_err(|error| CodecError::InvalidData(error.to_string()))
 }
 
-pub fn write_u16_be(value: u16, output: &mut Vec<u8>) { output.extend_from_slice(&value.to_be_bytes()); }
+pub fn write_u16_be(value: u16, output: &mut Vec<u8>) {
+    output.extend_from_slice(&value.to_be_bytes());
+}
 
 pub fn read_u16_be(input: &mut &[u8]) -> Result<u16, CodecError> {
-    if input.len() < 2 { return Err(CodecError::UnexpectedEof); }
+    if input.len() < 2 {
+        return Err(CodecError::UnexpectedEof);
+    }
     let (bytes, remainder) = input.split_at(2);
     *input = remainder;
-    Ok(u16::from_be_bytes(bytes.try_into().expect("exactly two bytes")))
+    Ok(u16::from_be_bytes(
+        bytes.try_into().expect("exactly two bytes"),
+    ))
 }
 
 pub fn var_i32_size(value: i32) -> usize {
     for bytes in 1..5 {
-        if (value & (-1_i32 << (bytes * 7))) == 0 { return bytes; }
+        if (value & (-1_i32 << (bytes * 7))) == 0 {
+            return bytes;
+        }
     }
     5
 }
@@ -226,13 +342,19 @@ pub struct PacketCodec {
 
 impl Default for PacketCodec {
     fn default() -> Self {
-        Self { compression_threshold: None, maximum_packet_size: 2 * 1024 * 1024 }
+        Self {
+            compression_threshold: None,
+            maximum_packet_size: 2 * 1024 * 1024,
+        }
     }
 }
 
 impl PacketCodec {
     pub fn new(compression_threshold: Option<usize>, maximum_packet_size: usize) -> Self {
-        Self { compression_threshold, maximum_packet_size }
+        Self {
+            compression_threshold,
+            maximum_packet_size,
+        }
     }
 
     pub fn set_compression_threshold(&mut self, threshold: Option<usize>) {
@@ -264,7 +386,8 @@ impl PacketCodec {
             }
         };
 
-        let mut frame = Vec::with_capacity(var_i32_size(framed_body.len() as i32) + framed_body.len());
+        let mut frame =
+            Vec::with_capacity(var_i32_size(framed_body.len() as i32) + framed_body.len());
         write_var_i32(framed_body.len() as i32, &mut frame);
         frame.extend_from_slice(&framed_body);
         Ok(frame)
@@ -272,10 +395,14 @@ impl PacketCodec {
 
     pub fn decode(&self, input: &mut &[u8]) -> Result<RawPacket, CodecError> {
         let packet_length = read_var_i32(input)?;
-        if packet_length < 0 { return Err(CodecError::NegativeLength(packet_length)); }
+        if packet_length < 0 {
+            return Err(CodecError::NegativeLength(packet_length));
+        }
         let packet_length = packet_length as usize;
         self.ensure_size(packet_length)?;
-        if input.len() < packet_length { return Err(CodecError::UnexpectedEof); }
+        if input.len() < packet_length {
+            return Err(CodecError::UnexpectedEof);
+        }
         let (packet_data, remainder) = input.split_at(packet_length);
         *input = remainder;
 
@@ -284,17 +411,25 @@ impl PacketCodec {
             Some(threshold) => {
                 let mut compressed_view = packet_data;
                 let declared_length = read_var_i32(&mut compressed_view)?;
-                if declared_length < 0 { return Err(CodecError::NegativeLength(declared_length)); }
+                if declared_length < 0 {
+                    return Err(CodecError::NegativeLength(declared_length));
+                }
                 if declared_length == 0 {
                     if compressed_view.len() >= threshold {
-                        return Err(CodecError::UncompressedAboveThreshold { actual: compressed_view.len(), threshold });
+                        return Err(CodecError::UncompressedAboveThreshold {
+                            actual: compressed_view.len(),
+                            threshold,
+                        });
                     }
                     compressed_view.to_vec()
                 } else {
                     let declared_length = declared_length as usize;
                     self.ensure_size(declared_length)?;
                     if declared_length < threshold {
-                        return Err(CodecError::CompressedBelowThreshold { actual: declared_length, threshold });
+                        return Err(CodecError::CompressedBelowThreshold {
+                            actual: declared_length,
+                            threshold,
+                        });
                     }
                     let mut decoder = ZlibDecoder::new(compressed_view);
                     let mut decompressed = Vec::with_capacity(declared_length);
@@ -317,7 +452,10 @@ impl PacketCodec {
 
     fn ensure_size(&self, length: usize) -> Result<(), CodecError> {
         if length > self.maximum_packet_size {
-            Err(CodecError::PacketTooLarge { actual: length, maximum: self.maximum_packet_size })
+            Err(CodecError::PacketTooLarge {
+                actual: length,
+                maximum: self.maximum_packet_size,
+            })
         } else {
             Ok(())
         }
@@ -386,5 +524,4 @@ mod tests {
         let mut view = output.as_slice();
         assert_eq!(read_string(&mut view, 2).unwrap(), "😀");
     }
-
 }

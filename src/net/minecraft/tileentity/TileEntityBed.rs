@@ -9,16 +9,29 @@ pub struct TileEntityBed {
 }
 
 impl TileEntityBed {
-    pub fn new(pos: BlockPos) -> Self { Self { pos, colorMetadata: 14 } }
+    pub fn new(pos: BlockPos) -> Self {
+        Self {
+            pos,
+            colorMetadata: 14,
+        }
+    }
 
     pub fn fromNbt(tag: &NBTTagCompound) -> Option<Self> {
         let id = tag.getString("id");
-        if !id.is_empty() && id != "minecraft:bed" && id != "Bed" { return None; }
+        if !id.is_empty() && id != "minecraft:bed" && id != "Bed" {
+            return None;
+        }
         Some(Self {
-            pos: BlockPos::new(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z")),
+            pos: BlockPos::new(
+                tag.getInteger("x"),
+                tag.getInteger("y"),
+                tag.getInteger("z"),
+            ),
             colorMetadata: tag.getInteger("color").clamp(0, 15),
         })
     }
 
-    pub const fn colorMetadata(&self) -> i32 { self.colorMetadata }
+    pub const fn colorMetadata(&self) -> i32 {
+        self.colorMetadata
+    }
 }

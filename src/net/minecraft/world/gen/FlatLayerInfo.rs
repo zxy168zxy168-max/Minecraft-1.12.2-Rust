@@ -1,5 +1,5 @@
-use crate::net::minecraft::block::Block::Block;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::Block::Block;
 
 /// MCP 1.12.2 `FlatLayerInfo`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,28 +19,48 @@ impl FlatLayerInfo {
         let metadata = metadata.clamp(0, 15);
         Self {
             version,
-            layerMaterial: IBlockState::fromGlobalStateId((Block::getIdFromBlock(block) << 4) | metadata),
+            layerMaterial: IBlockState::fromGlobalStateId(
+                (Block::getIdFromBlock(block) << 4) | metadata,
+            ),
             layerCount: height,
             layerMinimumY: 0,
         }
     }
 
-    pub const fn getLayerCount(&self) -> i32 { self.layerCount }
-    pub const fn getLayerMaterial(&self) -> IBlockState { self.layerMaterial }
-    pub const fn getMinY(&self) -> i32 { self.layerMinimumY }
-    pub fn setMinY(&mut self, minY: i32) { self.layerMinimumY = minY; }
+    pub const fn getLayerCount(&self) -> i32 {
+        self.layerCount
+    }
+    pub const fn getLayerMaterial(&self) -> IBlockState {
+        self.layerMaterial
+    }
+    pub const fn getMinY(&self) -> i32 {
+        self.layerMinimumY
+    }
+    pub fn setMinY(&mut self, minY: i32) {
+        self.layerMinimumY = minY;
+    }
 
     pub fn toGeneratorString(&self) -> String {
         let block = self.layerMaterial.getBlock();
         let mut text = if self.version >= 3 {
             let name = block.getRegistryName().to_string();
-            if self.layerCount > 1 { format!("{}*{}", self.layerCount, name) } else { name }
+            if self.layerCount > 1 {
+                format!("{}*{}", self.layerCount, name)
+            } else {
+                name
+            }
         } else {
             let id = Block::getIdFromBlock(block).to_string();
-            if self.layerCount > 1 { format!("{}x{}", self.layerCount, id) } else { id }
+            if self.layerCount > 1 {
+                format!("{}x{}", self.layerCount, id)
+            } else {
+                id
+            }
         };
         let meta = self.layerMaterial.getMetadata();
-        if meta > 0 { text.push_str(&format!(":{meta}")); }
+        if meta > 0 {
+            text.push_str(&format!(":{meta}"));
+        }
         text
     }
 }

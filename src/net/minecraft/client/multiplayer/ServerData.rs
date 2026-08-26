@@ -2,11 +2,19 @@ use crate::net::minecraft::nbt::NBTBase::{TAG_BYTE, TAG_STRING};
 use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ServerResourceMode { Enabled, Disabled, Prompt }
+pub enum ServerResourceMode {
+    Enabled,
+    Disabled,
+    Prompt,
+}
 
 impl ServerResourceMode {
     pub const fn next(self) -> Self {
-        match self { Self::Enabled => Self::Disabled, Self::Disabled => Self::Prompt, Self::Prompt => Self::Enabled }
+        match self {
+            Self::Enabled => Self::Disabled,
+            Self::Disabled => Self::Prompt,
+            Self::Prompt => Self::Enabled,
+        }
     }
     pub const fn translationKey(self) -> &'static str {
         match self {
@@ -36,9 +44,18 @@ pub struct ServerData {
 impl ServerData {
     pub fn new(name: impl Into<String>, ip: impl Into<String>, isLan: bool) -> Self {
         Self {
-            serverName: name.into(), serverIP: ip.into(), populationInfo: String::new(), serverMOTD: String::new(),
-            pingToServer: -2, version: 340, gameVersion: "1.12.2".to_owned(), pinged: false, playerList: None,
-            resourceMode: ServerResourceMode::Prompt, serverIcon: None, lanServer: isLan,
+            serverName: name.into(),
+            serverIP: ip.into(),
+            populationInfo: String::new(),
+            serverMOTD: String::new(),
+            pingToServer: -2,
+            version: 340,
+            gameVersion: "1.12.2".to_owned(),
+            pinged: false,
+            playerList: None,
+            resourceMode: ServerResourceMode::Prompt,
+            serverIcon: None,
+            lanServer: isLan,
         }
     }
 
@@ -46,7 +63,9 @@ impl ServerData {
         let mut result = NBTTagCompound::new();
         result.setString("name", self.serverName.clone());
         result.setString("ip", self.serverIP.clone());
-        if let Some(icon) = &self.serverIcon { result.setString("icon", icon.clone()); }
+        if let Some(icon) = &self.serverIcon {
+            result.setString("icon", icon.clone());
+        }
         match self.resourceMode {
             ServerResourceMode::Enabled => result.setBoolean("acceptTextures", true),
             ServerResourceMode::Disabled => result.setBoolean("acceptTextures", false),
@@ -55,21 +74,43 @@ impl ServerData {
         result
     }
 
-    pub fn getResourceMode(&self) -> ServerResourceMode { self.resourceMode }
-    pub fn setResourceMode(&mut self, mode: ServerResourceMode) { self.resourceMode = mode; }
+    pub fn getResourceMode(&self) -> ServerResourceMode {
+        self.resourceMode
+    }
+    pub fn setResourceMode(&mut self, mode: ServerResourceMode) {
+        self.resourceMode = mode;
+    }
 
     pub fn getServerDataFromNBTCompound(nbtCompound: &NBTTagCompound) -> Self {
-        let mut result = Self::new(nbtCompound.getString("name"), nbtCompound.getString("ip"), false);
-        if nbtCompound.hasKeyWithType("icon", TAG_STRING) { result.serverIcon = Some(nbtCompound.getString("icon")); }
+        let mut result = Self::new(
+            nbtCompound.getString("name"),
+            nbtCompound.getString("ip"),
+            false,
+        );
+        if nbtCompound.hasKeyWithType("icon", TAG_STRING) {
+            result.serverIcon = Some(nbtCompound.getString("icon"));
+        }
         result.resourceMode = if nbtCompound.hasKeyWithType("acceptTextures", TAG_BYTE) {
-            if nbtCompound.getBoolean("acceptTextures") { ServerResourceMode::Enabled } else { ServerResourceMode::Disabled }
-        } else { ServerResourceMode::Prompt };
+            if nbtCompound.getBoolean("acceptTextures") {
+                ServerResourceMode::Enabled
+            } else {
+                ServerResourceMode::Disabled
+            }
+        } else {
+            ServerResourceMode::Prompt
+        };
         result
     }
 
-    pub fn getBase64EncodedIconData(&self) -> Option<&str> { self.serverIcon.as_deref() }
-    pub fn setBase64EncodedIconData(&mut self, icon: Option<String>) { self.serverIcon = icon; }
-    pub const fn isOnLAN(&self) -> bool { self.lanServer }
+    pub fn getBase64EncodedIconData(&self) -> Option<&str> {
+        self.serverIcon.as_deref()
+    }
+    pub fn setBase64EncodedIconData(&mut self, icon: Option<String>) {
+        self.serverIcon = icon;
+    }
+    pub const fn isOnLAN(&self) -> bool {
+        self.lanServer
+    }
 
     pub fn copyFrom(&mut self, serverDataIn: &ServerData) {
         self.serverIP.clone_from(&serverDataIn.serverIP);
@@ -101,6 +142,9 @@ mod tests {
         let mut enabled = ServerData::new("A", "example.org", false);
         enabled.setResourceMode(ServerResourceMode::Enabled);
         assert!(enabled.getNBTCompound().getBoolean("acceptTextures"));
-        assert_eq!(ServerData::getServerDataFromNBTCompound(&enabled.getNBTCompound()).getResourceMode(), ServerResourceMode::Enabled);
+        assert_eq!(
+            ServerData::getServerDataFromNBTCompound(&enabled.getNBTCompound()).getResourceMode(),
+            ServerResourceMode::Enabled
+        );
     }
 }

@@ -9,11 +9,17 @@ impl RenderEntityItem {
 
     pub const fn getModelCount(stack: &ItemStack) -> i32 {
         let count = stack.getCount();
-        if count > 48 { 5 }
-        else if count > 32 { 4 }
-        else if count > 16 { 3 }
-        else if count > 1 { 2 }
-        else { 1 }
+        if count > 48 {
+            5
+        } else if count > 32 {
+            4
+        } else if count > 16 {
+            3
+        } else if count > 1 {
+            2
+        } else {
+            1
+        }
     }
 
     pub fn bobOffset(age: i32, partialTicks: f32, hoverStart: f32) -> f32 {
@@ -36,7 +42,12 @@ mod tests {
     use super::*;
 
     fn stack(count: u8) -> ItemStack {
-        ItemStack { itemId: 264, count, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: 264,
+            count,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]

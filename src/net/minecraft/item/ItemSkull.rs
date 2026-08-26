@@ -4,9 +4,9 @@ use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::nbt::NBTBase::{TAG_COMPOUND, TAG_STRING};
 use crate::net::minecraft::tileentity::TileEntitySkull::TileEntitySkull;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::EnumActionResult::EnumActionResult;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 /// Client-side result branch of MCP 1.12.2 `ItemSkull#onItemUse`. The remote
 /// world returns SUCCESS before creating the block/TileEntity, so this class
@@ -73,16 +73,31 @@ mod tests {
     use super::*;
     use crate::net::minecraft::block::state::IBlockState::IBlockState;
 
-    fn skull() -> ItemStack { ItemStack { itemId: 397, count: 1, itemDamage: 0, tagCompound: None } }
+    fn skull() -> ItemStack {
+        ItemStack {
+            itemId: 397,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        }
+    }
 
     #[test]
     fn down_face_fails_and_solid_side_succeeds() {
         let mut world = WorldClient::new(0);
         let pos = BlockPos::new(0, 64, 0);
-        world.invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(pos, IBlockState::fromGlobalStateId(1 << 4))
+            .unwrap();
         let player = EntityPlayerSP::new(1);
-        assert_eq!(ItemSkull::predictOnItemUse(&world, &player, pos, EnumFacing::Down, &skull()), EnumActionResult::Fail);
-        assert_eq!(ItemSkull::predictOnItemUse(&world, &player, pos, EnumFacing::North, &skull()), EnumActionResult::Success);
+        assert_eq!(
+            ItemSkull::predictOnItemUse(&world, &player, pos, EnumFacing::Down, &skull()),
+            EnumActionResult::Fail
+        );
+        assert_eq!(
+            ItemSkull::predictOnItemUse(&world, &player, pos, EnumFacing::North, &skull()),
+            EnumActionResult::Success
+        );
     }
 
     #[test]
@@ -94,17 +109,26 @@ mod tests {
         owner.setString("Id", "ec561538-f3fd-461d-aff5-086b22154bce");
         let mut compound = NBTTagCompound::new();
         compound.setCompoundTag("SkullOwner", owner);
-        let stack = ItemStack { itemId: 397, count: 1, itemDamage: 3, tagCompound: Some(compound) };
+        let stack = ItemStack {
+            itemId: 397,
+            count: 1,
+            itemDamage: 3,
+            tagCompound: Some(compound),
+        };
         let profile = ItemSkull::getPlayerProfile(&stack).expect("compound profile");
         assert_eq!(profile.getName(), "Alex");
         assert!(profile.getId().is_some());
 
         let mut legacy = NBTTagCompound::new();
         legacy.setString("SkullOwner", "Steve");
-        let stack = ItemStack { itemId: 397, count: 1, itemDamage: 3, tagCompound: Some(legacy) };
+        let stack = ItemStack {
+            itemId: 397,
+            count: 1,
+            itemDamage: 3,
+            tagCompound: Some(legacy),
+        };
         let profile = ItemSkull::getPlayerProfile(&stack).expect("legacy profile");
         assert_eq!(profile.getName(), "Steve");
         assert!(profile.getId().is_none());
     }
-
 }

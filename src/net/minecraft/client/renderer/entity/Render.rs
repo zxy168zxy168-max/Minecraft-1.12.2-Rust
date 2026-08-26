@@ -11,7 +11,10 @@ pub struct RenderProperties {
 
 impl RenderProperties {
     pub const fn new(shadowSize: f32, shadowOpaque: f32) -> Self {
-        Self { shadowSize, shadowOpaque }
+        Self {
+            shadowSize,
+            shadowOpaque,
+        }
     }
 }
 
@@ -41,7 +44,9 @@ impl Render {
     /// weight of one. Concrete renderers still perform the frustum test.
     pub fn isInRangeToRenderDist(entity: &Entity, distanceSquared: f64) -> bool {
         let mut edge = entity.boundingBox.average_edge_length();
-        if edge.is_nan() { edge = 1.0; }
+        if edge.is_nan() {
+            edge = 1.0;
+        }
         let range = edge * 64.0;
         distanceSquared < range * range
     }

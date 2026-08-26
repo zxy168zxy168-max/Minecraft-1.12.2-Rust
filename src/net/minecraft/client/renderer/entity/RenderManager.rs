@@ -1,6 +1,4 @@
-use crate::net::minecraft::client::entity::EntityOtherClient::{
-    ClientEntityKind, ObjectSpawnType,
-};
+use crate::net::minecraft::client::entity::EntityOtherClient::{ClientEntityKind, ObjectSpawnType};
 
 /// Concrete renderer selection table from Minecraft 1.12.2 `RenderManager`.
 /// Unsupported entries remain explicit rather than receiving a generic cube.
@@ -172,92 +170,281 @@ mod tests {
             data: 0,
             spawnVelocity: [0.0; 3],
         };
-        assert_eq!(RenderManager::getEntityRenderObject(&item), EntityRendererKind::EntityItem);
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&item),
+            EntityRendererKind::EntityItem
+        );
         let boat = ClientEntityKind::Object {
             objectType: ObjectSpawnType::Boat,
             data: 0,
             spawnVelocity: [0.0; 3],
         };
-        assert_eq!(RenderManager::getEntityRenderObject(&boat), EntityRendererKind::Boat);
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&boat),
+            EntityRendererKind::Boat
+        );
         let minecart = ClientEntityKind::Object {
             objectType: ObjectSpawnType::Minecart,
             data: 1,
             spawnVelocity: [0.0; 3],
         };
-        assert_eq!(RenderManager::getEntityRenderObject(&minecart), EntityRendererKind::Minecart);
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&minecart),
+            EntityRendererKind::Minecart
+        );
         let enderCrystal = ClientEntityKind::Object {
             objectType: ObjectSpawnType::EnderCrystal,
             data: 0,
             spawnVelocity: [0.0; 3],
         };
-        assert_eq!(RenderManager::getEntityRenderObject(&enderCrystal), EntityRendererKind::EnderCrystal);
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&enderCrystal),
+            EntityRendererKind::EnderCrystal
+        );
         let armorStand = ClientEntityKind::Object {
             objectType: ObjectSpawnType::ArmorStand,
             data: 0,
             spawnVelocity: [0.0; 3],
         };
-        assert_eq!(RenderManager::getEntityRenderObject(&armorStand), EntityRendererKind::ArmorStand);
-        let pig = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(90).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&pig), EntityRendererKind::Pig);
-        let chicken = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(93).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&chicken), EntityRendererKind::Chicken);
-        let mooshroom = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(96).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&mooshroom), EntityRendererKind::Mooshroom);
-        let creeper = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(50).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&creeper), EntityRendererKind::Creeper);
-        let caveSpider = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(59).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&caveSpider), EntityRendererKind::Spider);
-        let slime = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(55).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&slime), EntityRendererKind::Slime);
-        let magma = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(62).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&magma), EntityRendererKind::MagmaCube);
-        let blaze = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(61).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&blaze), EntityRendererKind::Blaze);
-        let ghast = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(56).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&ghast), EntityRendererKind::Ghast);
-        let guardian = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(68).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&guardian), EntityRendererKind::Guardian);
-        let elderGuardian = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(4).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&elderGuardian), EntityRendererKind::Guardian);
-        let shulker = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(69).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&shulker), EntityRendererKind::Shulker);
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&armorStand),
+            EntityRendererKind::ArmorStand
+        );
+        let pig = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(90)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&pig),
+            EntityRendererKind::Pig
+        );
+        let chicken = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(93)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&chicken),
+            EntityRendererKind::Chicken
+        );
+        let mooshroom = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(96)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&mooshroom),
+            EntityRendererKind::Mooshroom
+        );
+        let creeper = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(50)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&creeper),
+            EntityRendererKind::Creeper
+        );
+        let caveSpider = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(59)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&caveSpider),
+            EntityRendererKind::Spider
+        );
+        let slime = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(55)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&slime),
+            EntityRendererKind::Slime
+        );
+        let magma = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(62)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&magma),
+            EntityRendererKind::MagmaCube
+        );
+        let blaze = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(61)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&blaze),
+            EntityRendererKind::Blaze
+        );
+        let ghast = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(56)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&ghast),
+            EntityRendererKind::Ghast
+        );
+        let guardian = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(68)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&guardian),
+            EntityRendererKind::Guardian
+        );
+        let elderGuardian = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(4)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&elderGuardian),
+            EntityRendererKind::Guardian
+        );
+        let shulker = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(69)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&shulker),
+            EntityRendererKind::Shulker
+        );
         let shulkerBullet = ClientEntityKind::Object {
             objectType: ObjectSpawnType::ShulkerBullet,
             data: 0,
             spawnVelocity: [0.0; 3],
         };
-        assert_eq!(RenderManager::getEntityRenderObject(&shulkerBullet), EntityRendererKind::ShulkerBullet);
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&shulkerBullet),
+            EntityRendererKind::ShulkerBullet
+        );
         for (objectType, expected) in [
             (ObjectSpawnType::LargeFireball, EntityRendererKind::Fireball),
             (ObjectSpawnType::SmallFireball, EntityRendererKind::Fireball),
-            (ObjectSpawnType::DragonFireball, EntityRendererKind::DragonFireball),
-            (ObjectSpawnType::WitherSkull, EntityRendererKind::WitherSkull),
+            (
+                ObjectSpawnType::DragonFireball,
+                EntityRendererKind::DragonFireball,
+            ),
+            (
+                ObjectSpawnType::WitherSkull,
+                EntityRendererKind::WitherSkull,
+            ),
         ] {
-            let projectile = ClientEntityKind::Object { objectType, data: 0, spawnVelocity: [0.0; 3] };
+            let projectile = ClientEntityKind::Object {
+                objectType,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            };
             assert_eq!(RenderManager::getEntityRenderObject(&projectile), expected);
         }
-        let wolf = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(95).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&wolf), EntityRendererKind::Wolf);
-        let ocelot = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(98).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&ocelot), EntityRendererKind::Ocelot);
-        let rabbit = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(101).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&rabbit), EntityRendererKind::Rabbit);
-        let polarBear = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(102).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&polarBear), EntityRendererKind::PolarBear);
-        let horse = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(100).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&horse), EntityRendererKind::Horse);
-        let donkey = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(31).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&donkey), EntityRendererKind::Horse);
-        let llama = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(103).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&llama), EntityRendererKind::Llama);
-        let villager = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(120).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&villager), EntityRendererKind::Villager);
-        let witch = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(66).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&witch), EntityRendererKind::Witch);
-        let evoker = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(34).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&evoker), EntityRendererKind::Illager);
-        let zombieVillager = ClientEntityKind::Mob { entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(27).unwrap() };
-        assert_eq!(RenderManager::getEntityRenderObject(&zombieVillager), EntityRendererKind::ZombieVillager);
+        let wolf = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(95)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&wolf),
+            EntityRendererKind::Wolf
+        );
+        let ocelot = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(98)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&ocelot),
+            EntityRendererKind::Ocelot
+        );
+        let rabbit = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(101)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&rabbit),
+            EntityRendererKind::Rabbit
+        );
+        let polarBear = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(102)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&polarBear),
+            EntityRendererKind::PolarBear
+        );
+        let horse = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(100)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&horse),
+            EntityRendererKind::Horse
+        );
+        let donkey = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(31)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&donkey),
+            EntityRendererKind::Horse
+        );
+        let llama = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(103)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&llama),
+            EntityRendererKind::Llama
+        );
+        let villager = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(120)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&villager),
+            EntityRendererKind::Villager
+        );
+        let witch = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(66)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&witch),
+            EntityRendererKind::Witch
+        );
+        let evoker = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(34)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&evoker),
+            EntityRendererKind::Illager
+        );
+        let zombieVillager = ClientEntityKind::Mob {
+            entityType:
+                crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(27)
+                    .unwrap(),
+        };
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&zombieVillager),
+            EntityRendererKind::ZombieVillager
+        );
     }
     #[test]
     fn hanging_entities_use_their_concrete_renderers() {
@@ -266,12 +453,19 @@ mod tests {
             hangingPosition: crate::net::minecraft::util::math::BlockPos::BlockPos::new(0, 0, 0),
             facing: crate::net::minecraft::util::EnumFacing::EnumFacing::North,
         };
-        assert_eq!(RenderManager::getEntityRenderObject(&painting), EntityRendererKind::Painting);
+        assert_eq!(
+            RenderManager::getEntityRenderObject(&painting),
+            EntityRendererKind::Painting
+        );
         for (objectType, expected) in [
             (ObjectSpawnType::ItemFrame, EntityRendererKind::ItemFrame),
             (ObjectSpawnType::LeashKnot, EntityRendererKind::LeashKnot),
         ] {
-            let kind = ClientEntityKind::Object { objectType, data: 0, spawnVelocity: [0.0; 3] };
+            let kind = ClientEntityKind::Object {
+                objectType,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            };
             assert_eq!(RenderManager::getEntityRenderObject(&kind), expected);
         }
     }
@@ -284,10 +478,13 @@ mod tests {
             (63, EntityRendererKind::EnderDragon),
         ] {
             let kind = ClientEntityKind::Mob {
-                entityType: crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(id).unwrap(),
+                entityType:
+                    crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType::fromId(
+                        id,
+                    )
+                    .unwrap(),
             };
             assert_eq!(RenderManager::getEntityRenderObject(&kind), expected);
         }
     }
-
 }

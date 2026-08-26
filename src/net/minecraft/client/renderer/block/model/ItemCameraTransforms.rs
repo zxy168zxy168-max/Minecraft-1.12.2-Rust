@@ -104,12 +104,18 @@ impl ItemCameraTransforms {
         // MCP ItemCameraTransforms.Deserializer copies the right-hand transform
         // when a corresponding left-hand transform is absent.
         if !transforms.contains_key(&TransformType::ThirdPersonLeftHand) {
-            if let Some(value) = transforms.get(&TransformType::ThirdPersonRightHand).copied() {
+            if let Some(value) = transforms
+                .get(&TransformType::ThirdPersonRightHand)
+                .copied()
+            {
                 transforms.insert(TransformType::ThirdPersonLeftHand, value);
             }
         }
         if !transforms.contains_key(&TransformType::FirstPersonLeftHand) {
-            if let Some(value) = transforms.get(&TransformType::FirstPersonRightHand).copied() {
+            if let Some(value) = transforms
+                .get(&TransformType::FirstPersonRightHand)
+                .copied()
+            {
                 transforms.insert(TransformType::FirstPersonLeftHand, value);
             }
         }

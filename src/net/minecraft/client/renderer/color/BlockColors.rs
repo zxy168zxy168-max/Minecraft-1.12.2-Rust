@@ -1,8 +1,8 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::world::biome::BiomeColorHelper::{BiomeAccess, BiomeColorHelper};
 use crate::net::minecraft::world::ColorizerFoliage::ColorizerFoliage;
 use crate::net::minecraft::world::ColorizerGrass::ColorizerGrass;
-use crate::net::minecraft::world::biome::BiomeColorHelper::{BiomeAccess, BiomeColorHelper};
 
 /// Source-derived rendering subset of MCP 1.12.2 `BlockColors` registrations.
 #[derive(Debug, Clone)]

@@ -135,16 +135,29 @@ impl ContainerWindow {
         })
     }
 
-    pub const fn lowerSlotCount(&self) -> usize { self.kind.lowerSlotCount() }
-    pub fn slotCount(&self) -> usize { self.inventorySlots.len() }
-    pub fn slots(&self) -> &[ItemStack] { &self.inventorySlots }
-    pub fn getSlot(&self, slotId: usize) -> Option<&ItemStack> { self.inventorySlots.get(slotId) }
-    pub fn properties(&self) -> &[i32] { &self.properties }
-    pub fn getProperty(&self, property: usize) -> i32 { self.properties.get(property).copied().unwrap_or(0) }
+    pub const fn lowerSlotCount(&self) -> usize {
+        self.kind.lowerSlotCount()
+    }
+    pub fn slotCount(&self) -> usize {
+        self.inventorySlots.len()
+    }
+    pub fn slots(&self) -> &[ItemStack] {
+        &self.inventorySlots
+    }
+    pub fn getSlot(&self, slotId: usize) -> Option<&ItemStack> {
+        self.inventorySlots.get(slotId)
+    }
+    pub fn properties(&self) -> &[i32] {
+        &self.properties
+    }
+    pub fn getProperty(&self, property: usize) -> i32 {
+        self.properties.get(property).copied().unwrap_or(0)
+    }
 
     pub fn updateProgressBar(&mut self, property: i32, value: i32) -> Result<(), CodecError> {
-        let index = usize::try_from(property)
-            .map_err(|_| CodecError::InvalidData(format!("negative container property {property}")))?;
+        let index = usize::try_from(property).map_err(|_| {
+            CodecError::InvalidData(format!("negative container property {property}"))
+        })?;
         let maximum = self.properties.len().saturating_sub(1);
         let target = self.properties.get_mut(index).ok_or_else(|| {
             CodecError::InvalidData(format!(
@@ -157,8 +170,9 @@ impl ContainerWindow {
     }
 
     pub fn putStackInSlot(&mut self, slotId: i32, stack: ItemStack) -> Result<(), CodecError> {
-        let index = usize::try_from(slotId)
-            .map_err(|_| CodecError::InvalidData(format!("negative {} slot {slotId}", self.kind.guiId())))?;
+        let index = usize::try_from(slotId).map_err(|_| {
+            CodecError::InvalidData(format!("negative {} slot {slotId}", self.kind.guiId()))
+        })?;
         let maximum = self.inventorySlots.len().saturating_sub(1);
         let slot = self.inventorySlots.get_mut(index).ok_or_else(|| {
             CodecError::InvalidData(format!(
@@ -269,8 +283,12 @@ impl ContainerWindow {
         }
     }
 
-    pub fn getNextTransactionID(&mut self) -> i16 { self.base.getNextTransactionID() }
-    pub fn resetQuickCraft(&mut self) { self.base.resetDrag(); }
+    pub fn getNextTransactionID(&mut self) -> i16 {
+        self.base.getNextTransactionID()
+    }
+    pub fn resetQuickCraft(&mut self) {
+        self.base.resetDrag();
+    }
 
     pub fn quickCraft(
         &mut self,
@@ -281,7 +299,8 @@ impl ContainerWindow {
     ) -> bool {
         let previousEvent = self.base.dragEvent;
         self.base.dragEvent = Container::getDragEvent(dragType);
-        if (previousEvent != 1 || self.base.dragEvent != 2) && previousEvent != self.base.dragEvent {
+        if (previousEvent != 1 || self.base.dragEvent != 2) && previousEvent != self.base.dragEvent
+        {
             self.resetQuickCraft();
             return false;
         }
@@ -302,11 +321,16 @@ impl ContainerWindow {
                 }
             }
             1 => {
-                let Ok(index) = usize::try_from(slotId) else { return false; };
-                let Some(slotStack) = self.inventorySlots.get(index) else { return false; };
+                let Ok(index) = usize::try_from(slotId) else {
+                    return false;
+                };
+                let Some(slotStack) = self.inventorySlots.get(index) else {
+                    return false;
+                };
                 if self.isItemValidForSlot(slotId, cursor)
                     && Container::canAddItemToSlot(slotStack, cursor, true)
-                    && (self.base.dragMode == 2 || cursor.getCount() > self.base.dragSlots.len() as i32)
+                    && (self.base.dragMode == 2
+                        || cursor.getCount() > self.base.dragSlots.len() as i32)
                 {
                     self.base.dragSlots.insert(index)
                 } else {
@@ -329,10 +353,21 @@ impl ContainerWindow {
                         {
                             continue;
                         }
-                        let oldCount = if existing.isEmpty() { 0 } else { existing.getCount() };
+                        let oldCount = if existing.isEmpty() {
+                            0
+                        } else {
+                            existing.getCount()
+                        };
                         let mut placed = source.clone();
-                        Container::computeStackSize(slotCount, self.base.dragMode, &mut placed, oldCount);
-                        let limit = placed.getMaxStackSize().min(self.slotLimit(slotId, &placed));
+                        Container::computeStackSize(
+                            slotCount,
+                            self.base.dragMode,
+                            &mut placed,
+                            oldCount,
+                        );
+                        let limit = placed
+                            .getMaxStackSize()
+                            .min(self.slotLimit(slotId, &placed));
                         if placed.getCount() > limit {
                             placed.setCount(limit);
                         }
@@ -370,13 +405,23 @@ impl ContainerWindow {
         let mut changed = false;
         if stack.getMaxStackSize() > 1 {
             for &index in &indices {
-                if stack.isEmpty() { break; }
-                if !self.isItemValidForSlot(index as i32, stack) { continue; }
+                if stack.isEmpty() {
+                    break;
+                }
+                if !self.isItemValidForSlot(index as i32, stack) {
+                    continue;
+                }
                 let existing = self.inventorySlots[index].clone();
-                if existing.isEmpty() || !existing.canStackWith(stack) { continue; }
-                let limit = existing.getMaxStackSize().min(self.slotLimit(index as i32, &existing));
+                if existing.isEmpty() || !existing.canStackWith(stack) {
+                    continue;
+                }
+                let limit = existing
+                    .getMaxStackSize()
+                    .min(self.slotLimit(index as i32, &existing));
                 let capacity = limit - existing.getCount();
-                if capacity <= 0 { continue; }
+                if capacity <= 0 {
+                    continue;
+                }
                 let moved = capacity.min(stack.getCount());
                 let mut merged = existing;
                 merged.grow(moved);
@@ -386,8 +431,12 @@ impl ContainerWindow {
             }
         }
         for &index in &indices {
-            if stack.isEmpty() { break; }
-            if !self.inventorySlots[index].isEmpty() || !self.isItemValidForSlot(index as i32, stack) {
+            if stack.isEmpty() {
+                break;
+            }
+            if !self.inventorySlots[index].isEmpty()
+                || !self.isItemValidForSlot(index as i32, stack)
+            {
                 continue;
             }
             let moved = stack
@@ -401,9 +450,13 @@ impl ContainerWindow {
     }
 
     pub fn transferStackInSlot(&mut self, index: usize) -> ItemStack {
-        if index >= self.inventorySlots.len() { return ItemStack::EMPTY; }
+        if index >= self.inventorySlots.len() {
+            return ItemStack::EMPTY;
+        }
         let original = self.inventorySlots[index].clone();
-        if original.isEmpty() { return ItemStack::EMPTY; }
+        if original.isEmpty() {
+            return ItemStack::EMPTY;
+        }
         let mut moving = original.clone();
         let total = self.inventorySlots.len();
         let merged = match self.kind {
@@ -538,9 +591,13 @@ impl ContainerWindow {
     }
 
     pub fn swapWithHotbar(&mut self, slotId: usize, hotbarIndex: usize) -> bool {
-        if slotId >= self.inventorySlots.len() || hotbarIndex >= 9 { return false; }
+        if slotId >= self.inventorySlots.len() || hotbarIndex >= 9 {
+            return false;
+        }
         let hotbarSlot = self.lowerSlotCount() + 27 + hotbarIndex;
-        if slotId == hotbarSlot { return false; }
+        if slotId == hotbarSlot {
+            return false;
+        }
         let hotbarStack = self.inventorySlots[hotbarSlot].clone();
         if !hotbarStack.isEmpty() && !self.isItemValidForSlot(slotId as i32, &hotbarStack) {
             return false;
@@ -550,14 +607,20 @@ impl ContainerWindow {
     }
 
     pub fn throwFromSlot(&mut self, slotId: usize, wholeStack: bool) -> bool {
-        let Some(stack) = self.inventorySlots.get_mut(slotId) else { return false; };
-        if stack.isEmpty() { return false; }
+        let Some(stack) = self.inventorySlots.get_mut(slotId) else {
+            return false;
+        };
+        if stack.isEmpty() {
+            return false;
+        }
         let amount = if wholeStack { stack.getCount() } else { 1 };
         !stack.splitStack(amount).isEmpty()
     }
 
     pub fn pickupAll(&mut self, cursor: &mut ItemStack, reverse: bool) -> bool {
-        if cursor.isEmpty() || cursor.getCount() >= cursor.getMaxStackSize() { return false; }
+        if cursor.isEmpty() || cursor.getCount() >= cursor.getMaxStackSize() {
+            return false;
+        }
         let indices: Vec<usize> = if reverse {
             (0..self.inventorySlots.len()).rev().collect()
         } else {
@@ -566,12 +629,20 @@ impl ContainerWindow {
         let mut changed = false;
         for pass in 0..2 {
             for &index in &indices {
-                if cursor.getCount() >= cursor.getMaxStackSize() { break; }
+                if cursor.getCount() >= cursor.getMaxStackSize() {
+                    break;
+                }
                 let stack = self.inventorySlots[index].clone();
-                if stack.isEmpty() || !stack.canStackWith(cursor) { continue; }
-                if pass == 0 && stack.getCount() == stack.getMaxStackSize() { continue; }
+                if stack.isEmpty() || !stack.canStackWith(cursor) {
+                    continue;
+                }
+                if pass == 0 && stack.getCount() == stack.getMaxStackSize() {
+                    continue;
+                }
                 let moved = (cursor.getMaxStackSize() - cursor.getCount()).min(stack.getCount());
-                if moved <= 0 { continue; }
+                if moved <= 0 {
+                    continue;
+                }
                 let mut remaining = stack;
                 remaining.shrink(moved);
                 cursor.grow(moved);
@@ -582,7 +653,6 @@ impl ContainerWindow {
         changed
     }
 }
-
 
 /// MCP `ContainerBrewingStand.Potion#canHoldPotion`.
 pub const fn canHoldBrewingPotion(stack: &ItemStack) -> bool {
@@ -600,13 +670,14 @@ pub const fn isBrewingReagent(stack: &ItemStack) -> bool {
 /// Exact vanilla smelting-input set registered by MCP 1.12.2
 /// `FurnaceRecipes`, expressed in protocol-340 numeric IDs.
 fn isSmeltingInput(stack: &ItemStack) -> bool {
-    if stack.isEmpty() { return false; }
+    if stack.isEmpty() {
+        return false;
+    }
     match stack.itemId {
-        14 | 15 | 16 | 21 | 56 | 73 | 81 | 82 | 87 | 129 | 153 | 17 | 162
-        | 319 | 337 | 363 | 365 | 392 | 411 | 423 | 432
-        | 256 | 257 | 258 | 267 | 292 | 302 | 303 | 304 | 305 | 306 | 307
-        | 308 | 309 | 417 | 283 | 284 | 285 | 286 | 294 | 314 | 315 | 316
-        | 317 | 418 => true,
+        14 | 15 | 16 | 21 | 56 | 73 | 81 | 82 | 87 | 129 | 153 | 17 | 162 | 319 | 337 | 363
+        | 365 | 392 | 411 | 423 | 432 | 256 | 257 | 258 | 267 | 292 | 302 | 303 | 304 | 305
+        | 306 | 307 | 308 | 309 | 417 | 283 | 284 | 285 | 286 | 294 | 314 | 315 | 316 | 317
+        | 418 => true,
         4 | 12 => true,
         19 => stack.itemDamage == 1,
         98 => stack.itemDamage == 0,
@@ -620,15 +691,74 @@ fn isSmeltingInput(stack: &ItemStack) -> bool {
 /// used only for client-side slot validity and click prediction; the server
 /// remains authoritative for burn time and inventory synchronization.
 pub fn isFurnaceFuel(stack: &ItemStack) -> bool {
-    if stack.isEmpty() { return false; }
+    if stack.isEmpty() {
+        return false;
+    }
     matches!(
         stack.itemId,
-        5 | 6 | 17 | 25 | 35 | 47 | 53 | 54 | 58 | 65 | 72 | 84 | 85 | 96 | 99
-            | 100 | 107 | 126 | 134 | 135 | 136 | 143 | 146 | 151 | 162 | 163 | 164 | 171 | 173
-            | 183 | 184 | 185 | 186 | 187 | 188 | 189 | 190 | 191 | 192
-            | 261 | 263 | 268 | 269 | 270 | 271 | 280 | 281 | 290 | 323 | 324 | 327
-            | 333 | 346 | 369 | 427 | 428 | 429 | 430 | 431 | 444 | 445 | 446
-            | 447 | 448
+        5 | 6
+            | 17
+            | 25
+            | 35
+            | 47
+            | 53
+            | 54
+            | 58
+            | 65
+            | 72
+            | 84
+            | 85
+            | 96
+            | 99
+            | 100
+            | 107
+            | 126
+            | 134
+            | 135
+            | 136
+            | 143
+            | 146
+            | 151
+            | 162
+            | 163
+            | 164
+            | 171
+            | 173
+            | 183
+            | 184
+            | 185
+            | 186
+            | 187
+            | 188
+            | 189
+            | 190
+            | 191
+            | 192
+            | 261
+            | 263
+            | 268
+            | 269
+            | 270
+            | 271
+            | 280
+            | 281
+            | 290
+            | 323
+            | 324
+            | 327
+            | 333
+            | 346
+            | 369
+            | 427
+            | 428
+            | 429
+            | 430
+            | 431
+            | 444
+            | 445
+            | 446
+            | 447
+            | 448
     )
 }
 
@@ -637,7 +767,12 @@ mod tests {
     use super::*;
 
     fn stack(id: i16, count: u8, damage: i16) -> ItemStack {
-        ItemStack { itemId: id, count, itemDamage: damage, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count,
+            itemDamage: damage,
+            tagCompound: None,
+        }
     }
 
     #[test]
@@ -655,7 +790,8 @@ mod tests {
                 reported,
                 &player,
                 kind,
-            ).unwrap();
+            )
+            .unwrap();
             assert_eq!(window.slotCount(), lower + 36);
         }
     }
@@ -669,7 +805,8 @@ mod tests {
             0,
             &player,
             ContainerWindowKind::Workbench,
-        ).unwrap();
+        )
+        .unwrap();
         assert!(!workbench.isItemValidForSlot(0, &stack(1, 1, 0)));
 
         let enchantment = ContainerWindow::new(
@@ -678,7 +815,8 @@ mod tests {
             0,
             &player,
             ContainerWindowKind::Enchantment,
-        ).unwrap();
+        )
+        .unwrap();
         assert!(enchantment.isItemValidForSlot(1, &stack(351, 1, 4)));
         assert!(!enchantment.isItemValidForSlot(1, &stack(351, 1, 1)));
         assert_eq!(enchantment.slotLimit(0, &stack(276, 1, 0)), 1);
@@ -693,7 +831,8 @@ mod tests {
             3,
             &InventoryPlayer::default(),
             ContainerWindowKind::Furnace,
-        ).unwrap();
+        )
+        .unwrap();
         furnace.updateProgressBar(2, 100).unwrap();
         assert_eq!(furnace.getProperty(2), 100);
         assert!(furnace.isItemValidForSlot(1, &stack(263, 1, 0)));

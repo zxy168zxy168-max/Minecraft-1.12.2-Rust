@@ -14,11 +14,23 @@ pub struct CPacketVehicleMove {
 
 impl CPacketVehicleMove {
     pub const fn new(x: f64, y: f64, z: f64, yaw: f32, pitch: f32) -> Self {
-        Self { x, y, z, yaw, pitch }
+        Self {
+            x,
+            y,
+            z,
+            yaw,
+            pitch,
+        }
     }
 
     pub fn fromEntity(entity: &Entity) -> Self {
-        Self::new(entity.posX, entity.posY, entity.posZ, entity.rotationYaw, entity.rotationPitch)
+        Self::new(
+            entity.posX,
+            entity.posY,
+            entity.posZ,
+            entity.rotationYaw,
+            entity.rotationPitch,
+        )
     }
 
     pub fn writePacketData(&self) -> RawPacket {

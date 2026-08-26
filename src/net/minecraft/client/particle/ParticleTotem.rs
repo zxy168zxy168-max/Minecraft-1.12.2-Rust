@@ -56,10 +56,8 @@ impl ParticleTotem {
 
         if particle.particleAge > particle.particleMaxAge / 2 {
             particle.setAlphaF(
-                1.0
-                    - (particle.particleAge as f32
-                        - (particle.particleMaxAge / 2) as f32)
-                        / particle.particleMaxAge.max(1) as f32,
+                1.0 - (particle.particleAge as f32 - (particle.particleMaxAge / 2) as f32)
+                    / particle.particleMaxAge.max(1) as f32,
             );
         }
 

@@ -10,7 +10,11 @@ pub struct CpuFrame {
 impl CpuFrame {
     pub fn new(width: u32, height: u32) -> Self {
         let length = width as usize * height as usize * 4;
-        Self { width, height, rgba: vec![0; length] }
+        Self {
+            width,
+            height,
+            rgba: vec![0; length],
+        }
     }
 
     pub fn from_rgba(width: u32, height: u32, rgba: Vec<u8>) -> anyhow::Result<Self> {
@@ -18,13 +22,25 @@ impl CpuFrame {
             rgba.len() == width as usize * height as usize * 4,
             "CPU frame buffer length does not match {width}x{height} RGBA8"
         );
-        Ok(Self { width, height, rgba })
+        Ok(Self {
+            width,
+            height,
+            rgba,
+        })
     }
 
-    pub const fn width(&self) -> u32 { self.width }
-    pub const fn height(&self) -> u32 { self.height }
-    pub fn rgba(&self) -> &[u8] { &self.rgba }
-    pub fn rgba_mut(&mut self) -> &mut [u8] { &mut self.rgba }
+    pub const fn width(&self) -> u32 {
+        self.width
+    }
+    pub const fn height(&self) -> u32 {
+        self.height
+    }
+    pub fn rgba(&self) -> &[u8] {
+        &self.rgba
+    }
+    pub fn rgba_mut(&mut self) -> &mut [u8] {
+        &mut self.rgba
+    }
 
     pub fn resize(&mut self, width: u32, height: u32) {
         self.width = width;
@@ -50,7 +66,9 @@ impl CpuFrame {
     }
 
     pub fn set_pixel(&mut self, x: u32, y: u32, color: [u8; 4]) {
-        if x >= self.width || y >= self.height { return; }
+        if x >= self.width || y >= self.height {
+            return;
+        }
         let offset = ((y * self.width + x) * 4) as usize;
         self.rgba[offset..offset + 4].copy_from_slice(&color);
     }
@@ -61,7 +79,9 @@ impl CpuFrame {
         }
         let offset = (((y as u32 * self.width) + x as u32) * 4) as usize;
         let source_alpha = source[3].clamp(0.0, 1.0);
-        if source_alpha <= 0.0 { return; }
+        if source_alpha <= 0.0 {
+            return;
+        }
         let destination_alpha = self.rgba[offset + 3] as f32 / 255.0;
         let inverse = 1.0 - source_alpha;
         for channel in 0..3 {
@@ -73,15 +93,20 @@ impl CpuFrame {
         self.rgba[offset + 3] = (alpha * 255.0 + 0.5).floor() as u8;
     }
 
-    pub fn write_for_vulkan_format(&self, format: ash::vk::Format, destination: &mut [u8]) -> anyhow::Result<()> {
-        anyhow::ensure!(destination.len() >= self.rgba.len(), "mapped Vulkan upload buffer is too small");
+    pub fn write_for_vulkan_format(
+        &self,
+        format: ash::vk::Format,
+        destination: &mut [u8],
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            destination.len() >= self.rgba.len(),
+            "mapped Vulkan upload buffer is too small"
+        );
         match format {
-            ash::vk::Format::R8G8B8A8_UNORM
-            | ash::vk::Format::R8G8B8A8_SRGB => {
+            ash::vk::Format::R8G8B8A8_UNORM | ash::vk::Format::R8G8B8A8_SRGB => {
                 destination[..self.rgba.len()].copy_from_slice(&self.rgba);
             }
-            ash::vk::Format::B8G8R8A8_UNORM
-            | ash::vk::Format::B8G8R8A8_SRGB => {
+            ash::vk::Format::B8G8R8A8_UNORM | ash::vk::Format::B8G8R8A8_SRGB => {
                 let pixelCount = self.rgba.len() / 4;
                 let workerCount = rayon::current_num_threads()
                     .clamp(1, 8)
@@ -105,7 +130,9 @@ impl CpuFrame {
                         }
                     });
             }
-            unsupported => anyhow::bail!("software GUI upload does not support swapchain format {unsupported:?}"),
+            unsupported => anyhow::bail!(
+                "software GUI upload does not support swapchain format {unsupported:?}"
+            ),
         }
         Ok(())
     }
@@ -127,7 +154,9 @@ mod tests {
     fn bgra_upload_swaps_red_and_blue_only() {
         let frame = CpuFrame::from_rgba(1, 1, vec![1, 2, 3, 4]).unwrap();
         let mut destination = vec![0; 4];
-        frame.write_for_vulkan_format(ash::vk::Format::B8G8R8A8_UNORM, &mut destination).unwrap();
+        frame
+            .write_for_vulkan_format(ash::vk::Format::B8G8R8A8_UNORM, &mut destination)
+            .unwrap();
         assert_eq!(destination, [3, 2, 1, 4]);
     }
 }

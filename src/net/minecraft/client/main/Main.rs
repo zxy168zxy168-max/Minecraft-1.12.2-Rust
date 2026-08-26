@@ -18,6 +18,7 @@ use crate::net::minecraft::client::main::GameConfiguration::{
 };
 use crate::net::minecraft::client::resources::Locale::Locale;
 use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::ResourceManager;
+use crate::net::minecraft::client::settings::GameSettings::VulkanBackendSettings;
 use crate::net::minecraft::client::Minecraft::Minecraft;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::net::minecraft::util::Session::Session;
@@ -26,7 +27,6 @@ use crate::vulkan::GuiCompiler::{CompiledGuiFrame, CompiledGuiStep};
 use crate::vulkan::GuiDrawList::GuiDrawList;
 use crate::vulkan::SoftwareGuiRenderer::SoftwareGuiRenderer;
 use crate::vulkan::VulkanBackend::VulkanBackend;
-use crate::net::minecraft::client::settings::GameSettings::VulkanBackendSettings;
 use crate::GAME_VERSION;
 use crate::PROTOCOL_VERSION;
 
@@ -143,7 +143,12 @@ where
                 .as_millis();
             let username = username.unwrap_or_else(|| format!("Player{}", millis % 1000));
             let playerId = player_id.unwrap_or_else(|| username.clone());
-            let session = Session::new(username, playerId, access_token.unwrap_or_default(), user_type);
+            let session = Session::new(
+                username,
+                playerId,
+                access_token.unwrap_or_default(),
+                user_type,
+            );
             let gameConfiguration = GameConfiguration::new(
                 UserInformation::new(
                     session,
@@ -243,7 +248,10 @@ where
             random_seed,
             system_time_millis,
         } => {
-            anyhow::ensure!(width > 0 && height > 0, "preview dimensions must be positive");
+            anyhow::ensure!(
+                width > 0 && height > 0,
+                "preview dimensions must be positive"
+            );
             let assets = AssetRoot::open(assets).context("1.12.2 asset validation failed")?;
             let mut resources = ResourceManager::new();
             resources.add_directory_pack("runtime", assets.root());
@@ -314,15 +322,19 @@ where
     Ok(())
 }
 
-
-fn write_png(path: &std::path::Path, frame: &crate::vulkan::CpuFrame::CpuFrame) -> anyhow::Result<()> {
+fn write_png(
+    path: &std::path::Path,
+    frame: &crate::vulkan::CpuFrame::CpuFrame,
+) -> anyhow::Result<()> {
     let file = File::create(path)
         .with_context(|| format!("failed creating preview PNG {}", path.display()))?;
     let writer = BufWriter::new(file);
     let mut encoder = png::Encoder::new(writer, frame.width(), frame.height());
     encoder.set_color(png::ColorType::Rgba);
     encoder.set_depth(png::BitDepth::Eight);
-    let mut writer = encoder.write_header().context("failed writing preview PNG header")?;
+    let mut writer = encoder
+        .write_header()
+        .context("failed writing preview PNG header")?;
     writer
         .write_image_data(frame.rgba())
         .context("failed writing preview PNG pixels")?;

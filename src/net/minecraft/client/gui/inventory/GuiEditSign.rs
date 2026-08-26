@@ -3,8 +3,8 @@ use crate::net::minecraft::client::gui::GuiButton::{GuiButton, GuiSoundCommand};
 use crate::net::minecraft::client::gui::GuiScreen::GuiScreen;
 use crate::net::minecraft::client::resources::Locale::Locale;
 use crate::net::minecraft::tileentity::TileEntitySign::TileEntitySign;
-use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::vulkan::GuiDrawList::GuiDrawList;
 
 /// MCP 1.12.2 `GuiEditSign` state and input semantics.
@@ -32,7 +32,9 @@ impl GuiEditSign {
             position: sign.pos,
             blockId: blockIdIn,
             metadata: metadataIn,
-            lines: std::array::from_fn(|index| sign.signText[index].getUnformattedText().to_owned()),
+            lines: std::array::from_fn(|index| {
+                sign.signText[index].getUnformattedText().to_owned()
+            }),
             updateCounter: 0,
             editLine: 0,
             doneRequested: false,
@@ -51,7 +53,9 @@ impl GuiEditSign {
         ));
     }
 
-    pub fn updateScreen(&mut self) { self.updateCounter = self.updateCounter.wrapping_add(1); }
+    pub fn updateScreen(&mut self) {
+        self.updateCounter = self.updateCounter.wrapping_add(1);
+    }
 
     pub fn drawScreen(
         &mut self,
@@ -72,7 +76,8 @@ impl GuiEditSign {
         );
 
         self.drawSignPreview(drawList, fontRendererObj);
-        self.GuiScreen.drawScreen(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.GuiScreen
+            .drawScreen(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
     }
 
     fn drawSignPreview(&self, drawList: &mut GuiDrawList, fontRendererObj: &mut FontRenderer) {
@@ -87,9 +92,27 @@ impl GuiEditSign {
         drawList.push_textured_quad(
             texture.clone(),
             [
-                (boardLeft, boardTop + boardHeight, 2.0 / 64.0, 14.0 / 32.0, 0xFFFF_FFFF),
-                (boardLeft + boardWidth, boardTop + boardHeight, 26.0 / 64.0, 14.0 / 32.0, 0xFFFF_FFFF),
-                (boardLeft + boardWidth, boardTop, 26.0 / 64.0, 2.0 / 32.0, 0xFFFF_FFFF),
+                (
+                    boardLeft,
+                    boardTop + boardHeight,
+                    2.0 / 64.0,
+                    14.0 / 32.0,
+                    0xFFFF_FFFF,
+                ),
+                (
+                    boardLeft + boardWidth,
+                    boardTop + boardHeight,
+                    26.0 / 64.0,
+                    14.0 / 32.0,
+                    0xFFFF_FFFF,
+                ),
+                (
+                    boardLeft + boardWidth,
+                    boardTop,
+                    26.0 / 64.0,
+                    2.0 / 32.0,
+                    0xFFFF_FFFF,
+                ),
                 (boardLeft, boardTop, 2.0 / 64.0, 2.0 / 32.0, 0xFFFF_FFFF),
             ],
         );
@@ -102,10 +125,34 @@ impl GuiEditSign {
             drawList.push_textured_quad(
                 texture,
                 [
-                    (stickLeft, boardTop + boardHeight + stickHeight, 2.0 / 64.0, 30.0 / 32.0, 0xFFFF_FFFF),
-                    (stickLeft + stickWidth, boardTop + boardHeight + stickHeight, 4.0 / 64.0, 30.0 / 32.0, 0xFFFF_FFFF),
-                    (stickLeft + stickWidth, boardTop + boardHeight, 4.0 / 64.0, 16.0 / 32.0, 0xFFFF_FFFF),
-                    (stickLeft, boardTop + boardHeight, 2.0 / 64.0, 16.0 / 32.0, 0xFFFF_FFFF),
+                    (
+                        stickLeft,
+                        boardTop + boardHeight + stickHeight,
+                        2.0 / 64.0,
+                        30.0 / 32.0,
+                        0xFFFF_FFFF,
+                    ),
+                    (
+                        stickLeft + stickWidth,
+                        boardTop + boardHeight + stickHeight,
+                        4.0 / 64.0,
+                        30.0 / 32.0,
+                        0xFFFF_FFFF,
+                    ),
+                    (
+                        stickLeft + stickWidth,
+                        boardTop + boardHeight,
+                        4.0 / 64.0,
+                        16.0 / 32.0,
+                        0xFFFF_FFFF,
+                    ),
+                    (
+                        stickLeft,
+                        boardTop + boardHeight,
+                        2.0 / 64.0,
+                        16.0 / 32.0,
+                        0xFFFF_FFFF,
+                    ),
                 ],
             );
         }
@@ -121,13 +168,31 @@ impl GuiEditSign {
                 line.clone()
             };
             let x = self.GuiScreen.width / 2 - fontRendererObj.get_string_width(&rendered) / 2;
-            fontRendererObj.draw_string(drawList, &rendered, x as f32, (firstBaseline + index as i32 * 10) as f32, 0, false);
+            fontRendererObj.draw_string(
+                drawList,
+                &rendered,
+                x as f32,
+                (firstBaseline + index as i32 * 10) as f32,
+                0,
+                false,
+            );
         }
     }
 
-    pub fn mouseClicked(&mut self, mouseX: i32, mouseY: i32, mouseButton: i32) -> Option<GuiSoundCommand> {
-        if mouseButton != 0 { return None; }
-        let button = self.GuiScreen.buttonList.iter().find(|button| button.mousePressed(mouseX, mouseY))?;
+    pub fn mouseClicked(
+        &mut self,
+        mouseX: i32,
+        mouseY: i32,
+        mouseButton: i32,
+    ) -> Option<GuiSoundCommand> {
+        if mouseButton != 0 {
+            return None;
+        }
+        let button = self
+            .GuiScreen
+            .buttonList
+            .iter()
+            .find(|button| button.mousePressed(mouseX, mouseY))?;
         if button.id == 0 {
             self.doneRequested = true;
             return Some(button.playPressSound());
@@ -150,7 +215,9 @@ impl GuiEditSign {
     pub fn typedText(&mut self, text: &str, fontRendererObj: &FontRenderer) -> bool {
         let mut changed = false;
         for character in text.chars() {
-            if !isAllowedCharacter(character) { continue; }
+            if !isAllowedCharacter(character) {
+                continue;
+            }
             let mut candidate = self.lines[self.editLine].clone();
             candidate.push(character);
             if fontRendererObj.get_string_width(&candidate) <= 90 {
@@ -163,11 +230,16 @@ impl GuiEditSign {
 
     pub fn applyToTileEntity(&self, sign: &mut TileEntitySign) {
         for index in 0..4 {
-            sign.signText[index] = crate::net::minecraft::util::text::ITextComponent::ITextComponent::fromPlainText(
-                self.lines[index].clone(),
-            );
+            sign.signText[index] =
+                crate::net::minecraft::util::text::ITextComponent::ITextComponent::fromPlainText(
+                    self.lines[index].clone(),
+                );
         }
-        sign.lineBeingEdited = if self.updateCounter / 6 % 2 == 0 { self.editLine as i32 } else { -1 };
+        sign.lineBeingEdited = if self.updateCounter / 6 % 2 == 0 {
+            self.editLine as i32
+        } else {
+            -1
+        };
         sign.setEditable(false);
     }
 
@@ -177,12 +249,24 @@ impl GuiEditSign {
         sign.setEditable(true);
     }
 
-    pub const fn getPosition(&self) -> BlockPos { self.position }
-    pub const fn getBlockId(&self) -> i32 { self.blockId }
-    pub const fn getMetadata(&self) -> i32 { self.metadata }
-    pub const fn getLines(&self) -> &[String; 4] { &self.lines }
-    pub const fn isDoneRequested(&self) -> bool { self.doneRequested }
-    pub fn clearDoneRequest(&mut self) { self.doneRequested = false; }
+    pub const fn getPosition(&self) -> BlockPos {
+        self.position
+    }
+    pub const fn getBlockId(&self) -> i32 {
+        self.blockId
+    }
+    pub const fn getMetadata(&self) -> i32 {
+        self.metadata
+    }
+    pub const fn getLines(&self) -> &[String; 4] {
+        &self.lines
+    }
+    pub const fn isDoneRequested(&self) -> bool {
+        self.doneRequested
+    }
+    pub fn clearDoneRequest(&mut self) {
+        self.doneRequested = false;
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

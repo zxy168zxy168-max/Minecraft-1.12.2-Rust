@@ -1,1 +1,3 @@
-pub fn getClientModName() -> &'static str { "vanilla" }
+pub fn getClientModName() -> &'static str {
+    "vanilla"
+}

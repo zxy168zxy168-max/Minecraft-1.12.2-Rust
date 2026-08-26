@@ -131,23 +131,25 @@ impl RenderLivingBase {
 
     pub fn interpolateRotation(previous: f32, current: f32, partialTicks: f32) -> f32 {
         let mut difference = current - previous;
-        while difference < -180.0 { difference += 360.0; }
-        while difference >= 180.0 { difference -= 360.0; }
+        while difference < -180.0 {
+            difference += 360.0;
+        }
+        while difference >= 180.0 {
+            difference -= 360.0;
+        }
         previous + partialTicks.clamp(0.0, 1.0) * difference
     }
 
-    pub fn renderInput(entity: &EntityOtherClient, partialTicks: f32, preScale: f32) -> LivingRenderInput {
+    pub fn renderInput(
+        entity: &EntityOtherClient,
+        partialTicks: f32,
+        preScale: f32,
+    ) -> LivingRenderInput {
         let partial = partialTicks.clamp(0.0, 1.0);
-        let bodyYaw = Self::interpolateRotation(
-            entity.prevRenderYawOffset,
-            entity.renderYawOffset,
-            partial,
-        );
-        let headYaw = Self::interpolateRotation(
-            entity.prevRotationYawHead,
-            entity.rotationYawHead,
-            partial,
-        );
+        let bodyYaw =
+            Self::interpolateRotation(entity.prevRenderYawOffset, entity.renderYawOffset, partial);
+        let headYaw =
+            Self::interpolateRotation(entity.prevRotationYawHead, entity.rotationYawHead, partial);
         let headPitch = entity.entity.prevRotationPitch
             + (entity.entity.rotationPitch - entity.entity.prevRotationPitch) * partial;
         let limbSwingAmount = (entity.prevLimbSwingAmount
@@ -155,20 +157,30 @@ impl RenderLivingBase {
             .min(1.0);
         let mut limbSwing = entity.limbSwing - entity.limbSwingAmount * (1.0 - partial);
         let child = entity.isChild();
-        if child { limbSwing *= 3.0; }
+        if child {
+            limbSwing *= 3.0;
+        }
         let swingProgress = entity.getSwingProgress(partial);
         let deathRotation = if entity.deathTime > 0 {
             let mut progress = ((entity.deathTime as f32 + partial - 1.0) / 20.0 * 1.6).sqrt();
-            if progress > 1.0 { progress = 1.0; }
+            if progress > 1.0 {
+                progress = 1.0;
+            }
             progress * 90.0
         } else {
             0.0
         };
         LivingRenderInput {
             position: [
-                (entity.entity.prevPosX + (entity.entity.posX - entity.entity.prevPosX) * partial as f64) as f32,
-                (entity.entity.prevPosY + (entity.entity.posY - entity.entity.prevPosY) * partial as f64) as f32,
-                (entity.entity.prevPosZ + (entity.entity.posZ - entity.entity.prevPosZ) * partial as f64) as f32,
+                (entity.entity.prevPosX
+                    + (entity.entity.posX - entity.entity.prevPosX) * partial as f64)
+                    as f32,
+                (entity.entity.prevPosY
+                    + (entity.entity.posY - entity.entity.prevPosY) * partial as f64)
+                    as f32,
+                (entity.entity.prevPosZ
+                    + (entity.entity.posZ - entity.entity.prevPosZ) * partial as f64)
+                    as f32,
             ],
             bodyYaw,
             headYaw,
@@ -249,7 +261,12 @@ struct LivingBoxTransform {
 
 impl LivingBoxTransform {
     fn new(spec: LivingModelBox, input: LivingRenderInput) -> Self {
-        let parentPoses = [spec.parentPose, spec.parentPose2, spec.parentPose3, spec.parentPose4];
+        let parentPoses = [
+            spec.parentPose,
+            spec.parentPose2,
+            spec.parentPose3,
+            spec.parentPose4,
+        ];
         let parentOffsets = [
             spec.parentOffset,
             spec.parentOffset2,
@@ -326,8 +343,7 @@ impl LivingBoxTransform {
             -(point[0] * self.modelScale + self.partTranslation[0])
                 * self.partScale[0]
                 * self.preScale[0],
-            (1.501 - (point[1] * self.modelScale + self.partTranslation[1])
-                * self.partScale[1])
+            (1.501 - (point[1] * self.modelScale + self.partTranslation[1]) * self.partScale[1])
                 * self.preScale[1],
             (point[2] * self.modelScale + self.partTranslation[2])
                 * self.partScale[2]
@@ -396,7 +412,9 @@ fn model_to_world(
     point[1] += pose.pivot[1] + offsets[0][1];
     point[2] += pose.pivot[2] + offsets[0][2];
     for (index, parent) in parentPoses.into_iter().enumerate() {
-        let Some(parent) = parent else { continue; };
+        let Some(parent) = parent else {
+            continue;
+        };
         point = rotate_x(point, parent.rotation[0]);
         point = rotate_y(point, parent.rotation[1]);
         point = rotate_z(point, parent.rotation[2]);
@@ -411,8 +429,14 @@ fn model_to_world(
             (transform.scale, transform.translation)
         } else {
             match group {
-                LivingModelGroup::Head => ([input.childLayout.headScale; 3], input.childLayout.headTranslation),
-                LivingModelGroup::Body => ([input.childLayout.bodyScale; 3], input.childLayout.bodyTranslation),
+                LivingModelGroup::Head => (
+                    [input.childLayout.headScale; 3],
+                    input.childLayout.headTranslation,
+                ),
+                LivingModelGroup::Body => (
+                    [input.childLayout.bodyScale; 3],
+                    input.childLayout.bodyTranslation,
+                ),
             }
         }
     } else {
@@ -430,7 +454,11 @@ fn model_to_world(
     let yaw = (180.0 - input.bodyYaw).to_radians();
     let x = local[0] * yaw.cos() + local[2] * yaw.sin();
     let z = -local[0] * yaw.sin() + local[2] * yaw.cos();
-    [input.position[0] + x, input.position[1] + local[1], input.position[2] + z]
+    [
+        input.position[0] + x,
+        input.position[1] + local[1],
+        input.position[2] + z,
+    ]
 }
 
 fn rotate_x(p: [f32; 3], a: f32) -> [f32; 3] {
@@ -458,15 +486,28 @@ mod tests {
     #[test]
     fn model_renderer_offset_is_not_rotated_with_the_part() {
         let input = LivingRenderInput {
-            position: [0.0; 3], bodyYaw: 180.0, headYaw: 180.0, headPitch: 0.0,
-            limbSwing: 0.0, limbSwingAmount: 0.0, ageInTicks: 0.0,
-            swingProgress: 0.0, sneaking: false, child: false, deathRotation: 0.0,
-            preScale: 1.0, preScaleXYZ: [1.0; 3], childLayout: LivingChildLayout::BIPED,
+            position: [0.0; 3],
+            bodyYaw: 180.0,
+            headYaw: 180.0,
+            headPitch: 0.0,
+            limbSwing: 0.0,
+            limbSwingAmount: 0.0,
+            ageInTicks: 0.0,
+            swingProgress: 0.0,
+            sneaking: false,
+            child: false,
+            deathRotation: 0.0,
+            preScale: 1.0,
+            preScaleXYZ: [1.0; 3],
+            childLayout: LivingChildLayout::BIPED,
             adultTranslation: [0.0; 3],
         };
         let transformed = model_to_world(
             [1.0, 0.0, 0.0],
-            PartPose { pivot: [0.0; 3], rotation: [0.0, 0.0, std::f32::consts::FRAC_PI_2] },
+            PartPose {
+                pivot: [0.0; 3],
+                rotation: [0.0, 0.0, std::f32::consts::FRAC_PI_2],
+            },
             LivingModelGroup::Head,
             input,
             [None; 4],
@@ -476,7 +517,6 @@ mod tests {
         assert!(transformed[0].abs() < 1.0e-6);
         assert!((transformed[1] - (1.501 - 3.0 / 16.0)).abs() < 1.0e-6);
     }
-
 
     #[test]
     fn precomputed_living_transform_matches_legacy_modelrenderer_path() {
@@ -503,10 +543,19 @@ mod tests {
             size: [4, 6, 2],
             delta: 0.25,
             mirror: true,
-            pose: PartPose { pivot: [1.0, 2.0, -0.5], rotation: [0.31, -0.22, 0.47] },
+            pose: PartPose {
+                pivot: [1.0, 2.0, -0.5],
+                rotation: [0.31, -0.22, 0.47],
+            },
             group: LivingModelGroup::Body,
-            parentPose: Some(PartPose { pivot: [0.5, 1.5, 0.25], rotation: [-0.18, 0.27, -0.39] }),
-            parentPose2: Some(PartPose { pivot: [-0.25, 0.75, 1.0], rotation: [0.11, -0.07, 0.19] }),
+            parentPose: Some(PartPose {
+                pivot: [0.5, 1.5, 0.25],
+                rotation: [-0.18, 0.27, -0.39],
+            }),
+            parentPose2: Some(PartPose {
+                pivot: [-0.25, 0.75, 1.0],
+                rotation: [0.11, -0.07, 0.19],
+            }),
             parentPose3: None,
             parentPose4: None,
             poseOffset: [0.2, -0.1, 0.3],
@@ -525,8 +574,19 @@ mod tests {
             spec.pose,
             spec.group,
             input,
-            [spec.parentPose, spec.parentPose2, spec.parentPose3, spec.parentPose4],
-            [spec.poseOffset, spec.parentOffset, spec.parentOffset2, spec.parentOffset3, spec.parentOffset4],
+            [
+                spec.parentPose,
+                spec.parentPose2,
+                spec.parentPose3,
+                spec.parentPose4,
+            ],
+            [
+                spec.poseOffset,
+                spec.parentOffset,
+                spec.parentOffset2,
+                spec.parentOffset3,
+                spec.parentOffset4,
+            ],
             spec.childTransform,
         );
         let actual = LivingBoxTransform::new(spec, input).apply(point);
@@ -537,11 +597,15 @@ mod tests {
 
     #[test]
     fn hurt_brightness_tracks_entity_living_base_timers() {
-        use crate::net::minecraft::client::entity::EntityOtherClient::{ClientEntityKind, MobEntityType};
+        use crate::net::minecraft::client::entity::EntityOtherClient::{
+            ClientEntityKind, MobEntityType,
+        };
         let mut entity = EntityOtherClient::new(
             1,
             None,
-            ClientEntityKind::Mob { entityType: MobEntityType::fromId(54).unwrap() },
+            ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(54).unwrap(),
+            },
             0.0,
             64.0,
             0.0,
@@ -558,11 +622,15 @@ mod tests {
 
     #[test]
     fn death_rotation_reaches_ninety_degrees() {
-        use crate::net::minecraft::client::entity::EntityOtherClient::{ClientEntityKind, MobEntityType};
+        use crate::net::minecraft::client::entity::EntityOtherClient::{
+            ClientEntityKind, MobEntityType,
+        };
         let mut entity = EntityOtherClient::new(
             1,
             None,
-            ClientEntityKind::Mob { entityType: MobEntityType::fromId(54).unwrap() },
+            ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(54).unwrap(),
+            },
             0.0,
             64.0,
             0.0,
@@ -570,6 +638,9 @@ mod tests {
             0.0,
         );
         entity.deathTime = 20;
-        assert_eq!(RenderLivingBase::renderInput(&entity, 1.0, 1.0).deathRotation, 90.0);
+        assert_eq!(
+            RenderLivingBase::renderInput(&entity, 1.0, 1.0).deathRotation,
+            90.0
+        );
     }
 }

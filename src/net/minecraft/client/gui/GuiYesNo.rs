@@ -65,10 +65,8 @@ impl GuiYesNo {
             self.cancelButtonText.clone(),
         ));
         self.listLines.clear();
-        self.listLines.extend(font.list_formatted_string_to_width(
-            &self.messageLine2,
-            width - 50,
-        ));
+        self.listLines
+            .extend(font.list_formatted_string_to_width(&self.messageLine2, width - 50));
         if self.ticksUntilEnable > 0 {
             for button in &mut self.GuiScreen.buttonList {
                 button.enabled = false;
@@ -130,7 +128,8 @@ impl GuiYesNo {
             );
             y += font.font_height;
         }
-        self.GuiScreen.drawScreen(drawList, font, mouseX, mouseY, partialTicks);
+        self.GuiScreen
+            .drawScreen(drawList, font, mouseX, mouseY, partialTicks);
     }
 
     pub fn setButtonDelay(&mut self, ticks: i32) {
@@ -155,8 +154,13 @@ impl GuiYesNo {
         mouseY: i32,
         mouseButton: i32,
     ) -> Option<GuiYesNoInteraction> {
-        if mouseButton != 0 { return None; }
-        let button = self.GuiScreen.buttonList.iter()
+        if mouseButton != 0 {
+            return None;
+        }
+        let button = self
+            .GuiScreen
+            .buttonList
+            .iter()
             .find(|button| button.mousePressed(mouseX, mouseY))?;
         Some(GuiYesNoInteraction {
             result: button.id == 0,
@@ -173,14 +177,34 @@ mod tests {
     #[test]
     fn button_delay_matches_mcp_countdown() {
         let mut screen = GuiYesNo::new(
-            "Question".to_owned(), String::new(), "Yes".to_owned(), "No".to_owned(), 0,
+            "Question".to_owned(),
+            String::new(),
+            "Yes".to_owned(),
+            "No".to_owned(),
+            0,
         );
-        screen.GuiScreen.buttonList.push(GuiButton::new(0, 0, 0, "Yes"));
-        screen.GuiScreen.buttonList.push(GuiButton::new(1, 0, 24, "No"));
+        screen
+            .GuiScreen
+            .buttonList
+            .push(GuiButton::new(0, 0, 0, "Yes"));
+        screen
+            .GuiScreen
+            .buttonList
+            .push(GuiButton::new(1, 0, 24, "No"));
         screen.setButtonDelay(20);
-        for _ in 0..19 { screen.updateScreen(); }
-        assert!(screen.GuiScreen.buttonList.iter().all(|button| !button.enabled));
+        for _ in 0..19 {
+            screen.updateScreen();
+        }
+        assert!(screen
+            .GuiScreen
+            .buttonList
+            .iter()
+            .all(|button| !button.enabled));
         screen.updateScreen();
-        assert!(screen.GuiScreen.buttonList.iter().all(|button| button.enabled));
+        assert!(screen
+            .GuiScreen
+            .buttonList
+            .iter()
+            .all(|button| button.enabled));
     }
 }

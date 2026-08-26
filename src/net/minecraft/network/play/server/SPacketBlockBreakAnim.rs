@@ -1,5 +1,7 @@
 use crate::net::minecraft::network::Packet::RawPacket;
-use crate::net::minecraft::network::PacketBuffer::{read_i64_be, read_u8, read_var_i32, CodecError};
+use crate::net::minecraft::network::PacketBuffer::{
+    read_i64_be, read_u8, read_var_i32, CodecError,
+};
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 /// Protocol 340 clientbound packet 0x08, MCP 1.12.2 `SPacketBlockBreakAnim`.
@@ -22,12 +24,22 @@ impl SPacketBlockBreakAnim {
                 input.len()
             )));
         }
-        Ok(Self { breakerId, position, progress })
+        Ok(Self {
+            breakerId,
+            position,
+            progress,
+        })
     }
 
-    pub const fn getBreakerId(&self) -> i32 { self.breakerId }
-    pub const fn getPosition(&self) -> BlockPos { self.position }
-    pub const fn getProgress(&self) -> i32 { self.progress }
+    pub const fn getBreakerId(&self) -> i32 {
+        self.breakerId
+    }
+    pub const fn getPosition(&self) -> BlockPos {
+        self.position
+    }
+    pub const fn getProgress(&self) -> i32 {
+        self.progress
+    }
 }
 
 #[cfg(test)]
@@ -42,7 +54,8 @@ mod tests {
         write_var_i32(23, &mut payload);
         write_i64_be(position.to_long(), &mut payload);
         payload.push(7);
-        let decoded = SPacketBlockBreakAnim::readPacketData(&RawPacket::new(0x08, payload)).unwrap();
+        let decoded =
+            SPacketBlockBreakAnim::readPacketData(&RawPacket::new(0x08, payload)).unwrap();
         assert_eq!(decoded.getBreakerId(), 23);
         assert_eq!(decoded.getPosition(), position);
         assert_eq!(decoded.getProgress(), 7);

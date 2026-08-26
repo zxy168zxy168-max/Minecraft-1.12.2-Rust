@@ -41,11 +41,21 @@ impl ScaledResolution {
         }
     }
 
-    pub const fn scaled_width(self) -> i32 { self.scaled_width }
-    pub const fn scaled_height(self) -> i32 { self.scaled_height }
-    pub const fn scaled_width_f64(self) -> f64 { self.scaled_width_d }
-    pub const fn scaled_height_f64(self) -> f64 { self.scaled_height_d }
-    pub const fn scale_factor(self) -> i32 { self.scale_factor }
+    pub const fn scaled_width(self) -> i32 {
+        self.scaled_width
+    }
+    pub const fn scaled_height(self) -> i32 {
+        self.scaled_height
+    }
+    pub const fn scaled_width_f64(self) -> f64 {
+        self.scaled_width_d
+    }
+    pub const fn scaled_height_f64(self) -> f64 {
+        self.scaled_height_d
+    }
+    pub const fn scale_factor(self) -> i32 {
+        self.scale_factor
+    }
 }
 
 #[cfg(test)]

@@ -17,10 +17,16 @@ pub enum EnumRailDirection {
     NorthEast,
 }
 
-pub const fn isRailBlock(state: IBlockState) -> bool { matches!(state.getBlockId(), 27 | 28 | 66 | 157) }
+pub const fn isRailBlock(state: IBlockState) -> bool {
+    matches!(state.getBlockId(), 27 | 28 | 66 | 157)
+}
 
 pub const fn direction(state: IBlockState) -> EnumRailDirection {
-    let meta = if matches!(state.getBlockId(), 27 | 28 | 157) { state.getMetadata() & 7 } else { state.getMetadata() };
+    let meta = if matches!(state.getBlockId(), 27 | 28 | 157) {
+        state.getMetadata() & 7
+    } else {
+        state.getMetadata()
+    };
     match meta {
         1 => EnumRailDirection::EastWest,
         2 => EnumRailDirection::AscendingEast,
@@ -36,7 +42,13 @@ pub const fn direction(state: IBlockState) -> EnumRailDirection {
 }
 
 pub const fn isAscending(direction: EnumRailDirection) -> bool {
-    matches!(direction, EnumRailDirection::AscendingEast | EnumRailDirection::AscendingWest | EnumRailDirection::AscendingNorth | EnumRailDirection::AscendingSouth)
+    matches!(
+        direction,
+        EnumRailDirection::AscendingEast
+            | EnumRailDirection::AscendingWest
+            | EnumRailDirection::AscendingNorth
+            | EnumRailDirection::AscendingSouth
+    )
 }
 
 pub fn getBoundingBox(state: IBlockState) -> AxisAlignedBB {

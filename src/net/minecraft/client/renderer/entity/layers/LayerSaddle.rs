@@ -6,9 +6,13 @@ use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 pub struct LayerSaddle;
 
 impl LayerSaddle {
-    pub fn shouldRender(entity: &EntityOtherClient) -> bool { entity.pigSaddled() }
+    pub fn shouldRender(entity: &EntityOtherClient) -> bool {
+        entity.pigSaddled()
+    }
     pub fn texture() -> ResourceLocation {
         ResourceLocation::new("minecraft", "textures/entity/pig/pig_saddle.png")
     }
-    pub const fn modelScale() -> f32 { 0.5 }
+    pub const fn modelScale() -> f32 {
+        0.5
+    }
 }

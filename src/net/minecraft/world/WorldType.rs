@@ -11,7 +11,9 @@ pub enum WorldType {
 }
 
 impl Default for WorldType {
-    fn default() -> Self { Self::Default }
+    fn default() -> Self {
+        Self::Default
+    }
 }
 
 impl WorldType {
@@ -92,12 +94,22 @@ impl WorldType {
         }
     }
 
-    pub const fn getCanBeCreated(self) -> bool { !matches!(self, Self::Default11) }
-    pub const fn isVersioned(self) -> bool { matches!(self, Self::Default) }
-    pub const fn showWorldInfoNotice(self) -> bool { matches!(self, Self::Amplified) }
+    pub const fn getCanBeCreated(self) -> bool {
+        !matches!(self, Self::Default11)
+    }
+    pub const fn isVersioned(self) -> bool {
+        matches!(self, Self::Default)
+    }
+    pub const fn showWorldInfoNotice(self) -> bool {
+        matches!(self, Self::Amplified)
+    }
 
     pub const fn getWorldTypeForGeneratorVersion(self, version: i32) -> Self {
-        if matches!(self, Self::Default) && version == 0 { Self::Default11 } else { self }
+        if matches!(self, Self::Default) && version == 0 {
+            Self::Default11
+        } else {
+            self
+        }
     }
 }
 

@@ -4,9 +4,13 @@ use crate::net::minecraft::util::datafix::IFixableData::IFixableData;
 
 pub struct SpawnerEntityTypes;
 impl IFixableData for SpawnerEntityTypes {
-    fn getFixVersion(&self) -> i32 { 107 }
+    fn getFixVersion(&self) -> i32 {
+        107
+    }
     fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
-        if compound.getString("id") != "MobSpawner" { return compound; }
+        if compound.getString("id") != "MobSpawner" {
+            return compound;
+        }
         if compound.hasKeyWithType("EntityId", 8) {
             let id = compound.getString("EntityId");
             let mut spawn_data = compound.getCompoundTag("SpawnData");

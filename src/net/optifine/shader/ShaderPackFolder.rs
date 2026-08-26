@@ -1,4 +1,7 @@
-use std::{fs, io, path::{Path, PathBuf}};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 use crate::net::optifine::shader::IShaderPack::IShaderPack;
 
@@ -9,15 +12,22 @@ pub struct ShaderPackFolder {
 
 impl ShaderPackFolder {
     pub fn new(_name: impl AsRef<str>, file: impl Into<PathBuf>) -> Self {
-        Self { packFile: file.into() }
+        Self {
+            packFile: file.into(),
+        }
     }
 
-    pub fn packFile(&self) -> &Path { &self.packFile }
+    pub fn packFile(&self) -> &Path {
+        &self.packFile
+    }
 }
 
 impl IShaderPack for ShaderPackFolder {
     fn getName(&self) -> &str {
-        self.packFile.file_name().and_then(|name| name.to_str()).unwrap_or("")
+        self.packFile
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("")
     }
 
     fn getResourceAsStream(&mut self, resName: &str) -> io::Result<Option<Vec<u8>>> {
@@ -51,13 +61,20 @@ mod tests {
 
     #[test]
     fn mirrors_optifine_folder_path_normalization() {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let root = std::env::temp_dir().join(format!("mc112-shader-folder-{unique}"));
         fs::create_dir_all(root.join("shaders/world0")).unwrap();
         fs::write(root.join("shaders/gbuffers_basic.vsh"), b"folder-pack").unwrap();
         let mut pack = ShaderPackFolder::new("ignored", &root);
         assert_eq!(pack.getName(), root.file_name().unwrap().to_string_lossy());
-        assert_eq!(pack.getResourceAsStream("/shaders/gbuffers_basic.vsh/").unwrap(), Some(b"folder-pack".to_vec()));
+        assert_eq!(
+            pack.getResourceAsStream("/shaders/gbuffers_basic.vsh/")
+                .unwrap(),
+            Some(b"folder-pack".to_vec())
+        );
         assert!(pack.hasDirectory("/shaders"));
         assert!(pack.hasDirectory("/shaders/world0"));
         assert!(!pack.hasDirectory("/missing"));

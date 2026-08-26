@@ -17,11 +17,18 @@ impl SPacketUseBed {
             bedPos: BlockPos::from_long(read_i64_be(&mut input)?),
         };
         if !input.is_empty() {
-            return Err(CodecError::InvalidData(format!("{} unread use-bed bytes", input.len())));
+            return Err(CodecError::InvalidData(format!(
+                "{} unread use-bed bytes",
+                input.len()
+            )));
         }
         Ok(result)
     }
 
-    pub const fn getPlayerId(&self) -> i32 { self.playerId }
-    pub const fn getBedPosition(&self) -> BlockPos { self.bedPos }
+    pub const fn getPlayerId(&self) -> i32 {
+        self.playerId
+    }
+    pub const fn getBedPosition(&self) -> BlockPos {
+        self.bedPos
+    }
 }

@@ -23,8 +23,12 @@ pub struct CPacketClientStatus {
 }
 
 impl CPacketClientStatus {
-    pub const fn new(status: State) -> Self { Self { status } }
-    pub const fn getStatus(self) -> State { self.status }
+    pub const fn new(status: State) -> Self {
+        Self { status }
+    }
+    pub const fn getStatus(self) -> State {
+        self.status
+    }
 
     pub fn writePacketData(self) -> RawPacket {
         let mut payload = Vec::new();

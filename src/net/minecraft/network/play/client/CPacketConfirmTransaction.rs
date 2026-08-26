@@ -11,7 +11,11 @@ pub struct CPacketConfirmTransaction {
 
 impl CPacketConfirmTransaction {
     pub const fn new(windowIdIn: i32, uidIn: i16, acceptedIn: bool) -> Self {
-        Self { windowId: windowIdIn as i8, uid: uidIn, accepted: acceptedIn }
+        Self {
+            windowId: windowIdIn as i8,
+            uid: uidIn,
+            accepted: acceptedIn,
+        }
     }
     pub fn writePacketData(self) -> RawPacket {
         let mut payload = vec![self.windowId as u8];

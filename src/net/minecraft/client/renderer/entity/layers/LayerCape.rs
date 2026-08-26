@@ -79,11 +79,14 @@ impl LayerCape {
         let f3 = (d0 * d4 - d2 * d3) as f32 * 100.0;
         // Keep the explicit mutable value to mirror the MCP branch and make
         // future NaN/edge behaviour review local to this class.
-        if f2 < 0.0 { f2 = 0.0; }
-        if f2 > 165.0 { f2 = 165.0; }
+        if f2 < 0.0 {
+            f2 = 0.0;
+        }
+        if f2 > 165.0 {
+            f2 = 165.0;
+        }
 
-        let f4 = input.prevCameraYaw
-            + (input.cameraYaw - input.prevCameraYaw) * partial;
+        let f4 = input.prevCameraYaw + (input.cameraYaw - input.prevCameraYaw) * partial;
         let walked = input.prevDistanceWalkedModified
             + (input.distanceWalkedModified - input.prevDistanceWalkedModified) * partial;
         f1 += (walked * 6.0).sin() * 32.0 * f4;
@@ -104,7 +107,9 @@ impl LayerCape {
         }
     }
 
-    pub const fn shouldCombineTextures() -> bool { false }
+    pub const fn shouldCombineTextures() -> bool {
+        false
+    }
 }
 
 fn lerp_f64(start: f64, end: f64, partial: f64) -> f64 {
@@ -155,7 +160,12 @@ mod tests {
     #[test]
     fn cape_is_hidden_by_model_part_or_elytra() {
         let empty = ItemStack::EMPTY;
-        let elytra = ItemStack { itemId: 443, count: 1, itemDamage: 0, tagCompound: None };
+        let elytra = ItemStack {
+            itemId: 443,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
         assert!(LayerCape::shouldRender(true, false, 1, &empty));
         assert!(!LayerCape::shouldRender(true, false, 0, &empty));
         assert!(!LayerCape::shouldRender(true, true, 1, &empty));

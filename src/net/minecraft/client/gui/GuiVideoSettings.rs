@@ -1,12 +1,10 @@
+use crate::launcher::RenderBackend::RenderBackend;
 use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
 use crate::net::minecraft::client::gui::GuiButton::{GuiButton, GuiSoundCommand};
 use crate::net::minecraft::client::gui::GuiOptionSlider::GuiOptionSlider;
 use crate::net::minecraft::client::gui::GuiScreen::GuiScreen;
 use crate::net::minecraft::client::resources::Locale::Locale;
-use crate::launcher::RenderBackend::RenderBackend;
-use crate::net::minecraft::client::settings::GameSettings::{
-    GameSettings, FRAMERATE_LIMIT_MAX,
-};
+use crate::net::minecraft::client::settings::GameSettings::{GameSettings, FRAMERATE_LIMIT_MAX};
 use crate::vulkan::GuiDrawList::GuiDrawList;
 
 // MCP 1.12.2 `GameSettings.Options` ordinals used as control IDs.
@@ -89,15 +87,11 @@ impl Default for GuiVideoSettings {
 }
 
 impl GuiVideoSettings {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
-    pub fn initGui(
-        &mut self,
-        width: i32,
-        height: i32,
-        locale: &Locale,
-        settings: &GameSettings,
-    ) {
+    pub fn initGui(&mut self, width: i32, height: i32, locale: &Locale, settings: &GameSettings) {
         self.GuiScreen.width = width;
         self.GuiScreen.height = height;
         self.screenTitle = locale.translate_key("options.videoTitle").to_owned();
@@ -141,7 +135,14 @@ impl GuiVideoSettings {
         mouseY: i32,
         partialTicks: f32,
     ) {
-        self.drawScreenWithWorld(drawList, fontRendererObj, mouseX, mouseY, partialTicks, false);
+        self.drawScreenWithWorld(
+            drawList,
+            fontRendererObj,
+            mouseX,
+            mouseY,
+            partialTicks,
+            false,
+        );
     }
 
     pub fn drawScreenInWorld(
@@ -152,7 +153,14 @@ impl GuiVideoSettings {
         mouseY: i32,
         partialTicks: f32,
     ) {
-        self.drawScreenWithWorld(drawList, fontRendererObj, mouseX, mouseY, partialTicks, true);
+        self.drawScreenWithWorld(
+            drawList,
+            fontRendererObj,
+            mouseX,
+            mouseY,
+            partialTicks,
+            true,
+        );
     }
 
     fn drawScreenWithWorld(
@@ -177,20 +185,44 @@ impl GuiVideoSettings {
             15,
             0x00FF_FFFF,
         );
-        self.graphicsButton.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.ambientOcclusionButton.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.renderDistanceSlider.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.framerateSlider.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.guiScaleButton.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.fullscreenButton.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.gammaSlider.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.rendererButton.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.shadersButton.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.GuiScreen.Gui.drawCenteredString(
-            fontRendererObj, drawList, &self.backendNotice,
-            self.GuiScreen.width / 2, self.GuiScreen.height / 6 + 132, 0x00AA_AAAA,
+        self.graphicsButton
+            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.ambientOcclusionButton.drawButton(
+            drawList,
+            fontRendererObj,
+            mouseX,
+            mouseY,
+            partialTicks,
         );
-        self.doneButton.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.renderDistanceSlider.drawButton(
+            drawList,
+            fontRendererObj,
+            mouseX,
+            mouseY,
+            partialTicks,
+        );
+        self.framerateSlider
+            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.guiScaleButton
+            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.fullscreenButton
+            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.gammaSlider
+            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.rendererButton
+            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.shadersButton
+            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.GuiScreen.Gui.drawCenteredString(
+            fontRendererObj,
+            drawList,
+            &self.backendNotice,
+            self.GuiScreen.width / 2,
+            self.GuiScreen.height / 6 + 132,
+            0x00AA_AAAA,
+        );
+        self.doneButton
+            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
     }
 
     pub fn mouseClicked(
@@ -207,8 +239,10 @@ impl GuiVideoSettings {
 
         if let Some(normalized) = self.renderDistanceSlider.mousePressed(mouseX, mouseY) {
             let value = denormalizeRenderDistance(normalized);
-            self.renderDistanceSlider.setSliderValue(normalizeRenderDistance(value));
-            self.renderDistanceSlider.setDisplayString(renderDistanceLabel(locale, value));
+            self.renderDistanceSlider
+                .setSliderValue(normalizeRenderDistance(value));
+            self.renderDistanceSlider
+                .setDisplayString(renderDistanceLabel(locale, value));
             return Some(GuiVideoSettingsInteraction {
                 action: GuiVideoSettingsAction::SetRenderDistance(value),
                 sound: Some(self.renderDistanceSlider.playPressSound()),
@@ -217,8 +251,10 @@ impl GuiVideoSettings {
 
         if let Some(normalized) = self.framerateSlider.mousePressed(mouseX, mouseY) {
             let (limit, enableVsync) = denormalizeFramerate(normalized);
-            self.framerateSlider.setSliderValue(normalizeFramerate(limit, enableVsync));
-            self.framerateSlider.setDisplayString(framerateLabel(locale, limit, enableVsync));
+            self.framerateSlider
+                .setSliderValue(normalizeFramerate(limit, enableVsync));
+            self.framerateSlider
+                .setDisplayString(framerateLabel(locale, limit, enableVsync));
             return Some(GuiVideoSettingsInteraction {
                 action: GuiVideoSettingsAction::SetFramerate { limit, enableVsync },
                 sound: Some(self.framerateSlider.playPressSound()),
@@ -281,23 +317,29 @@ impl GuiVideoSettings {
                 sound: Some(self.shadersButton.playPressSound()),
             });
         }
-        self.doneButton.mousePressed(mouseX, mouseY).then(|| GuiVideoSettingsInteraction {
-            action: GuiVideoSettingsAction::Done,
-            sound: Some(self.doneButton.playPressSound()),
-        })
+        self.doneButton
+            .mousePressed(mouseX, mouseY)
+            .then(|| GuiVideoSettingsInteraction {
+                action: GuiVideoSettingsAction::Done,
+                sound: Some(self.doneButton.playPressSound()),
+            })
     }
 
     pub fn mouseDragged(&mut self, mouseX: i32, locale: &Locale) -> Option<GuiVideoSettingsAction> {
         if let Some(normalized) = self.renderDistanceSlider.mouseDragged(mouseX) {
             let value = denormalizeRenderDistance(normalized);
-            self.renderDistanceSlider.setSliderValue(normalizeRenderDistance(value));
-            self.renderDistanceSlider.setDisplayString(renderDistanceLabel(locale, value));
+            self.renderDistanceSlider
+                .setSliderValue(normalizeRenderDistance(value));
+            self.renderDistanceSlider
+                .setDisplayString(renderDistanceLabel(locale, value));
             return Some(GuiVideoSettingsAction::SetRenderDistance(value));
         }
         if let Some(normalized) = self.framerateSlider.mouseDragged(mouseX) {
             let (limit, enableVsync) = denormalizeFramerate(normalized);
-            self.framerateSlider.setSliderValue(normalizeFramerate(limit, enableVsync));
-            self.framerateSlider.setDisplayString(framerateLabel(locale, limit, enableVsync));
+            self.framerateSlider
+                .setSliderValue(normalizeFramerate(limit, enableVsync));
+            self.framerateSlider
+                .setDisplayString(framerateLabel(locale, limit, enableVsync));
             return Some(GuiVideoSettingsAction::SetFramerate { limit, enableVsync });
         }
         if let Some(normalized) = self.gammaSlider.mouseDragged(mouseX) {
@@ -317,15 +359,28 @@ impl GuiVideoSettings {
 
     pub fn syncFromSettings(&mut self, locale: &Locale, settings: &GameSettings) {
         self.graphicsButton.displayString = graphicsLabel(locale, settings.fancyGraphics);
-        self.ambientOcclusionButton.displayString = ambientOcclusionLabel(locale, settings.ambientOcclusion);
-        self.renderDistanceSlider.setSliderValue(normalizeRenderDistance(settings.renderDistanceChunks));
-        self.renderDistanceSlider.setDisplayString(renderDistanceLabel(locale, settings.renderDistanceChunks));
-        self.framerateSlider.setSliderValue(normalizeFramerate(settings.limitFramerate, settings.enableVsync));
-        self.framerateSlider.setDisplayString(framerateLabel(locale, settings.limitFramerate, settings.enableVsync));
+        self.ambientOcclusionButton.displayString =
+            ambientOcclusionLabel(locale, settings.ambientOcclusion);
+        self.renderDistanceSlider
+            .setSliderValue(normalizeRenderDistance(settings.renderDistanceChunks));
+        self.renderDistanceSlider
+            .setDisplayString(renderDistanceLabel(locale, settings.renderDistanceChunks));
+        self.framerateSlider.setSliderValue(normalizeFramerate(
+            settings.limitFramerate,
+            settings.enableVsync,
+        ));
+        self.framerateSlider.setDisplayString(framerateLabel(
+            locale,
+            settings.limitFramerate,
+            settings.enableVsync,
+        ));
         self.guiScaleButton.displayString = guiScaleLabel(locale, settings.guiScale);
-        self.fullscreenButton.displayString = booleanLabel(locale, "options.fullscreen", settings.fullScreen);
-        self.gammaSlider.setSliderValue(settings.gammaSetting.clamp(0.0, 1.0));
-        self.gammaSlider.setDisplayString(gammaLabel(locale, settings.gammaSetting));
+        self.fullscreenButton.displayString =
+            booleanLabel(locale, "options.fullscreen", settings.fullScreen);
+        self.gammaSlider
+            .setSliderValue(settings.gammaSetting.clamp(0.0, 1.0));
+        self.gammaSlider
+            .setDisplayString(gammaLabel(locale, settings.gammaSetting));
         self.rendererButton.displayString = rendererLabel(settings.renderBackend);
         self.shadersButton.displayString = "Shaders...".to_owned();
         // OptiFine 1.12.2 shader packs are OpenGL/GLSL resources. The current
@@ -337,11 +392,15 @@ impl GuiVideoSettings {
 
     fn syncBackendNotice(&mut self, active: RenderBackend, selected: RenderBackend) {
         self.backendNotice = if active != selected {
-            format!("Restart required: {} will be used next launch", selected.displayName())
+            format!(
+                "Restart required: {} will be used next launch",
+                selected.displayName()
+            )
         } else if active == RenderBackend::Vulkan {
             "OptiFine shader packs require the OpenGL renderer".to_owned()
         } else {
-            "OpenGL active; shader-pack management is available, rendering migration incomplete".to_owned()
+            "OpenGL active; shader-pack management is available, rendering migration incomplete"
+                .to_owned()
         };
     }
 }
@@ -358,7 +417,11 @@ fn denormalizeRenderDistance(normalized: f32) -> i32 {
 }
 
 fn normalizeFramerate(limit: i32, enableVsync: bool) -> f32 {
-    let sliderValue = if enableVsync { 0 } else { limit.clamp(FRAMERATE_STEP, FRAMERATE_LIMIT_MAX) };
+    let sliderValue = if enableVsync {
+        0
+    } else {
+        limit.clamp(FRAMERATE_STEP, FRAMERATE_LIMIT_MAX)
+    };
     sliderValue as f32 / FRAMERATE_LIMIT_MAX as f32
 }
 
@@ -374,24 +437,43 @@ fn denormalizeFramerate(normalized: f32) -> (i32, bool) {
 }
 
 fn graphicsLabel(locale: &Locale, fancy: bool) -> String {
-    let valueKey = if fancy { "options.graphics.fancy" } else { "options.graphics.fast" };
-    format!("{}: {}", locale.translate_key("options.graphics"), locale.translate_key(valueKey))
+    let valueKey = if fancy {
+        "options.graphics.fancy"
+    } else {
+        "options.graphics.fast"
+    };
+    format!(
+        "{}: {}",
+        locale.translate_key("options.graphics"),
+        locale.translate_key(valueKey)
+    )
 }
 
 fn renderDistanceLabel(locale: &Locale, value: i32) -> String {
     let chunks = replaceSingleFormat(locale.translate_key("options.chunks"), &value.to_string());
-    format!("{}: {chunks}", locale.translate_key("options.renderDistance"))
+    format!(
+        "{}: {chunks}",
+        locale.translate_key("options.renderDistance")
+    )
 }
 
 fn framerateLabel(locale: &Locale, limit: i32, enableVsync: bool) -> String {
     let value = if enableVsync {
         locale.translate_key("options.vsync").to_owned()
     } else if limit >= FRAMERATE_LIMIT_MAX {
-        locale.translate_key("options.framerateLimit.max").to_owned()
+        locale
+            .translate_key("options.framerateLimit.max")
+            .to_owned()
     } else {
-        replaceSingleFormat(locale.translate_key("options.framerate"), &limit.to_string())
+        replaceSingleFormat(
+            locale.translate_key("options.framerate"),
+            &limit.to_string(),
+        )
     };
-    format!("{}: {value}", locale.translate_key("options.framerateLimit"))
+    format!(
+        "{}: {value}",
+        locale.translate_key("options.framerateLimit")
+    )
 }
 
 fn gammaLabel(locale: &Locale, gamma: f32) -> String {
@@ -412,7 +494,11 @@ fn ambientOcclusionLabel(locale: &Locale, value: i32) -> String {
         1 => "options.ao.min",
         _ => "options.ao.max",
     };
-    format!("{}: {}", locale.translate_key("options.ao"), locale.translate_key(valueKey))
+    format!(
+        "{}: {}",
+        locale.translate_key("options.ao"),
+        locale.translate_key(valueKey)
+    )
 }
 
 fn guiScaleLabel(locale: &Locale, guiScale: i32) -> String {
@@ -439,9 +525,7 @@ fn rendererLabel(backend: RenderBackend) -> String {
 }
 
 fn replaceSingleFormat(pattern: &str, value: &str) -> String {
-    pattern
-        .replacen("%1$s", value, 1)
-        .replacen("%s", value, 1)
+    pattern.replacen("%1$s", value, 1).replacen("%s", value, 1)
 }
 
 #[cfg(test)]

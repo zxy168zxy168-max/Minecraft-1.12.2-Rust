@@ -31,7 +31,9 @@ impl MapDecorationType {
         }
     }
 
-    pub const fn id(self) -> u8 { self as u8 }
+    pub const fn id(self) -> u8 {
+        self as u8
+    }
 
     /// `func_191160_b`, used when `MapItemRenderer#renderMap` is invoked with
     /// `noOverlayRendering=true` by an item frame.
@@ -53,15 +55,32 @@ pub struct MapDecoration {
 
 impl MapDecoration {
     pub const fn new(decorationType: MapDecorationType, x: i8, y: i8, rotation: i8) -> Self {
-        Self { decorationType, x, y, rotation }
+        Self {
+            decorationType,
+            x,
+            y,
+            rotation,
+        }
     }
 
-    pub const fn getType(&self) -> u8 { self.decorationType.id() }
-    pub const fn decorationType(&self) -> MapDecorationType { self.decorationType }
-    pub const fn getX(&self) -> i8 { self.x }
-    pub const fn getY(&self) -> i8 { self.y }
-    pub const fn getRotation(&self) -> i8 { self.rotation }
-    pub const fn isRenderedOnFrame(&self) -> bool { self.decorationType.isRenderedOnFrame() }
+    pub const fn getType(&self) -> u8 {
+        self.decorationType.id()
+    }
+    pub const fn decorationType(&self) -> MapDecorationType {
+        self.decorationType
+    }
+    pub const fn getX(&self) -> i8 {
+        self.x
+    }
+    pub const fn getY(&self) -> i8 {
+        self.y
+    }
+    pub const fn getRotation(&self) -> i8 {
+        self.rotation
+    }
+    pub const fn isRenderedOnFrame(&self) -> bool {
+        self.decorationType.isRenderedOnFrame()
+    }
 }
 
 #[cfg(test)]

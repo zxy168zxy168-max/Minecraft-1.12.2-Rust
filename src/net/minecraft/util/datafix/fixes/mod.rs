@@ -1,33 +1,66 @@
-#[path = "AddBedTileEntity.rs"] pub mod AddBedTileEntity;
-#[path = "ArmorStandSilent.rs"] pub mod ArmorStandSilent;
-#[path = "BedItemColor.rs"] pub mod BedItemColor;
-#[path = "CookedFishIDTypo.rs"] pub mod CookedFishIDTypo;
-#[path = "ElderGuardianSplit.rs"] pub mod ElderGuardianSplit;
-#[path = "EntityHealth.rs"] pub mod EntityHealth;
-#[path = "EntityId.rs"] pub mod EntityId;
-#[path = "ForceVBOOn.rs"] pub mod ForceVBOOn;
-#[path = "HorseSaddle.rs"] pub mod HorseSaddle;
-#[path = "HorseSplit.rs"] pub mod HorseSplit;
-#[path = "MinecartEntityTypes.rs"] pub mod MinecartEntityTypes;
-#[path = "OptionsLowerCaseLanguage.rs"] pub mod OptionsLowerCaseLanguage;
-#[path = "PaintingDirection.rs"] pub mod PaintingDirection;
-#[path = "PotionWater.rs"] pub mod PotionWater;
-#[path = "RedundantChanceTags.rs"] pub mod RedundantChanceTags;
-#[path = "RidingToPassengers.rs"] pub mod RidingToPassengers;
-#[path = "ShulkerBoxEntityColor.rs"] pub mod ShulkerBoxEntityColor;
-#[path = "ShulkerBoxTileColor.rs"] pub mod ShulkerBoxTileColor;
-#[path = "SkeletonSplit.rs"] pub mod SkeletonSplit;
-#[path = "TileEntityId.rs"] pub mod TileEntityId;
-#[path = "TotemItemRename.rs"] pub mod TotemItemRename;
-#[path = "ZombieSplit.rs"] pub mod ZombieSplit;
-#[path = "BannerItemColor.rs"] pub mod BannerItemColor;
-#[path = "EntityArmorAndHeld.rs"] pub mod EntityArmorAndHeld;
-#[path = "ItemIntIDToString.rs"] pub mod ItemIntIDToString;
-#[path = "PotionItems.rs"] pub mod PotionItems;
-#[path = "ShulkerBoxItemColor.rs"] pub mod ShulkerBoxItemColor;
-#[path = "SpawnEggNames.rs"] pub mod SpawnEggNames;
-#[path = "SpawnerEntityTypes.rs"] pub mod SpawnerEntityTypes;
-#[path = "StringToUUID.rs"] pub mod StringToUUID;
-#[path = "BookPagesStrictJSON.rs"] pub mod BookPagesStrictJSON;
-#[path = "SignStrictJSON.rs"] pub mod SignStrictJSON;
-#[path = "ZombieProfToType.rs"] pub mod ZombieProfToType;
+#[path = "AddBedTileEntity.rs"]
+pub mod AddBedTileEntity;
+#[path = "ArmorStandSilent.rs"]
+pub mod ArmorStandSilent;
+#[path = "BannerItemColor.rs"]
+pub mod BannerItemColor;
+#[path = "BedItemColor.rs"]
+pub mod BedItemColor;
+#[path = "BookPagesStrictJSON.rs"]
+pub mod BookPagesStrictJSON;
+#[path = "CookedFishIDTypo.rs"]
+pub mod CookedFishIDTypo;
+#[path = "ElderGuardianSplit.rs"]
+pub mod ElderGuardianSplit;
+#[path = "EntityArmorAndHeld.rs"]
+pub mod EntityArmorAndHeld;
+#[path = "EntityHealth.rs"]
+pub mod EntityHealth;
+#[path = "EntityId.rs"]
+pub mod EntityId;
+#[path = "ForceVBOOn.rs"]
+pub mod ForceVBOOn;
+#[path = "HorseSaddle.rs"]
+pub mod HorseSaddle;
+#[path = "HorseSplit.rs"]
+pub mod HorseSplit;
+#[path = "ItemIntIDToString.rs"]
+pub mod ItemIntIDToString;
+#[path = "MinecartEntityTypes.rs"]
+pub mod MinecartEntityTypes;
+#[path = "OptionsLowerCaseLanguage.rs"]
+pub mod OptionsLowerCaseLanguage;
+#[path = "PaintingDirection.rs"]
+pub mod PaintingDirection;
+#[path = "PotionItems.rs"]
+pub mod PotionItems;
+#[path = "PotionWater.rs"]
+pub mod PotionWater;
+#[path = "RedundantChanceTags.rs"]
+pub mod RedundantChanceTags;
+#[path = "RidingToPassengers.rs"]
+pub mod RidingToPassengers;
+#[path = "ShulkerBoxEntityColor.rs"]
+pub mod ShulkerBoxEntityColor;
+#[path = "ShulkerBoxItemColor.rs"]
+pub mod ShulkerBoxItemColor;
+#[path = "ShulkerBoxTileColor.rs"]
+pub mod ShulkerBoxTileColor;
+#[path = "SignStrictJSON.rs"]
+pub mod SignStrictJSON;
+#[path = "SkeletonSplit.rs"]
+pub mod SkeletonSplit;
+#[path = "SpawnEggNames.rs"]
+pub mod SpawnEggNames;
+#[path = "SpawnerEntityTypes.rs"]
+pub mod SpawnerEntityTypes;
+#[path = "StringToUUID.rs"]
+pub mod StringToUUID;
+#[path = "TileEntityId.rs"]
+pub mod TileEntityId;
+#[path = "TotemItemRename.rs"]
+pub mod TotemItemRename;
+#[path = "ZombieProfToType.rs"]
+pub mod ZombieProfToType;
+#[path = "ZombieSplit.rs"]
+pub mod ZombieSplit;

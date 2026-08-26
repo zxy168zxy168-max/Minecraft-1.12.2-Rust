@@ -42,7 +42,9 @@ impl SoundCategory {
     }
 
     pub fn getByName(name: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|category| category.getName() == name)
+        Self::ALL
+            .into_iter()
+            .find(|category| category.getName() == name)
     }
 
     pub const fn index(self) -> usize {
@@ -68,7 +70,10 @@ mod tests {
     #[test]
     fn names_match_mcp_enum() {
         assert_eq!(SoundCategory::Records.getName(), "record");
-        assert_eq!(SoundCategory::getByName("player"), Some(SoundCategory::Players));
+        assert_eq!(
+            SoundCategory::getByName("player"),
+            Some(SoundCategory::Players)
+        );
         assert!(SoundCategory::getByName("players").is_none());
     }
 }

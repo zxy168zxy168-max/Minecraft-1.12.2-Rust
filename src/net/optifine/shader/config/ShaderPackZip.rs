@@ -69,7 +69,10 @@ impl ShaderPackZip {
             let file = File::open(&self.packFile)?;
             self.packZipFile = Some(ZipArchive::new(file).map_err(zip_error)?);
         }
-        Ok(self.packZipFile.as_mut().expect("archive initialized above"))
+        Ok(self
+            .packZipFile
+            .as_mut()
+            .expect("archive initialized above"))
     }
 
     fn ensurePackRoot(&mut self) -> io::Result<()> {
@@ -169,9 +172,8 @@ impl IShaderPack for ShaderPackZip {
             // borrow on older stable compilers.
             let result = match archive.by_name(&archiveName) {
                 Ok(mut entry) => {
-                    let mut bytes = Vec::with_capacity(
-                        entry.size().min(usize::MAX as u64) as usize,
-                    );
+                    let mut bytes =
+                        Vec::with_capacity(entry.size().min(usize::MAX as u64) as usize);
                     entry.read_to_end(&mut bytes).ok().map(|_| bytes)
                 }
                 Err(_) => None,
@@ -203,9 +205,7 @@ impl IShaderPack for ShaderPackZip {
 }
 
 fn normalizeArchiveName(name: &str) -> String {
-    name.replace('\\', "/")
-        .trim_start_matches("./")
-        .to_owned()
+    name.replace('\\', "/").trim_start_matches("./").to_owned()
 }
 
 fn buildDirectoryIndex(entries: &HashSet<String>) -> HashSet<String> {
@@ -254,10 +254,7 @@ mod tests {
             .add_directory("shaders/", SimpleFileOptions::default())
             .unwrap();
         writer
-            .start_file(
-                "shaders/gbuffers_basic.fsh",
-                SimpleFileOptions::default(),
-            )
+            .start_file("shaders/gbuffers_basic.fsh", SimpleFileOptions::default())
             .unwrap();
         writer.write_all(b"zip-pack").unwrap();
         writer.finish().unwrap();
@@ -290,7 +287,8 @@ mod tests {
         let mut pack = ShaderPackZip::new("ignored", &path);
         for _ in 0..8 {
             assert_eq!(
-                pack.getResourceAsStream("/shaders/lib/common.glsl").unwrap(),
+                pack.getResourceAsStream("/shaders/lib/common.glsl")
+                    .unwrap(),
                 Some(b"shared include".to_vec()),
             );
         }
@@ -304,7 +302,10 @@ mod tests {
         let file = File::create(&path).unwrap();
         let mut writer = ZipWriter::new(file);
         writer
-            .start_file("shaders/world-1/composite.fsh", SimpleFileOptions::default())
+            .start_file(
+                "shaders/world-1/composite.fsh",
+                SimpleFileOptions::default(),
+            )
             .unwrap();
         writer.write_all(b"world minus one").unwrap();
         writer.finish().unwrap();

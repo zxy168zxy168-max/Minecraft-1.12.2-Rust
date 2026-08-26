@@ -13,7 +13,9 @@ pub struct GuiButtonLanguage {
 
 impl GuiButtonLanguage {
     pub fn new(button_id: i32, x: i32, y: i32) -> Self {
-        Self { button: GuiButton::newWithSize(button_id, x, y, 20, 20, "") }
+        Self {
+            button: GuiButton::newWithSize(button_id, x, y, 20, 20, ""),
+        }
     }
 
     pub fn drawButton(&mut self, draw_list: &mut GuiDrawList, mouse_x: i32, mouse_y: i32) {
@@ -38,13 +40,29 @@ impl GuiButtonLanguage {
         self.button.mousePressed(mouse_x, mouse_y)
     }
 
-    pub fn playPressSound(&self) -> GuiSoundCommand { self.button.playPressSound() }
+    pub fn playPressSound(&self) -> GuiSoundCommand {
+        self.button.playPressSound()
+    }
 
-    pub const fn id(&self) -> i32 { self.button.id }
-    pub const fn x(&self) -> i32 { self.button.x }
-    pub const fn y(&self) -> i32 { self.button.y }
-    pub const fn width(&self) -> i32 { self.button.width }
-    pub const fn height(&self) -> i32 { self.button.height }
-    pub const fn visible(&self) -> bool { self.button.visible }
-    pub const fn enabled(&self) -> bool { self.button.enabled }
+    pub const fn id(&self) -> i32 {
+        self.button.id
+    }
+    pub const fn x(&self) -> i32 {
+        self.button.x
+    }
+    pub const fn y(&self) -> i32 {
+        self.button.y
+    }
+    pub const fn width(&self) -> i32 {
+        self.button.width
+    }
+    pub const fn height(&self) -> i32 {
+        self.button.height
+    }
+    pub const fn visible(&self) -> bool {
+        self.button.visible
+    }
+    pub const fn enabled(&self) -> bool {
+        self.button.enabled
+    }
 }

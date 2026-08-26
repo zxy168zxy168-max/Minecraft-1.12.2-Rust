@@ -1,8 +1,8 @@
-use std::sync::Arc;
 use crate::net::minecraft::util::datafix::DataFixer::DataFixer;
 use crate::net::minecraft::util::datafix::FixTypes::FixTypes;
 use crate::net::minecraft::util::datafix::IDataFixer::IDataFixer;
 use crate::net::minecraft::util::datafix::IDataWalker::IDataWalker;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
@@ -56,12 +56,20 @@ pub struct WorldInfo {
     playerTag: Option<NBTTagCompound>,
 }
 
-
 struct WorldInfoPlayerDataWalker;
 impl IDataWalker for WorldInfoPlayerDataWalker {
-    fn process(&self, fixer: &dyn IDataFixer, mut compound: NBTTagCompound, versionIn: i32) -> NBTTagCompound {
+    fn process(
+        &self,
+        fixer: &dyn IDataFixer,
+        mut compound: NBTTagCompound,
+        versionIn: i32,
+    ) -> NBTTagCompound {
         if compound.hasKeyWithType("Player", 10) {
-            let player = fixer.processVersioned(FixTypes::Player, compound.getCompoundTag("Player"), versionIn);
+            let player = fixer.processVersioned(
+                FixTypes::Player,
+                compound.getCompoundTag("Player"),
+                versionIn,
+            );
             compound.setCompoundTag("Player", player);
         }
         compound
@@ -144,7 +152,11 @@ impl WorldInfo {
             spawnY: nbt.getInteger("SpawnY"),
             spawnZ: nbt.getInteger("SpawnZ"),
             totalTime: nbt.getLong("Time"),
-            worldTime: if nbt.hasKey("DayTime") { nbt.getLong("DayTime") } else { nbt.getLong("Time") },
+            worldTime: if nbt.hasKey("DayTime") {
+                nbt.getLong("DayTime")
+            } else {
+                nbt.getLong("Time")
+            },
             lastTimePlayed: nbt.getLong("LastPlayed"),
             sizeOnDisk: nbt.getLong("SizeOnDisk"),
             levelName: nbt.getString("LevelName"),
@@ -155,29 +167,81 @@ impl WorldInfo {
             thundering: nbt.getBoolean("thundering"),
             thunderTime: nbt.getInteger("thunderTime"),
             theGameType: GameType::getByID(nbt.getInteger("GameType")),
-            mapFeaturesEnabled: if nbt.hasKey("MapFeatures") { nbt.getBoolean("MapFeatures") } else { true },
+            mapFeaturesEnabled: if nbt.hasKey("MapFeatures") {
+                nbt.getBoolean("MapFeatures")
+            } else {
+                true
+            },
             hardcore: nbt.getBoolean("hardcore"),
-            allowCommands: if nbt.hasKey("allowCommands") { nbt.getBoolean("allowCommands") } else { GameType::getByID(nbt.getInteger("GameType")) == GameType::Creative },
-            initialized: if nbt.hasKey("initialized") { nbt.getBoolean("initialized") } else { true },
-            difficulty: if nbt.hasKey("Difficulty") { EnumDifficulty::getDifficultyEnum(nbt.getByte("Difficulty") as u8) } else { EnumDifficulty::Normal },
+            allowCommands: if nbt.hasKey("allowCommands") {
+                nbt.getBoolean("allowCommands")
+            } else {
+                GameType::getByID(nbt.getInteger("GameType")) == GameType::Creative
+            },
+            initialized: if nbt.hasKey("initialized") {
+                nbt.getBoolean("initialized")
+            } else {
+                true
+            },
+            difficulty: if nbt.hasKey("Difficulty") {
+                EnumDifficulty::getDifficultyEnum(nbt.getByte("Difficulty") as u8)
+            } else {
+                EnumDifficulty::Normal
+            },
             difficultyLocked: nbt.getBoolean("DifficultyLocked"),
-            borderCenterX: if nbt.hasKey("BorderCenterX") { nbt.getDouble("BorderCenterX") } else { 0.0 },
-            borderCenterZ: if nbt.hasKey("BorderCenterZ") { nbt.getDouble("BorderCenterZ") } else { 0.0 },
-            borderSize: if nbt.hasKey("BorderSize") { nbt.getDouble("BorderSize") } else { 6.0E7 },
+            borderCenterX: if nbt.hasKey("BorderCenterX") {
+                nbt.getDouble("BorderCenterX")
+            } else {
+                0.0
+            },
+            borderCenterZ: if nbt.hasKey("BorderCenterZ") {
+                nbt.getDouble("BorderCenterZ")
+            } else {
+                0.0
+            },
+            borderSize: if nbt.hasKey("BorderSize") {
+                nbt.getDouble("BorderSize")
+            } else {
+                6.0E7
+            },
             borderSizeLerpTime: nbt.getLong("BorderSizeLerpTime"),
-            borderSizeLerpTarget: if nbt.hasKey("BorderSizeLerpTarget") { nbt.getDouble("BorderSizeLerpTarget") } else { 0.0 },
-            borderSafeZone: if nbt.hasKey("BorderSafeZone") { nbt.getDouble("BorderSafeZone") } else { 5.0 },
-            borderDamagePerBlock: if nbt.hasKey("BorderDamagePerBlock") { nbt.getDouble("BorderDamagePerBlock") } else { 0.2 },
-            borderWarningDistance: if nbt.hasKey("BorderWarningBlocks") { nbt.getDouble("BorderWarningBlocks") as i32 } else { 5 },
-            borderWarningTime: if nbt.hasKey("BorderWarningTime") { nbt.getDouble("BorderWarningTime") as i32 } else { 15 },
+            borderSizeLerpTarget: if nbt.hasKey("BorderSizeLerpTarget") {
+                nbt.getDouble("BorderSizeLerpTarget")
+            } else {
+                0.0
+            },
+            borderSafeZone: if nbt.hasKey("BorderSafeZone") {
+                nbt.getDouble("BorderSafeZone")
+            } else {
+                5.0
+            },
+            borderDamagePerBlock: if nbt.hasKey("BorderDamagePerBlock") {
+                nbt.getDouble("BorderDamagePerBlock")
+            } else {
+                0.2
+            },
+            borderWarningDistance: if nbt.hasKey("BorderWarningBlocks") {
+                nbt.getDouble("BorderWarningBlocks") as i32
+            } else {
+                5
+            },
+            borderWarningTime: if nbt.hasKey("BorderWarningTime") {
+                nbt.getDouble("BorderWarningTime") as i32
+            } else {
+                15
+            },
             theGameRules: rules,
-            playerTag: nbt.hasKeyWithType("Player", 10).then(|| nbt.getCompoundTag("Player")),
+            playerTag: nbt
+                .hasKeyWithType("Player", 10)
+                .then(|| nbt.getCompoundTag("Player")),
         }
     }
 
     /// MCP `WorldInfo#cloneNBTCompound(null)`: null reuses the retained
     /// playerTag loaded from level.dat.
-    pub fn cloneNBTCompound(&self) -> NBTTagCompound { self.cloneNBTCompoundWithPlayer(None) }
+    pub fn cloneNBTCompound(&self) -> NBTTagCompound {
+        self.cloneNBTCompoundWithPlayer(None)
+    }
 
     pub fn cloneNBTCompoundWithPlayer(&self, player: Option<&NBTTagCompound>) -> NBTTagCompound {
         let mut nbt = NBTTagCompound::new();
@@ -223,51 +287,128 @@ impl WorldInfo {
         nbt.setBoolean("DifficultyLocked", self.difficultyLocked);
         nbt.setCompoundTag("GameRules", self.theGameRules.writeToNBT());
         nbt.setCompoundTag("DimensionData", NBTTagCompound::new());
-        if let Some(player)=player.or(self.playerTag.as_ref()) { nbt.setCompoundTag("Player",player.clone()); }
+        if let Some(player) = player.or(self.playerTag.as_ref()) {
+            nbt.setCompoundTag("Player", player.clone());
+        }
         nbt
     }
 
-    pub fn getPlayerNBTTagCompound(&self) -> Option<&NBTTagCompound> { self.playerTag.as_ref() }
-    pub fn setPlayerNBTTagCompound(&mut self, player: Option<NBTTagCompound>) { self.playerTag=player; }
+    pub fn getPlayerNBTTagCompound(&self) -> Option<&NBTTagCompound> {
+        self.playerTag.as_ref()
+    }
+    pub fn setPlayerNBTTagCompound(&mut self, player: Option<NBTTagCompound>) {
+        self.playerTag = player;
+    }
 
-    pub const fn getSeed(&self) -> i64 { self.randomSeed }
-    pub const fn getGameType(&self) -> GameType { self.theGameType }
-    pub const fn isMapFeaturesEnabled(&self) -> bool { self.mapFeaturesEnabled }
-    pub const fn isHardcoreModeEnabled(&self) -> bool { self.hardcore }
-    pub const fn getTerrainType(&self) -> WorldType { self.terrainType }
-    pub fn getGeneratorOptions(&self) -> &str { &self.generatorOptions }
-    pub const fn areCommandsAllowed(&self) -> bool { self.allowCommands }
-    pub fn getWorldName(&self) -> &str { &self.levelName }
-    pub fn setWorldName(&mut self, name: impl Into<String>) { self.levelName = name.into(); }
-    pub const fn getWorldTotalTime(&self) -> i64 { self.totalTime }
-    pub const fn getWorldTime(&self) -> i64 { self.worldTime }
-    pub fn setWorldTotalTime(&mut self, time: i64) { self.totalTime = time; }
-    pub fn setWorldTime(&mut self, time: i64) { self.worldTime = time; }
-    pub const fn getSpawnX(&self) -> i32 { self.spawnX }
-    pub const fn getSpawnY(&self) -> i32 { self.spawnY }
-    pub const fn getSpawnZ(&self) -> i32 { self.spawnZ }
-    pub fn setSpawnX(&mut self, x: i32) { self.spawnX = x; }
-    pub fn setSpawnY(&mut self, y: i32) { self.spawnY = y; }
-    pub fn setSpawnZ(&mut self, z: i32) { self.spawnZ = z; }
-    pub fn setServerInitialized(&mut self, initializedIn: bool) { self.initialized = initializedIn; }
-    pub const fn getLastTimePlayed(&self) -> i64 { self.lastTimePlayed }
-    pub const fn getSizeOnDisk(&self) -> i64 { self.sizeOnDisk }
-    pub const fn getSaveVersion(&self) -> i32 { self.saveVersion }
-    pub fn setSaveVersion(&mut self, version: i32) { self.saveVersion = version; }
-    pub fn getVersionName(&self) -> &str { &self.versionName }
-    pub const fn getVersionId(&self) -> i32 { self.versionId }
-    pub const fn isVersionSnapshot(&self) -> bool { self.versionSnapshot }
-    pub const fn isInitialized(&self) -> bool { self.initialized }
-    pub const fn getDifficulty(&self) -> EnumDifficulty { self.difficulty }
-    pub fn setDifficulty(&mut self, difficulty: EnumDifficulty) { self.difficulty = difficulty; }
-    pub const fn isDifficultyLocked(&self) -> bool { self.difficultyLocked }
-    pub fn setDifficultyLocked(&mut self, locked: bool) { self.difficultyLocked = locked; }
-    pub fn getGameRulesInstance(&self) -> &GameRules { &self.theGameRules }
-    pub fn getGameRulesInstanceMut(&mut self) -> &mut GameRules { &mut self.theGameRules }
+    pub const fn getSeed(&self) -> i64 {
+        self.randomSeed
+    }
+    pub const fn getGameType(&self) -> GameType {
+        self.theGameType
+    }
+    pub const fn isMapFeaturesEnabled(&self) -> bool {
+        self.mapFeaturesEnabled
+    }
+    pub const fn isHardcoreModeEnabled(&self) -> bool {
+        self.hardcore
+    }
+    pub const fn getTerrainType(&self) -> WorldType {
+        self.terrainType
+    }
+    pub fn getGeneratorOptions(&self) -> &str {
+        &self.generatorOptions
+    }
+    pub const fn areCommandsAllowed(&self) -> bool {
+        self.allowCommands
+    }
+    pub fn getWorldName(&self) -> &str {
+        &self.levelName
+    }
+    pub fn setWorldName(&mut self, name: impl Into<String>) {
+        self.levelName = name.into();
+    }
+    pub const fn getWorldTotalTime(&self) -> i64 {
+        self.totalTime
+    }
+    pub const fn getWorldTime(&self) -> i64 {
+        self.worldTime
+    }
+    pub fn setWorldTotalTime(&mut self, time: i64) {
+        self.totalTime = time;
+    }
+    pub fn setWorldTime(&mut self, time: i64) {
+        self.worldTime = time;
+    }
+    pub const fn getSpawnX(&self) -> i32 {
+        self.spawnX
+    }
+    pub const fn getSpawnY(&self) -> i32 {
+        self.spawnY
+    }
+    pub const fn getSpawnZ(&self) -> i32 {
+        self.spawnZ
+    }
+    pub fn setSpawnX(&mut self, x: i32) {
+        self.spawnX = x;
+    }
+    pub fn setSpawnY(&mut self, y: i32) {
+        self.spawnY = y;
+    }
+    pub fn setSpawnZ(&mut self, z: i32) {
+        self.spawnZ = z;
+    }
+    pub fn setServerInitialized(&mut self, initializedIn: bool) {
+        self.initialized = initializedIn;
+    }
+    pub const fn getLastTimePlayed(&self) -> i64 {
+        self.lastTimePlayed
+    }
+    pub const fn getSizeOnDisk(&self) -> i64 {
+        self.sizeOnDisk
+    }
+    pub const fn getSaveVersion(&self) -> i32 {
+        self.saveVersion
+    }
+    pub fn setSaveVersion(&mut self, version: i32) {
+        self.saveVersion = version;
+    }
+    pub fn getVersionName(&self) -> &str {
+        &self.versionName
+    }
+    pub const fn getVersionId(&self) -> i32 {
+        self.versionId
+    }
+    pub const fn isVersionSnapshot(&self) -> bool {
+        self.versionSnapshot
+    }
+    pub const fn isInitialized(&self) -> bool {
+        self.initialized
+    }
+    pub const fn getDifficulty(&self) -> EnumDifficulty {
+        self.difficulty
+    }
+    pub fn setDifficulty(&mut self, difficulty: EnumDifficulty) {
+        self.difficulty = difficulty;
+    }
+    pub const fn isDifficultyLocked(&self) -> bool {
+        self.difficultyLocked
+    }
+    pub fn setDifficultyLocked(&mut self, locked: bool) {
+        self.difficultyLocked = locked;
+    }
+    pub fn getGameRulesInstance(&self) -> &GameRules {
+        &self.theGameRules
+    }
+    pub fn getGameRulesInstanceMut(&mut self) -> &mut GameRules {
+        &mut self.theGameRules
+    }
 }
 
 fn current_time_millis() -> i64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as i64
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64
 }
 
 #[cfg(test)]

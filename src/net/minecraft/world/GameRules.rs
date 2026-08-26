@@ -65,7 +65,9 @@ pub struct GameRules {
 
 impl Default for GameRules {
     fn default() -> Self {
-        let mut rules = Self { theGameRules: BTreeMap::new() };
+        let mut rules = Self {
+            theGameRules: BTreeMap::new(),
+        };
         // Constructor order and defaults from MCP 1.12.2 `GameRules`.
         rules.addGameRule("doFireTick", "true", ValueType::BooleanValue);
         rules.addGameRule("mobGriefing", "true", ValueType::BooleanValue);
@@ -84,7 +86,11 @@ impl Default for GameRules {
         rules.addGameRule("reducedDebugInfo", "false", ValueType::BooleanValue);
         rules.addGameRule("spectatorsGenerateChunks", "true", ValueType::BooleanValue);
         rules.addGameRule("spawnRadius", "10", ValueType::NumericalValue);
-        rules.addGameRule("disableElytraMovementCheck", "false", ValueType::BooleanValue);
+        rules.addGameRule(
+            "disableElytraMovementCheck",
+            "false",
+            ValueType::BooleanValue,
+        );
         rules.addGameRule("maxEntityCramming", "24", ValueType::NumericalValue);
         rules.addGameRule("doWeatherCycle", "true", ValueType::BooleanValue);
         rules.addGameRule("doLimitedCrafting", "false", ValueType::BooleanValue);
@@ -96,10 +102,13 @@ impl Default for GameRules {
 }
 
 impl GameRules {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn addGameRule(&mut self, key: &str, value: &str, valueType: ValueType) {
-        self.theGameRules.insert(key.to_owned(), Value::new(value, valueType));
+        self.theGameRules
+            .insert(key.to_owned(), Value::new(value, valueType));
     }
 
     pub fn setOrCreateGameRule(&mut self, key: &str, ruleValue: &str) {
@@ -111,15 +120,22 @@ impl GameRules {
     }
 
     pub fn getString(&self, name: &str) -> &str {
-        self.theGameRules.get(name).map(|value| value.valueString.as_str()).unwrap_or("")
+        self.theGameRules
+            .get(name)
+            .map(|value| value.valueString.as_str())
+            .unwrap_or("")
     }
 
     pub fn getBoolean(&self, name: &str) -> bool {
-        self.theGameRules.get(name).is_some_and(|value| value.valueBoolean)
+        self.theGameRules
+            .get(name)
+            .is_some_and(|value| value.valueBoolean)
     }
 
     pub fn getInt(&self, name: &str) -> i32 {
-        self.theGameRules.get(name).map_or(0, |value| value.valueInteger)
+        self.theGameRules
+            .get(name)
+            .map_or(0, |value| value.valueInteger)
     }
 
     pub fn writeToNBT(&self) -> NBTTagCompound {
@@ -142,12 +158,14 @@ impl GameRules {
         self.theGameRules.keys().map(String::as_str).collect()
     }
 
-    pub fn hasRule(&self, name: &str) -> bool { self.theGameRules.contains_key(name) }
+    pub fn hasRule(&self, name: &str) -> bool {
+        self.theGameRules.contains_key(name)
+    }
 
     pub fn areSameType(&self, key: &str, otherValue: ValueType) -> bool {
-        self.theGameRules.get(key).is_some_and(|value| {
-            value.valueType == otherValue || otherValue == ValueType::AnyValue
-        })
+        self.theGameRules
+            .get(key)
+            .is_some_and(|value| value.valueType == otherValue || otherValue == ValueType::AnyValue)
     }
 }
 

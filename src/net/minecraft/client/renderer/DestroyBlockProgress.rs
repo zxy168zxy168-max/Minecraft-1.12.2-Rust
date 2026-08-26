@@ -19,14 +19,24 @@ impl DestroyBlockProgress {
         }
     }
 
-    pub const fn getMiningPlayerEntId(&self) -> i32 { self.miningPlayerEntId }
-    pub const fn getPosition(&self) -> BlockPos { self.position }
+    pub const fn getMiningPlayerEntId(&self) -> i32 {
+        self.miningPlayerEntId
+    }
+    pub const fn getPosition(&self) -> BlockPos {
+        self.position
+    }
     pub fn setPartialBlockDamage(&mut self, damage: i32) {
         self.partialBlockProgress = damage.min(10);
     }
-    pub const fn getPartialBlockDamage(&self) -> i32 { self.partialBlockProgress }
-    pub fn setCloudUpdateTick(&mut self, tick: i32) { self.createdAtCloudUpdateTick = tick; }
-    pub const fn getCreationCloudUpdateTick(&self) -> i32 { self.createdAtCloudUpdateTick }
+    pub const fn getPartialBlockDamage(&self) -> i32 {
+        self.partialBlockProgress
+    }
+    pub fn setCloudUpdateTick(&mut self, tick: i32) {
+        self.createdAtCloudUpdateTick = tick;
+    }
+    pub const fn getCreationCloudUpdateTick(&self) -> i32 {
+        self.createdAtCloudUpdateTick
+    }
 }
 
 #[cfg(test)]

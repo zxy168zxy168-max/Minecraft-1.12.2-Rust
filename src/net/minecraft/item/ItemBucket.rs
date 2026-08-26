@@ -2,8 +2,8 @@ use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::block::BlockLiquid::LiquidMaterial;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::item::ItemStack::ItemStack;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
 pub const BUCKET: i16 = 325;
 pub const WATER_BUCKET: i16 = 326;
@@ -110,20 +110,26 @@ pub fn isReplaceable(world: &WorldClient, pos: BlockPos, state: IBlockState) -> 
 mod tests {
     use super::*;
 
-    fn state(id: i32) -> IBlockState { IBlockState::fromGlobalStateId(id) }
+    fn state(id: i32) -> IBlockState {
+        IBlockState::fromGlobalStateId(id)
+    }
 
     #[test]
     fn empty_bucket_fills_still_water_and_lava() {
         let mut world = WorldClient::new(0);
         let water = BlockPos::new(0, 60, 0);
-        world.invalidateRegionAndSetBlock(water, state(8 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(water, state(8 << 4))
+            .unwrap();
         let fill = ItemBucket::predictFill(Some((water, world.getBlockState(water)))).unwrap();
         assert_eq!(fill.bucket, WATER_BUCKET);
         assert_eq!(fill.sound, "item.bucket.fill");
         assert_eq!(fill.source, water);
 
         let lava = BlockPos::new(5, 60, 0);
-        world.invalidateRegionAndSetBlock(lava, state(10 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(lava, state(10 << 4))
+            .unwrap();
         let fill = ItemBucket::predictFill(Some((lava, world.getBlockState(lava)))).unwrap();
         assert_eq!(fill.bucket, LAVA_BUCKET);
         assert_eq!(fill.sound, "item.bucket.fill_lava");
@@ -133,10 +139,14 @@ mod tests {
     fn empty_bucket_refuses_flowing_liquid_and_solid_blocks() {
         let mut world = WorldClient::new(0);
         let flowing = BlockPos::new(0, 60, 0);
-        world.invalidateRegionAndSetBlock(flowing, IBlockState::fromGlobalStateId(8 << 4 | 3)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(flowing, IBlockState::fromGlobalStateId(8 << 4 | 3))
+            .unwrap();
         assert!(ItemBucket::predictFill(Some((flowing, world.getBlockState(flowing)))).is_none());
         let stone = BlockPos::new(5, 60, 0);
-        world.invalidateRegionAndSetBlock(stone, state(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(stone, state(1 << 4))
+            .unwrap();
         assert!(ItemBucket::predictFill(Some((stone, world.getBlockState(stone)))).is_none());
     }
 
@@ -144,7 +154,9 @@ mod tests {
     fn empty_bucket_places_only_into_air_non_solid_or_replaceable_destination() {
         let mut world = WorldClient::new(0);
         let solid = BlockPos::new(0, 60, 0);
-        world.invalidateRegionAndSetBlock(solid, state(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(solid, state(1 << 4))
+            .unwrap();
         let empty = ItemBucket::predictEmpty(&world, solid, EnumFacing::Up, WATER_BUCKET)
             .expect("solid target with UP side places into the air above");
         assert_eq!(empty.destination, solid.up(1));
@@ -163,7 +175,9 @@ mod tests {
             air,
         );
         let below = BlockPos::new(0, 60, 0);
-        world.invalidateRegionAndSetBlock(below, state(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(below, state(1 << 4))
+            .unwrap();
         assert!(ItemBucket::predictEmpty(&world, air, EnumFacing::Down, WATER_BUCKET).is_none());
     }
 
@@ -171,17 +185,25 @@ mod tests {
     fn empty_bucket_places_into_replaceable_target_and_non_solid_material() {
         let mut world = WorldClient::new(0);
         let grass = BlockPos::new(0, 60, 0);
-        world.invalidateRegionAndSetBlock(grass, state(31 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(grass, state(31 << 4))
+            .unwrap();
         let empty = ItemBucket::predictEmpty(&world, grass, EnumFacing::Up, WATER_BUCKET)
             .expect("replaceable target with UP side places into itself");
         assert_eq!(empty.destination, grass);
         let below = BlockPos::new(0, 59, 0);
-        world.invalidateRegionAndSetBlock(below, state(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(below, state(1 << 4))
+            .unwrap();
         assert!(ItemBucket::predictEmpty(&world, grass, EnumFacing::Down, WATER_BUCKET).is_none());
         let base = BlockPos::new(5, 60, 0);
-        world.invalidateRegionAndSetBlock(base, state(1 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(base, state(1 << 4))
+            .unwrap();
         let torch = base.up(1);
-        world.invalidateRegionAndSetBlock(torch, state(50 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(torch, state(50 << 4))
+            .unwrap();
         let empty = ItemBucket::predictEmpty(&world, base, EnumFacing::Up, WATER_BUCKET)
             .expect("non-solid destination material accepts the liquid");
         assert_eq!(empty.destination, torch);
@@ -206,21 +228,30 @@ mod tests {
     fn replaceability_matches_snow_layers_and_double_plant_actual_variant() {
         let mut world = WorldClient::new(0);
         let snow = BlockPos::new(0, 60, 0);
-        world.invalidateRegionAndSetBlock(snow, IBlockState::fromGlobalStateId(78 << 4)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(snow, IBlockState::fromGlobalStateId(78 << 4))
+            .unwrap();
         assert!(isReplaceable(&world, snow, world.getBlockState(snow)));
-        world.invalidateRegionAndSetBlock(snow, IBlockState::fromGlobalStateId((78 << 4) | 1)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(snow, IBlockState::fromGlobalStateId((78 << 4) | 1))
+            .unwrap();
         assert!(!isReplaceable(&world, snow, world.getBlockState(snow)));
 
         let lower = BlockPos::new(4, 60, 0);
         let upper = lower.up(1);
-        world.invalidateRegionAndSetBlock(lower, IBlockState::fromGlobalStateId((175 << 4) | 2)).unwrap();
-        world.invalidateRegionAndSetBlock(upper, IBlockState::fromGlobalStateId((175 << 4) | 8)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(lower, IBlockState::fromGlobalStateId((175 << 4) | 2))
+            .unwrap();
+        world
+            .invalidateRegionAndSetBlock(upper, IBlockState::fromGlobalStateId((175 << 4) | 8))
+            .unwrap();
         assert!(isReplaceable(&world, lower, world.getBlockState(lower)));
         assert!(isReplaceable(&world, upper, world.getBlockState(upper)));
 
-        world.invalidateRegionAndSetBlock(lower, IBlockState::fromGlobalStateId((175 << 4) | 0)).unwrap();
+        world
+            .invalidateRegionAndSetBlock(lower, IBlockState::fromGlobalStateId((175 << 4) | 0))
+            .unwrap();
         assert!(!isReplaceable(&world, lower, world.getBlockState(lower)));
         assert!(!isReplaceable(&world, upper, world.getBlockState(upper)));
     }
-
 }

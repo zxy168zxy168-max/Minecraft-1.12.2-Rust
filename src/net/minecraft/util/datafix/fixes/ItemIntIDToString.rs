@@ -327,11 +327,17 @@ impl ItemIntIDToString {
     }
 }
 impl IFixableData for ItemIntIDToString {
-    fn getFixVersion(&self) -> i32 { 102 }
+    fn getFixVersion(&self) -> i32 {
+        102
+    }
     fn fixTagCompound(&self, mut compound: NBTTagCompound) -> NBTTagCompound {
         if compound.hasKeyWithType("id", 99) {
             let id = compound.getShort("id");
-            if id > 0 { if let Some(name) = Self::itemName(id) { compound.setString("id", name); } }
+            if id > 0 {
+                if let Some(name) = Self::itemName(id) {
+                    compound.setString("id", name);
+                }
+            }
         }
         compound
     }

@@ -2,14 +2,67 @@ use crate::compat::Java::JavaRandom;
 use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
 
 const NAME_PARTS: [&str; 61] = [
-    "the", "elder", "scrolls", "klaatu", "berata", "niktu", "xyzzy", "bless",
-    "curse", "light", "darkness", "fire", "air", "earth", "water", "hot", "dry",
-    "cold", "wet", "ignite", "snuff", "embiggen", "twist", "shorten", "stretch",
-    "fiddle", "destroy", "imbue", "galvanize", "enchant", "free", "limited", "range",
-    "of", "towards", "inside", "sphere", "cube", "self", "other", "ball", "mental",
-    "physical", "grow", "shrink", "demon", "elemental", "spirit", "animal", "creature",
-    "beast", "humanoid", "undead", "fresh", "stale", "phnglui", "mglwnafh", "cthulhu",
-    "rlyeh", "wgahnagl", "fhtagnbaguette",
+    "the",
+    "elder",
+    "scrolls",
+    "klaatu",
+    "berata",
+    "niktu",
+    "xyzzy",
+    "bless",
+    "curse",
+    "light",
+    "darkness",
+    "fire",
+    "air",
+    "earth",
+    "water",
+    "hot",
+    "dry",
+    "cold",
+    "wet",
+    "ignite",
+    "snuff",
+    "embiggen",
+    "twist",
+    "shorten",
+    "stretch",
+    "fiddle",
+    "destroy",
+    "imbue",
+    "galvanize",
+    "enchant",
+    "free",
+    "limited",
+    "range",
+    "of",
+    "towards",
+    "inside",
+    "sphere",
+    "cube",
+    "self",
+    "other",
+    "ball",
+    "mental",
+    "physical",
+    "grow",
+    "shrink",
+    "demon",
+    "elemental",
+    "spirit",
+    "animal",
+    "creature",
+    "beast",
+    "humanoid",
+    "undead",
+    "fresh",
+    "stale",
+    "phnglui",
+    "mglwnafh",
+    "cthulhu",
+    "rlyeh",
+    "wgahnagl",
+    "fhtagnbaguette",
 ];
 
 /// MCP 1.12.2 `EnchantmentNameParts`. The singleton's mutable Java RNG is
@@ -21,11 +74,17 @@ pub struct EnchantmentNameParts {
 }
 
 impl Default for EnchantmentNameParts {
-    fn default() -> Self { Self { rand: JavaRandom::new(0) } }
+    fn default() -> Self {
+        Self {
+            rand: JavaRandom::new(0),
+        }
+    }
 }
 
 impl EnchantmentNameParts {
-    pub fn reseedRandomGenerator(&mut self, seed: i64) { self.rand.set_seed(seed); }
+    pub fn reseedRandomGenerator(&mut self, seed: i64) {
+        self.rand.set_seed(seed);
+    }
 
     pub fn generateNewRandomName(&mut self, fontRenderer: &FontRenderer, width: i32) -> String {
         let count = self.rand.next_i32_bound(2) + 3;
@@ -48,8 +107,14 @@ mod tests {
         let font = FontRenderer::test_metric_renderer();
         let mut names = EnchantmentNameParts::default();
         names.reseedRandomGenerator(12345);
-        assert_eq!(names.generateNewRandomName(&font, 1000), "wgahnagl fresh xyzzy");
-        assert_eq!(names.generateNewRandomName(&font, 1000), "mental darkness stretch creature");
+        assert_eq!(
+            names.generateNewRandomName(&font, 1000),
+            "wgahnagl fresh xyzzy"
+        );
+        assert_eq!(
+            names.generateNewRandomName(&font, 1000),
+            "mental darkness stretch creature"
+        );
         assert_eq!(names.generateNewRandomName(&font, 1000), "stale ball water");
     }
 }

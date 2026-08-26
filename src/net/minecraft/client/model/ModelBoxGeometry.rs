@@ -20,12 +20,8 @@ struct ModelBoxGeometryKey {
 }
 
 pub const MODEL_BOX_FACE_INDICES: [u32; 36] = [
-    0, 1, 2, 0, 2, 3,
-    4, 5, 6, 4, 6, 7,
-    8, 9, 10, 8, 10, 11,
-    12, 13, 14, 12, 14, 15,
-    16, 17, 18, 16, 18, 19,
-    20, 21, 22, 20, 22, 23,
+    0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18,
+    16, 18, 19, 20, 21, 22, 20, 22, 23,
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,7 +39,14 @@ impl ModelBoxRotation {
         let (sinX, cosX) = rotation[0].sin_cos();
         let (sinY, cosY) = rotation[1].sin_cos();
         let (sinZ, cosZ) = rotation[2].sin_cos();
-        Self { sinX, cosX, sinY, cosY, sinZ, cosZ }
+        Self {
+            sinX,
+            cosX,
+            sinY,
+            cosY,
+            sinZ,
+            cosZ,
+        }
     }
 
     /// Exact ModelRenderer order: rotate X, then Y, then Z.
@@ -145,12 +148,24 @@ fn build_model_box_geometry(
     ];
     let [u, v] = texture;
     let faces = [
-        ([5usize, 1, 2, 6], [u + dz + dx, v + dz, u + dz + dx + dz, v + dz + dy]),
+        (
+            [5usize, 1, 2, 6],
+            [u + dz + dx, v + dz, u + dz + dx + dz, v + dz + dy],
+        ),
         ([0usize, 4, 7, 3], [u, v + dz, u + dz, v + dz + dy]),
         ([5usize, 4, 0, 1], [u + dz, v, u + dz + dx, v + dz]),
-        ([2usize, 3, 7, 6], [u + dz + dx, v + dz, u + dz + dx + dx, v]),
-        ([1usize, 0, 3, 2], [u + dz, v + dz, u + dz + dx, v + dz + dy]),
-        ([4usize, 5, 6, 7], [u + dz + dx + dz, v + dz, u + dz + dx + dz + dx, v + dz + dy]),
+        (
+            [2usize, 3, 7, 6],
+            [u + dz + dx, v + dz, u + dz + dx + dx, v],
+        ),
+        (
+            [1usize, 0, 3, 2],
+            [u + dz, v + dz, u + dz + dx, v + dz + dy],
+        ),
+        (
+            [4usize, 5, 6, 7],
+            [u + dz + dx + dz, v + dz, u + dz + dx + dz + dx, v + dz + dy],
+        ),
     ];
     let mut output = [LocalModelBoxVertex {
         position: [0.0; 3],
@@ -191,20 +206,36 @@ mod tests {
 
     #[test]
     fn identical_model_boxes_reuse_local_geometry() {
-        let first = model_box_geometry([0, 0], [-4.0, -8.0, -4.0], [8, 8, 8], 0.0, false, 64.0, 64.0);
-        let second = model_box_geometry([0, 0], [-4.0, -8.0, -4.0], [8, 8, 8], 0.0, false, 64.0, 64.0);
+        let first = model_box_geometry(
+            [0, 0],
+            [-4.0, -8.0, -4.0],
+            [8, 8, 8],
+            0.0,
+            false,
+            64.0,
+            64.0,
+        );
+        let second = model_box_geometry(
+            [0, 0],
+            [-4.0, -8.0, -4.0],
+            [8, 8, 8],
+            0.0,
+            false,
+            64.0,
+            64.0,
+        );
         assert!(Arc::ptr_eq(&first, &second));
     }
 
     #[test]
     fn mirrored_geometry_preserves_modelbox_flip_face_order() {
         let normal = model_box_geometry([0, 0], [0.0, 0.0, 0.0], [2, 3, 4], 0.0, false, 64.0, 32.0);
-        let mirrored = model_box_geometry([0, 0], [0.0, 0.0, 0.0], [2, 3, 4], 0.0, true, 64.0, 32.0);
+        let mirrored =
+            model_box_geometry([0, 0], [0.0, 0.0, 0.0], [2, 3, 4], 0.0, true, 64.0, 32.0);
         assert_eq!(normal[0].uv, mirrored[3].uv);
         assert_eq!(normal[3].uv, mirrored[0].uv);
         assert_eq!(normal.len(), mirrored.len());
     }
-
 
     #[test]
     fn precomputed_rotation_matches_sequential_modelrenderer_order() {
@@ -231,8 +262,24 @@ mod tests {
 
     #[test]
     fn texture_dimensions_are_part_of_geometry_identity() {
-        let skin = model_box_geometry([0, 0], [-4.0, -8.0, -4.0], [8, 8, 8], 0.0, false, 64.0, 64.0);
-        let armor = model_box_geometry([0, 0], [-4.0, -8.0, -4.0], [8, 8, 8], 0.0, false, 64.0, 32.0);
+        let skin = model_box_geometry(
+            [0, 0],
+            [-4.0, -8.0, -4.0],
+            [8, 8, 8],
+            0.0,
+            false,
+            64.0,
+            64.0,
+        );
+        let armor = model_box_geometry(
+            [0, 0],
+            [-4.0, -8.0, -4.0],
+            [8, 8, 8],
+            0.0,
+            false,
+            64.0,
+            32.0,
+        );
         assert_ne!(skin[0].uv, armor[0].uv);
     }
 }

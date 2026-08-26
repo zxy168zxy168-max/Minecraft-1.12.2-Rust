@@ -30,9 +30,16 @@ impl SPacketSetPassengers {
                 input.len()
             )));
         }
-        Ok(Self { entityId, passengerIds })
+        Ok(Self {
+            entityId,
+            passengerIds,
+        })
     }
 
-    pub const fn getEntityId(&self) -> i32 { self.entityId }
-    pub fn getPassengerIds(&self) -> &[i32] { &self.passengerIds }
+    pub const fn getEntityId(&self) -> i32 {
+        self.entityId
+    }
+    pub fn getPassengerIds(&self) -> &[i32] {
+        &self.passengerIds
+    }
 }

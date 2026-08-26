@@ -32,15 +32,36 @@ impl SPacketSpawnPlayer {
             pitch: read_i8(&mut input)?,
             dataManagerEntries: EntityDataManager::readEntries(&mut input)?,
         };
-        if !input.is_empty() { return Err(CodecError::InvalidData(format!("{} unread spawn-player bytes", input.len()))); }
+        if !input.is_empty() {
+            return Err(CodecError::InvalidData(format!(
+                "{} unread spawn-player bytes",
+                input.len()
+            )));
+        }
         Ok(result)
     }
-    pub const fn getEntityID(&self) -> i32 { self.entityId }
-    pub const fn getUniqueId(&self) -> Uuid { self.uniqueId }
-    pub const fn getX(&self) -> f64 { self.x }
-    pub const fn getY(&self) -> f64 { self.y }
-    pub const fn getZ(&self) -> f64 { self.z }
-    pub const fn getYaw(&self) -> i8 { self.yaw }
-    pub const fn getPitch(&self) -> i8 { self.pitch }
-    pub fn getDataManagerEntries(&self) -> &[(u8, DataValue)] { &self.dataManagerEntries }
+    pub const fn getEntityID(&self) -> i32 {
+        self.entityId
+    }
+    pub const fn getUniqueId(&self) -> Uuid {
+        self.uniqueId
+    }
+    pub const fn getX(&self) -> f64 {
+        self.x
+    }
+    pub const fn getY(&self) -> f64 {
+        self.y
+    }
+    pub const fn getZ(&self) -> f64 {
+        self.z
+    }
+    pub const fn getYaw(&self) -> i8 {
+        self.yaw
+    }
+    pub const fn getPitch(&self) -> i8 {
+        self.pitch
+    }
+    pub fn getDataManagerEntries(&self) -> &[(u8, DataValue)] {
+        &self.dataManagerEntries
+    }
 }

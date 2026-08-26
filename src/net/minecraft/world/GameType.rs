@@ -1,13 +1,41 @@
 use crate::net::minecraft::entity::player::PlayerCapabilities::PlayerCapabilities;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GameType { NotSet, Survival, Creative, Adventure, Spectator }
+pub enum GameType {
+    NotSet,
+    Survival,
+    Creative,
+    Adventure,
+    Spectator,
+}
 impl GameType {
-    pub const fn getByID(id: i32) -> Self { match id { 1 => Self::Creative, 2 => Self::Adventure, 3 => Self::Spectator, -1 => Self::NotSet, _ => Self::Survival } }
-    pub const fn getID(self) -> i32 { match self { Self::NotSet => -1, Self::Survival => 0, Self::Creative => 1, Self::Adventure => 2, Self::Spectator => 3 } }
-    pub const fn isCreative(self) -> bool { matches!(self, Self::Creative) }
-    pub const fn isAdventure(self) -> bool { matches!(self, Self::Adventure | Self::Spectator) }
-    pub const fn isSurvivalOrAdventure(self) -> bool { matches!(self, Self::Survival | Self::Adventure) }
+    pub const fn getByID(id: i32) -> Self {
+        match id {
+            1 => Self::Creative,
+            2 => Self::Adventure,
+            3 => Self::Spectator,
+            -1 => Self::NotSet,
+            _ => Self::Survival,
+        }
+    }
+    pub const fn getID(self) -> i32 {
+        match self {
+            Self::NotSet => -1,
+            Self::Survival => 0,
+            Self::Creative => 1,
+            Self::Adventure => 2,
+            Self::Spectator => 3,
+        }
+    }
+    pub const fn isCreative(self) -> bool {
+        matches!(self, Self::Creative)
+    }
+    pub const fn isAdventure(self) -> bool {
+        matches!(self, Self::Adventure | Self::Spectator)
+    }
+    pub const fn isSurvivalOrAdventure(self) -> bool {
+        matches!(self, Self::Survival | Self::Adventure)
+    }
     pub const fn getName(self) -> &'static str {
         match self {
             Self::NotSet => "not_set",

@@ -23,7 +23,8 @@ pub struct ChunkGeneratorFlat {
 
 impl ChunkGeneratorFlat {
     pub fn new(seed: i64, generateStructures: bool, flatGeneratorSettings: &str) -> Self {
-        let flatWorldGenInfo = FlatGeneratorInfo::createFlatGeneratorFromString(flatGeneratorSettings);
+        let flatWorldGenInfo =
+            FlatGeneratorInfo::createFlatGeneratorFromString(flatGeneratorSettings);
         let mut cachedBlockIDs = [None; 256];
         let mut seaLevel = 0;
         let mut pendingAir = 0;
@@ -48,33 +49,66 @@ impl ChunkGeneratorFlat {
         let hasDecoration = if allAir && flatWorldGenInfo.getBiome() != 127 {
             false
         } else {
-            flatWorldGenInfo.getWorldFeatures().contains_key("decoration")
+            flatWorldGenInfo
+                .getWorldFeatures()
+                .contains_key("decoration")
         };
         let hasDungeons = flatWorldGenInfo.getWorldFeatures().contains_key("dungeon");
-        let generator=Self { seed, cachedBlockIDs, flatWorldGenInfo, hasDecoration, hasDungeons, mapFeaturesEnabled: generateStructures, seaLevel };
+        let generator = Self {
+            seed,
+            cachedBlockIDs,
+            flatWorldGenInfo,
+            hasDecoration,
+            hasDungeons,
+            mapFeaturesEnabled: generateStructures,
+            seaLevel,
+        };
         if generator.hasUnportedPopulationFeatures() {
             log::warn!("ChunkGeneratorFlat terrain is active, but referenced vanilla population/structure generators are still pending; no substitute structures will be fabricated");
         }
         generator
     }
 
-    pub const fn getSeaLevel(&self) -> i32 { self.seaLevel }
-    pub const fn getSeed(&self) -> i64 { self.seed }
-    pub const fn hasDecoration(&self) -> bool { self.hasDecoration }
-    pub const fn hasDungeons(&self) -> bool { self.hasDungeons }
-    pub fn flatWorldGenInfo(&self) -> &FlatGeneratorInfo { &self.flatWorldGenInfo }
+    pub const fn getSeaLevel(&self) -> i32 {
+        self.seaLevel
+    }
+    pub const fn getSeed(&self) -> i64 {
+        self.seed
+    }
+    pub const fn hasDecoration(&self) -> bool {
+        self.hasDecoration
+    }
+    pub const fn hasDungeons(&self) -> bool {
+        self.hasDungeons
+    }
+    pub fn flatWorldGenInfo(&self) -> &FlatGeneratorInfo {
+        &self.flatWorldGenInfo
+    }
     pub fn hasUnportedPopulationFeatures(&self) -> bool {
         let features = self.flatWorldGenInfo.getWorldFeatures();
-        self.hasDecoration || self.hasDungeons || features.contains_key("lake") || features.contains_key("lava_lake")
-            || (self.mapFeaturesEnabled && features.keys().any(|name| matches!(name.as_str(), "village" | "biome_1" | "mineshaft" | "stronghold" | "oceanmonument")))
+        self.hasDecoration
+            || self.hasDungeons
+            || features.contains_key("lake")
+            || features.contains_key("lava_lake")
+            || (self.mapFeaturesEnabled
+                && features.keys().any(|name| {
+                    matches!(
+                        name.as_str(),
+                        "village" | "biome_1" | "mineshaft" | "stronghold" | "oceanmonument"
+                    )
+                }))
     }
 
     fn buildPrimer(&self) -> ChunkPrimer {
         let mut primer = ChunkPrimer::new();
         for y in 0..256 {
-            let Some(state) = self.cachedBlockIDs[y] else { continue; };
+            let Some(state) = self.cachedBlockIDs[y] else {
+                continue;
+            };
             for x in 0..16 {
-                for z in 0..16 { primer.setBlockState(x, y, z, state); }
+                for z in 0..16 {
+                    primer.setBlockState(x, y, z, state);
+                }
             }
         }
         primer
@@ -98,8 +132,12 @@ impl IChunkGenerator for ChunkGeneratorFlat {
         Ok(())
     }
 
-    fn generatorName(&self) -> &'static str { "flat" }
-    fn seaLevelOverride(&self) -> Option<i32> { Some(self.seaLevel) }
+    fn generatorName(&self) -> &'static str {
+        "flat"
+    }
+    fn seaLevelOverride(&self) -> Option<i32> {
+        Some(self.seaLevel)
+    }
 }
 
 #[cfg(test)]

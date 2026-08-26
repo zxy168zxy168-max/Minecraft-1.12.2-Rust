@@ -54,7 +54,9 @@ impl NetworkSystem {
         for endpoint in &self.endpoints {
             loop {
                 match endpoint.try_recv() {
-                    Ok(request) => self.networkManagers.push(NetworkManager::fromLocalServer(request)),
+                    Ok(request) => self
+                        .networkManagers
+                        .push(NetworkManager::fromLocalServer(request)),
                     Err(TryRecvError::Empty) => break,
                     Err(TryRecvError::Disconnected) => break,
                 }
@@ -68,15 +70,25 @@ impl NetworkSystem {
     pub fn terminateEndpoints(&mut self) {
         self.isAlive = false;
         for endpoint in &self.endpoints {
-            while let Ok(request) = endpoint.try_recv() { request.close(); }
+            while let Ok(request) = endpoint.try_recv() {
+                request.close();
+            }
         }
         self.endpoints.clear();
     }
 
-    pub const fn isAlive(&self) -> bool { self.isAlive }
-    pub fn networkManagers(&self) -> &[NetworkManager] { &self.networkManagers }
-    pub fn networkManagersMut(&mut self) -> &mut [NetworkManager] { &mut self.networkManagers }
-    pub fn connectionCount(&self) -> usize { self.networkManagers.len() }
+    pub const fn isAlive(&self) -> bool {
+        self.isAlive
+    }
+    pub fn networkManagers(&self) -> &[NetworkManager] {
+        &self.networkManagers
+    }
+    pub fn networkManagersMut(&mut self) -> &mut [NetworkManager] {
+        &mut self.networkManagers
+    }
+    pub fn connectionCount(&self) -> usize {
+        self.networkManagers.len()
+    }
 }
 
 impl Drop for NetworkSystem {
@@ -100,7 +112,9 @@ mod tests {
         assert_eq!(system.connectionCount(), 1);
         assert!(system.networkManagers()[0].isLocalChannel());
 
-        client.sendPacket(&RawPacket::new(0, vec![1, 2, 3])).unwrap();
+        client
+            .sendPacket(&RawPacket::new(0, vec![1, 2, 3]))
+            .unwrap();
         let packet = system.networkManagersMut()[0].readPacket().unwrap();
         assert_eq!(packet, RawPacket::new(0, vec![1, 2, 3]));
     }

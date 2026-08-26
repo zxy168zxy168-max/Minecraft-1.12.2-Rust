@@ -24,10 +24,14 @@ impl GuiDispenser {
             }
         }
         append_player_slots(&mut slots, 9);
-        Self { container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots) }
+        Self {
+            container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots),
+        }
     }
 
-    pub fn initGui(&mut self, width: i32, height: i32) { self.container.initGui(width, height); }
+    pub fn initGui(&mut self, width: i32, height: i32) {
+        self.container.initGui(width, height);
+    }
 
     pub fn dispenserBackground() -> ResourceLocation {
         ResourceLocation::parse("textures/gui/container/dispenser.png")
@@ -35,7 +39,9 @@ impl GuiDispenser {
 }
 
 impl Default for GuiDispenser {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

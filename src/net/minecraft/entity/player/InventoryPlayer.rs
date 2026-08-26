@@ -1,9 +1,9 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
 use crate::net::minecraft::inventory::ContainerPlayer::ContainerPlayer;
 use crate::net::minecraft::item::ItemStack::ItemStack;
-use crate::net::minecraft::network::PacketBuffer::CodecError;
 use crate::net::minecraft::nbt::NBTBase::NBTBase;
 use crate::net::minecraft::nbt::NBTTagList::NBTTagList;
+use crate::net::minecraft::network::PacketBuffer::CodecError;
 
 /// Gameplay-bearing inventory layout from MCP 1.12.2 `InventoryPlayer`.
 #[derive(Debug, Clone, PartialEq)]
@@ -34,19 +34,31 @@ impl InventoryPlayer {
     /// and offhand 150.
     pub fn writeToNBT(&self, mut list: NBTTagList) -> NBTTagList {
         for (index, stack) in self.mainInventory.iter().enumerate() {
-            if stack.isEmpty() { continue; }
-            let mut tag=crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
-            tag.setByte("Slot", index as i8); stack.writeToNBT(&mut tag); list.appendTag(NBTBase::Compound(tag));
+            if stack.isEmpty() {
+                continue;
+            }
+            let mut tag = crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
+            tag.setByte("Slot", index as i8);
+            stack.writeToNBT(&mut tag);
+            list.appendTag(NBTBase::Compound(tag));
         }
         for (index, stack) in self.armorInventory.iter().enumerate() {
-            if stack.isEmpty() { continue; }
-            let mut tag=crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
-            tag.setByte("Slot", (index+100) as i8); stack.writeToNBT(&mut tag); list.appendTag(NBTBase::Compound(tag));
+            if stack.isEmpty() {
+                continue;
+            }
+            let mut tag = crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
+            tag.setByte("Slot", (index + 100) as i8);
+            stack.writeToNBT(&mut tag);
+            list.appendTag(NBTBase::Compound(tag));
         }
         for (index, stack) in self.offHandInventory.iter().enumerate() {
-            if stack.isEmpty() { continue; }
-            let mut tag=crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
-            tag.setByte("Slot", (index+150) as i8); stack.writeToNBT(&mut tag); list.appendTag(NBTBase::Compound(tag));
+            if stack.isEmpty() {
+                continue;
+            }
+            let mut tag = crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound::new();
+            tag.setByte("Slot", (index + 150) as i8);
+            stack.writeToNBT(&mut tag);
+            list.appendTag(NBTBase::Compound(tag));
         }
         list
     }
@@ -54,20 +66,33 @@ impl InventoryPlayer {
     /// MCP `InventoryPlayer#readFromNBT`. Fixed-size NonNullLists are reset to
     /// EMPTY and only valid vanilla slot ranges are accepted.
     pub fn readFromNBT(&mut self, list: &NBTTagList) {
-        self.mainInventory.fill(ItemStack::EMPTY); self.armorInventory.fill(ItemStack::EMPTY); self.offHandInventory.fill(ItemStack::EMPTY);
+        self.mainInventory.fill(ItemStack::EMPTY);
+        self.armorInventory.fill(ItemStack::EMPTY);
+        self.offHandInventory.fill(ItemStack::EMPTY);
         for index in 0..list.tagCount() {
-            let tag=list.getCompoundTagAt(index);
-            let slot=(tag.getByte("Slot") as u8) as usize;
-            let stack=ItemStack::fromNBT(&tag); if stack.isEmpty(){continue;}
-            if slot < self.mainInventory.len(){self.mainInventory[slot]=stack;}
-            else if (100..100+self.armorInventory.len()).contains(&slot){self.armorInventory[slot-100]=stack;}
-            else if (150..150+self.offHandInventory.len()).contains(&slot){self.offHandInventory[slot-150]=stack;}
+            let tag = list.getCompoundTagAt(index);
+            let slot = (tag.getByte("Slot") as u8) as usize;
+            let stack = ItemStack::fromNBT(&tag);
+            if stack.isEmpty() {
+                continue;
+            }
+            if slot < self.mainInventory.len() {
+                self.mainInventory[slot] = stack;
+            } else if (100..100 + self.armorInventory.len()).contains(&slot) {
+                self.armorInventory[slot - 100] = stack;
+            } else if (150..150 + self.offHandInventory.len()).contains(&slot) {
+                self.offHandInventory[slot - 150] = stack;
+            }
         }
     }
 
-    pub const fn getHotbarSize() -> usize { 9 }
+    pub const fn getHotbarSize() -> usize {
+        9
+    }
 
-    pub const fn isHotbar(index: i32) -> bool { index >= 0 && index < 9 }
+    pub const fn isHotbar(index: i32) -> bool {
+        index >= 0 && index < 9
+    }
 
     pub fn getCurrentItem(&self) -> &ItemStack {
         if Self::isHotbar(self.currentItem) {
@@ -80,7 +105,11 @@ impl InventoryPlayer {
     /// Direct port of MCP `InventoryPlayer.getStrVsBlock`.
     pub fn getStrVsBlock(&self, state: IBlockState) -> f32 {
         let stack = self.getCurrentItem();
-        if stack.isEmpty() { 1.0 } else { stack.getStrVsBlock(state) }
+        if stack.isEmpty() {
+            1.0
+        } else {
+            stack.getStrVsBlock(state)
+        }
     }
 
     /// Direct port of MCP `InventoryPlayer.canHarvestBlock`.
@@ -102,21 +131,35 @@ impl InventoryPlayer {
     /// Positive wheel deltas select the previous slot and negative deltas the
     /// next slot, matching LWJGL `Mouse.getEventDWheel`.
     pub fn changeCurrentItem(&mut self, mut direction: i32) {
-        if direction > 0 { direction = 1; }
-        if direction < 0 { direction = -1; }
+        if direction > 0 {
+            direction = 1;
+        }
+        if direction < 0 {
+            direction = -1;
+        }
         self.currentItem -= direction;
-        while self.currentItem < 0 { self.currentItem += Self::getHotbarSize() as i32; }
+        while self.currentItem < 0 {
+            self.currentItem += Self::getHotbarSize() as i32;
+        }
         while self.currentItem >= Self::getHotbarSize() as i32 {
             self.currentItem -= Self::getHotbarSize() as i32;
         }
     }
 
-    pub fn setItemStack(&mut self, stack: ItemStack) { self.itemStack = stack; }
-    pub fn getItemStack(&self) -> &ItemStack { &self.itemStack }
+    pub fn setItemStack(&mut self, stack: ItemStack) {
+        self.itemStack = stack;
+    }
+    pub fn getItemStack(&self) -> &ItemStack {
+        &self.itemStack
+    }
 
     /// MCP `InventoryPlayer.setInventorySlotContents` concatenates main,
     /// armor and offhand inventories in exactly this order.
-    pub fn setInventorySlotContents(&mut self, index: i32, stack: ItemStack) -> Result<(), CodecError> {
+    pub fn setInventorySlotContents(
+        &mut self,
+        index: i32,
+        stack: ItemStack,
+    ) -> Result<(), CodecError> {
         let mut index = usize::try_from(index).map_err(|_| {
             CodecError::InvalidData(format!("negative InventoryPlayer slot {index}"))
         })?;
@@ -141,9 +184,13 @@ impl InventoryPlayer {
 
     pub fn getStackInSlot(&self, index: i32) -> Option<&ItemStack> {
         let mut index = usize::try_from(index).ok()?;
-        if index < self.mainInventory.len() { return self.mainInventory.get(index); }
+        if index < self.mainInventory.len() {
+            return self.mainInventory.get(index);
+        }
         index -= self.mainInventory.len();
-        if index < self.armorInventory.len() { return self.armorInventory.get(index); }
+        if index < self.armorInventory.len() {
+            return self.armorInventory.get(index);
+        }
         index -= self.armorInventory.len();
         self.offHandInventory.get(index)
     }
@@ -173,7 +220,11 @@ impl InventoryPlayer {
         }
     }
 
-    pub fn applyContainerPlayerSlot(&mut self, slot: i32, stack: ItemStack) -> Result<(), CodecError> {
+    pub fn applyContainerPlayerSlot(
+        &mut self,
+        slot: i32,
+        stack: ItemStack,
+    ) -> Result<(), CodecError> {
         match slot {
             5 => self.armorInventory[3] = stack,
             6 => self.armorInventory[2] = stack,
@@ -182,8 +233,12 @@ impl InventoryPlayer {
             9..=35 => self.mainInventory[slot as usize] = stack,
             36..=44 => self.mainInventory[(slot - 36) as usize] = stack,
             45 => self.offHandInventory[0] = stack,
-            0..=4 => {}, // crafting result/matrix are not InventoryPlayer slots
-            _ => return Err(CodecError::InvalidData(format!("invalid ContainerPlayer slot {slot}"))),
+            0..=4 => {} // crafting result/matrix are not InventoryPlayer slots
+            _ => {
+                return Err(CodecError::InvalidData(format!(
+                    "invalid ContainerPlayer slot {slot}"
+                )))
+            }
         }
         Ok(())
     }
@@ -194,7 +249,12 @@ mod tests {
     use super::*;
 
     fn stack(id: i16) -> ItemStack {
-        ItemStack { itemId: id, count: 1, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]

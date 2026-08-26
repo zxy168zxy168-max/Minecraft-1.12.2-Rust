@@ -54,4 +54,3 @@ pub fn append_box(mesh: &mut VehicleModelMesh, spec: VehicleBox) {
     mesh.indices
         .extend(MODEL_BOX_FACE_INDICES.iter().map(|index| base + index));
 }
-

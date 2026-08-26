@@ -29,9 +29,30 @@ impl ModelShulkerBullet {
             vertices: Vec::with_capacity(72),
             indices: Vec::with_capacity(108),
         };
-        append_box(&mut mesh, [0, 0], [-4.0, -4.0, -1.0], [8, 8, 2], netHeadYaw, headPitch);
-        append_box(&mut mesh, [0, 10], [-1.0, -4.0, -4.0], [2, 8, 8], netHeadYaw, headPitch);
-        append_box(&mut mesh, [20, 0], [-4.0, -1.0, -4.0], [8, 2, 8], netHeadYaw, headPitch);
+        append_box(
+            &mut mesh,
+            [0, 0],
+            [-4.0, -4.0, -1.0],
+            [8, 8, 2],
+            netHeadYaw,
+            headPitch,
+        );
+        append_box(
+            &mut mesh,
+            [0, 10],
+            [-1.0, -4.0, -4.0],
+            [2, 8, 8],
+            netHeadYaw,
+            headPitch,
+        );
+        append_box(
+            &mut mesh,
+            [20, 0],
+            [-4.0, -1.0, -4.0],
+            [8, 2, 8],
+            netHeadYaw,
+            headPitch,
+        );
         mesh
     }
 }
@@ -53,11 +74,7 @@ fn append_box(
         ModelShulkerBullet::TEXTURE_WIDTH,
         ModelShulkerBullet::TEXTURE_HEIGHT,
     );
-    let rotation = ModelBoxRotation::new([
-        pitchDegrees.to_radians(),
-        yawDegrees.to_radians(),
-        0.0,
-    ]);
+    let rotation = ModelBoxRotation::new([pitchDegrees.to_radians(), yawDegrees.to_radians(), 0.0]);
     let base = mesh.vertices.len() as u32;
     mesh.vertices.reserve(geometry.len());
     for vertex in geometry.iter() {

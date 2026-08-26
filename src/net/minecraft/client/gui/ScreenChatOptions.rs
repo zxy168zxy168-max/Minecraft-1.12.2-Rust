@@ -70,7 +70,9 @@ impl Default for ScreenChatOptions {
 }
 
 impl ScreenChatOptions {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn initGui(&mut self, width: i32, height: i32, locale: &Locale, settings: &GameSettings) {
         self.GuiScreen.width = width;
@@ -109,13 +111,51 @@ impl ScreenChatOptions {
         );
         self.colours.displayString = bool_label(locale, "options.chat.color", settings.chatColours);
         self.links.displayString = bool_label(locale, "options.chat.links", settings.chatLinks);
-        self.prompt.displayString = bool_label(locale, "options.chat.links.prompt", settings.chatLinksPrompt);
-        self.reducedDebug.displayString = bool_label(locale, "options.reducedDebugInfo", settings.reducedDebugInfo);
-        set_slider(&mut self.opacity, locale, "options.chat.opacity", settings.chatOpacity, ChatSliderKind::Opacity);
-        set_slider(&mut self.scale, locale, "options.chat.scale", settings.chatScale, ChatSliderKind::Percent);
-        set_slider(&mut self.heightFocused, locale, "options.chat.height.focused", settings.chatHeightFocused, ChatSliderKind::Height);
-        set_slider(&mut self.heightUnfocused, locale, "options.chat.height.unfocused", settings.chatHeightUnfocused, ChatSliderKind::Height);
-        set_slider(&mut self.width, locale, "options.chat.width", settings.chatWidth, ChatSliderKind::Width);
+        self.prompt.displayString = bool_label(
+            locale,
+            "options.chat.links.prompt",
+            settings.chatLinksPrompt,
+        );
+        self.reducedDebug.displayString = bool_label(
+            locale,
+            "options.reducedDebugInfo",
+            settings.reducedDebugInfo,
+        );
+        set_slider(
+            &mut self.opacity,
+            locale,
+            "options.chat.opacity",
+            settings.chatOpacity,
+            ChatSliderKind::Opacity,
+        );
+        set_slider(
+            &mut self.scale,
+            locale,
+            "options.chat.scale",
+            settings.chatScale,
+            ChatSliderKind::Percent,
+        );
+        set_slider(
+            &mut self.heightFocused,
+            locale,
+            "options.chat.height.focused",
+            settings.chatHeightFocused,
+            ChatSliderKind::Height,
+        );
+        set_slider(
+            &mut self.heightUnfocused,
+            locale,
+            "options.chat.height.unfocused",
+            settings.chatHeightUnfocused,
+            ChatSliderKind::Height,
+        );
+        set_slider(
+            &mut self.width,
+            locale,
+            "options.chat.width",
+            settings.chatWidth,
+            ChatSliderKind::Width,
+        );
         self.done.displayString = locale.translate_key("gui.done").to_owned();
     }
 
@@ -163,17 +203,28 @@ impl ScreenChatOptions {
             20,
             0x00FF_FFFF,
         );
-        self.visibility.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.colours.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.links.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.opacity.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.prompt.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.scale.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.heightFocused.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.heightUnfocused.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.width.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.reducedDebug.drawButton(draw, font, mouseX, mouseY, partialTicks);
-        self.done.drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.visibility
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.colours
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.links
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.opacity
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.prompt
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.scale
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.heightFocused
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.heightUnfocused
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.width
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.reducedDebug
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
+        self.done
+            .drawButton(draw, font, mouseX, mouseY, partialTicks);
     }
 
     pub fn mouseClicked(
@@ -184,66 +235,171 @@ impl ScreenChatOptions {
         locale: &Locale,
         _settings: &GameSettings,
     ) -> Option<ScreenChatOptionsInteraction> {
-        if mouseButton != 0 { return None; }
+        if mouseButton != 0 {
+            return None;
+        }
         if self.visibility.mousePressed(mouseX, mouseY) {
-            return Some(button_interaction(&self.visibility, ScreenChatOptionsAction::CycleVisibility));
+            return Some(button_interaction(
+                &self.visibility,
+                ScreenChatOptionsAction::CycleVisibility,
+            ));
         }
         if self.colours.mousePressed(mouseX, mouseY) {
-            return Some(button_interaction(&self.colours, ScreenChatOptionsAction::ToggleColours));
+            return Some(button_interaction(
+                &self.colours,
+                ScreenChatOptionsAction::ToggleColours,
+            ));
         }
         if self.links.mousePressed(mouseX, mouseY) {
-            return Some(button_interaction(&self.links, ScreenChatOptionsAction::ToggleLinks));
+            return Some(button_interaction(
+                &self.links,
+                ScreenChatOptionsAction::ToggleLinks,
+            ));
         }
         if let Some(value) = self.opacity.mousePressed(mouseX, mouseY) {
-            set_slider(&mut self.opacity, locale, "options.chat.opacity", value, ChatSliderKind::Opacity);
-            return Some(slider_interaction(&mut self.opacity, value, ScreenChatOptionsAction::SetOpacity));
+            set_slider(
+                &mut self.opacity,
+                locale,
+                "options.chat.opacity",
+                value,
+                ChatSliderKind::Opacity,
+            );
+            return Some(slider_interaction(
+                &mut self.opacity,
+                value,
+                ScreenChatOptionsAction::SetOpacity,
+            ));
         }
         if self.prompt.mousePressed(mouseX, mouseY) {
-            return Some(button_interaction(&self.prompt, ScreenChatOptionsAction::ToggleLinksPrompt));
+            return Some(button_interaction(
+                &self.prompt,
+                ScreenChatOptionsAction::ToggleLinksPrompt,
+            ));
         }
         if let Some(value) = self.scale.mousePressed(mouseX, mouseY) {
-            set_slider(&mut self.scale, locale, "options.chat.scale", value, ChatSliderKind::Percent);
-            return Some(slider_interaction(&mut self.scale, value, ScreenChatOptionsAction::SetScale));
+            set_slider(
+                &mut self.scale,
+                locale,
+                "options.chat.scale",
+                value,
+                ChatSliderKind::Percent,
+            );
+            return Some(slider_interaction(
+                &mut self.scale,
+                value,
+                ScreenChatOptionsAction::SetScale,
+            ));
         }
         if let Some(value) = self.heightFocused.mousePressed(mouseX, mouseY) {
-            set_slider(&mut self.heightFocused, locale, "options.chat.height.focused", value, ChatSliderKind::Height);
-            return Some(slider_interaction(&mut self.heightFocused, value, ScreenChatOptionsAction::SetHeightFocused));
+            set_slider(
+                &mut self.heightFocused,
+                locale,
+                "options.chat.height.focused",
+                value,
+                ChatSliderKind::Height,
+            );
+            return Some(slider_interaction(
+                &mut self.heightFocused,
+                value,
+                ScreenChatOptionsAction::SetHeightFocused,
+            ));
         }
         if let Some(value) = self.heightUnfocused.mousePressed(mouseX, mouseY) {
-            set_slider(&mut self.heightUnfocused, locale, "options.chat.height.unfocused", value, ChatSliderKind::Height);
-            return Some(slider_interaction(&mut self.heightUnfocused, value, ScreenChatOptionsAction::SetHeightUnfocused));
+            set_slider(
+                &mut self.heightUnfocused,
+                locale,
+                "options.chat.height.unfocused",
+                value,
+                ChatSliderKind::Height,
+            );
+            return Some(slider_interaction(
+                &mut self.heightUnfocused,
+                value,
+                ScreenChatOptionsAction::SetHeightUnfocused,
+            ));
         }
         if let Some(value) = self.width.mousePressed(mouseX, mouseY) {
-            set_slider(&mut self.width, locale, "options.chat.width", value, ChatSliderKind::Width);
-            return Some(slider_interaction(&mut self.width, value, ScreenChatOptionsAction::SetWidth));
+            set_slider(
+                &mut self.width,
+                locale,
+                "options.chat.width",
+                value,
+                ChatSliderKind::Width,
+            );
+            return Some(slider_interaction(
+                &mut self.width,
+                value,
+                ScreenChatOptionsAction::SetWidth,
+            ));
         }
         if self.reducedDebug.mousePressed(mouseX, mouseY) {
-            return Some(button_interaction(&self.reducedDebug, ScreenChatOptionsAction::ToggleReducedDebugInfo));
+            return Some(button_interaction(
+                &self.reducedDebug,
+                ScreenChatOptionsAction::ToggleReducedDebugInfo,
+            ));
         }
-        self.done.mousePressed(mouseX, mouseY).then(|| {
-            button_interaction(&self.done, ScreenChatOptionsAction::Done)
-        })
+        self.done
+            .mousePressed(mouseX, mouseY)
+            .then(|| button_interaction(&self.done, ScreenChatOptionsAction::Done))
     }
 
-    pub fn mouseDragged(&mut self, mouseX: i32, locale: &Locale) -> Option<ScreenChatOptionsAction> {
+    pub fn mouseDragged(
+        &mut self,
+        mouseX: i32,
+        locale: &Locale,
+    ) -> Option<ScreenChatOptionsAction> {
         if let Some(value) = self.opacity.mouseDragged(mouseX) {
-            set_slider(&mut self.opacity, locale, "options.chat.opacity", value, ChatSliderKind::Opacity);
+            set_slider(
+                &mut self.opacity,
+                locale,
+                "options.chat.opacity",
+                value,
+                ChatSliderKind::Opacity,
+            );
             return Some(ScreenChatOptionsAction::SetOpacity(value.clamp(0.0, 1.0)));
         }
         if let Some(value) = self.scale.mouseDragged(mouseX) {
-            set_slider(&mut self.scale, locale, "options.chat.scale", value, ChatSliderKind::Percent);
+            set_slider(
+                &mut self.scale,
+                locale,
+                "options.chat.scale",
+                value,
+                ChatSliderKind::Percent,
+            );
             return Some(ScreenChatOptionsAction::SetScale(value.clamp(0.0, 1.0)));
         }
         if let Some(value) = self.heightFocused.mouseDragged(mouseX) {
-            set_slider(&mut self.heightFocused, locale, "options.chat.height.focused", value, ChatSliderKind::Height);
-            return Some(ScreenChatOptionsAction::SetHeightFocused(value.clamp(0.0, 1.0)));
+            set_slider(
+                &mut self.heightFocused,
+                locale,
+                "options.chat.height.focused",
+                value,
+                ChatSliderKind::Height,
+            );
+            return Some(ScreenChatOptionsAction::SetHeightFocused(
+                value.clamp(0.0, 1.0),
+            ));
         }
         if let Some(value) = self.heightUnfocused.mouseDragged(mouseX) {
-            set_slider(&mut self.heightUnfocused, locale, "options.chat.height.unfocused", value, ChatSliderKind::Height);
-            return Some(ScreenChatOptionsAction::SetHeightUnfocused(value.clamp(0.0, 1.0)));
+            set_slider(
+                &mut self.heightUnfocused,
+                locale,
+                "options.chat.height.unfocused",
+                value,
+                ChatSliderKind::Height,
+            );
+            return Some(ScreenChatOptionsAction::SetHeightUnfocused(
+                value.clamp(0.0, 1.0),
+            ));
         }
         if let Some(value) = self.width.mouseDragged(mouseX) {
-            set_slider(&mut self.width, locale, "options.chat.width", value, ChatSliderKind::Width);
+            set_slider(
+                &mut self.width,
+                locale,
+                "options.chat.width",
+                value,
+                ChatSliderKind::Width,
+            );
             return Some(ScreenChatOptionsAction::SetWidth(value.clamp(0.0, 1.0)));
         }
         None
@@ -267,8 +423,14 @@ fn set_slider_position(button: &mut GuiButton, x: i32, y: i32) {
     set_position(button, x, y);
 }
 
-fn button_interaction(button: &GuiButton, action: ScreenChatOptionsAction) -> ScreenChatOptionsInteraction {
-    ScreenChatOptionsInteraction { action, sound: Some(button.playPressSound()) }
+fn button_interaction(
+    button: &GuiButton,
+    action: ScreenChatOptionsAction,
+) -> ScreenChatOptionsInteraction {
+    ScreenChatOptionsInteraction {
+        action,
+        sound: Some(button.playPressSound()),
+    }
 }
 
 fn slider_interaction(
@@ -278,11 +440,19 @@ fn slider_interaction(
 ) -> ScreenChatOptionsInteraction {
     let value = value.clamp(0.0, 1.0);
     slider.setSliderValue(value);
-    ScreenChatOptionsInteraction { action: make(value), sound: Some(slider.playPressSound()) }
+    ScreenChatOptionsInteraction {
+        action: make(value),
+        sound: Some(slider.playPressSound()),
+    }
 }
 
 #[derive(Clone, Copy)]
-enum ChatSliderKind { Opacity, Percent, Height, Width }
+enum ChatSliderKind {
+    Opacity,
+    Percent,
+    Height,
+    Width,
+}
 
 fn set_slider(
     slider: &mut GuiOptionSlider,
@@ -312,11 +482,13 @@ fn bool_label(locale: &Locale, key: &str, value: bool) -> String {
 }
 
 fn visibility_name(locale: &Locale, visibility: EnumChatVisibility) -> String {
-    locale.translate_key(match visibility {
-        EnumChatVisibility::Full => "options.chat.visibility.full",
-        EnumChatVisibility::System => "options.chat.visibility.system",
-        EnumChatVisibility::Hidden => "options.chat.visibility.hidden",
-    }).to_owned()
+    locale
+        .translate_key(match visibility {
+            EnumChatVisibility::Full => "options.chat.visibility.full",
+            EnumChatVisibility::System => "options.chat.visibility.system",
+            EnumChatVisibility::Hidden => "options.chat.visibility.hidden",
+        })
+        .to_owned()
 }
 
 #[cfg(test)]

@@ -8,9 +8,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Rust strings are UTF-8, while Java hashes UTF-16 units. Using
 /// `encode_utf16()` is required for non-BMP characters.
 pub fn string_hash_code(value: &str) -> i32 {
-    value
-        .encode_utf16()
-        .fold(0_i32, |hash, unit| hash.wrapping_mul(31).wrapping_add(unit as i32))
+    value.encode_utf16().fold(0_i32, |hash, unit| {
+        hash.wrapping_mul(31).wrapping_add(unit as i32)
+    })
 }
 
 /// Equivalent to Java narrowing after an unsigned right shift.
@@ -48,7 +48,10 @@ pub fn math_random_f64() -> f64 {
             .as_nanos() as i64;
         Mutex::new(JavaRandom::new(seed))
     });
-    random.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).next_f64()
+    random
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .next_f64()
 }
 
 impl JavaRandom {
@@ -167,7 +170,6 @@ mod tests {
         assert_eq!(random.next_i32_bound(100), 80);
         assert_eq!(random.next_i32_bound(100), 41);
     }
-
 
     #[test]
     fn java_random_gaussian_matches_jdk_sequence_and_cache_reset() {

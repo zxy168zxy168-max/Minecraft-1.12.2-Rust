@@ -1,6 +1,6 @@
 use super::BlockPos::BlockPos;
-use super::Vec3d::Vec3d;
 use super::EnumFacing;
+use super::Vec3d::Vec3d;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AxisAlignedBB {
@@ -36,29 +36,57 @@ impl AxisAlignedBB {
     }
 
     pub fn from_vectors(minimum: Vec3d, maximum: Vec3d) -> Self {
-        Self::new(minimum.x, minimum.y, minimum.z, maximum.x, maximum.y, maximum.z)
+        Self::new(
+            minimum.x, minimum.y, minimum.z, maximum.x, maximum.y, maximum.z,
+        )
     }
 
     pub fn set_max_y(self, maximum_y: f64) -> Self {
-        Self::new(self.min_x, self.min_y, self.min_z, self.max_x, maximum_y, self.max_z)
+        Self::new(
+            self.min_x, self.min_y, self.min_z, self.max_x, maximum_y, self.max_z,
+        )
     }
 
     /// Port of MCP `func_191195_a`.
     pub fn contract_directional(self, x: f64, y: f64, z: f64) -> Self {
         let (mut min_x, mut min_y, mut min_z) = (self.min_x, self.min_y, self.min_z);
         let (mut max_x, mut max_y, mut max_z) = (self.max_x, self.max_y, self.max_z);
-        if x < 0.0 { min_x -= x; } else if x > 0.0 { max_x -= x; }
-        if y < 0.0 { min_y -= y; } else if y > 0.0 { max_y -= y; }
-        if z < 0.0 { min_z -= z; } else if z > 0.0 { max_z -= z; }
+        if x < 0.0 {
+            min_x -= x;
+        } else if x > 0.0 {
+            max_x -= x;
+        }
+        if y < 0.0 {
+            min_y -= y;
+        } else if y > 0.0 {
+            max_y -= y;
+        }
+        if z < 0.0 {
+            min_z -= z;
+        } else if z > 0.0 {
+            max_z -= z;
+        }
         Self::new(min_x, min_y, min_z, max_x, max_y, max_z)
     }
 
     pub fn add_coord(self, x: f64, y: f64, z: f64) -> Self {
         let (mut min_x, mut min_y, mut min_z) = (self.min_x, self.min_y, self.min_z);
         let (mut max_x, mut max_y, mut max_z) = (self.max_x, self.max_y, self.max_z);
-        if x < 0.0 { min_x += x; } else if x > 0.0 { max_x += x; }
-        if y < 0.0 { min_y += y; } else if y > 0.0 { max_y += y; }
-        if z < 0.0 { min_z += z; } else if z > 0.0 { max_z += z; }
+        if x < 0.0 {
+            min_x += x;
+        } else if x > 0.0 {
+            max_x += x;
+        }
+        if y < 0.0 {
+            min_y += y;
+        } else if y > 0.0 {
+            max_y += y;
+        }
+        if z < 0.0 {
+            min_z += z;
+        } else if z > 0.0 {
+            max_z += z;
+        }
         Self::new(min_x, min_y, min_z, max_x, max_y, max_z)
     }
 
@@ -73,7 +101,9 @@ impl AxisAlignedBB {
         )
     }
 
-    pub fn expand_xyz(self, value: f64) -> Self { self.expand(value, value, value) }
+    pub fn expand_xyz(self, value: f64) -> Self {
+        self.expand(value, value, value)
+    }
 
     pub fn intersection(self, other: Self) -> Self {
         Self::new(
@@ -131,45 +161,63 @@ impl AxisAlignedBB {
     }
 
     pub fn calculate_x_offset(self, other: Self, mut offset_x: f64) -> f64 {
-        if other.max_y > self.min_y && other.min_y < self.max_y
-            && other.max_z > self.min_z && other.min_z < self.max_z
+        if other.max_y > self.min_y
+            && other.min_y < self.max_y
+            && other.max_z > self.min_z
+            && other.min_z < self.max_z
         {
             if offset_x > 0.0 && other.max_x <= self.min_x {
                 let delta = self.min_x - other.max_x;
-                if delta < offset_x { offset_x = delta; }
+                if delta < offset_x {
+                    offset_x = delta;
+                }
             } else if offset_x < 0.0 && other.min_x >= self.max_x {
                 let delta = self.max_x - other.min_x;
-                if delta > offset_x { offset_x = delta; }
+                if delta > offset_x {
+                    offset_x = delta;
+                }
             }
         }
         offset_x
     }
 
     pub fn calculate_y_offset(self, other: Self, mut offset_y: f64) -> f64 {
-        if other.max_x > self.min_x && other.min_x < self.max_x
-            && other.max_z > self.min_z && other.min_z < self.max_z
+        if other.max_x > self.min_x
+            && other.min_x < self.max_x
+            && other.max_z > self.min_z
+            && other.min_z < self.max_z
         {
             if offset_y > 0.0 && other.max_y <= self.min_y {
                 let delta = self.min_y - other.max_y;
-                if delta < offset_y { offset_y = delta; }
+                if delta < offset_y {
+                    offset_y = delta;
+                }
             } else if offset_y < 0.0 && other.min_y >= self.max_y {
                 let delta = self.max_y - other.min_y;
-                if delta > offset_y { offset_y = delta; }
+                if delta > offset_y {
+                    offset_y = delta;
+                }
             }
         }
         offset_y
     }
 
     pub fn calculate_z_offset(self, other: Self, mut offset_z: f64) -> f64 {
-        if other.max_x > self.min_x && other.min_x < self.max_x
-            && other.max_y > self.min_y && other.min_y < self.max_y
+        if other.max_x > self.min_x
+            && other.min_x < self.max_x
+            && other.max_y > self.min_y
+            && other.min_y < self.max_y
         {
             if offset_z > 0.0 && other.max_z <= self.min_z {
                 let delta = self.min_z - other.max_z;
-                if delta < offset_z { offset_z = delta; }
+                if delta < offset_z {
+                    offset_z = delta;
+                }
             } else if offset_z < 0.0 && other.min_z >= self.max_z {
                 let delta = self.max_z - other.min_z;
-                if delta > offset_z { offset_z = delta; }
+                if delta > offset_z {
+                    offset_z = delta;
+                }
             }
         }
         offset_z
@@ -209,27 +257,35 @@ impl AxisAlignedBB {
     }
 
     fn is_closer(origin: Vec3d, current: Option<Vec3d>, candidate: Vec3d) -> bool {
-        current.map_or(true, |value| origin.square_distance_to(candidate) < origin.square_distance_to(value))
+        current.map_or(true, |value| {
+            origin.square_distance_to(candidate) < origin.square_distance_to(value)
+        })
     }
 
     fn collide_with_x_plane(self, plane: f64, from: Vec3d, to: Vec3d) -> Option<Vec3d> {
         from.intermediate_x(to, plane).filter(|value| {
-            value.y >= self.min_y && value.y <= self.max_y
-                && value.z >= self.min_z && value.z <= self.max_z
+            value.y >= self.min_y
+                && value.y <= self.max_y
+                && value.z >= self.min_z
+                && value.z <= self.max_z
         })
     }
 
     fn collide_with_y_plane(self, plane: f64, from: Vec3d, to: Vec3d) -> Option<Vec3d> {
         from.intermediate_y(to, plane).filter(|value| {
-            value.x >= self.min_x && value.x <= self.max_x
-                && value.z >= self.min_z && value.z <= self.max_z
+            value.x >= self.min_x
+                && value.x <= self.max_x
+                && value.z >= self.min_z
+                && value.z <= self.max_z
         })
     }
 
     fn collide_with_z_plane(self, plane: f64, from: Vec3d, to: Vec3d) -> Option<Vec3d> {
         from.intermediate_z(to, plane).filter(|value| {
-            value.x >= self.min_x && value.x <= self.max_x
-                && value.y >= self.min_y && value.y <= self.max_y
+            value.x >= self.min_x
+                && value.x <= self.max_x
+                && value.y >= self.min_y
+                && value.y <= self.max_y
         })
     }
 

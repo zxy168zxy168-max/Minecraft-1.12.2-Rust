@@ -1,7 +1,7 @@
 use crate::net::minecraft::entity::Entity::Entity;
-use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 
 /// Geometry-bearing subset of MCP 1.12.2 `EntityHanging`.
 ///
@@ -23,9 +23,18 @@ impl EntityHanging {
         heightPixels: i32,
     ) {
         assert!(matches!(facingDirection.axis(), Axis::X | Axis::Z));
-        entity.rotationYaw = facingDirection.horizontalIndex().expect("horizontal facing") as f32 * 90.0;
+        entity.rotationYaw = facingDirection
+            .horizontalIndex()
+            .expect("horizontal facing") as f32
+            * 90.0;
         entity.prevRotationYaw = entity.rotationYaw;
-        Self::updateBoundingBox(entity, hangingPosition, facingDirection, widthPixels, heightPixels);
+        Self::updateBoundingBox(
+            entity,
+            hangingPosition,
+            facingDirection,
+            widthPixels,
+            heightPixels,
+        );
     }
 
     pub fn updateBoundingBox(
@@ -79,7 +88,11 @@ impl EntityHanging {
     }
 
     const fn offs(pixels: i32) -> f64 {
-        if pixels % 32 == 0 { 0.5 } else { 0.0 }
+        if pixels % 32 == 0 {
+            0.5
+        } else {
+            0.0
+        }
     }
 }
 

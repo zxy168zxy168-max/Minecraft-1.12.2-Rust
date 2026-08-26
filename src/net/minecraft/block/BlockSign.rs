@@ -1,11 +1,15 @@
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
+use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
-use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
-pub const fn isBlockSign(state: IBlockState) -> bool { matches!(state.getBlockId(), 63 | 68) }
-pub const fn isStandingSign(state: IBlockState) -> bool { state.getBlockId() == 63 }
+pub const fn isBlockSign(state: IBlockState) -> bool {
+    matches!(state.getBlockId(), 63 | 68)
+}
+pub const fn isStandingSign(state: IBlockState) -> bool {
+    state.getBlockId() == 63
+}
 
 pub const fn wallFacing(state: IBlockState) -> EnumFacing {
     match state.getMetadata() % 6 {
@@ -37,9 +41,14 @@ pub fn wallPlacementState(facing: EnumFacing) -> IBlockState {
 
 /// `BlockContainer#hasInvalidNeighbor` plus `BlockSign#canPlaceBlockAt`.
 pub fn canPlaceBlockAt(world: &WorldClient, pos: BlockPos) -> bool {
-    let cactusNeighbour = [EnumFacing::North, EnumFacing::South, EnumFacing::West, EnumFacing::East]
-        .into_iter()
-        .any(|facing| world.getBlockState(pos.offset(facing, 1)).getBlockId() == 81);
+    let cactusNeighbour = [
+        EnumFacing::North,
+        EnumFacing::South,
+        EnumFacing::West,
+        EnumFacing::East,
+    ]
+    .into_iter()
+    .any(|facing| world.getBlockState(pos.offset(facing, 1)).getBlockId() == 81);
     !cactusNeighbour && world.isBlockReplaceable(pos)
 }
 

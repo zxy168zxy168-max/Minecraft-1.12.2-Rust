@@ -1,13 +1,15 @@
-use crate::net::minecraft::block::BlockFence;
-use crate::net::minecraft::block::BlockFenceGate;
 use crate::net::minecraft::block::state::BlockFaceShape::BlockFaceShape;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
+use crate::net::minecraft::block::BlockFence;
+use crate::net::minecraft::block::BlockFenceGate;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::{Axis, EnumFacing};
 use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
-pub const fn isBlockWall(state: IBlockState) -> bool { state.getBlockId() == 139 }
+pub const fn isBlockWall(state: IBlockState) -> bool {
+    state.getBlockId() == 139
+}
 
 pub fn getBlockFaceShape(face: EnumFacing) -> BlockFaceShape {
     if face.axis() == Axis::Y {
@@ -17,12 +19,17 @@ pub fn getBlockFaceShape(face: EnumFacing) -> BlockFaceShape {
     }
 }
 
-pub fn canConnectTo<A: IBlockAccess>(world: &A, neighbourPos: BlockPos, neighbourFace: EnumFacing) -> bool {
+pub fn canConnectTo<A: IBlockAccess>(
+    world: &A,
+    neighbourPos: BlockPos,
+    neighbourFace: EnumFacing,
+) -> bool {
     let neighbour = world.getBlockState(neighbourPos);
     let shape = neighbour.getBlockFaceShape(world, neighbourPos, neighbourFace);
     let pole = shape == BlockFaceShape::MIDDLE_POLE_THICK
         || (shape == BlockFaceShape::MIDDLE_POLE && BlockFenceGate::isBlockFenceGate(neighbour));
-    (!BlockFence::excludesSolidConnection(neighbour.getBlockId()) && shape == BlockFaceShape::SOLID) || pole
+    (!BlockFence::excludesSolidConnection(neighbour.getBlockId()) && shape == BlockFaceShape::SOLID)
+        || pole
 }
 
 pub fn connectionMask<A: IBlockAccess>(world: &A, pos: BlockPos) -> u8 {
@@ -94,8 +101,8 @@ pub fn getBoundingBox(mask: u8) -> AxisAlignedBB {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     struct Access(HashMap<BlockPos, IBlockState>);
     impl IBlockAccess for Access {

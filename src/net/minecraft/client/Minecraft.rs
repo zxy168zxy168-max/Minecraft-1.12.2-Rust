@@ -12,132 +12,171 @@ use winit::{
 };
 
 use crate::compat::Java::{math_random_f64, JavaRandom};
+use crate::launcher::AssetRoot::AssetRoot;
+use crate::net::minecraft::block::Block::Block;
+use crate::net::minecraft::block::SoundType::SoundType;
+use crate::net::minecraft::client::account::AccountConfig::AccountConfig;
+use crate::net::minecraft::client::audio::ElytraSound::ElytraSound;
+use crate::net::minecraft::client::audio::MusicTicker::{MusicTicker, MusicType};
 use crate::net::minecraft::client::audio::PositionedSoundRecord::{
     AttenuationType, PositionedSoundRecord,
 };
 use crate::net::minecraft::client::audio::SoundHandler::SoundHandler;
-use crate::net::minecraft::client::audio::MusicTicker::{MusicTicker, MusicType};
-use crate::net::minecraft::client::audio::ElytraSound::ElytraSound;
-use crate::net::minecraft::crash::CrashReport::CrashReport;
-use crate::net::minecraft::crash::CrashReportCategory::CrashReportCategory;
-use crate::net::minecraft::util::ReportedException::ReportedException;
-use crate::net::minecraft::block::Block::Block;
-use crate::net::minecraft::block::SoundType::SoundType;
-use crate::launcher::AssetRoot::AssetRoot;
-use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
-use crate::net::minecraft::client::gui::inventory::GuiInventory::GuiInventory;
-use crate::net::minecraft::client::gui::inventory::GuiChest::GuiChest;
-use crate::net::minecraft::client::gui::inventory::GuiShulkerBox::GuiShulkerBox;
-use crate::net::minecraft::client::gui::inventory::GuiScreenHorseInventory::GuiScreenHorseInventory;
-use crate::net::minecraft::client::gui::inventory::GuiCrafting::GuiCrafting;
-use crate::net::minecraft::client::gui::inventory::GuiFurnace::GuiFurnace;
-use crate::net::minecraft::client::gui::inventory::GuiBrewingStand::GuiBrewingStand;
-use crate::net::minecraft::client::gui::inventory::GuiDispenser::GuiDispenser;
 use crate::net::minecraft::client::gui::inventory::GuiBeacon::GuiBeacon;
-use crate::net::minecraft::client::gui::inventory::GuiEditSign::{GuiEditSign, SignEditKey};
-use crate::net::minecraft::client::gui::GuiMerchant::GuiMerchant;
-use crate::net::minecraft::client::gui::recipebook::GuiRecipeBook::{RecipeBookClick, RecipeBookRenderState};
-use crate::net::minecraft::client::gui::GuiHopper::GuiHopper;
-use crate::net::minecraft::client::gui::GuiRepair::GuiRepair;
-use crate::net::minecraft::client::gui::GuiEnchantment::{EnchantmentBookRenderState, GuiEnchantment};
+use crate::net::minecraft::client::gui::inventory::GuiBrewingStand::GuiBrewingStand;
+use crate::net::minecraft::client::gui::inventory::GuiChest::GuiChest;
 use crate::net::minecraft::client::gui::inventory::GuiContainer::GuiContainer;
-use crate::net::minecraft::client::gui::inventory::GuiContainerCreative::{CreativeSlotKind, GuiContainerCreative};
-use crate::net::minecraft::client::gui::GuiLanguage::{GuiLanguage, GuiLanguageAction};
+use crate::net::minecraft::client::gui::inventory::GuiContainerCreative::{
+    CreativeSlotKind, GuiContainerCreative,
+};
+use crate::net::minecraft::client::gui::inventory::GuiCrafting::GuiCrafting;
+use crate::net::minecraft::client::gui::inventory::GuiDispenser::GuiDispenser;
+use crate::net::minecraft::client::gui::inventory::GuiEditSign::{GuiEditSign, SignEditKey};
+use crate::net::minecraft::client::gui::inventory::GuiFurnace::GuiFurnace;
+use crate::net::minecraft::client::gui::inventory::GuiInventory::GuiInventory;
+use crate::net::minecraft::client::gui::inventory::GuiScreenHorseInventory::GuiScreenHorseInventory;
+use crate::net::minecraft::client::gui::inventory::GuiShulkerBox::GuiShulkerBox;
+use crate::net::minecraft::client::gui::recipebook::GuiRecipeBook::{
+    RecipeBookClick, RecipeBookRenderState,
+};
+use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
+use crate::net::minecraft::client::gui::GuiAccountManager::{
+    AccountManagerKey, GuiAccountManager, GuiAccountManagerAction,
+};
+use crate::net::minecraft::client::gui::GuiAltCracked::{GuiAltCracked, GuiAltCrackedAction};
+use crate::net::minecraft::client::gui::GuiChat::GuiChat;
+use crate::net::minecraft::client::gui::GuiControls::{GuiControls, GuiControlsAction};
+use crate::net::minecraft::client::gui::GuiCreateWorld::{
+    GuiCreateWorld, GuiCreateWorldAction, WorldCreationRequest,
+};
+use crate::net::minecraft::client::gui::GuiCustomizeSkin::{
+    GuiCustomizeSkin, GuiCustomizeSkinAction,
+};
 use crate::net::minecraft::client::gui::GuiDisconnected::{GuiDisconnected, GuiDisconnectedAction};
 use crate::net::minecraft::client::gui::GuiDownloadTerrain::GuiDownloadTerrain;
-use crate::net::minecraft::client::gui::GuiMainMenu::{GuiMainMenu, MainMenuAction, MainMenuDate};
-use crate::net::minecraft::client::account::AccountConfig::AccountConfig;
-use crate::net::minecraft::client::gui::GuiAccountManager::{AccountManagerKey, GuiAccountManager, GuiAccountManagerAction};
-use crate::net::minecraft::client::gui::GuiMicrosoftAuth::{GuiMicrosoftAuth, GuiMicrosoftAuthAction};
-use crate::net::minecraft::client::gui::GuiSessionLogin::{GuiSessionLogin, GuiSessionLoginAction};
-use crate::net::minecraft::client::gui::GuiAltCracked::{GuiAltCracked, GuiAltCrackedAction};
-use crate::net::minecraft::client::gui::GuiMultiplayer::{GuiMultiplayer, GuiMultiplayerAction};
-use crate::net::minecraft::client::gui::GuiScreenAddServer::{GuiScreenAddServer, GuiScreenAddServerAction};
-use crate::net::minecraft::client::gui::GuiScreenServerList::{GuiScreenServerList, GuiScreenServerListAction};
-use crate::net::minecraft::client::gui::GuiTextField::{GuiTextField, GuiTextFieldKey, GuiTextFieldModifiers};
-use crate::net::minecraft::client::gui::GuiChat::GuiChat;
-use crate::net::minecraft::client::gui::GuiIngameMenu::{GuiIngameMenu, GuiIngameMenuAction};
+use crate::net::minecraft::client::gui::GuiEnchantment::{
+    EnchantmentBookRenderState, GuiEnchantment,
+};
 use crate::net::minecraft::client::gui::GuiGameOver::{GuiGameOver, GuiGameOverAction};
+use crate::net::minecraft::client::gui::GuiHopper::GuiHopper;
+use crate::net::minecraft::client::gui::GuiIngameMenu::{GuiIngameMenu, GuiIngameMenuAction};
+use crate::net::minecraft::client::gui::GuiLanguage::{GuiLanguage, GuiLanguageAction};
+use crate::net::minecraft::client::gui::GuiMainMenu::{GuiMainMenu, MainMenuAction, MainMenuDate};
+use crate::net::minecraft::client::gui::GuiMerchant::GuiMerchant;
+use crate::net::minecraft::client::gui::GuiMicrosoftAuth::{
+    GuiMicrosoftAuth, GuiMicrosoftAuthAction,
+};
+use crate::net::minecraft::client::gui::GuiMultiplayer::{GuiMultiplayer, GuiMultiplayerAction};
 use crate::net::minecraft::client::gui::GuiNewChat::GuiNewChat;
-use crate::net::minecraft::client::gui::GuiYesNo::GuiYesNo;
-use crate::net::minecraft::client::multiplayer::GuiConnecting::{GuiConnecting, GuiConnectingAction, GuiConnectingEvent};
-use crate::net::minecraft::client::multiplayer::PlayerControllerMP::PlayerControllerMP;
-use crate::net::minecraft::client::particle::ParticleManager::ParticleManager;
-use crate::net::minecraft::client::renderer::color::BlockColors::BlockColors;
-use crate::net::minecraft::world::ColorizerGrass::ColorizerGrass;
-use crate::net::minecraft::world::ColorizerFoliage::ColorizerFoliage;
-use crate::net::minecraft::client::multiplayer::ServerData::ServerData;
 use crate::net::minecraft::client::gui::GuiOptions::{GuiOptions, GuiOptionsAction};
-use crate::net::minecraft::client::gui::GuiControls::{GuiControls, GuiControlsAction};
-use crate::net::minecraft::client::gui::GuiWorldSelection::{GuiWorldSelection, GuiWorldSelectionAction};
-use crate::net::minecraft::client::gui::GuiCreateWorld::{GuiCreateWorld, GuiCreateWorldAction, WorldCreationRequest};
-use crate::net::minecraft::client::gui::GuiVideoSettings::{GuiVideoSettings, GuiVideoSettingsAction};
-use crate::net::minecraft::client::gui::GuiScreenOptionsSounds::{GuiScreenOptionsSounds, GuiScreenOptionsSoundsAction};
-use crate::net::minecraft::client::gui::ScreenChatOptions::{ScreenChatOptions, ScreenChatOptionsAction};
-use crate::net::minecraft::client::gui::GuiCustomizeSkin::{GuiCustomizeSkin, GuiCustomizeSkinAction};
-use crate::net::minecraft::client::gui::GuiScreenResourcePacks::{GuiScreenResourcePacks, GuiScreenResourcePacksAction};
+use crate::net::minecraft::client::gui::GuiRepair::GuiRepair;
+use crate::net::minecraft::client::gui::GuiScreenAddServer::{
+    GuiScreenAddServer, GuiScreenAddServerAction,
+};
+use crate::net::minecraft::client::gui::GuiScreenOptionsSounds::{
+    GuiScreenOptionsSounds, GuiScreenOptionsSoundsAction,
+};
+use crate::net::minecraft::client::gui::GuiScreenResourcePacks::{
+    GuiScreenResourcePacks, GuiScreenResourcePacksAction,
+};
+use crate::net::minecraft::client::gui::GuiScreenServerList::{
+    GuiScreenServerList, GuiScreenServerListAction,
+};
+use crate::net::minecraft::client::gui::GuiSessionLogin::{GuiSessionLogin, GuiSessionLoginAction};
+use crate::net::minecraft::client::gui::GuiTextField::{
+    GuiTextField, GuiTextFieldKey, GuiTextFieldModifiers,
+};
+use crate::net::minecraft::client::gui::GuiVideoSettings::{
+    GuiVideoSettings, GuiVideoSettingsAction,
+};
+use crate::net::minecraft::client::gui::GuiWorldSelection::{
+    GuiWorldSelection, GuiWorldSelectionAction,
+};
+use crate::net::minecraft::client::gui::GuiYesNo::GuiYesNo;
 use crate::net::minecraft::client::gui::ScaledResolution::ScaledResolution;
-use crate::net::minecraft::client::main::GameConfiguration::{GameConfiguration, PropertyMap, Proxy};
-use crate::net::minecraft::client::renderer::ItemRenderer::ItemRenderer;
-use crate::net::minecraft::client::resources::Locale::Locale;
+use crate::net::minecraft::client::gui::ScreenChatOptions::{
+    ScreenChatOptions, ScreenChatOptionsAction,
+};
+use crate::net::minecraft::client::main::GameConfiguration::{
+    GameConfiguration, PropertyMap, Proxy,
+};
+use crate::net::minecraft::client::multiplayer::GuiConnecting::{
+    GuiConnecting, GuiConnectingAction, GuiConnectingEvent,
+};
+use crate::net::minecraft::client::multiplayer::PlayerControllerMP::PlayerControllerMP;
+use crate::net::minecraft::client::multiplayer::ServerData::ServerData;
+use crate::net::minecraft::client::particle::ParticleManager::ParticleManager;
 use crate::net::minecraft::client::particle::ParticleSpawnRequest::ParticleSpawnRequest;
+use crate::net::minecraft::client::renderer::color::BlockColors::BlockColors;
+use crate::net::minecraft::client::renderer::ItemRenderer::ItemRenderer;
 use crate::net::minecraft::client::resources::LanguageManager::LanguageManager;
-use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::ResourceManager;
+use crate::net::minecraft::client::resources::Locale::Locale;
 use crate::net::minecraft::client::resources::ResourcePackRepository::{
     defaultPackIconBytes, defaultPackIconLocation, folder_assets_root, ResourcePackKind,
     ResourcePackRepository,
 };
+use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::ResourceManager;
 use crate::net::minecraft::client::settings::GameSettings::{GameSettings, FRAMERATE_LIMIT_MAX};
 use crate::net::minecraft::client::settings::InputKeyCodes::{
-    lwjgl_from_winit,
-    mouse_button_from_index, mouse_button_index, mouse_code,
+    lwjgl_from_winit, mouse_button_from_index, mouse_button_index, mouse_code,
 };
 use crate::net::minecraft::client::settings::KeyBinding::KeyBindingId;
-use crate::net::minecraft::util::MovementInputFromOptions::MovementKeyState;
-use crate::net::minecraft::util::EnumHand::EnumHand;
-use crate::net::minecraft::util::EnumActionResult::EnumActionResult;
-use crate::net::minecraft::network::play::client::CPacketAnimation::CPacketAnimation;
-use crate::net::minecraft::network::play::client::CPacketChatMessage::CPacketChatMessage;
-use crate::net::minecraft::inventory::ClickType::ClickType;
+use crate::net::minecraft::crash::CrashReport::CrashReport;
+use crate::net::minecraft::crash::CrashReportCategory::CrashReportCategory;
 use crate::net::minecraft::entity::player::EntityPlayer::EnumChatVisibility;
 use crate::net::minecraft::entity::player::EnumPlayerModelParts::EnumPlayerModelParts;
+use crate::net::minecraft::inventory::ClickType::ClickType;
 use crate::net::minecraft::inventory::Container::Container;
 use crate::net::minecraft::inventory::ContainerWindow::ContainerWindowKind;
+use crate::net::minecraft::item::crafting::CraftingManager::CraftingManager;
 use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::item::ItemTooltip;
-use crate::net::minecraft::item::crafting::CraftingManager::CraftingManager;
-use crate::net::minecraft::network::play::client::CPacketCloseWindow::CPacketCloseWindow;
-use crate::net::minecraft::network::play::client::CPacketClientStatus::{CPacketClientStatus, State as ClientStatusState};
+use crate::net::minecraft::network::play::client::CPacketAnimation::CPacketAnimation;
+use crate::net::minecraft::network::play::client::CPacketChatMessage::CPacketChatMessage;
 use crate::net::minecraft::network::play::client::CPacketClientSettings::CPacketClientSettings;
+use crate::net::minecraft::network::play::client::CPacketClientStatus::{
+    CPacketClientStatus, State as ClientStatusState,
+};
+use crate::net::minecraft::network::play::client::CPacketCloseWindow::CPacketCloseWindow;
 use crate::net::minecraft::network::play::client::CPacketCreativeInventoryAction::CPacketCreativeInventoryAction;
 use crate::net::minecraft::network::play::client::CPacketCustomPayload::CPacketCustomPayload;
 use crate::net::minecraft::network::play::client::CPacketPlaceRecipe::CPacketPlaceRecipe;
+use crate::net::minecraft::network::play::client::CPacketPlayerDigging::{
+    Action as DiggingAction, CPacketPlayerDigging,
+};
 use crate::net::minecraft::network::play::client::CPacketRecipeInfo::CPacketRecipeInfo;
 use crate::net::minecraft::network::play::client::CPacketUpdateSign::CPacketUpdateSign;
-use crate::net::minecraft::network::PacketBuffer::{write_i32_be, write_string};
-use crate::net::minecraft::network::play::client::CPacketPlayerDigging::{Action as DiggingAction, CPacketPlayerDigging};
 use crate::net::minecraft::network::play::client::CPacketUseEntity::CPacketUseEntity;
-use crate::net::minecraft::util::math::RayTraceResult::Type as RayTraceType;
+use crate::net::minecraft::network::PacketBuffer::{write_i32_be, write_string};
+use crate::net::minecraft::server::integrated::IntegratedServer::{
+    IntegratedServer, IntegratedServerHandle,
+};
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
-use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
-use crate::net::minecraft::util::SoundCategory::SoundCategory;
+use crate::net::minecraft::util::math::RayTraceResult::Type as RayTraceType;
+use crate::net::minecraft::util::EnumActionResult::EnumActionResult;
+use crate::net::minecraft::util::EnumHand::EnumHand;
 use crate::net::minecraft::util::EnumParticleTypes::EnumParticleTypes;
+use crate::net::minecraft::util::MovementInputFromOptions::MovementKeyState;
+use crate::net::minecraft::util::ReportedException::ReportedException;
+use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::net::minecraft::util::Session::Session;
-use crate::net::minecraft::world::GameType::GameType;
-use crate::net::minecraft::world::WorldSettings::WorldSettings;
+use crate::net::minecraft::util::SoundCategory::SoundCategory;
 use crate::net::minecraft::world::chunk::storage::AnvilSaveConverter::AnvilSaveConverter;
 use crate::net::minecraft::world::storage::WorldInfo::WorldInfo;
-use crate::net::minecraft::server::integrated::IntegratedServer::{IntegratedServer, IntegratedServerHandle};
-use crate::net::optifine::CustomPanorama::select_custom_panorama;
+use crate::net::minecraft::world::ColorizerFoliage::ColorizerFoliage;
+use crate::net::minecraft::world::ColorizerGrass::ColorizerGrass;
+use crate::net::minecraft::world::GameType::GameType;
+use crate::net::minecraft::world::WorldSettings::WorldSettings;
 use crate::net::optifine::shader::gui::GuiShader::{GuiShader, GuiShaderAction};
 use crate::net::optifine::shader::Shaders::Shaders;
+use crate::net::optifine::CustomPanorama::select_custom_panorama;
+use crate::renderer::DesktopRenderer::DesktopRenderer;
 use crate::vulkan::CpuFrame::CpuFrame;
 use crate::vulkan::GuiDrawList::GuiDrawList;
 use crate::vulkan::GuiRenderFrame::GuiRenderFrame;
 use crate::vulkan::NativeImage::NativeImage;
 use crate::vulkan::SoftwareGuiRenderer::SoftwareGuiRenderer;
 use crate::vulkan::VulkanWorldRenderer::{VulkanWorldRenderer, WorldRenderFrame};
-use crate::renderer::DesktopRenderer::DesktopRenderer;
 
 // Minecraft 1.12.2 caps GUI-only screens at 30 FPS through
 // `Minecraft#getLimitFramerate`; loaded worlds continue to use the configured
@@ -194,7 +233,9 @@ impl Minecraft {
                         continue;
                     };
                     if !entry.isCompatibleWith1122()
-                        && !gameSettings.incompatibleResourcePacks.contains(selectedName)
+                        && !gameSettings
+                            .incompatibleResourcePacks
+                            .contains(selectedName)
                     {
                         log::warn!(
                             "resource pack {} uses pack_format {} and has not been confirmed as incompatible",
@@ -217,7 +258,10 @@ impl Minecraft {
                         ),
                     };
                     if let Err(error) = result {
-                        log::warn!("failed enabling resource pack {}: {error}", entry.resourcePackName);
+                        log::warn!(
+                            "failed enabling resource pack {}: {error}",
+                            entry.resourcePackName
+                        );
                     } else {
                         log::info!(
                             "enabled Minecraft 1.12.2 resource pack {} ({})",
@@ -229,7 +273,8 @@ impl Minecraft {
             }
             Err(error) => log::warn!("failed scanning resourcepacks directory: {error}"),
         }
-        let saveLoader = AnvilSaveConverter::new(gameConfiguration.folderInfo.mcDataDir.join("saves"));
+        let saveLoader =
+            AnvilSaveConverter::new(gameConfiguration.folderInfo.mcDataDir.join("saves"));
         Ok(Self {
             gameDir: gameConfiguration.folderInfo.mcDataDir.clone(),
             fileAssets: gameConfiguration.folderInfo.assetsDir.clone(),
@@ -313,9 +358,14 @@ impl Minecraft {
         manager.add_directory_pack("runtime", self.assetRoot.root());
         let mut retained = Vec::new();
         for selectedName in self.gameSettings.resourcePacks.clone() {
-            let Some(entry) = repository.findByName(&selectedName) else { continue; };
+            let Some(entry) = repository.findByName(&selectedName) else {
+                continue;
+            };
             if !entry.isCompatibleWith1122()
-                && !self.gameSettings.incompatibleResourcePacks.contains(&selectedName)
+                && !self
+                    .gameSettings
+                    .incompatibleResourcePacks
+                    .contains(&selectedName)
             {
                 continue;
             }
@@ -324,10 +374,12 @@ impl Minecraft {
                     entry.resourcePackName.clone(),
                     folder_assets_root(&entry.resourcePackFile),
                 ),
-                ResourcePackKind::File => manager.add_zip_pack(
-                    entry.resourcePackName.clone(),
-                    entry.resourcePackFile.clone(),
-                ).map_err(|error| error.to_string())?,
+                ResourcePackKind::File => manager
+                    .add_zip_pack(
+                        entry.resourcePackName.clone(),
+                        entry.resourcePackFile.clone(),
+                    )
+                    .map_err(|error| error.to_string())?,
             }
             retained.push(selectedName);
         }
@@ -340,22 +392,45 @@ impl Minecraft {
         let eventLoop = EventLoop::new().context("failed to create the desktop event loop")?;
         eventLoop.set_control_flow(ControlFlow::Wait);
         let mut application = MinecraftApplication::new(self);
-        eventLoop.run_app(&mut application).context("Minecraft window event loop failed")?;
-        if let Some(error) = application.fatalError { return Err(error); }
+        eventLoop
+            .run_app(&mut application)
+            .context("Minecraft window event loop failed")?;
+        if let Some(error) = application.fatalError {
+            return Err(error);
+        }
         Ok(())
     }
 
-    pub fn getVersion(&self) -> &str { &self.launchedVersion }
-    pub fn getVersionType(&self) -> &str { &self.versionType }
-    pub const fn isDemo(&self) -> bool { self.isDemo }
-    pub const fn isFullScreen(&self) -> bool { self.fullscreen }
-    pub fn getSession(&self) -> &Session { &self.session }
-    pub fn setSession(&mut self, session: Session) { self.session = session; }
-    pub fn assetRoot(&self) -> &AssetRoot { &self.assetRoot }
+    pub fn getVersion(&self) -> &str {
+        &self.launchedVersion
+    }
+    pub fn getVersionType(&self) -> &str {
+        &self.versionType
+    }
+    pub const fn isDemo(&self) -> bool {
+        self.isDemo
+    }
+    pub const fn isFullScreen(&self) -> bool {
+        self.fullscreen
+    }
+    pub fn getSession(&self) -> &Session {
+        &self.session
+    }
+    pub fn setSession(&mut self, session: Session) {
+        self.session = session;
+    }
+    pub fn assetRoot(&self) -> &AssetRoot {
+        &self.assetRoot
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ScreenId { MainMenu, Options, Multiplayer, WorldSelection }
+enum ScreenId {
+    MainMenu,
+    Options,
+    Multiplayer,
+    WorldSelection,
+}
 
 enum ActiveGuiScreen {
     Empty,
@@ -375,19 +450,47 @@ enum ActiveGuiScreen {
     Multiplayer(GuiMultiplayer),
     WorldSelection(GuiWorldSelection),
     CreateWorld(GuiCreateWorld),
-    Language { screen: GuiLanguage, parent: ScreenId },
-    AddServer { screen: GuiScreenAddServer, parent: Box<GuiMultiplayer>, editingIndex: Option<usize> },
-    DirectConnect { screen: GuiScreenServerList, parent: Box<GuiMultiplayer> },
-    ConfirmDelete { screen: GuiYesNo, parent: Box<GuiMultiplayer>, serverIndex: usize },
-    Connecting { screen: GuiConnecting, parent: Box<GuiMultiplayer> },
-    Disconnected { screen: GuiDisconnected, parent: Box<GuiMultiplayer> },
-    DownloadTerrain { screen: GuiDownloadTerrain, connection: GuiConnecting, parent: Box<GuiMultiplayer> },
-    World { connection: GuiConnecting, parent: Box<GuiMultiplayer> },
+    Language {
+        screen: GuiLanguage,
+        parent: ScreenId,
+    },
+    AddServer {
+        screen: GuiScreenAddServer,
+        parent: Box<GuiMultiplayer>,
+        editingIndex: Option<usize>,
+    },
+    DirectConnect {
+        screen: GuiScreenServerList,
+        parent: Box<GuiMultiplayer>,
+    },
+    ConfirmDelete {
+        screen: GuiYesNo,
+        parent: Box<GuiMultiplayer>,
+        serverIndex: usize,
+    },
+    Connecting {
+        screen: GuiConnecting,
+        parent: Box<GuiMultiplayer>,
+    },
+    Disconnected {
+        screen: GuiDisconnected,
+        parent: Box<GuiMultiplayer>,
+    },
+    DownloadTerrain {
+        screen: GuiDownloadTerrain,
+        connection: GuiConnecting,
+        parent: Box<GuiMultiplayer>,
+    },
+    World {
+        connection: GuiConnecting,
+        parent: Box<GuiMultiplayer>,
+    },
 }
 
 impl ActiveGuiScreen {
     fn isAnimated(&self) -> bool {
-        matches!(self, Self::MainMenu(_)) || matches!(self, Self::Multiplayer(screen) if screen.isPinging())
+        matches!(self, Self::MainMenu(_))
+            || matches!(self, Self::Multiplayer(screen) if screen.isPinging())
     }
 }
 
@@ -418,27 +521,40 @@ enum RuntimeGuiAction {
     Switch(ScreenId),
     OpenCreateWorld,
     CreateWorld(WorldCreationRequest),
-    JoinWorld { folderName: String, worldName: String },
+    JoinWorld {
+        folderName: String,
+        worldName: String,
+    },
     OpenLanguage(ScreenId),
     OpenWorldLanguage,
-    OpenAccountManager { notification: Option<String> },
+    OpenAccountManager {
+        notification: Option<String>,
+    },
     OpenMicrosoftAuth,
     OpenSessionLogin,
     OpenOfflineLogin,
-    AccountAuthenticated { session: Session, returnToManager: bool },
+    AccountAuthenticated {
+        session: Session,
+        returnToManager: bool,
+    },
     ToggleUnicode,
     SetLanguage(String),
     SetFov(f32),
     ToggleForceSprint,
     OpenControls,
     OpenWorldControls,
-    ReturnToControlsParent { world: bool },
+    ReturnToControlsParent {
+        world: bool,
+    },
     SetMouseSensitivity(f32),
     ToggleInvertMouse,
     ToggleTouchscreen,
     ToggleAutoJump,
     SelectKeyBinding,
-    SetKeyBinding { binding: KeyBindingId, code: i32 },
+    SetKeyBinding {
+        binding: KeyBindingId,
+        code: i32,
+    },
     ResetKeyBinding(KeyBindingId),
     ResetAllKeyBindings,
     OpenVideoSettings,
@@ -473,11 +589,17 @@ enum RuntimeGuiAction {
     SetChatHeightUnfocused(f32),
     ToggleModelPart(EnumPlayerModelParts),
     ToggleMainHand,
-    ApplyResourcePacks { selected: Vec<String>, world: bool },
+    ApplyResourcePacks {
+        selected: Vec<String>,
+        world: bool,
+    },
     OpenResourcePackFolder,
     SetGamma(f32),
     SetRenderDistance(i32),
-    SetFramerate { limit: i32, enableVsync: bool },
+    SetFramerate {
+        limit: i32,
+        enableVsync: bool,
+    },
     ToggleGraphics,
     CycleAmbientOcclusion,
     CycleGuiScale,
@@ -499,16 +621,32 @@ enum RuntimeGuiAction {
     DisconnectWorld,
     OpenDirectConnect,
     OpenAddServer,
-    OpenEditServer { index: usize, server: ServerData },
-    OpenDeleteConfirm { index: usize, serverName: String },
-    SaveServer { editingIndex: Option<usize>, server: ServerData },
-    DeleteServer { index: usize },
+    OpenEditServer {
+        index: usize,
+        server: ServerData,
+    },
+    OpenDeleteConfirm {
+        index: usize,
+        serverName: String,
+    },
+    SaveServer {
+        editingIndex: Option<usize>,
+        server: ServerData,
+    },
+    DeleteServer {
+        index: usize,
+    },
     Connect(ServerData),
     CancelConnecting,
-    OpenDisconnected { reasonKey: &'static str, message: String },
+    OpenDisconnected {
+        reasonKey: &'static str,
+        message: String,
+    },
     OpenDownloadTerrain,
     OpenWorld,
-    ReturnToMultiplayer { lastServer: Option<String> },
+    ReturnToMultiplayer {
+        lastServer: Option<String>,
+    },
     NotConnected(&'static str),
 }
 
@@ -524,8 +662,6 @@ enum RuntimeFrame {
     /// and pixel rasterization.
     World(WorldRenderFrame),
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum BeaconGuiAction {
@@ -649,7 +785,12 @@ impl DedicatedContainerGui {
     }
 
     fn syncRepairInput(&mut self, stack: &ItemStack, locale: &Locale) -> Option<String> {
-        let Self::Repair { nameField, lastInputStack, .. } = self else {
+        let Self::Repair {
+            nameField,
+            lastInputStack,
+            ..
+        } = self
+        else {
             return None;
         };
         if lastInputStack == stack {
@@ -684,7 +825,12 @@ impl DedicatedContainerGui {
     }
 
     fn repairPacketName(&self, locale: &Locale) -> Option<String> {
-        let Self::Repair { nameField, lastInputStack, .. } = self else {
+        let Self::Repair {
+            nameField,
+            lastInputStack,
+            ..
+        } = self
+        else {
             return None;
         };
         let name = nameField.getText();
@@ -697,7 +843,6 @@ impl DedicatedContainerGui {
             Some(name)
         }
     }
-
 
     fn tickEnchantmentBook(&mut self, inputStack: &ItemStack, enchantLevels: &[i32]) {
         if let Self::Enchantment(gui) = self {
@@ -768,12 +913,21 @@ struct MainMenuRuntime {
 }
 
 impl MainMenuRuntime {
-    fn new(minecraft: &Minecraft, framebufferWidth: u32, framebufferHeight: u32) -> anyhow::Result<Self> {
+    fn new(
+        minecraft: &Minecraft,
+        framebufferWidth: u32,
+        framebufferHeight: u32,
+    ) -> anyhow::Result<Self> {
         let language = minecraft.gameSettings.language.as_str();
-        let languageCodes = if language.eq_ignore_ascii_case("en_us") { vec!["en_us"] } else { vec!["en_us", language] };
+        let languageCodes = if language.eq_ignore_ascii_case("en_us") {
+            vec!["en_us"]
+        } else {
+            vec!["en_us", language]
+        };
         let locale = Locale::load(&minecraft.resourceManager, &languageCodes, &["minecraft"]);
         let mut languageManager = LanguageManager::new(minecraft.gameSettings.language.clone());
-        languageManager.parseLanguageMetadata(&minecraft.resourceManager.read_pack_metadatas("pack"));
+        languageManager
+            .parseLanguageMetadata(&minecraft.resourceManager.read_pack_metadatas("pack"));
         let unicode = minecraft.gameSettings.forceUnicodeFont || locale.is_unicode();
         let mut fontRendererObj = FontRenderer::load(
             &minecraft.resourceManager,
@@ -781,7 +935,8 @@ impl MainMenuRuntime {
             unicode,
             minecraft.gameSettings.anaglyph,
             minecraft.gameSettings.ofCustomFonts,
-        ).context("failed loading Minecraft FontRenderer resources")?;
+        )
+        .context("failed loading Minecraft FontRenderer resources")?;
         fontRendererObj.set_bidi_flag(languageManager.isCurrentLanguageBidirectional());
         // Clone the MCP-facing resources before moving their primary owners
         // into `MainMenuRuntime`; the world renderer keeps its own mutable
@@ -850,16 +1005,27 @@ impl MainMenuRuntime {
     }
 
     fn createMainMenu(minecraft: &Minecraft) -> anyhow::Result<GuiMainMenu> {
-        let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos() as i64;
+        let seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as i64;
         let mut random = JavaRandom::new(seed);
         let customPanorama = select_custom_panorama(&minecraft.resourceManager, &mut random)
             .context("invalid OptiFine custom panorama configuration")?;
-        Ok(GuiMainMenu::new(&minecraft.resourceManager, &mut random, customPanorama))
+        Ok(GuiMainMenu::new(
+            &minecraft.resourceManager,
+            &mut random,
+            customPanorama,
+        ))
     }
 
-    fn isAnimated(&self) -> bool { self.currentScreen.isAnimated() }
+    fn isAnimated(&self) -> bool {
+        self.currentScreen.isAnimated()
+    }
 
-    fn isWorld(&self) -> bool { matches!(self.currentScreen, ActiveGuiScreen::World { .. }) }
+    fn isWorld(&self) -> bool {
+        matches!(self.currentScreen, ActiveGuiScreen::World { .. })
+    }
 
     /// MCP `Minecraft.world != null`. `GuiDownloadTerrain` is displayed only
     /// after `NetHandlerPlayClient#handleJoinGame` has created and loaded the
@@ -875,7 +1041,13 @@ impl MainMenuRuntime {
     /// `currentScreen instanceof GuiContainer` for the two concrete container
     /// screens currently migrated: `GuiInventory` and `GuiChest`.
     fn isInventoryOpen(&self) -> bool {
-        self.isWorld() && (self.inventoryOpen || self.creativeInventoryOpen || self.guiChest.is_some() || self.guiShulkerBox.is_some() || self.guiHorse.is_some() || self.guiDedicated.is_some())
+        self.isWorld()
+            && (self.inventoryOpen
+                || self.creativeInventoryOpen
+                || self.guiChest.is_some()
+                || self.guiShulkerBox.is_some()
+                || self.guiHorse.is_some()
+                || self.guiDedicated.is_some())
     }
 
     /// Equivalent of `Minecraft.currentScreen != null` for the world-side
@@ -914,18 +1086,36 @@ impl MainMenuRuntime {
                 screen.initGui(width, height, &self.locale, &minecraft.gameSettings);
             }
             Some(WorldGuiScreen::Controls(screen)) => {
-                screen.initGui(width, height, &self.locale, &minecraft.gameSettings, &self.fontRendererObj);
+                screen.initGui(
+                    width,
+                    height,
+                    &self.locale,
+                    &minecraft.gameSettings,
+                    &self.fontRendererObj,
+                );
             }
             Some(WorldGuiScreen::VideoSettings(screen)) => {
                 screen.initGui(width, height, &self.locale, &minecraft.gameSettings);
             }
             Some(WorldGuiScreen::ShaderSettings(screen)) => screen.initGui(width, height),
-            Some(WorldGuiScreen::SoundSettings(screen)) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
-            Some(WorldGuiScreen::ChatSettings(screen)) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
-            Some(WorldGuiScreen::SkinSettings(screen)) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
-            Some(WorldGuiScreen::ResourcePacks(screen)) => screen.initGui(width, height, &self.locale),
+            Some(WorldGuiScreen::SoundSettings(screen)) => {
+                screen.initGui(width, height, &self.locale, &minecraft.gameSettings)
+            }
+            Some(WorldGuiScreen::ChatSettings(screen)) => {
+                screen.initGui(width, height, &self.locale, &minecraft.gameSettings)
+            }
+            Some(WorldGuiScreen::SkinSettings(screen)) => {
+                screen.initGui(width, height, &self.locale, &minecraft.gameSettings)
+            }
+            Some(WorldGuiScreen::ResourcePacks(screen)) => {
+                screen.initGui(width, height, &self.locale)
+            }
             Some(WorldGuiScreen::Language(screen)) => screen.initGui(
-                width, height, &self.locale, &minecraft.gameSettings, &self.languageManager,
+                width,
+                height,
+                &self.locale,
+                &minecraft.gameSettings,
+                &self.languageManager,
             ),
             Some(WorldGuiScreen::EditSign(screen)) => {
                 screen.initGui(width, height, &self.locale);
@@ -956,13 +1146,17 @@ impl MainMenuRuntime {
     }
 
     fn openWorldOptions(&mut self, minecraft: &Minecraft) {
-        if !self.isWorld() { return; }
+        if !self.isWorld() {
+            return;
+        }
         self.worldGuiScreen = Some(WorldGuiScreen::Options(GuiOptions::new()));
         self.initWorldGui(minecraft);
     }
 
     fn openWorldLanguage(&mut self, minecraft: &Minecraft) {
-        if !self.isWorld() { return; }
+        if !self.isWorld() {
+            return;
+        }
         self.worldGuiScreen = Some(WorldGuiScreen::Language(GuiLanguage::new(
             minecraft.gameSettings.language.clone(),
         )));
@@ -970,19 +1164,25 @@ impl MainMenuRuntime {
     }
 
     fn openWorldControls(&mut self, minecraft: &Minecraft) {
-        if !self.isWorld() { return; }
+        if !self.isWorld() {
+            return;
+        }
         self.worldGuiScreen = Some(WorldGuiScreen::Controls(GuiControls::new()));
         self.initWorldGui(minecraft);
     }
 
     fn openWorldVideoSettings(&mut self, minecraft: &Minecraft) {
-        if !self.isWorld() { return; }
+        if !self.isWorld() {
+            return;
+        }
         self.worldGuiScreen = Some(WorldGuiScreen::VideoSettings(GuiVideoSettings::new()));
         self.initWorldGui(minecraft);
     }
 
     fn openWorldShaderSettings(&mut self, minecraft: &Minecraft, rendererDescription: String) {
-        if !self.isWorld() { return; }
+        if !self.isWorld() {
+            return;
+        }
         self.worldGuiScreen = Some(WorldGuiScreen::ShaderSettings(GuiShader::newWithSettings(
             minecraft.gameDir.clone(),
             rendererDescription,
@@ -993,7 +1193,9 @@ impl MainMenuRuntime {
     }
 
     fn returnToWorldVideoSettings(&mut self, minecraft: &Minecraft) {
-        if !self.isWorld() { return; }
+        if !self.isWorld() {
+            return;
+        }
         self.worldGuiScreen = Some(WorldGuiScreen::VideoSettings(GuiVideoSettings::new()));
         self.initWorldGui(minecraft);
     }
@@ -1015,14 +1217,18 @@ impl MainMenuRuntime {
         self.currentScreen = ActiveGuiScreen::SkinSettings(GuiCustomizeSkin::new());
         self.initCurrentScreen(minecraft);
     }
-    fn decodedResourcePackIcons(repository: &ResourcePackRepository) -> Vec<(ResourceLocation, NativeImage)> {
+    fn decodedResourcePackIcons(
+        repository: &ResourcePackRepository,
+    ) -> Vec<(ResourceLocation, NativeImage)> {
         let mut icons = Vec::new();
         match NativeImage::decode_png(defaultPackIconBytes()) {
             Ok(image) => icons.push((defaultPackIconLocation(), image)),
             Err(error) => log::warn!("failed decoding vanilla default resource-pack icon: {error}"),
         }
         for entry in repository.getRepositoryEntriesAll() {
-            let Some(bytes) = entry.iconBytes.as_deref() else { continue; };
+            let Some(bytes) = entry.iconBytes.as_deref() else {
+                continue;
+            };
             match NativeImage::decode_png(bytes) {
                 Ok(image) => icons.push((entry.iconLocation.clone(), image)),
                 Err(error) => log::warn!(
@@ -1041,25 +1247,41 @@ impl MainMenuRuntime {
     }
 
     fn registerWorldResourcePackIcons(&mut self, repository: &ResourcePackRepository) {
-        self.worldRenderer.setResourcePackIconTextures(Self::decodedResourcePackIcons(repository));
+        self.worldRenderer
+            .setResourcePackIconTextures(Self::decodedResourcePackIcons(repository));
     }
 
     fn openResourcePacks(&mut self, minecraft: &Minecraft) {
-        let repository = ResourcePackRepository::scan(&minecraft.fileResourcepacks).unwrap_or_default();
+        let repository =
+            ResourcePackRepository::scan(&minecraft.fileResourcepacks).unwrap_or_default();
         self.registerMenuResourcePackIcons(&repository);
         self.currentScreen = ActiveGuiScreen::ResourcePacks(GuiScreenResourcePacks::new(
-            repository, minecraft.gameSettings.resourcePacks.clone(), minecraft.fileResourcepacks.clone(),
+            repository,
+            minecraft.gameSettings.resourcePacks.clone(),
+            minecraft.fileResourcepacks.clone(),
         ));
         self.initCurrentScreen(minecraft);
     }
-    fn openWorldSoundSettings(&mut self, minecraft: &Minecraft) { self.worldGuiScreen = Some(WorldGuiScreen::SoundSettings(GuiScreenOptionsSounds::new())); self.initWorldGui(minecraft); }
-    fn openWorldChatSettings(&mut self, minecraft: &Minecraft) { self.worldGuiScreen = Some(WorldGuiScreen::ChatSettings(ScreenChatOptions::new())); self.initWorldGui(minecraft); }
-    fn openWorldSkinSettings(&mut self, minecraft: &Minecraft) { self.worldGuiScreen = Some(WorldGuiScreen::SkinSettings(GuiCustomizeSkin::new())); self.initWorldGui(minecraft); }
+    fn openWorldSoundSettings(&mut self, minecraft: &Minecraft) {
+        self.worldGuiScreen = Some(WorldGuiScreen::SoundSettings(GuiScreenOptionsSounds::new()));
+        self.initWorldGui(minecraft);
+    }
+    fn openWorldChatSettings(&mut self, minecraft: &Minecraft) {
+        self.worldGuiScreen = Some(WorldGuiScreen::ChatSettings(ScreenChatOptions::new()));
+        self.initWorldGui(minecraft);
+    }
+    fn openWorldSkinSettings(&mut self, minecraft: &Minecraft) {
+        self.worldGuiScreen = Some(WorldGuiScreen::SkinSettings(GuiCustomizeSkin::new()));
+        self.initWorldGui(minecraft);
+    }
     fn openWorldResourcePacks(&mut self, minecraft: &Minecraft) {
-        let repository = ResourcePackRepository::scan(&minecraft.fileResourcepacks).unwrap_or_default();
+        let repository =
+            ResourcePackRepository::scan(&minecraft.fileResourcepacks).unwrap_or_default();
         self.registerWorldResourcePackIcons(&repository);
         self.worldGuiScreen = Some(WorldGuiScreen::ResourcePacks(GuiScreenResourcePacks::new(
-            repository, minecraft.gameSettings.resourcePacks.clone(), minecraft.fileResourcepacks.clone(),
+            repository,
+            minecraft.gameSettings.resourcePacks.clone(),
+            minecraft.fileResourcepacks.clone(),
         )));
         self.initWorldGui(minecraft);
     }
@@ -1072,12 +1294,16 @@ impl MainMenuRuntime {
     /// Vanilla creates a temporary TileEntitySign if its chunk tile packet has
     /// not arrived yet; the same fallback is kept here.
     fn openPendingSignEditor(&mut self) {
-        if !self.isWorld() { return; }
+        if !self.isWorld() {
+            return;
+        }
         let shared = match &self.currentScreen {
             ActiveGuiScreen::World { connection, .. } => connection.getSharedPlayState(),
             _ => return,
         };
-        let Some(position) = shared.takePendingSignEditorPosition() else { return; };
+        let Some(position) = shared.takePendingSignEditorPosition() else {
+            return;
+        };
         let Some((sign, blockId, metadata)) = shared.withWrite(|state| {
             let world = state.worldClient.as_mut()?;
             let blockState = world.getBlockState(position);
@@ -1099,7 +1325,6 @@ impl MainMenuRuntime {
         self.clearMovementKeys();
         self.pendingWorldMouseFocus = Some(false);
     }
-
 
     fn finishSignEditor(&mut self) -> Result<(), String> {
         let Some(WorldGuiScreen::EditSign(screen)) = self.worldGuiScreen.take() else {
@@ -1125,15 +1350,25 @@ impl MainMenuRuntime {
         Ok(())
     }
 
-    fn openGameOver(&mut self, message: crate::net::minecraft::util::text::ITextComponent::ITextComponent) {
-        if !self.isWorld() { return; }
+    fn openGameOver(
+        &mut self,
+        message: crate::net::minecraft::util::text::ITextComponent::ITextComponent,
+    ) {
+        if !self.isWorld() {
+            return;
+        }
         let (hardcore, score) = match &self.currentScreen {
-            ActiveGuiScreen::World { connection, .. } => connection.getSharedPlayState().withRead(|state| {
-                (
-                    state.hardcoreMode,
-                    state.thePlayer.as_ref().map_or(0, |player| player.getScore()),
-                )
-            }),
+            ActiveGuiScreen::World { connection, .. } => {
+                connection.getSharedPlayState().withRead(|state| {
+                    (
+                        state.hardcoreMode,
+                        state
+                            .thePlayer
+                            .as_ref()
+                            .map_or(0, |player| player.getScore()),
+                    )
+                })
+            }
             _ => return,
         };
         let mut screen = GuiGameOver::new(Some(message), hardcore, score);
@@ -1152,24 +1387,31 @@ impl MainMenuRuntime {
             ActiveGuiScreen::World { connection, .. } => connection,
             _ => return Ok(()),
         };
-        connection.sendPlayPackets(vec![
-            CPacketClientStatus::new(ClientStatusState::PerformRespawn).writePacketData(),
-        ])?;
+        connection.sendPlayPackets(vec![CPacketClientStatus::new(
+            ClientStatusState::PerformRespawn,
+        )
+        .writePacketData()])?;
         self.worldGuiScreen = None;
         self.pendingWorldMouseFocus = Some(true);
         Ok(())
     }
 
     fn openDeathQuitConfirm(&mut self) {
-        let Some(WorldGuiScreen::GameOver(parent)) = self.worldGuiScreen.take() else { return; };
+        let Some(WorldGuiScreen::GameOver(parent)) = self.worldGuiScreen.take() else {
+            return;
+        };
         if parent.isHardcore() {
             self.worldGuiScreen = Some(WorldGuiScreen::GameOver(parent));
             return;
         }
         let mut screen = GuiYesNo::new(
-            self.locale.translate_key("deathScreen.quit.confirm").to_owned(),
+            self.locale
+                .translate_key("deathScreen.quit.confirm")
+                .to_owned(),
             String::new(),
-            self.locale.translate_key("deathScreen.titleScreen").to_owned(),
+            self.locale
+                .translate_key("deathScreen.titleScreen")
+                .to_owned(),
             self.locale.translate_key("deathScreen.respawn").to_owned(),
             0,
         );
@@ -1201,7 +1443,9 @@ impl MainMenuRuntime {
         } else if let Some(gui) = self.guiHorse.as_ref() {
             Some(&gui.container)
         } else {
-            self.guiDedicated.as_ref().map(DedicatedContainerGui::container)
+            self.guiDedicated
+                .as_ref()
+                .map(DedicatedContainerGui::container)
         }
     }
 
@@ -1217,7 +1461,9 @@ impl MainMenuRuntime {
         } else if let Some(gui) = self.guiHorse.as_mut() {
             Some(&mut gui.container)
         } else {
-            self.guiDedicated.as_mut().map(DedicatedContainerGui::containerMut)
+            self.guiDedicated
+                .as_mut()
+                .map(DedicatedContainerGui::containerMut)
         }
     }
 
@@ -1226,20 +1472,38 @@ impl MainMenuRuntime {
     }
 
     fn activeProtocolSlotAt(&self, mouseX: i32, mouseY: i32) -> i32 {
-        let Some(container) = self.activeGuiContainer() else { return -1; };
-        if let Some(slot) = container.slotAt(mouseX, mouseY) { return slot; }
+        let Some(container) = self.activeGuiContainer() else {
+            return -1;
+        };
+        if let Some(slot) = container.slotAt(mouseX, mouseY) {
+            return slot;
+        }
         let recipeOutside = if self.inventoryOpen {
             self.guiInventory.recipeBook.isPointOutside(
-                mouseX, mouseY, container.guiLeft, container.guiTop, container.xSize, container.ySize,
+                mouseX,
+                mouseY,
+                container.guiLeft,
+                container.guiTop,
+                container.xSize,
+                container.ySize,
             )
         } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_ref() {
             gui.recipeBook.isPointOutside(
-                mouseX, mouseY, container.guiLeft, container.guiTop, container.xSize, container.ySize,
+                mouseX,
+                mouseY,
+                container.guiLeft,
+                container.guiTop,
+                container.xSize,
+                container.ySize,
             )
         } else {
             container.isOutsideGui(mouseX, mouseY)
         };
-        if recipeOutside { -999 } else { -1 }
+        if recipeOutside {
+            -999
+        } else {
+            -1
+        }
     }
 
     /// Synchronizes the concrete `GuiRecipeBook` from `EntityPlayerSP` and the
@@ -1252,28 +1516,57 @@ impl MainMenuRuntime {
             _ => return,
         };
         let inventoryScreen = self.inventoryOpen;
-        let workbenchScreen = matches!(self.guiDedicated.as_ref(), Some(DedicatedContainerGui::Crafting(_)));
-        if !inventoryScreen && !workbenchScreen { return; }
+        let workbenchScreen = matches!(
+            self.guiDedicated.as_ref(),
+            Some(DedicatedContainerGui::Crafting(_))
+        );
+        if !inventoryScreen && !workbenchScreen {
+            return;
+        }
         let Some((book, inventory, craftingStacks, windowId)) = shared.withRead(|state| {
             let player = state.thePlayer.as_ref()?;
             if inventoryScreen {
                 let stacks = (1..=4)
-                    .map(|slot| player.inventoryContainer.getSlot(slot).cloned().unwrap_or(ItemStack::EMPTY))
+                    .map(|slot| {
+                        player
+                            .inventoryContainer
+                            .getSlot(slot)
+                            .cloned()
+                            .unwrap_or(ItemStack::EMPTY)
+                    })
                     .collect::<Vec<_>>();
-                Some((player.recipeBook.clone(), player.inventory.clone(), stacks, 0))
+                Some((
+                    player.recipeBook.clone(),
+                    player.inventory.clone(),
+                    stacks,
+                    0,
+                ))
             } else {
                 let container = player.openContainer.as_ref()?;
-                if container.windowKind() != Some(ContainerWindowKind::Workbench) { return None; }
+                if container.windowKind() != Some(ContainerWindowKind::Workbench) {
+                    return None;
+                }
                 let stacks = (1..=9)
                     .map(|slot| container.getSlot(slot).cloned().unwrap_or(ItemStack::EMPTY))
                     .collect::<Vec<_>>();
-                Some((player.recipeBook.clone(), player.inventory.clone(), stacks, container.windowId()))
+                Some((
+                    player.recipeBook.clone(),
+                    player.inventory.clone(),
+                    stacks,
+                    container.windowId(),
+                ))
             }
-        }) else { return; };
+        }) else {
+            return;
+        };
 
         if inventoryScreen {
             self.guiInventory.rebuildRecipeBook(
-                &book, &inventory, &craftingStacks, resetPage, &self.locale,
+                &book,
+                &inventory,
+                &craftingStacks,
+                resetPage,
+                &self.locale,
             );
         } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_mut() {
             gui.rebuildRecipeBook(&book, &inventory, &craftingStacks, resetPage, &self.locale);
@@ -1293,11 +1586,17 @@ impl MainMenuRuntime {
         };
         if !newlyDisplayed.is_empty() {
             let packets = shared.withWrite(|state| {
-                let Some(player) = state.thePlayer.as_mut() else { return Vec::new(); };
+                let Some(player) = state.thePlayer.as_mut() else {
+                    return Vec::new();
+                };
                 let mut packets = Vec::new();
                 for recipeId in &newlyDisplayed {
-                    let Some(recipe) = CraftingManager::getRecipe(*recipeId) else { continue; };
-                    if !player.recipeBook.isNew(recipe) { continue; }
+                    let Some(recipe) = CraftingManager::getRecipe(*recipeId) else {
+                        continue;
+                    };
+                    if !player.recipeBook.isNew(recipe) {
+                        continue;
+                    }
                     player.recipeBook.markSeen(recipe);
                     if let Ok(packet) = CPacketRecipeInfo::shown(*recipeId) {
                         packets.push(packet.writePacketData());
@@ -1316,13 +1615,17 @@ impl MainMenuRuntime {
 
         let pending = shared.withWrite(|state| {
             let pending = state.pendingGhostRecipe?;
-            if i32::from(pending.0) != windowId { return None; }
+            if i32::from(pending.0) != windowId {
+                return None;
+            }
             state.pendingGhostRecipe.take()
         });
         if let Some((_window, recipeId)) = pending {
             if inventoryScreen {
                 let positions = self.guiInventory.craftingSlotPositions();
-                self.guiInventory.recipeBook.placeGhostRecipe(recipeId, &positions, 2, 2);
+                self.guiInventory
+                    .recipeBook
+                    .placeGhostRecipe(recipeId, &positions, 2, 2);
             } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_mut() {
                 let positions = gui.craftingSlotPositions();
                 gui.recipeBook.placeGhostRecipe(recipeId, &positions, 3, 3);
@@ -1336,11 +1639,26 @@ impl MainMenuRuntime {
             ActiveGuiScreen::World { connection, .. } => connection.getSharedPlayState(),
             _ => return None,
         };
-        let book = shared.withRead(|state| state.thePlayer.as_ref().map(|player| player.recipeBook.clone()))?;
+        let book = shared.withRead(|state| {
+            state
+                .thePlayer
+                .as_ref()
+                .map(|player| player.recipeBook.clone())
+        })?;
         if self.inventoryOpen {
-            Some(self.guiInventory.recipeBook.renderState(true, &book, GuiInventory::X_SIZE, &self.fontRendererObj))
+            Some(self.guiInventory.recipeBook.renderState(
+                true,
+                &book,
+                GuiInventory::X_SIZE,
+                &self.fontRendererObj,
+            ))
         } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_ref() {
-            Some(gui.recipeBook.renderState(false, &book, GuiCrafting::X_SIZE, &self.fontRendererObj))
+            Some(gui.recipeBook.renderState(
+                false,
+                &book,
+                GuiCrafting::X_SIZE,
+                &self.fontRendererObj,
+            ))
         } else {
             None
         }
@@ -1355,24 +1673,49 @@ impl MainMenuRuntime {
     ) -> Result<Option<bool>, String> {
         self.syncRecipeBookGui(false);
         let inventoryScreen = self.inventoryOpen;
-        let workbenchScreen = matches!(self.guiDedicated.as_ref(), Some(DedicatedContainerGui::Crafting(_)));
-        if !inventoryScreen && !workbenchScreen { return Ok(None); }
+        let workbenchScreen = matches!(
+            self.guiDedicated.as_ref(),
+            Some(DedicatedContainerGui::Crafting(_))
+        );
+        if !inventoryScreen && !workbenchScreen {
+            return Ok(None);
+        }
         let shared = match &self.currentScreen {
             ActiveGuiScreen::World { connection, .. } => connection.getSharedPlayState(),
             _ => return Ok(None),
         };
         let Some((mut book, windowId)) = shared.withRead(|state| {
             let player = state.thePlayer.as_ref()?;
-            let windowId = if inventoryScreen { 0 } else { player.openContainer.as_ref()?.windowId() };
+            let windowId = if inventoryScreen {
+                0
+            } else {
+                player.openContainer.as_ref()?.windowId()
+            };
             Some((player.recipeBook.clone(), windowId))
-        }) else { return Ok(None); };
+        }) else {
+            return Ok(None);
+        };
 
         let click = if inventoryScreen {
             self.guiInventory.recipeBook.click(
-                true, mouseX, mouseY, mouseButton, shiftHeld, &mut book, &self.fontRendererObj,
+                true,
+                mouseX,
+                mouseY,
+                mouseButton,
+                shiftHeld,
+                &mut book,
+                &self.fontRendererObj,
             )
         } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_mut() {
-            gui.recipeBook.click(false, mouseX, mouseY, mouseButton, shiftHeld, &mut book, &self.fontRendererObj)
+            gui.recipeBook.click(
+                false,
+                mouseX,
+                mouseY,
+                mouseButton,
+                shiftHeld,
+                &mut book,
+                &self.fontRendererObj,
+            )
         } else {
             RecipeBookClick::None
         };
@@ -1402,7 +1745,11 @@ impl MainMenuRuntime {
                 self.syncRecipeBookGui(false);
                 return Ok(Some(true));
             }
-            RecipeBookClick::PlaceRecipe { recipeId, placeAll, closeBook } => {
+            RecipeBookClick::PlaceRecipe {
+                recipeId,
+                placeAll,
+                closeBook,
+            } => {
                 let packet = CPacketPlaceRecipe::new(windowId, recipeId, placeAll)
                     .map_err(|error| error.to_string())?
                     .writePacketData();
@@ -1439,7 +1786,9 @@ impl MainMenuRuntime {
             self.guiDedicated.as_ref(),
             Some(DedicatedContainerGui::Crafting(_))
         );
-        if !inventoryScreen && !workbenchScreen { return Ok(false); }
+        if !inventoryScreen && !workbenchScreen {
+            return Ok(false);
+        }
         self.syncRecipeBookGui(false);
 
         let shared = match &self.currentScreen {
@@ -1447,8 +1796,13 @@ impl MainMenuRuntime {
             _ => return Ok(false),
         };
         let Some(mut book) = shared.withRead(|state| {
-            state.thePlayer.as_ref().map(|player| player.recipeBook.clone())
-        }) else { return Ok(false); };
+            state
+                .thePlayer
+                .as_ref()
+                .map(|player| player.recipeBook.clone())
+        }) else {
+            return Ok(false);
+        };
 
         if key == KeyCode::Escape {
             let action = if inventoryScreen {
@@ -1482,7 +1836,9 @@ impl MainMenuRuntime {
             } else {
                 false
             };
-            if focused { return Ok(true); }
+            if focused {
+                return Ok(true);
+            }
         }
 
         let textModifiers = GuiTextFieldModifiers {
@@ -1491,13 +1847,17 @@ impl MainMenuRuntime {
         };
         if key == KeyCode::KeyA && modifiers.control_key() {
             let handled = if inventoryScreen {
-                self.guiInventory.recipeBook.selectAllSearch(&self.fontRendererObj)
+                self.guiInventory
+                    .recipeBook
+                    .selectAllSearch(&self.fontRendererObj)
             } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_mut() {
                 gui.recipeBook.selectAllSearch(&self.fontRendererObj)
             } else {
                 false
             };
-            if handled { return Ok(true); }
+            if handled {
+                return Ok(true);
+            }
         }
 
         let textKey = match key {
@@ -1512,22 +1872,33 @@ impl MainMenuRuntime {
         if let Some(textKey) = textKey {
             let (handled, changed) = if inventoryScreen {
                 self.guiInventory.recipeBook.keyPressed(
-                    textKey, textModifiers, &self.fontRendererObj,
+                    textKey,
+                    textModifiers,
+                    &self.fontRendererObj,
                 )
             } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_mut() {
-                gui.recipeBook.keyPressed(textKey, textModifiers, &self.fontRendererObj)
+                gui.recipeBook
+                    .keyPressed(textKey, textModifiers, &self.fontRendererObj)
             } else {
                 (false, false)
             };
-            if changed { self.syncRecipeBookGui(false); }
-            if handled { return Ok(true); }
+            if changed {
+                self.syncRecipeBookGui(false);
+            }
+            if handled {
+                return Ok(true);
+            }
         }
 
         if !modifiers.control_key() && !modifiers.alt_key() {
             if let Some(text) = eventText {
                 let changed = if inventoryScreen {
-                    self.guiInventory.recipeBook.typedText(text, &self.fontRendererObj)
-                } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_mut() {
+                    self.guiInventory
+                        .recipeBook
+                        .typedText(text, &self.fontRendererObj)
+                } else if let Some(DedicatedContainerGui::Crafting(gui)) =
+                    self.guiDedicated.as_mut()
+                {
                     gui.recipeBook.typedText(text, &self.fontRendererObj)
                 } else {
                     false
@@ -1578,7 +1949,10 @@ impl MainMenuRuntime {
         key: KeyCode,
         modifiers: ModifiersState,
     ) -> Result<bool, String> {
-        if !matches!(self.guiDedicated.as_ref(), Some(DedicatedContainerGui::Repair { .. })) {
+        if !matches!(
+            self.guiDedicated.as_ref(),
+            Some(DedicatedContainerGui::Repair { .. })
+        ) {
             return Ok(false);
         }
         let textModifiers = GuiTextFieldModifiers {
@@ -1648,15 +2022,20 @@ impl MainMenuRuntime {
             }
         };
         let openWindow = sharedState.withRead(|state| {
-            state.thePlayer.as_ref()?.openContainer.as_ref().map(|container| {
-                (
-                    container.windowId(),
-                    container.getNumRows() as i32,
-                    container.isShulkerBox(),
-                    container.horseInventorySpec(),
-                    container.windowKind(),
-                )
-            })
+            state
+                .thePlayer
+                .as_ref()?
+                .openContainer
+                .as_ref()
+                .map(|container| {
+                    (
+                        container.windowId(),
+                        container.getNumRows() as i32,
+                        container.isShulkerBox(),
+                        container.horseInventorySpec(),
+                        container.windowKind(),
+                    )
+                })
         });
         match openWindow {
             Some((windowId, rows, shulkerBox, horseSpec, dedicatedKind)) => {
@@ -1671,7 +2050,9 @@ impl MainMenuRuntime {
                 self.closeChat();
 
                 let currentKindMatches = if let Some(kind) = dedicatedKind {
-                    self.guiDedicated.as_ref().is_some_and(|gui| gui.kind() == kind)
+                    self.guiDedicated
+                        .as_ref()
+                        .is_some_and(|gui| gui.kind() == kind)
                         && self.guiChest.is_none()
                         && self.guiShulkerBox.is_none()
                         && self.guiHorse.is_none()
@@ -1686,12 +2067,15 @@ impl MainMenuRuntime {
                         && self.guiShulkerBox.is_none()
                         && self.guiDedicated.is_none()
                 } else {
-                    self.guiChest.as_ref().is_some_and(|gui| gui.inventoryRows == rows)
+                    self.guiChest
+                        .as_ref()
+                        .is_some_and(|gui| gui.inventoryRows == rows)
                         && self.guiShulkerBox.is_none()
                         && self.guiHorse.is_none()
                         && self.guiDedicated.is_none()
                 };
-                let needsCreate = !currentKindMatches || self.guiContainerWindowId != Some(windowId);
+                let needsCreate =
+                    !currentKindMatches || self.guiContainerWindowId != Some(windowId);
                 if needsCreate {
                     if let Some(mut previous) = self.guiChest.take() {
                         previous.container.resetInteraction();
@@ -1763,7 +2147,9 @@ impl MainMenuRuntime {
                             .and_then(|gui| gui.repairPacketName(&self.locale))
                             .unwrap_or_default();
                         if let Err(error) = self.sendAnvilName(&name) {
-                            log::error!("failed sending MC|ItemName after anvil input sync: {error}");
+                            log::error!(
+                                "failed sending MC|ItemName after anvil input sync: {error}"
+                            );
                         }
                     }
                 }
@@ -1801,14 +2187,18 @@ impl MainMenuRuntime {
     /// This also covers server `/gamemode` changes while the screen remains
     /// open rather than requiring the player to close and reopen it.
     fn syncInventoryGameType(&mut self) {
-        if !self.inventoryOpen && !self.creativeInventoryOpen { return; }
+        if !self.inventoryOpen && !self.creativeInventoryOpen {
+            return;
+        }
         let creative = match &self.currentScreen {
             ActiveGuiScreen::World { connection, .. } => connection
                 .getSharedPlayState()
                 .withRead(|state| state.gameType == GameType::Creative),
             _ => return,
         };
-        if creative == self.creativeInventoryOpen { return; }
+        if creative == self.creativeInventoryOpen {
+            return;
+        }
 
         self.guiInventory.container.resetInteraction();
         self.guiCreative.container.resetInteraction();
@@ -1830,7 +2220,9 @@ impl MainMenuRuntime {
     }
 
     fn openInventory(&mut self) -> bool {
-        if !self.isWorld() || self.isInventoryOpen() { return false; }
+        if !self.isWorld() || self.isInventoryOpen() {
+            return false;
+        }
         let creative = match &self.currentScreen {
             ActiveGuiScreen::World { connection, .. } => connection
                 .getSharedPlayState()
@@ -1861,7 +2253,9 @@ impl MainMenuRuntime {
     }
 
     fn closeInventory(&mut self) -> Result<bool, String> {
-        if !self.isInventoryOpen() { return Ok(false); }
+        if !self.isInventoryOpen() {
+            return Ok(false);
+        }
         let mut windowId = 0;
         if self.creativeInventoryOpen {
             self.creativeInventoryOpen = false;
@@ -1872,7 +2266,9 @@ impl MainMenuRuntime {
         } else if let ActiveGuiScreen::World { connection, .. } = &self.currentScreen {
             let shared = connection.getSharedPlayState();
             windowId = shared.withRead(|state| {
-                state.thePlayer.as_ref()
+                state
+                    .thePlayer
+                    .as_ref()
                     .and_then(|player| player.openContainer.as_ref())
                     .map_or(0, |container| container.windowId())
             });
@@ -1894,7 +2290,8 @@ impl MainMenuRuntime {
         self.lastInventoryClick = None;
         self.inventoryShiftClickedStack = ItemStack::EMPTY;
         if let ActiveGuiScreen::World { connection, .. } = &self.currentScreen {
-            connection.sendPlayPackets(vec![CPacketCloseWindow::new(windowId).writePacketData()])?;
+            connection
+                .sendPlayPackets(vec![CPacketCloseWindow::new(windowId).writePacketData()])?;
         }
         Ok(true)
     }
@@ -1922,7 +2319,9 @@ impl MainMenuRuntime {
     }
 
     fn setPlayerListKeyDown(&mut self, pressed: bool) -> bool {
-        if !self.isWorld() || self.isInventoryOpen() || self.isChatOpen() { return false; }
+        if !self.isWorld() || self.isInventoryOpen() || self.isChatOpen() {
+            return false;
+        }
         let changed = self.playerListKeyDown != pressed;
         self.playerListKeyDown = pressed;
         changed
@@ -1930,9 +2329,14 @@ impl MainMenuRuntime {
 
     fn currentPlayerTicks(&self) -> i32 {
         match &self.currentScreen {
-            ActiveGuiScreen::World { connection, .. } => connection
-                .getSharedPlayState()
-                .withRead(|state| state.thePlayer.as_ref().map_or(0, |player| player.entity.ticksExisted)),
+            ActiveGuiScreen::World { connection, .. } => {
+                connection.getSharedPlayState().withRead(|state| {
+                    state
+                        .thePlayer
+                        .as_ref()
+                        .map_or(0, |player| player.entity.ticksExisted)
+                })
+            }
             _ => 0,
         }
     }
@@ -1940,7 +2344,7 @@ impl MainMenuRuntime {
     fn debugChatWidth(gameSettings: &GameSettings) -> i32 {
         ((GuiNewChat::calculateChatboxWidth(gameSettings.chatWidth.clamp(0.0, 1.0)) as f32)
             / gameSettings.chatScale.max(0.01))
-            .floor() as i32
+        .floor() as i32
     }
 
     fn printDebugMessage(&mut self, key: &str, gameSettings: &GameSettings) {
@@ -1953,12 +2357,7 @@ impl MainMenuRuntime {
         );
     }
 
-    fn printDebugValue(
-        &mut self,
-        key: &str,
-        value: impl AsRef<str>,
-        gameSettings: &GameSettings,
-    ) {
+    fn printDebugValue(&mut self, key: &str, value: impl AsRef<str>, gameSettings: &GameSettings) {
         let template = self.locale.translate_key(key);
         let rendered = template.replacen("%s", value.as_ref(), 1);
         let prefix = self.locale.translate_key("debug.prefix");
@@ -1993,7 +2392,9 @@ impl MainMenuRuntime {
     }
 
     fn sendClientSettings(&self, settings: &GameSettings) -> Result<(), String> {
-        let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else { return Ok(()); };
+        let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else {
+            return Ok(());
+        };
         let packet = CPacketClientSettings::new(
             settings.language.clone(),
             settings.renderDistanceChunks,
@@ -2001,7 +2402,9 @@ impl MainMenuRuntime {
             settings.chatColours,
             settings.modelPartFlags,
             settings.mainHand,
-        ).writePacketData().map_err(|error| error.to_string())?;
+        )
+        .writePacketData()
+        .map_err(|error| error.to_string())?;
         connection.sendPlayPackets(vec![packet])
     }
 
@@ -2011,11 +2414,16 @@ impl MainMenuRuntime {
         };
         let (permissionLevel, gameType) = connection.getSharedPlayState().withRead(|state| {
             (
-                state.thePlayer.as_ref().map_or(0, |player| player.permissionLevel),
+                state
+                    .thePlayer
+                    .as_ref()
+                    .map_or(0, |player| player.permissionLevel),
                 state.gameType,
             )
         });
-        if permissionLevel < 2 { return Ok(Some(false)); }
+        if permissionLevel < 2 {
+            return Ok(Some(false));
+        }
         let command = match gameType {
             GameType::Creative => "/gamemode spectator",
             GameType::Spectator => "/gamemode creative",
@@ -2037,7 +2445,8 @@ impl MainMenuRuntime {
         };
         let locale = Locale::load(&minecraft.resourceManager, &languageCodes, &["minecraft"]);
         self.languageManager = LanguageManager::new(minecraft.gameSettings.language.clone());
-        self.languageManager.parseLanguageMetadata(&minecraft.resourceManager.read_pack_metadatas("pack"));
+        self.languageManager
+            .parseLanguageMetadata(&minecraft.resourceManager.read_pack_metadatas("pack"));
         let unicode = minecraft.gameSettings.forceUnicodeFont || locale.is_unicode();
         let mut fontRenderer = FontRenderer::load(
             &minecraft.resourceManager,
@@ -2045,26 +2454,30 @@ impl MainMenuRuntime {
             unicode,
             minecraft.gameSettings.anaglyph,
             minecraft.gameSettings.ofCustomFonts,
-        ).map_err(|error| error.to_string())?;
+        )
+        .map_err(|error| error.to_string())?;
         fontRenderer.set_bidi_flag(self.languageManager.isCurrentLanguageBidirectional());
         self.locale = locale.clone();
         self.fontRendererObj = fontRenderer.clone();
-        self.guiRenderer.setResourceManager(minecraft.resourceManager.clone());
-        self.worldRenderer.reloadResources(
-            minecraft.resourceManager.clone(),
-            fontRenderer,
-            locale,
-        );
-        self.soundHandler.setResourceManager(minecraft.resourceManager.clone());
+        self.guiRenderer
+            .setResourceManager(minecraft.resourceManager.clone());
+        self.worldRenderer
+            .reloadResources(minecraft.resourceManager.clone(), fontRenderer, locale);
+        self.soundHandler
+            .setResourceManager(minecraft.resourceManager.clone());
         self.musicTicker = MusicTicker::new();
         self.elytraSounds.clear();
         Ok(())
     }
 
-    fn isChatOpen(&self) -> bool { self.guiChat.is_some() }
+    fn isChatOpen(&self) -> bool {
+        self.guiChat.is_some()
+    }
 
     fn openChat(&mut self, defaultText: &str) -> bool {
-        if !self.isWorld() || self.isInventoryOpen() || self.guiChat.is_some() { return false; }
+        if !self.isWorld() || self.isInventoryOpen() || self.guiChat.is_some() {
+            return false;
+        }
         let sentCount = self.worldRenderer.sentChatMessages().len();
         self.guiChat = Some(GuiChat::new(
             defaultText,
@@ -2077,7 +2490,9 @@ impl MainMenuRuntime {
     }
 
     fn closeChat(&mut self) -> bool {
-        if self.guiChat.take().is_none() { return false; }
+        if self.guiChat.take().is_none() {
+            return false;
+        }
         self.worldRenderer.resetChatScroll();
         true
     }
@@ -2085,17 +2500,23 @@ impl MainMenuRuntime {
     fn chatLineCount(chatHeightFocused: f32) -> i32 {
         (crate::net::minecraft::client::gui::GuiNewChat::GuiNewChat::calculateChatboxHeight(
             chatHeightFocused.clamp(0.0, 1.0),
-        ) / 9).max(1)
+        ) / 9)
+            .max(1)
     }
 
     fn scrollChat(&mut self, amount: i32, chatHeightFocused: f32) -> bool {
-        if !self.isChatOpen() || amount == 0 { return false; }
-        self.worldRenderer.scrollChat(amount, Self::chatLineCount(chatHeightFocused));
+        if !self.isChatOpen() || amount == 0 {
+            return false;
+        }
+        self.worldRenderer
+            .scrollChat(amount, Self::chatLineCount(chatHeightFocused));
         true
     }
 
     fn chatTypedText(&mut self, text: &str) -> bool {
-        self.guiChat.as_mut().is_some_and(|chat| chat.typedText(text, &self.fontRendererObj))
+        self.guiChat
+            .as_mut()
+            .is_some_and(|chat| chat.typedText(text, &self.fontRendererObj))
     }
 
     fn chatKeyPressed(
@@ -2106,7 +2527,9 @@ impl MainMenuRuntime {
         chatWidth: f32,
         chatScale: f32,
     ) -> Result<(bool, bool), String> {
-        if self.guiChat.is_none() { return Ok((false, false)); }
+        if self.guiChat.is_none() {
+            return Ok((false, false));
+        }
         let textModifiers = GuiTextFieldModifiers {
             control: modifiers.control_key(),
             shift: modifiers.shift_key(),
@@ -2121,30 +2544,47 @@ impl MainMenuRuntime {
                     (None, None)
                 };
                 if let Some(request) = request {
-                    let packet = request.writePacketData().map_err(|error| error.to_string())?;
+                    let packet = request
+                        .writePacketData()
+                        .map_err(|error| error.to_string())?;
                     let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else {
                         return Ok((true, false));
                     };
                     connection.sendPlayPackets(vec![packet])?;
                 }
                 if let Some(line) = completionLine {
-                    let wrapWidth = ((GuiNewChat::calculateChatboxWidth(chatWidth.clamp(0.0, 1.0)) as f32)
-                        / chatScale.max(0.01)).floor() as i32;
+                    let wrapWidth = ((GuiNewChat::calculateChatboxWidth(chatWidth.clamp(0.0, 1.0))
+                        as f32)
+                        / chatScale.max(0.01))
+                    .floor() as i32;
                     let ticks = match &self.currentScreen {
-                        ActiveGuiScreen::World { connection, .. } => connection.getSharedPlayState().withRead(|state| {
-                            state.thePlayer.as_ref().map_or(0, |player| player.entity.ticksExisted)
-                        }),
+                        ActiveGuiScreen::World { connection, .. } => {
+                            connection.getSharedPlayState().withRead(|state| {
+                                state
+                                    .thePlayer
+                                    .as_ref()
+                                    .map_or(0, |player| player.entity.ticksExisted)
+                            })
+                        }
                         _ => 0,
                     };
-                    self.worldRenderer.showChatCompletionCandidates(line, ticks, wrapWidth);
+                    self.worldRenderer
+                        .showChatCompletionCandidates(line, ticks, wrapWidth);
                 }
                 return Ok((true, false));
             }
-            KeyCode::Escape => { self.closeChat(); return Ok((true, true)); }
+            KeyCode::Escape => {
+                self.closeChat();
+                return Ok((true, true));
+            }
             KeyCode::Enter | KeyCode::NumpadEnter => {
-                let message = self.guiChat.as_ref().map_or_else(String::new, GuiChat::getTrimmedText);
+                let message = self
+                    .guiChat
+                    .as_ref()
+                    .map_or_else(String::new, GuiChat::getTrimmedText);
                 if !message.is_empty() {
-                    let packet = CPacketChatMessage::new(message.clone()).writePacketData()
+                    let packet = CPacketChatMessage::new(message.clone())
+                        .writePacketData()
                         .map_err(|error| error.to_string())?;
                     let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else {
                         return Ok((true, false));
@@ -2164,11 +2604,20 @@ impl MainMenuRuntime {
             }
             KeyCode::PageUp | KeyCode::PageDown => {
                 let amount = Self::chatLineCount(chatHeightFocused) - 1;
-                self.worldRenderer.scrollChat(if key == KeyCode::PageUp { amount } else { -amount }, Self::chatLineCount(chatHeightFocused));
+                self.worldRenderer.scrollChat(
+                    if key == KeyCode::PageUp {
+                        amount
+                    } else {
+                        -amount
+                    },
+                    Self::chatLineCount(chatHeightFocused),
+                );
                 return Ok((true, false));
             }
             KeyCode::KeyA if modifiers.control_key() => {
-                if let Some(chat) = self.guiChat.as_mut() { chat.selectAll(&self.fontRendererObj); }
+                if let Some(chat) = self.guiChat.as_mut() {
+                    chat.selectAll(&self.fontRendererObj);
+                }
                 return Ok((true, false));
             }
             _ => {}
@@ -2182,12 +2631,21 @@ impl MainMenuRuntime {
             KeyCode::End => Some(GuiTextFieldKey::End),
             _ => None,
         };
-        Ok((fieldKey.is_some_and(|fieldKey| {
-            self.guiChat.as_mut().is_some_and(|chat| chat.keyPressed(fieldKey, textModifiers, &self.fontRendererObj))
-        }), false))
+        Ok((
+            fieldKey.is_some_and(|fieldKey| {
+                self.guiChat.as_mut().is_some_and(|chat| {
+                    chat.keyPressed(fieldKey, textModifiers, &self.fontRendererObj)
+                })
+            }),
+            false,
+        ))
     }
 
-    fn worldHotbarBinding(&mut self, binding: KeyBindingId, modifiers: ModifiersState) -> Result<bool, String> {
+    fn worldHotbarBinding(
+        &mut self,
+        binding: KeyBindingId,
+        modifiers: ModifiersState,
+    ) -> Result<bool, String> {
         let slot = match binding {
             KeyBindingId::Hotbar1 => Some(0),
             KeyBindingId::Hotbar2 => Some(1),
@@ -2225,7 +2683,9 @@ impl MainMenuRuntime {
             KeyBindingId::SwapHands => Some(DiggingAction::SwapHeldItems),
             _ => None,
         };
-        let Some(action) = action else { return Ok(false); };
+        let Some(action) = action else {
+            return Ok(false);
+        };
         if gameType == GameType::Spectator {
             return Ok(true);
         }
@@ -2240,11 +2700,14 @@ impl MainMenuRuntime {
                 }
             }
         }
-        packets.push(CPacketPlayerDigging::new(
-            action,
-            crate::net::minecraft::util::math::BlockPos::BlockPos::new(0, 0, 0),
-            crate::net::minecraft::util::EnumFacing::EnumFacing::Down,
-        ).writePacketData());
+        packets.push(
+            CPacketPlayerDigging::new(
+                action,
+                crate::net::minecraft::util::math::BlockPos::BlockPos::new(0, 0, 0),
+                crate::net::minecraft::util::EnumFacing::EnumFacing::Down,
+            )
+            .writePacketData(),
+        );
         connection.sendPlayPackets(packets)?;
         if action == DiggingAction::SwapHeldItems {
             log::info!("sent CPacketPlayerDigging SWAP_HELD_ITEMS (protocol 340 action 6)");
@@ -2257,7 +2720,9 @@ impl MainMenuRuntime {
     }
 
     fn inventoryUiState(&self) -> Option<(ItemStack, Vec<ItemStack>, GameType)> {
-        let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else { return None; };
+        let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else {
+            return None;
+        };
         let playerInventory = self.inventoryOpen || self.creativeInventoryOpen;
         connection.getSharedPlayState().withRead(|state| {
             let player = state.thePlayer.as_ref()?;
@@ -2266,13 +2731,21 @@ impl MainMenuRuntime {
             } else {
                 player.openContainer.as_ref()?.slots().to_vec()
             };
-            Some((player.inventory.getItemStack().clone(), slots, state.gameType))
+            Some((
+                player.inventory.getItemStack().clone(),
+                slots,
+                state.gameType,
+            ))
         })
     }
 
     fn creativeInventoryUiState(&self) -> Option<(ItemStack, Vec<ItemStack>)> {
-        let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else { return None; };
-        connection.getSharedPlayState().creativePlayerContainerSnapshot()
+        let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else {
+            return None;
+        };
+        connection
+            .getSharedPlayState()
+            .creativePlayerContainerSnapshot()
     }
 
     fn sendCreativePlayerSlotClick(
@@ -2288,34 +2761,37 @@ impl MainMenuRuntime {
             == crate::net::minecraft::creativetab::CreativeTabs::INVENTORY.tabIndex;
         let shared = connection.getSharedPlayState();
         let Some(result) = shared
-            .clickCreativePlayerInventorySlot(
-                playerSlot,
-                mouseButton,
-                clickType,
-                inventoryTab,
-            )
+            .clickCreativePlayerInventorySlot(playerSlot, mouseButton, clickType, inventoryTab)
             .map_err(|error| error.to_string())?
         else {
             return Ok(false);
         };
 
-        let changed = result.beforeCursor != result.afterCursor
-            || result.beforeSlots != result.afterSlots;
+        let changed =
+            result.beforeCursor != result.afterCursor || result.beforeSlots != result.afterSlots;
         let mut packets = Vec::new();
 
         if inventoryTab {
             // The inventory tab installs CreativeCrafting as a listener on the
             // real ContainerPlayer. detectAndSendChanges therefore reports
             // each changed real slot using its unwrapped ContainerPlayer ID.
-            if clickType == ClickType::Throw && playerSlot >= 0 && !result.originalSlotStack.isEmpty() {
+            if clickType == ClickType::Throw
+                && playerSlot >= 0
+                && !result.originalSlotStack.isEmpty()
+            {
                 let mut dropped = result.originalSlotStack.copy();
-                dropped.setCount(if mouseButton == 0 { 1 } else { dropped.getMaxStackSize() });
+                dropped.setCount(if mouseButton == 0 {
+                    1
+                } else {
+                    dropped.getMaxStackSize()
+                });
                 packets.push(
                     CPacketCreativeInventoryAction::new(-1, &dropped)
                         .writePacketData()
                         .map_err(|error| error.to_string())?,
                 );
-                let after = result.afterSlots
+                let after = result
+                    .afterSlots
                     .get(playerSlot as usize)
                     .cloned()
                     .unwrap_or(ItemStack::EMPTY);
@@ -2326,11 +2802,13 @@ impl MainMenuRuntime {
                 );
             } else {
                 for slot in 0..=45 {
-                    let before = result.beforeSlots
+                    let before = result
+                        .beforeSlots
                         .get(slot as usize)
                         .cloned()
                         .unwrap_or(ItemStack::EMPTY);
-                    let after = result.afterSlots
+                    let after = result
+                        .afterSlots
                         .get(slot as usize)
                         .cloned()
                         .unwrap_or(ItemStack::EMPTY);
@@ -2347,7 +2825,8 @@ impl MainMenuRuntime {
             // MCP sends every hotbar slot after QUICK_CRAFT event 2, even if a
             // particular slot retained the same stack.
             for slot in 36..=44 {
-                let after = result.afterSlots
+                let after = result
+                    .afterSlots
                     .get(slot as usize)
                     .cloned()
                     .unwrap_or(ItemStack::EMPTY);
@@ -2361,7 +2840,8 @@ impl MainMenuRuntime {
             // ContainerCreative's visible slot ID 45..53 maps onto protocol
             // player slots 36..44. Vanilla sends the clicked slot after every
             // non-final event, plus the swapped hotbar counterpart or drop.
-            let after = result.afterSlots
+            let after = result
+                .afterSlots
                 .get(playerSlot as usize)
                 .cloned()
                 .unwrap_or(ItemStack::EMPTY);
@@ -2379,7 +2859,11 @@ impl MainMenuRuntime {
                 );
             } else if clickType == ClickType::Throw && !result.originalSlotStack.isEmpty() {
                 let mut dropped = result.originalSlotStack.copy();
-                dropped.setCount(if mouseButton == 0 { 1 } else { dropped.getMaxStackSize() });
+                dropped.setCount(if mouseButton == 0 {
+                    1
+                } else {
+                    dropped.getMaxStackSize()
+                });
                 packets.push(
                     CPacketCreativeInventoryAction::new(-1, &dropped)
                         .writePacketData()
@@ -2394,7 +2878,10 @@ impl MainMenuRuntime {
         Ok(changed || playerSlot >= 0 || result.quickCraftFinished)
     }
 
-    fn sendWorldPlayPackets(&self, packets: Vec<crate::net::minecraft::network::Packet::RawPacket>) -> Result<(), String> {
+    fn sendWorldPlayPackets(
+        &self,
+        packets: Vec<crate::net::minecraft::network::Packet::RawPacket>,
+    ) -> Result<(), String> {
         let ActiveGuiScreen::World { connection, .. } = &self.currentScreen else {
             return Err("creative inventory is not attached to a world connection".to_owned());
         };
@@ -2417,32 +2904,46 @@ impl MainMenuRuntime {
         };
         self.guiCreative.clearSearch = true;
         if slotId == -999 {
-            let packet = shared.dropCreativeCursor(mouseButton).map_err(|error| error.to_string())?;
+            let packet = shared
+                .dropCreativeCursor(mouseButton)
+                .map_err(|error| error.to_string())?;
             if let Some(packet) = packet {
                 self.sendWorldPlayPackets(vec![packet])?;
                 return Ok(true);
             }
             return Ok(false);
         }
-        let Some(kind) = self.guiCreative.slotKind(slotId) else { return Ok(false); };
+        let Some(kind) = self.guiCreative.slotKind(slotId) else {
+            return Ok(false);
+        };
         match kind {
             CreativeSlotKind::Catalog { .. } => {
-                let playerSlots = self.creativeInventoryUiState().map_or_else(Vec::new, |(_, slots)| slots);
+                let playerSlots = self
+                    .creativeInventoryUiState()
+                    .map_or_else(Vec::new, |(_, slots)| slots);
                 let stack = self.guiCreative.stackForSlot(slotId, &playerSlots);
                 let packets = shared
                     .clickCreativeCatalogStack(&stack, mouseButton, clickType)
                     .map_err(|error| error.to_string())?;
-                if !packets.is_empty() { self.sendWorldPlayPackets(packets)?; }
+                if !packets.is_empty() {
+                    self.sendWorldPlayPackets(packets)?;
+                }
                 Ok(!stack.isEmpty() || clickType == ClickType::Pickup)
             }
-            CreativeSlotKind::Hotbar { playerContainerSlot }
-            | CreativeSlotKind::Player { playerContainerSlot } => {
-                self.sendCreativePlayerSlotClick(playerContainerSlot, mouseButton, clickType)
+            CreativeSlotKind::Hotbar {
+                playerContainerSlot,
             }
+            | CreativeSlotKind::Player {
+                playerContainerSlot,
+            } => self.sendCreativePlayerSlotClick(playerContainerSlot, mouseButton, clickType),
             CreativeSlotKind::Destroy => {
                 if clickType == ClickType::QuickMove || modifiers.shift_key() {
-                    let packets = shared.clearCreativePlayerContainer().map_err(|error| error.to_string())?;
-                    if !packets.is_empty() { self.sendWorldPlayPackets(packets)?; }
+                    let packets = shared
+                        .clearCreativePlayerContainer()
+                        .map_err(|error| error.to_string())?;
+                    if !packets.is_empty() {
+                        self.sendWorldPlayPackets(packets)?;
+                    }
                     Ok(true)
                 } else {
                     Ok(shared.clearCreativeCursor())
@@ -2471,23 +2972,32 @@ impl MainMenuRuntime {
         if mouseButton == 0 && self.guiCreative.tabAt(mouseX, mouseY).is_some() {
             return Ok(true);
         }
-        if self.guiCreative.searchMouseClicked(mouseX, mouseY, mouseButton, &self.fontRendererObj) {
+        if self
+            .guiCreative
+            .searchMouseClicked(mouseX, mouseY, mouseButton, &self.fontRendererObj)
+        {
             return Ok(true);
         }
         let hoveredSlot = self.guiCreative.container.slotAt(mouseX, mouseY);
         let slotId = self.guiCreative.container.protocolSlotAt(mouseX, mouseY);
         let now = Instant::now();
         let clickIdentity = hoveredSlot.unwrap_or(-1);
-        let doubleClick = self.lastInventoryClick.is_some_and(|(last, lastSlot, lastButton)| {
-            lastSlot == clickIdentity
-                && lastButton == mouseButton
-                && now.duration_since(last) < Duration::from_millis(250)
-        });
+        let doubleClick = self
+            .lastInventoryClick
+            .is_some_and(|(last, lastSlot, lastButton)| {
+                lastSlot == clickIdentity
+                    && lastButton == mouseButton
+                    && now.duration_since(last) < Duration::from_millis(250)
+            });
         self.lastInventoryClick = Some((now, clickIdentity, mouseButton));
         self.guiCreative.container.doubleClick = doubleClick;
         self.guiCreative.container.ignoreMouseUp = false;
-        if slotId == -1 { return Ok(false); }
-        let Some((cursor, _)) = self.creativeInventoryUiState() else { return Ok(false); };
+        if slotId == -1 {
+            return Ok(false);
+        }
+        let Some((cursor, _)) = self.creativeInventoryUiState() else {
+            return Ok(false);
+        };
         if !self.guiCreative.container.dragSplitting {
             if cursor.isEmpty() {
                 let clickType = if mouseButton == 2 {
@@ -2499,7 +3009,8 @@ impl MainMenuRuntime {
                 } else {
                     ClickType::Pickup
                 };
-                let changed = self.creativeHandleClick(slotId, mouseButton, clickType, modifiers)?;
+                let changed =
+                    self.creativeHandleClick(slotId, mouseButton, clickType, modifiers)?;
                 self.guiCreative.container.ignoreMouseUp = true;
                 return Ok(changed);
             }
@@ -2515,19 +3026,33 @@ impl MainMenuRuntime {
     ) -> bool {
         let (mouseX, mouseY) = self.cursorGuiPosition(framebufferWidth, framebufferHeight);
         let leftButtonDown = self.guiCreative.wasClicking;
-        if self.guiCreative.updateScrollbarDrag(mouseX, mouseY, leftButtonDown) {
+        if self
+            .guiCreative
+            .updateScrollbarDrag(mouseX, mouseY, leftButtonDown)
+        {
             return true;
         }
-        if !self.guiCreative.container.dragSplitting { return false; }
-        let Some(slotId) = self.guiCreative.container.slotAt(mouseX, mouseY) else { return false; };
-        let Some((cursor, playerSlots)) = self.creativeInventoryUiState() else { return false; };
+        if !self.guiCreative.container.dragSplitting {
+            return false;
+        }
+        let Some(slotId) = self.guiCreative.container.slotAt(mouseX, mouseY) else {
+            return false;
+        };
+        let Some((cursor, playerSlots)) = self.creativeInventoryUiState() else {
+            return false;
+        };
         let displaySlots = self.guiCreative.displayStacks(&playerSlots);
         let slotKind = self.guiCreative.slotKind(slotId);
         self.guiCreative.container.tryAddDragSplittingSlotWithRules(
             slotId,
             &cursor,
             &displaySlots,
-            move |_slot, _stack| matches!(slotKind, Some(CreativeSlotKind::Hotbar { .. }) | Some(CreativeSlotKind::Player { .. })),
+            move |_slot, _stack| {
+                matches!(
+                    slotKind,
+                    Some(CreativeSlotKind::Hotbar { .. }) | Some(CreativeSlotKind::Player { .. })
+                )
+            },
             |_slot, stack| stack.getMaxStackSize(),
         )
     }
@@ -2559,13 +3084,23 @@ impl MainMenuRuntime {
         let doubleClick = self.guiCreative.container.doubleClick;
         if doubleClick && mouseButton == 0 {
             if let Some(slot) = hoveredSlot {
-                if let Some(CreativeSlotKind::Player { playerContainerSlot }
-                    | CreativeSlotKind::Hotbar { playerContainerSlot }) = self.guiCreative.slotKind(slot)
+                if let Some(
+                    CreativeSlotKind::Player {
+                        playerContainerSlot,
+                    }
+                    | CreativeSlotKind::Hotbar {
+                        playerContainerSlot,
+                    },
+                ) = self.guiCreative.slotKind(slot)
                 {
                     let changed = self.sendCreativePlayerSlotClick(
                         playerContainerSlot,
                         0,
-                        if modifiers.shift_key() { ClickType::QuickMove } else { ClickType::PickupAll },
+                        if modifiers.shift_key() {
+                            ClickType::QuickMove
+                        } else {
+                            ClickType::PickupAll
+                        },
                     )?;
                     self.guiCreative.container.doubleClick = false;
                     self.guiCreative.container.cancelDragSplitting();
@@ -2577,7 +3112,13 @@ impl MainMenuRuntime {
         let dragSplitting = self.guiCreative.container.dragSplitting;
         let dragButton = self.guiCreative.container.dragSplittingButton;
         let ignoreMouseUp = self.guiCreative.container.ignoreMouseUp;
-        let selected = self.guiCreative.container.dragSplittingSlots.iter().copied().collect::<Vec<_>>();
+        let selected = self
+            .guiCreative
+            .container
+            .dragSplittingSlots
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
         let mode = self.guiCreative.container.dragSplittingLimit;
         if dragSplitting && dragButton != mouseButton {
             self.guiCreative.container.cancelDragSplitting();
@@ -2594,8 +3135,12 @@ impl MainMenuRuntime {
             let mut mapped = Vec::new();
             for slot in selected {
                 match self.guiCreative.slotKind(slot) {
-                    Some(CreativeSlotKind::Hotbar { playerContainerSlot })
-                    | Some(CreativeSlotKind::Player { playerContainerSlot }) => mapped.push(playerContainerSlot),
+                    Some(CreativeSlotKind::Hotbar {
+                        playerContainerSlot,
+                    })
+                    | Some(CreativeSlotKind::Player {
+                        playerContainerSlot,
+                    }) => mapped.push(playerContainerSlot),
                     _ => {}
                 }
             }
@@ -2630,7 +3175,10 @@ impl MainMenuRuntime {
                 changed |= self.creativeHandleClick(slotId, mouseButton, clickType, modifiers)?;
             }
         }
-        if self.creativeInventoryUiState().is_some_and(|(cursor, _)| cursor.isEmpty()) {
+        if self
+            .creativeInventoryUiState()
+            .is_some_and(|(cursor, _)| cursor.isEmpty())
+        {
             self.lastInventoryClick = None;
         }
         self.guiCreative.container.cancelDragSplitting();
@@ -2645,7 +3193,8 @@ impl MainMenuRuntime {
         binding: Option<KeyBindingId>,
         modifiers: ModifiersState,
     ) -> Result<bool, String> {
-        if self.guiCreative.selectedTabIndex != crate::net::minecraft::creativetab::CreativeTabs::SEARCH.tabIndex
+        if self.guiCreative.selectedTabIndex
+            != crate::net::minecraft::creativetab::CreativeTabs::SEARCH.tabIndex
             && binding == Some(KeyBindingId::Chat)
         {
             return Ok(self.guiCreative.setCurrentCreativeTab(
@@ -2664,18 +3213,25 @@ impl MainMenuRuntime {
             KeyCode::Home => Some(GuiTextFieldKey::Home),
             KeyCode::End => Some(GuiTextFieldKey::End),
             KeyCode::KeyA if modifiers.control_key() => {
-                self.guiCreative.searchField.selectAll(&self.fontRendererObj);
+                self.guiCreative
+                    .searchField
+                    .selectAll(&self.fontRendererObj);
                 return Ok(true);
             }
             _ => None,
         };
         if let Some(textKey) = textKey {
-            if self.guiCreative.searchKeyPressed(textKey, textModifiers, &self.fontRendererObj) {
+            if self
+                .guiCreative
+                .searchKeyPressed(textKey, textModifiers, &self.fontRendererObj)
+            {
                 return Ok(true);
             }
         }
         let (mouseX, mouseY) = self.cursorGuiPosition(framebufferWidth, framebufferHeight);
-        let Some(slotId) = self.guiCreative.container.slotAt(mouseX, mouseY) else { return Ok(false); };
+        let Some(slotId) = self.guiCreative.container.slotAt(mouseX, mouseY) else {
+            return Ok(false);
+        };
         let (mouseButton, clickType) = match binding {
             Some(KeyBindingId::Hotbar1) => (0, ClickType::Swap),
             Some(KeyBindingId::Hotbar2) => (1, ClickType::Swap),
@@ -2687,14 +3243,18 @@ impl MainMenuRuntime {
             Some(KeyBindingId::Hotbar8) => (7, ClickType::Swap),
             Some(KeyBindingId::Hotbar9) => (8, ClickType::Swap),
             Some(KeyBindingId::PickBlock) => (2, ClickType::Clone),
-            Some(KeyBindingId::Drop) => (if modifiers.control_key() { 1 } else { 0 }, ClickType::Throw),
+            Some(KeyBindingId::Drop) => (
+                if modifiers.control_key() { 1 } else { 0 },
+                ClickType::Throw,
+            ),
             _ => return Ok(false),
         };
         self.creativeHandleClick(slotId, mouseButton, clickType, modifiers)
     }
 
     fn creativeInventoryTypedText(&mut self, text: &str) -> bool {
-        self.guiCreative.searchTypedText(text, &self.fontRendererObj)
+        self.guiCreative
+            .searchTypedText(text, &self.fontRendererObj)
     }
 
     fn creativeInventoryScroll(&mut self, wheelDelta: i32) -> bool {
@@ -2715,7 +3275,8 @@ impl MainMenuRuntime {
             shared.clickPlayerInventorySlot(slotId, mouseButton, clickType)
         } else {
             shared.clickOpenContainerSlot(slotId, mouseButton, clickType)
-        }.map_err(|error| error.to_string())?;
+        }
+        .map_err(|error| error.to_string())?;
         if let Some(packet) = packet {
             connection.sendPlayPackets(vec![packet])?;
             Ok(true)
@@ -2735,16 +3296,24 @@ impl MainMenuRuntime {
             } else if let Some(gui) = self.guiChest.as_ref() {
                 gui.inventoryRows * 9
             } else {
-                self.guiDedicated.as_ref().map_or(0, |gui| match gui.kind() {
-                    ContainerWindowKind::Workbench => 10,
-                    ContainerWindowKind::Furnace | ContainerWindowKind::Repair | ContainerWindowKind::Merchant => 3,
-                    ContainerWindowKind::Enchantment => 2,
-                    ContainerWindowKind::Hopper | ContainerWindowKind::BrewingStand => 5,
-                    ContainerWindowKind::Dispenser | ContainerWindowKind::Dropper => 9,
-                    ContainerWindowKind::Beacon => 1,
-                })
+                self.guiDedicated
+                    .as_ref()
+                    .map_or(0, |gui| match gui.kind() {
+                        ContainerWindowKind::Workbench => 10,
+                        ContainerWindowKind::Furnace
+                        | ContainerWindowKind::Repair
+                        | ContainerWindowKind::Merchant => 3,
+                        ContainerWindowKind::Enchantment => 2,
+                        ContainerWindowKind::Hopper | ContainerWindowKind::BrewingStand => 5,
+                        ContainerWindowKind::Dispenser | ContainerWindowKind::Dropper => 9,
+                        ContainerWindowKind::Beacon => 1,
+                    })
             };
-            if slotId < lower { 0 } else { 1 }
+            if slotId < lower {
+                0
+            } else {
+                1
+            }
         }
     }
 
@@ -2759,9 +3328,16 @@ impl MainMenuRuntime {
         modifiers: ModifiersState,
     ) -> Result<bool, String> {
         self.syncOpenContainerGui();
-        if !self.isInventoryOpen() { return Ok(false); }
+        if !self.isInventoryOpen() {
+            return Ok(false);
+        }
         if self.creativeInventoryOpen {
-            return self.creativeInventoryMouseClicked(framebufferWidth, framebufferHeight, button, modifiers);
+            return self.creativeInventoryMouseClicked(
+                framebufferWidth,
+                framebufferHeight,
+                button,
+                modifiers,
+            );
         }
         let mouseButton = match button {
             MouseButton::Left => 0,
@@ -2770,9 +3346,9 @@ impl MainMenuRuntime {
             _ => return Ok(false),
         };
         let (mouseX, mouseY) = self.cursorGuiPosition(framebufferWidth, framebufferHeight);
-        if let Some(consumed) = self.recipeBookMouseClicked(
-            mouseX, mouseY, mouseButton, modifiers.shift_key(),
-        )? {
+        if let Some(consumed) =
+            self.recipeBookMouseClicked(mouseX, mouseY, mouseButton, modifiers.shift_key())?
+        {
             return Ok(consumed);
         }
         let repairFieldClicked = self
@@ -2788,9 +3364,8 @@ impl MainMenuRuntime {
 
         let beaconAction = if mouseButton == 0 {
             let beaconState = match &self.currentScreen {
-                ActiveGuiScreen::World { connection, .. } => connection
-                    .getSharedPlayState()
-                    .withRead(|state| {
+                ActiveGuiScreen::World { connection, .. } => {
+                    connection.getSharedPlayState().withRead(|state| {
                         let container = state.thePlayer.as_ref()?.openContainer.as_ref()?;
                         if container.windowKind() != Some(ContainerWindowKind::Beacon) {
                             return None;
@@ -2803,22 +3378,25 @@ impl MainMenuRuntime {
                                 container.properties().get(1).copied().unwrap_or(0),
                             ),
                         ))
-                    }),
+                    })
+                }
                 _ => None,
             };
             match (self.guiDedicated.as_ref(), beaconState) {
-                (Some(DedicatedContainerGui::Beacon(gui)), Some((levels, primary, confirmEnabled))) => {
+                (
+                    Some(DedicatedContainerGui::Beacon(gui)),
+                    Some((levels, primary, confirmEnabled)),
+                ) => {
                     if confirmEnabled && gui.confirmAt(mouseX, mouseY) {
                         Some(BeaconGuiAction::Confirm)
                     } else if gui.cancelAt(mouseX, mouseY) {
                         Some(BeaconGuiAction::Cancel)
                     } else {
-                        gui.powerButtonAt(mouseX, mouseY, levels, primary).map(|button| {
-                            BeaconGuiAction::SelectPower {
+                        gui.powerButtonAt(mouseX, mouseY, levels, primary)
+                            .map(|button| BeaconGuiAction::SelectPower {
                                 tier: button.tier,
                                 effectId: button.effectId,
-                            }
-                        })
+                            })
                     }
                 }
                 _ => None,
@@ -2844,7 +3422,8 @@ impl MainMenuRuntime {
                             return false;
                         }
                         let property = if tier < 3 { 1 } else { 2 };
-                        if container.properties().get(property as usize).copied() == Some(effectId) {
+                        if container.properties().get(property as usize).copied() == Some(effectId)
+                        {
                             return true;
                         }
                         container.updateProgressBar(property, effectId).is_ok()
@@ -2853,9 +3432,8 @@ impl MainMenuRuntime {
                 }
                 BeaconGuiAction::Confirm => {
                     let permitted = match &self.currentScreen {
-                        ActiveGuiScreen::World { connection, .. } => connection
-                            .getSharedPlayState()
-                            .withRead(|state| {
+                        ActiveGuiScreen::World { connection, .. } => {
+                            connection.getSharedPlayState().withRead(|state| {
                                 let container = state.thePlayer.as_ref()?.openContainer.as_ref()?;
                                 if container.windowKind() != Some(ContainerWindowKind::Beacon) {
                                     return None;
@@ -2864,7 +3442,8 @@ impl MainMenuRuntime {
                                 let secondary = container.properties().get(2).copied().unwrap_or(0);
                                 GuiBeacon::confirmEnabled(container.getSlot(0), primary)
                                     .then_some((primary, secondary))
-                            }),
+                            })
+                        }
                         _ => None,
                     };
                     let Some((primary, secondary)) = permitted else {
@@ -2891,27 +3470,48 @@ impl MainMenuRuntime {
 
         if mouseButton == 0 {
             let merchantState = match &self.currentScreen {
-                ActiveGuiScreen::World { connection, .. } => connection.getSharedPlayState().withRead(|state| {
-                    let container=state.thePlayer.as_ref()?.openContainer.as_ref()?;
-                    if container.windowKind()!=Some(ContainerWindowKind::Merchant){return None;}
-                    Some((container.windowId(),container.merchantRecipes().cloned(),container.merchantRecipeIndex().unwrap_or(0)))
-                }),
-                _=>None,
+                ActiveGuiScreen::World { connection, .. } => {
+                    connection.getSharedPlayState().withRead(|state| {
+                        let container = state.thePlayer.as_ref()?.openContainer.as_ref()?;
+                        if container.windowKind() != Some(ContainerWindowKind::Merchant) {
+                            return None;
+                        }
+                        Some((
+                            container.windowId(),
+                            container.merchantRecipes().cloned(),
+                            container.merchantRecipeIndex().unwrap_or(0),
+                        ))
+                    })
+                }
+                _ => None,
             };
-            if let (Some(DedicatedContainerGui::Merchant(gui)),Some((windowId,recipes,current)))=(self.guiDedicated.as_mut(),merchantState){
-                gui.setSelectedMerchantRecipe(current,recipes.as_ref());
-                if let Some(delta)=gui.buttonDeltaAt(mouseX,mouseY,recipes.as_ref()){
-                    let next=(gui.selectedMerchantRecipe()+delta).max(0);
-                    gui.setSelectedMerchantRecipe(next,recipes.as_ref());
-                    let selected=gui.selectedMerchantRecipe();
-                    if let ActiveGuiScreen::World{connection,..}=&self.currentScreen{
-                        connection.getSharedPlayState().withWrite(|state|{
-                            if let Some(container)=state.thePlayer.as_mut().and_then(|p|p.openContainer.as_mut()){
-                                if container.windowId()==windowId{container.setMerchantRecipeIndex(selected);}
+            if let (
+                Some(DedicatedContainerGui::Merchant(gui)),
+                Some((windowId, recipes, current)),
+            ) = (self.guiDedicated.as_mut(), merchantState)
+            {
+                gui.setSelectedMerchantRecipe(current, recipes.as_ref());
+                if let Some(delta) = gui.buttonDeltaAt(mouseX, mouseY, recipes.as_ref()) {
+                    let next = (gui.selectedMerchantRecipe() + delta).max(0);
+                    gui.setSelectedMerchantRecipe(next, recipes.as_ref());
+                    let selected = gui.selectedMerchantRecipe();
+                    if let ActiveGuiScreen::World { connection, .. } = &self.currentScreen {
+                        connection.getSharedPlayState().withWrite(|state| {
+                            if let Some(container) = state
+                                .thePlayer
+                                .as_mut()
+                                .and_then(|p| p.openContainer.as_mut())
+                            {
+                                if container.windowId() == windowId {
+                                    container.setMerchantRecipeIndex(selected);
+                                }
                             }
                         });
-                        let mut data=Vec::with_capacity(4); write_i32_be(selected,&mut data);
-                        let packet=CPacketCustomPayload::new("MC|TrSel",data).and_then(|p|p.writePacketData()).map_err(|e|e.to_string())?;
+                        let mut data = Vec::with_capacity(4);
+                        write_i32_be(selected, &mut data);
+                        let packet = CPacketCustomPayload::new("MC|TrSel", data)
+                            .and_then(|p| p.writePacketData())
+                            .map_err(|e| e.to_string())?;
                         connection.sendPlayPackets(vec![packet])?;
                     }
                     return Ok(true);
@@ -2937,7 +3537,11 @@ impl MainMenuRuntime {
                 if container.windowKind() != Some(ContainerWindowKind::Enchantment) {
                     return None;
                 }
-                let level = container.properties().get(option as usize).copied().unwrap_or(0);
+                let level = container
+                    .properties()
+                    .get(option as usize)
+                    .copied()
+                    .unwrap_or(0);
                 let lapis = container.getSlot(1).map_or(0, ItemStack::getCount);
                 let itemPresent = container.getSlot(0).is_some_and(|stack| !stack.isEmpty());
                 let permitted = itemPresent
@@ -2956,11 +3560,13 @@ impl MainMenuRuntime {
         let slotId = self.activeProtocolSlotAt(mouseX, mouseY);
         let now = Instant::now();
         let clickIdentity = hoveredSlot.unwrap_or(-1);
-        let doubleClick = self.lastInventoryClick.is_some_and(|(last, lastSlot, lastButton)| {
-            lastSlot == clickIdentity
-                && lastButton == mouseButton
-                && now.duration_since(last) < Duration::from_millis(250)
-        });
+        let doubleClick = self
+            .lastInventoryClick
+            .is_some_and(|(last, lastSlot, lastButton)| {
+                lastSlot == clickIdentity
+                    && lastButton == mouseButton
+                    && now.duration_since(last) < Duration::from_millis(250)
+            });
         self.lastInventoryClick = Some((now, clickIdentity, mouseButton));
         if let Some(container) = self.activeGuiContainerMut() {
             container.doubleClick = doubleClick;
@@ -2973,7 +3579,9 @@ impl MainMenuRuntime {
         let Some((cursor, slots, _gameType)) = self.inventoryUiState() else {
             return Ok(false);
         };
-        let dragSplitting = self.activeGuiContainer().is_some_and(|container| container.dragSplitting);
+        let dragSplitting = self
+            .activeGuiContainer()
+            .is_some_and(|container| container.dragSplitting);
         if !dragSplitting {
             if cursor.isEmpty() {
                 let clickType = if mouseButton == 2 {
@@ -2992,7 +3600,9 @@ impl MainMenuRuntime {
                 if sent {
                     if self.inventoryOpen {
                         self.guiInventory.recipeBook.clearGhost();
-                    } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_mut() {
+                    } else if let Some(DedicatedContainerGui::Crafting(gui)) =
+                        self.guiDedicated.as_mut()
+                    {
                         gui.recipeBook.clearGhost();
                     }
                 }
@@ -3001,41 +3611,41 @@ impl MainMenuRuntime {
                 }
                 return Ok(sent);
             }
-            return Ok(self.activeGuiContainerMut().is_some_and(|container| {
-                container.beginDragSplitting(mouseButton)
-            }));
+            return Ok(self
+                .activeGuiContainerMut()
+                .is_some_and(|container| container.beginDragSplitting(mouseButton)));
         }
         Ok(false)
     }
 
     /// MCP `GuiContainer.mouseClickMove` desktop QUICK_CRAFT branch.
-    fn inventoryMouseDragged(
-        &mut self,
-        framebufferWidth: u32,
-        framebufferHeight: u32,
-    ) -> bool {
+    fn inventoryMouseDragged(&mut self, framebufferWidth: u32, framebufferHeight: u32) -> bool {
         self.syncOpenContainerGui();
         if self.creativeInventoryOpen {
             return self.creativeInventoryMouseDragged(framebufferWidth, framebufferHeight);
         }
         if !self.isInventoryOpen()
-            || !self.activeGuiContainer().is_some_and(|container| container.dragSplitting)
+            || !self
+                .activeGuiContainer()
+                .is_some_and(|container| container.dragSplitting)
         {
             return false;
         }
         let (mouseX, mouseY) = self.cursorGuiPosition(framebufferWidth, framebufferHeight);
-        let Some(slotId) = self.activeSlotAt(mouseX, mouseY) else { return false; };
-        let Some((cursor, slots, _)) = self.inventoryUiState() else { return false; };
+        let Some(slotId) = self.activeSlotAt(mouseX, mouseY) else {
+            return false;
+        };
+        let Some((cursor, slots, _)) = self.inventoryUiState() else {
+            return false;
+        };
         let playerInventory = self.inventoryOpen;
         if playerInventory {
-            self.activeGuiContainerMut().is_some_and(|container| {
-                container.tryAddDragSplittingSlot(slotId, &cursor, &slots)
-            })
+            self.activeGuiContainerMut()
+                .is_some_and(|container| container.tryAddDragSplittingSlot(slotId, &cursor, &slots))
         } else {
             let (accepts, limits) = match &self.currentScreen {
-                ActiveGuiScreen::World { connection, .. } => connection
-                    .getSharedPlayState()
-                    .withRead(|state| {
+                ActiveGuiScreen::World { connection, .. } => {
+                    connection.getSharedPlayState().withRead(|state| {
                         let container = state.thePlayer.as_ref()?.openContainer.as_ref()?;
                         let accepts = (0..container.slotCount() as i32)
                             .map(|candidate| container.isItemValidForSlot(candidate, &cursor))
@@ -3044,7 +3654,8 @@ impl MainMenuRuntime {
                             .map(|candidate| container.slotLimit(candidate, &cursor))
                             .collect::<Vec<_>>();
                         Some((accepts, limits))
-                    }),
+                    })
+                }
                 _ => None,
             }
             .unwrap_or_else(|| {
@@ -3088,9 +3699,16 @@ impl MainMenuRuntime {
         modifiers: ModifiersState,
     ) -> Result<bool, String> {
         self.syncOpenContainerGui();
-        if !self.isInventoryOpen() { return Ok(false); }
+        if !self.isInventoryOpen() {
+            return Ok(false);
+        }
         if self.creativeInventoryOpen {
-            return self.creativeInventoryMouseReleased(framebufferWidth, framebufferHeight, button, modifiers);
+            return self.creativeInventoryMouseReleased(
+                framebufferWidth,
+                framebufferHeight,
+                button,
+                modifiers,
+            );
         }
         let mouseButton = match button {
             MouseButton::Left => 0,
@@ -3103,7 +3721,9 @@ impl MainMenuRuntime {
         let slotId = self.activeProtocolSlotAt(mouseX, mouseY);
         let mut changed = false;
         let isPlayerInventory = self.inventoryOpen;
-        let doubleClick = self.activeGuiContainer().is_some_and(|container| container.doubleClick);
+        let doubleClick = self
+            .activeGuiContainer()
+            .is_some_and(|container| container.doubleClick);
 
         if doubleClick
             && hoveredSlot.is_some_and(|slot| !(isPlayerInventory && slot == 0))
@@ -3117,9 +3737,13 @@ impl MainMenuRuntime {
                         if self.activeContainerInventoryGroup(candidate) != group {
                             continue;
                         }
-                        let Some(stack) = slots.get(candidate as usize) else { continue; };
-                        if !stack.isEmpty() && stack.canStackWith(&self.inventoryShiftClickedStack) {
-                            changed |= self.sendPlayerInventoryClick(candidate, 0, ClickType::QuickMove)?;
+                        let Some(stack) = slots.get(candidate as usize) else {
+                            continue;
+                        };
+                        if !stack.isEmpty() && stack.canStackWith(&self.inventoryShiftClickedStack)
+                        {
+                            changed |=
+                                self.sendPlayerInventoryClick(candidate, 0, ClickType::QuickMove)?;
                         }
                     }
                 }
@@ -3136,13 +3760,19 @@ impl MainMenuRuntime {
 
         let (dragSplitting, dragButton, ignoreMouseUp, selected, mode) = self
             .activeGuiContainer()
-            .map(|container| (
-                container.dragSplitting,
-                container.dragSplittingButton,
-                container.ignoreMouseUp,
-                container.dragSplittingSlots.iter().copied().collect::<Vec<_>>(),
-                container.dragSplittingLimit,
-            ))
+            .map(|container| {
+                (
+                    container.dragSplitting,
+                    container.dragSplittingButton,
+                    container.ignoreMouseUp,
+                    container
+                        .dragSplittingSlots
+                        .iter()
+                        .copied()
+                        .collect::<Vec<_>>(),
+                    container.dragSplittingLimit,
+                )
+            })
             .unwrap_or((false, -1, false, Vec::new(), 0));
 
         if dragSplitting && dragButton != mouseButton {
@@ -3196,7 +3826,10 @@ impl MainMenuRuntime {
             }
         }
 
-        if self.inventoryUiState().is_some_and(|(cursor, _, _)| cursor.isEmpty()) {
+        if self
+            .inventoryUiState()
+            .is_some_and(|(cursor, _, _)| cursor.isEmpty())
+        {
             self.lastInventoryClick = None;
         }
         if let Some(container) = self.activeGuiContainerMut() {
@@ -3217,9 +3850,17 @@ impl MainMenuRuntime {
         eventText: Option<&str>,
     ) -> Result<bool, String> {
         self.syncOpenContainerGui();
-        if !self.isInventoryOpen() { return Ok(false); }
+        if !self.isInventoryOpen() {
+            return Ok(false);
+        }
         if self.creativeInventoryOpen {
-            return self.creativeInventoryKeyPressed(framebufferWidth, framebufferHeight, key, binding, modifiers);
+            return self.creativeInventoryKeyPressed(
+                framebufferWidth,
+                framebufferHeight,
+                key,
+                binding,
+                modifiers,
+            );
         }
         if self.recipeBookKeyPressed(key, binding, modifiers, eventText)? {
             return Ok(true);
@@ -3228,7 +3869,9 @@ impl MainMenuRuntime {
             return Ok(true);
         }
         let (mouseX, mouseY) = self.cursorGuiPosition(framebufferWidth, framebufferHeight);
-        let Some(slotId) = self.activeSlotAt(mouseX, mouseY) else { return Ok(false); };
+        let Some(slotId) = self.activeSlotAt(mouseX, mouseY) else {
+            return Ok(false);
+        };
         let (mouseButton, clickType) = match binding {
             Some(KeyBindingId::Hotbar1) => (0, ClickType::Swap),
             Some(KeyBindingId::Hotbar2) => (1, ClickType::Swap),
@@ -3240,10 +3883,15 @@ impl MainMenuRuntime {
             Some(KeyBindingId::Hotbar8) => (7, ClickType::Swap),
             Some(KeyBindingId::Hotbar9) => (8, ClickType::Swap),
             Some(KeyBindingId::PickBlock) => (2, ClickType::Clone),
-            Some(KeyBindingId::Drop) => (if modifiers.control_key() { 1 } else { 0 }, ClickType::Throw),
+            Some(KeyBindingId::Drop) => (
+                if modifiers.control_key() { 1 } else { 0 },
+                ClickType::Throw,
+            ),
             _ => return Ok(false),
         };
-        let Some((cursor, slots, _)) = self.inventoryUiState() else { return Ok(false); };
+        let Some((cursor, slots, _)) = self.inventoryUiState() else {
+            return Ok(false);
+        };
         if clickType == ClickType::Swap && !cursor.isEmpty() {
             return Ok(false);
         }
@@ -3286,7 +3934,10 @@ impl MainMenuRuntime {
             // is active, and rightClickMouse itself exits before assigning the
             // four-tick delay while PlayerControllerMP is mining a block.
             let handActive = shared.withRead(|state| {
-                state.thePlayer.as_ref().is_some_and(|player| player.isHandActive())
+                state
+                    .thePlayer
+                    .as_ref()
+                    .is_some_and(|player| player.isHandActive())
             });
             if handActive || self.playerController.getIsHittingBlock() {
                 return Ok(false);
@@ -3307,34 +3958,34 @@ impl MainMenuRuntime {
             resetEquipHand,
             predictedPlacement,
             predictedBlockState,
-        ) =
-            if binding == KeyBindingId::Attack && !pressed {
-                (
-                    self.playerController.resetBlockRemoving(),
-                    false,
-                    false,
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
+        ) = if binding == KeyBindingId::Attack && !pressed {
+            (
+                self.playerController.resetBlockRemoving(),
+                false,
+                false,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+        } else if binding == KeyBindingId::UseItem && !pressed {
+            let wasUsing = shared.stopUsingItem();
+            let packets = if wasUsing {
+                vec![CPacketPlayerDigging::new(
+                    DiggingAction::ReleaseUseItem,
+                    crate::net::minecraft::util::math::BlockPos::BlockPos::new(0, 0, 0),
+                    crate::net::minecraft::util::EnumFacing::EnumFacing::Down,
                 )
-            } else if binding == KeyBindingId::UseItem && !pressed {
-                let wasUsing = shared.stopUsingItem();
-                let packets = if wasUsing {
-                    vec![CPacketPlayerDigging::new(
-                        DiggingAction::ReleaseUseItem,
-                        crate::net::minecraft::util::math::BlockPos::BlockPos::new(0, 0, 0),
-                        crate::net::minecraft::util::EnumFacing::EnumFacing::Down,
-                    ).writePacketData()]
-                } else {
-                    Vec::new()
-                };
-                (packets, false, false, None, None, None, None, None)
-            } else if !pressed {
-                (Vec::new(), false, false, None, None, None, None, None)
+                .writePacketData()]
             } else {
-                shared.withWrite(|state| {
+                Vec::new()
+            };
+            (packets, false, false, None, None, None, None, None)
+        } else if !pressed {
+            (Vec::new(), false, false, None, None, None, None, None)
+        } else {
+            shared.withWrite(|state| {
                     let gameType = state.gameType;
                     self.playerController.setGameType(gameType);
                     let (Some(world), Some(player)) = (
@@ -3654,7 +4305,7 @@ impl MainMenuRuntime {
                         _ => (Vec::new(), false, false, None, None, None, None, None),
                     }
                 })
-            };
+        };
 
         let pendingBlockDestruction = if binding == KeyBindingId::Attack && pressed {
             self.playerController.takeBlockDestroyEffect()
@@ -3760,22 +4411,43 @@ impl MainMenuRuntime {
             minecraft.gameSettings.guiScale,
             unicode,
         );
-        self.guiInventory.initGui(self.scaledResolution.scaled_width(), self.scaledResolution.scaled_height());
-        self.guiCreative.initGui(self.scaledResolution.scaled_width(), self.scaledResolution.scaled_height());
+        self.guiInventory.initGui(
+            self.scaledResolution.scaled_width(),
+            self.scaledResolution.scaled_height(),
+        );
+        self.guiCreative.initGui(
+            self.scaledResolution.scaled_width(),
+            self.scaledResolution.scaled_height(),
+        );
         if let Some(gui) = self.guiChest.as_mut() {
-            gui.initGui(self.scaledResolution.scaled_width(), self.scaledResolution.scaled_height());
+            gui.initGui(
+                self.scaledResolution.scaled_width(),
+                self.scaledResolution.scaled_height(),
+            );
         }
         if let Some(gui) = self.guiShulkerBox.as_mut() {
-            gui.initGui(self.scaledResolution.scaled_width(), self.scaledResolution.scaled_height());
+            gui.initGui(
+                self.scaledResolution.scaled_width(),
+                self.scaledResolution.scaled_height(),
+            );
         }
         if let Some(gui) = self.guiHorse.as_mut() {
-            gui.initGui(self.scaledResolution.scaled_width(), self.scaledResolution.scaled_height());
+            gui.initGui(
+                self.scaledResolution.scaled_width(),
+                self.scaledResolution.scaled_height(),
+            );
         }
         if let Some(gui) = self.guiDedicated.as_mut() {
-            gui.initGui(self.scaledResolution.scaled_width(), self.scaledResolution.scaled_height());
+            gui.initGui(
+                self.scaledResolution.scaled_width(),
+                self.scaledResolution.scaled_height(),
+            );
         }
         if let Some(chat) = self.guiChat.as_mut() {
-            chat.resize(self.scaledResolution.scaled_width(), self.scaledResolution.scaled_height());
+            chat.resize(
+                self.scaledResolution.scaled_width(),
+                self.scaledResolution.scaled_height(),
+            );
         }
         self.initCurrentScreen(minecraft);
         self.initWorldGui(minecraft);
@@ -3790,30 +4462,76 @@ impl MainMenuRuntime {
         let height = self.scaledResolution.scaled_height();
         match &mut self.currentScreen {
             ActiveGuiScreen::Empty => {}
-            ActiveGuiScreen::MainMenu(screen) => screen.initGui(width, height, current_menu_date(), &self.locale, &self.fontRendererObj),
-            ActiveGuiScreen::AccountManager(screen) => screen.initGui(width, height, &self.accountConfig),
+            ActiveGuiScreen::MainMenu(screen) => screen.initGui(
+                width,
+                height,
+                current_menu_date(),
+                &self.locale,
+                &self.fontRendererObj,
+            ),
+            ActiveGuiScreen::AccountManager(screen) => {
+                screen.initGui(width, height, &self.accountConfig)
+            }
             ActiveGuiScreen::MicrosoftAuth(screen) => screen.initGui(width, height),
             ActiveGuiScreen::SessionLogin(screen) => screen.initGui(width, height),
             ActiveGuiScreen::OfflineLogin(screen) => screen.initGui(width, height),
-            ActiveGuiScreen::Options(screen) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
-            ActiveGuiScreen::Controls(screen) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings, &self.fontRendererObj),
-            ActiveGuiScreen::VideoSettings(screen) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
+            ActiveGuiScreen::Options(screen) => {
+                screen.initGui(width, height, &self.locale, &minecraft.gameSettings)
+            }
+            ActiveGuiScreen::Controls(screen) => screen.initGui(
+                width,
+                height,
+                &self.locale,
+                &minecraft.gameSettings,
+                &self.fontRendererObj,
+            ),
+            ActiveGuiScreen::VideoSettings(screen) => {
+                screen.initGui(width, height, &self.locale, &minecraft.gameSettings)
+            }
             ActiveGuiScreen::ShaderSettings(screen) => screen.initGui(width, height),
-            ActiveGuiScreen::SoundSettings(screen) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
-            ActiveGuiScreen::ChatSettings(screen) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
-            ActiveGuiScreen::SkinSettings(screen) => screen.initGui(width, height, &self.locale, &minecraft.gameSettings),
+            ActiveGuiScreen::SoundSettings(screen) => {
+                screen.initGui(width, height, &self.locale, &minecraft.gameSettings)
+            }
+            ActiveGuiScreen::ChatSettings(screen) => {
+                screen.initGui(width, height, &self.locale, &minecraft.gameSettings)
+            }
+            ActiveGuiScreen::SkinSettings(screen) => {
+                screen.initGui(width, height, &self.locale, &minecraft.gameSettings)
+            }
             ActiveGuiScreen::ResourcePacks(screen) => screen.initGui(width, height, &self.locale),
             ActiveGuiScreen::Multiplayer(screen) => screen.initGui(width, height, &self.locale),
             ActiveGuiScreen::WorldSelection(screen) => screen.initGui(width, height, &self.locale),
-            ActiveGuiScreen::CreateWorld(screen) => screen.initGui(width, height, &self.locale, &self.fontRendererObj),
-            ActiveGuiScreen::Language { screen, .. } => screen.initGui(width, height, &self.locale, &minecraft.gameSettings, &self.languageManager),
-            ActiveGuiScreen::AddServer { screen, .. } => screen.initGui(width, height, &self.locale, &self.fontRendererObj),
-            ActiveGuiScreen::DirectConnect { screen, .. } => screen.initGui(width, height, &self.locale, &self.fontRendererObj, &minecraft.gameSettings.lastServer),
-            ActiveGuiScreen::ConfirmDelete { screen, .. } => screen.initGui(width, height, &self.fontRendererObj),
-            ActiveGuiScreen::Connecting { screen, .. } => screen.initGui(width, height, &self.locale),
-            ActiveGuiScreen::Disconnected { screen, .. } => screen.initGui(width, height, &self.fontRendererObj),
+            ActiveGuiScreen::CreateWorld(screen) => {
+                screen.initGui(width, height, &self.locale, &self.fontRendererObj)
+            }
+            ActiveGuiScreen::Language { screen, .. } => screen.initGui(
+                width,
+                height,
+                &self.locale,
+                &minecraft.gameSettings,
+                &self.languageManager,
+            ),
+            ActiveGuiScreen::AddServer { screen, .. } => {
+                screen.initGui(width, height, &self.locale, &self.fontRendererObj)
+            }
+            ActiveGuiScreen::DirectConnect { screen, .. } => screen.initGui(
+                width,
+                height,
+                &self.locale,
+                &self.fontRendererObj,
+                &minecraft.gameSettings.lastServer,
+            ),
+            ActiveGuiScreen::ConfirmDelete { screen, .. } => {
+                screen.initGui(width, height, &self.fontRendererObj)
+            }
+            ActiveGuiScreen::Connecting { screen, .. } => {
+                screen.initGui(width, height, &self.locale)
+            }
+            ActiveGuiScreen::Disconnected { screen, .. } => {
+                screen.initGui(width, height, &self.fontRendererObj)
+            }
             ActiveGuiScreen::DownloadTerrain { screen, .. } => screen.initGui(width, height),
-            ActiveGuiScreen::World { .. } => {},
+            ActiveGuiScreen::World { .. } => {}
         }
     }
 
@@ -3821,8 +4539,12 @@ impl MainMenuRuntime {
         self.currentScreen = match screenId {
             ScreenId::MainMenu => ActiveGuiScreen::MainMenu(Self::createMainMenu(minecraft)?),
             ScreenId::Options => ActiveGuiScreen::Options(GuiOptions::new()),
-            ScreenId::Multiplayer => ActiveGuiScreen::Multiplayer(GuiMultiplayer::new(minecraft.gameDir.clone())),
-            ScreenId::WorldSelection => ActiveGuiScreen::WorldSelection(GuiWorldSelection::new(minecraft.gameDir.join("saves"))),
+            ScreenId::Multiplayer => {
+                ActiveGuiScreen::Multiplayer(GuiMultiplayer::new(minecraft.gameDir.clone()))
+            }
+            ScreenId::WorldSelection => ActiveGuiScreen::WorldSelection(GuiWorldSelection::new(
+                minecraft.gameDir.join("saves"),
+            )),
         };
         self.lastGuiFrame = Instant::now();
         self.initCurrentScreen(minecraft);
@@ -3873,7 +4595,10 @@ impl MainMenuRuntime {
     }
 
     fn openLanguage(&mut self, minecraft: &Minecraft, parent: ScreenId) {
-        self.currentScreen = ActiveGuiScreen::Language { screen: GuiLanguage::new(minecraft.gameSettings.language.clone()), parent };
+        self.currentScreen = ActiveGuiScreen::Language {
+            screen: GuiLanguage::new(minecraft.gameSettings.language.clone()),
+            parent,
+        };
         self.initCurrentScreen(minecraft);
     }
 
@@ -3893,35 +4618,74 @@ impl MainMenuRuntime {
     fn openDirectConnect(&mut self, minecraft: &Minecraft) {
         let current = std::mem::replace(&mut self.currentScreen, ActiveGuiScreen::Empty);
         if let ActiveGuiScreen::Multiplayer(parent) = current {
-            let defaultName = self.locale.translate_key("selectServer.defaultName").to_owned();
+            let defaultName = self
+                .locale
+                .translate_key("selectServer.defaultName")
+                .to_owned();
             self.currentScreen = ActiveGuiScreen::DirectConnect {
                 screen: GuiScreenServerList::new(ServerData::new(defaultName, "", false)),
                 parent: Box::new(parent),
             };
-        } else { self.currentScreen = current; }
+        } else {
+            self.currentScreen = current;
+        }
         self.initCurrentScreen(minecraft);
     }
 
-    fn openAddServer(&mut self, minecraft: &Minecraft, editingIndex: Option<usize>, server: Option<ServerData>) {
+    fn openAddServer(
+        &mut self,
+        minecraft: &Minecraft,
+        editingIndex: Option<usize>,
+        server: Option<ServerData>,
+    ) {
         let current = std::mem::replace(&mut self.currentScreen, ActiveGuiScreen::Empty);
         if let ActiveGuiScreen::Multiplayer(parent) = current {
-            let server = server.unwrap_or_else(|| ServerData::new(self.locale.translate_key("selectServer.defaultName"), "", false));
-            self.currentScreen = ActiveGuiScreen::AddServer { screen: GuiScreenAddServer::new(server), parent: Box::new(parent), editingIndex };
-        } else { self.currentScreen = current; }
+            let server = server.unwrap_or_else(|| {
+                ServerData::new(
+                    self.locale.translate_key("selectServer.defaultName"),
+                    "",
+                    false,
+                )
+            });
+            self.currentScreen = ActiveGuiScreen::AddServer {
+                screen: GuiScreenAddServer::new(server),
+                parent: Box::new(parent),
+                editingIndex,
+            };
+        } else {
+            self.currentScreen = current;
+        }
         self.initCurrentScreen(minecraft);
     }
 
     fn openDeleteConfirm(&mut self, minecraft: &Minecraft, serverIndex: usize, serverName: String) {
         let current = std::mem::replace(&mut self.currentScreen, ActiveGuiScreen::Empty);
         if let ActiveGuiScreen::Multiplayer(parent) = current {
-            let line1 = self.locale.translate_key("selectServer.deleteQuestion").to_owned();
-            let line2 = format!("'{serverName}' {}", self.locale.translate_key("selectServer.deleteWarning"));
-            let screen = GuiYesNo::new(
-                line1, line2, self.locale.translate_key("selectServer.deleteButton").to_owned(),
-                self.locale.translate_key("gui.cancel").to_owned(), serverIndex as i32,
+            let line1 = self
+                .locale
+                .translate_key("selectServer.deleteQuestion")
+                .to_owned();
+            let line2 = format!(
+                "'{serverName}' {}",
+                self.locale.translate_key("selectServer.deleteWarning")
             );
-            self.currentScreen = ActiveGuiScreen::ConfirmDelete { screen, parent: Box::new(parent), serverIndex };
-        } else { self.currentScreen = current; }
+            let screen = GuiYesNo::new(
+                line1,
+                line2,
+                self.locale
+                    .translate_key("selectServer.deleteButton")
+                    .to_owned(),
+                self.locale.translate_key("gui.cancel").to_owned(),
+                serverIndex as i32,
+            );
+            self.currentScreen = ActiveGuiScreen::ConfirmDelete {
+                screen,
+                parent: Box::new(parent),
+                serverIndex,
+            };
+        } else {
+            self.currentScreen = current;
+        }
         self.initCurrentScreen(minecraft);
     }
 
@@ -3971,7 +4735,10 @@ impl MainMenuRuntime {
         let parent = match current {
             ActiveGuiScreen::Multiplayer(parent) => Some(Box::new(parent)),
             ActiveGuiScreen::DirectConnect { parent, .. } => Some(parent),
-            other => { self.currentScreen = other; None }
+            other => {
+                self.currentScreen = other;
+                None
+            }
         };
         if let Some(parent) = parent {
             self.currentScreen = ActiveGuiScreen::Connecting {
@@ -3984,28 +4751,46 @@ impl MainMenuRuntime {
                     minecraft.gameSettings.chatColours,
                     minecraft.gameSettings.modelPartFlags,
                     minecraft.gameSettings.mainHand,
-                ), parent,
+                ),
+                parent,
             };
             self.initCurrentScreen(minecraft);
         }
     }
 
     fn cancelConnecting(&mut self, minecraft: &Minecraft) {
-        if let ActiveGuiScreen::Connecting { screen, .. } = &mut self.currentScreen { screen.cancel(); }
+        if let ActiveGuiScreen::Connecting { screen, .. } = &mut self.currentScreen {
+            screen.cancel();
+        }
         self.returnToMultiplayer(minecraft);
     }
 
     fn openDisconnected(&mut self, minecraft: &Minecraft, reasonKey: &str, message: String) {
         let current = std::mem::replace(&mut self.currentScreen, ActiveGuiScreen::Empty);
         self.currentScreen = match current {
-            ActiveGuiScreen::Connecting { parent, .. } | ActiveGuiScreen::DownloadTerrain { parent, .. } | ActiveGuiScreen::World { parent, .. } => {
+            ActiveGuiScreen::Connecting { parent, .. }
+            | ActiveGuiScreen::DownloadTerrain { parent, .. }
+            | ActiveGuiScreen::World { parent, .. } => {
                 let reason = self.locale.translate_key(reasonKey).to_owned();
                 let message = match message.as_str() {
-                    "disconnect.loginFailedInfo.serversUnavailable" => self.locale.translate_key("disconnect.loginFailedInfo.serversUnavailable").to_owned(),
-                    "disconnect.loginFailedInfo.invalidSession" => self.locale.translate_key("disconnect.loginFailedInfo.invalidSession").to_owned(),
+                    "disconnect.loginFailedInfo.serversUnavailable" => self
+                        .locale
+                        .translate_key("disconnect.loginFailedInfo.serversUnavailable")
+                        .to_owned(),
+                    "disconnect.loginFailedInfo.invalidSession" => self
+                        .locale
+                        .translate_key("disconnect.loginFailedInfo.invalidSession")
+                        .to_owned(),
                     _ => message,
                 };
-                ActiveGuiScreen::Disconnected { screen: GuiDisconnected::new(reason, message, self.locale.translate_key("gui.toMenu").to_owned()), parent }
+                ActiveGuiScreen::Disconnected {
+                    screen: GuiDisconnected::new(
+                        reason,
+                        message,
+                        self.locale.translate_key("gui.toMenu").to_owned(),
+                    ),
+                    parent,
+                }
             }
             other => other,
         };
@@ -4016,9 +4801,18 @@ impl MainMenuRuntime {
     fn openDownloadTerrain(&mut self, minecraft: &Minecraft) {
         let current = std::mem::replace(&mut self.currentScreen, ActiveGuiScreen::Empty);
         self.currentScreen = match current {
-            ActiveGuiScreen::Connecting { screen: connection, parent }
+            ActiveGuiScreen::Connecting {
+                screen: connection,
+                parent,
+            }
             | ActiveGuiScreen::World { connection, parent } => ActiveGuiScreen::DownloadTerrain {
-                screen: GuiDownloadTerrain::new(self.locale.translate_key("multiplayer.downloadingTerrain").to_owned()), connection, parent,
+                screen: GuiDownloadTerrain::new(
+                    self.locale
+                        .translate_key("multiplayer.downloadingTerrain")
+                        .to_owned(),
+                ),
+                connection,
+                parent,
             },
             other => other,
         };
@@ -4037,7 +4831,9 @@ impl MainMenuRuntime {
     fn openWorld(&mut self, minecraft: &Minecraft) {
         let current = std::mem::replace(&mut self.currentScreen, ActiveGuiScreen::Empty);
         self.currentScreen = match current {
-            ActiveGuiScreen::DownloadTerrain { connection, parent, .. } => ActiveGuiScreen::World { connection, parent },
+            ActiveGuiScreen::DownloadTerrain {
+                connection, parent, ..
+            } => ActiveGuiScreen::World { connection, parent },
             other => other,
         };
         self.lastWorldRevision = 0;
@@ -4056,11 +4852,20 @@ impl MainMenuRuntime {
         self.initCurrentScreen(minecraft);
     }
 
-    fn saveServerAndReturn(&mut self, minecraft: &Minecraft, editingIndex: Option<usize>, server: ServerData) -> anyhow::Result<()> {
+    fn saveServerAndReturn(
+        &mut self,
+        minecraft: &Minecraft,
+        editingIndex: Option<usize>,
+        server: ServerData,
+    ) -> anyhow::Result<()> {
         let current = std::mem::replace(&mut self.currentScreen, ActiveGuiScreen::Empty);
         self.currentScreen = match current {
             ActiveGuiScreen::AddServer { mut parent, .. } => {
-                if let Some(index) = editingIndex { parent.editServer(index, server)?; } else { parent.addServer(server)?; }
+                if let Some(index) = editingIndex {
+                    parent.editServer(index, server)?;
+                } else {
+                    parent.addServer(server)?;
+                }
                 ActiveGuiScreen::Multiplayer(*parent)
             }
             other => other,
@@ -4072,7 +4877,10 @@ impl MainMenuRuntime {
     fn deleteServerAndReturn(&mut self, minecraft: &Minecraft, index: usize) -> anyhow::Result<()> {
         let current = std::mem::replace(&mut self.currentScreen, ActiveGuiScreen::Empty);
         self.currentScreen = match current {
-            ActiveGuiScreen::ConfirmDelete { mut parent, .. } => { parent.deleteServer(index)?; ActiveGuiScreen::Multiplayer(*parent) }
+            ActiveGuiScreen::ConfirmDelete { mut parent, .. } => {
+                parent.deleteServer(index)?;
+                ActiveGuiScreen::Multiplayer(*parent)
+            }
             other => other,
         };
         self.initCurrentScreen(minecraft);
@@ -4080,9 +4888,15 @@ impl MainMenuRuntime {
     }
 
     fn cursorGuiPosition(&self, framebufferWidth: u32, framebufferHeight: u32) -> (i32, i32) {
-        if !self.mouseInsideWindow || framebufferWidth == 0 || framebufferHeight == 0 { return (-1, -1); }
-        let mouseX = (self.mousePosition.x * self.scaledResolution.scaled_width() as f64 / framebufferWidth as f64).floor() as i32;
-        let mouseY = (self.mousePosition.y * self.scaledResolution.scaled_height() as f64 / framebufferHeight as f64).floor() as i32;
+        if !self.mouseInsideWindow || framebufferWidth == 0 || framebufferHeight == 0 {
+            return (-1, -1);
+        }
+        let mouseX = (self.mousePosition.x * self.scaledResolution.scaled_width() as f64
+            / framebufferWidth as f64)
+            .floor() as i32;
+        let mouseY = (self.mousePosition.y * self.scaledResolution.scaled_height() as f64
+            / framebufferHeight as f64)
+            .floor() as i32;
         (mouseX, mouseY)
     }
 
@@ -4099,7 +4913,10 @@ impl MainMenuRuntime {
         self.syncOpenContainerGui();
         self.syncInventoryGameType();
         let partialTicks = partialTicks.clamp(0.0, 1.0);
-        let systemTimeMillis = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64;
+        let systemTimeMillis = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
         let (mouseX, mouseY) = self.cursorGuiPosition(framebufferWidth, framebufferHeight);
         if let ActiveGuiScreen::World { connection, .. } = &self.currentScreen {
             let sharedState = connection.getSharedPlayState();
@@ -4109,7 +4926,8 @@ impl MainMenuRuntime {
                 let yaw = player.entity.prevRotationYaw
                     + (player.entity.rotationYaw - player.entity.prevRotationYaw) * partialTicks;
                 let pitch = player.entity.prevRotationPitch
-                    + (player.entity.rotationPitch - player.entity.prevRotationPitch) * partialTicks;
+                    + (player.entity.rotationPitch - player.entity.prevRotationPitch)
+                        * partialTicks;
                 Some(([eyes.x as f32, eyes.y as f32, eyes.z as f32], yaw, pitch))
             }) {
                 self.soundHandler.setListener(position, yaw, pitch);
@@ -4121,7 +4939,8 @@ impl MainMenuRuntime {
             let creativeSelectedTab = self.guiCreative.selectedTabIndex;
             let creativeCurrentScroll = self.guiCreative.currentScroll;
             let creativeCanScroll = self.guiCreative.needsScrollBars();
-            let creativeContainer = creativeInventoryOpen.then(|| self.guiCreative.container.clone());
+            let creativeContainer =
+                creativeInventoryOpen.then(|| self.guiCreative.container.clone());
             let creativeSearchInput = if creativeInventoryOpen {
                 self.guiCreative.searchRenderState(&self.fontRendererObj)
             } else {
@@ -4132,14 +4951,27 @@ impl MainMenuRuntime {
                 .as_ref()
                 .and_then(DedicatedContainerGui::repairNameField)
                 .map(|field| field.buildRenderState(&self.fontRendererObj));
-            let anvilCostFormat = self.locale.translate_key("container.repair.cost").to_owned();
-            let anvilTooExpensive = self.locale.translate_key("container.repair.expensive").to_owned();
-            let creativeTabTitle = crate::net::minecraft::creativetab::CreativeTabs::byIndex(creativeSelectedTab)
-                .map(|tab| self.locale.translate_key(tab.getTranslatedTabLabel()).to_owned())
-                .unwrap_or_default();
+            let anvilCostFormat = self
+                .locale
+                .translate_key("container.repair.cost")
+                .to_owned();
+            let anvilTooExpensive = self
+                .locale
+                .translate_key("container.repair.expensive")
+                .to_owned();
+            let creativeTabTitle =
+                crate::net::minecraft::creativetab::CreativeTabs::byIndex(creativeSelectedTab)
+                    .map(|tab| {
+                        self.locale
+                            .translate_key(tab.getTranslatedTabLabel())
+                            .to_owned()
+                    })
+                    .unwrap_or_default();
             let creativeDisplaySlots = if creativeInventoryOpen {
                 sharedState.withRead(|state| {
-                    let playerSlots = state.thePlayer.as_ref()
+                    let playerSlots = state
+                        .thePlayer
+                        .as_ref()
                         .map(|player| player.inventoryContainer.slots())
                         .unwrap_or(&[]);
                     self.guiCreative.displayStacks(playerSlots)
@@ -4147,19 +4979,29 @@ impl MainMenuRuntime {
             } else {
                 Vec::new()
             };
-            let (dragSplitting, dragLimit, dragRemnant, dragSlots) = self.activeGuiContainer()
-                .map(|container| (
-                    container.dragSplitting,
-                    container.dragSplittingLimit,
-                    container.dragSplittingRemnant,
-                    container.dragSplittingSlots.iter().copied().collect::<Vec<_>>(),
-                ))
+            let (dragSplitting, dragLimit, dragRemnant, dragSlots) = self
+                .activeGuiContainer()
+                .map(|container| {
+                    (
+                        container.dragSplitting,
+                        container.dragSplittingLimit,
+                        container.dragSplittingRemnant,
+                        container
+                            .dragSplittingSlots
+                            .iter()
+                            .copied()
+                            .collect::<Vec<_>>(),
+                    )
+                })
                 .unwrap_or((false, 0, 0, Vec::new()));
             let rawInventoryTitle = sharedState.withRead(|state| {
-                state.thePlayer.as_ref()
+                state
+                    .thePlayer
+                    .as_ref()
                     .and_then(|player| player.openContainer.as_ref())
                     .map(|container| {
-                        container.title()
+                        container
+                            .title()
                             .resolveWithLocale(&self.locale)
                             .getUnformattedText()
                             .to_owned()
@@ -4182,53 +5024,117 @@ impl MainMenuRuntime {
             // tessellation and GPU upload happen after the lock is released so
             // keep-alive and incoming chunk packets cannot be starved by render work.
             let chatOpen = self.isChatOpen();
-            let chatInput = self.guiChat.as_ref().map(|chat| chat.renderState(&self.fontRendererObj));
+            let chatInput = self
+                .guiChat
+                .as_ref()
+                .map(|chat| chat.renderState(&self.fontRendererObj));
             let particleStates = self.particleManager.renderStates();
             let miscParticleStates = self.particleManager.miscRenderStates(partialTicks);
             let localDestroyProgress = sharedState.withRead(|state| {
                 state.thePlayer.as_ref().and_then(|player| {
-                    self.playerController.getDestroyBlockProgress(
-                        player.entityId,
-                        state.cloudTickCounter,
-                    )
+                    self.playerController
+                        .getDestroyBlockProgress(player.entityId, state.cloudTickCounter)
                 })
             });
             let worldGuiDrawList = self.worldGuiScreen.as_mut().map(|screen| {
                 let mut drawList = GuiDrawList::new();
                 match screen {
                     WorldGuiScreen::IngameMenu(screen) => screen.drawScreen(
-                        &mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
                     ),
                     WorldGuiScreen::Options(screen) => screen.drawScreenInWorld(
-                        &mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
                     ),
                     WorldGuiScreen::Controls(screen) => screen.drawScreen(
-                        &mut drawList, &mut self.fontRendererObj, &self.locale,
-                        &minecraft.gameSettings, mouseX, mouseY, partialTicks, true,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        &self.locale,
+                        &minecraft.gameSettings,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
+                        true,
                     ),
                     WorldGuiScreen::VideoSettings(screen) => screen.drawScreenInWorld(
-                        &mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
                     ),
                     WorldGuiScreen::ShaderSettings(screen) => screen.drawScreenInWorld(
-                        &mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
                     ),
-                    WorldGuiScreen::SoundSettings(screen) => screen.drawScreenInWorld(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-                    WorldGuiScreen::ChatSettings(screen) => screen.drawScreenInWorld(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-                    WorldGuiScreen::SkinSettings(screen) => screen.drawScreenInWorld(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-                    WorldGuiScreen::ResourcePacks(screen) => screen.drawScreenInWorld(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
+                    WorldGuiScreen::SoundSettings(screen) => screen.drawScreenInWorld(
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
+                    ),
+                    WorldGuiScreen::ChatSettings(screen) => screen.drawScreenInWorld(
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
+                    ),
+                    WorldGuiScreen::SkinSettings(screen) => screen.drawScreenInWorld(
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
+                    ),
+                    WorldGuiScreen::ResourcePacks(screen) => screen.drawScreenInWorld(
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
+                    ),
                     WorldGuiScreen::Language(screen) => screen.drawScreenInWorld(
-                        &mut drawList, &mut self.fontRendererObj, &self.locale, mouseX, mouseY, partialTicks,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        &self.locale,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
                     ),
                     WorldGuiScreen::EditSign(screen) => screen.drawScreen(
-                        &mut drawList, &mut self.fontRendererObj, &self.locale,
-                        mouseX, mouseY, partialTicks,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        &self.locale,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
                     ),
                     WorldGuiScreen::GameOver(screen) => screen.drawScreen(
-                        &mut drawList, &mut self.fontRendererObj, &self.locale,
-                        mouseX, mouseY, partialTicks,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        &self.locale,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
                     ),
                     WorldGuiScreen::GameOverConfirm { screen, .. } => screen.drawScreenInWorld(
-                        &mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks,
+                        &mut drawList,
+                        &mut self.fontRendererObj,
+                        mouseX,
+                        mouseY,
+                        partialTicks,
                     ),
                 }
                 drawList
@@ -4246,7 +5152,11 @@ impl MainMenuRuntime {
                     self.scaledResolution.scaled_width(),
                     self.scaledResolution.scaled_height(),
                     minecraft.gameSettings.mainHand,
-                    minecraft.session.getProfile().getId().unwrap_or_else(uuid::Uuid::nil),
+                    minecraft
+                        .session
+                        .getProfile()
+                        .getId()
+                        .unwrap_or_else(uuid::Uuid::nil),
                     minecraft.gameSettings.modelPartFlags,
                     firstPersonItemState.clone(),
                     self.playerListKeyDown,
@@ -4307,10 +5217,7 @@ impl MainMenuRuntime {
                     minecraft.gameSettings.gammaSetting,
                 )
             });
-            let frame = self
-                .worldRenderer
-                .render(capture)
-                .map(RuntimeFrame::World);
+            let frame = self.worldRenderer.render(capture).map(RuntimeFrame::World);
             // GuiInventory stores the cursor after drawing and uses the prior
             // frame's coordinates for drawEntityOnScreen, exactly as MCP.
             if self.inventoryOpen || self.creativeInventoryOpen {
@@ -4325,42 +5232,187 @@ impl MainMenuRuntime {
         // time rather than the world tick fraction so the panorama speed is
         // stable across scheduling jitter.
         let now = Instant::now();
-        let partialTicks = (now.duration_since(self.lastGuiFrame).as_secs_f32() * 20.0)
-            .clamp(0.0, 1.0);
+        let partialTicks =
+            (now.duration_since(self.lastGuiFrame).as_secs_f32() * 20.0).clamp(0.0, 1.0);
         self.lastGuiFrame = now;
         let mut drawList = GuiDrawList::new();
         match &mut self.currentScreen {
             ActiveGuiScreen::Empty => {}
             ActiveGuiScreen::MainMenu(screen) => screen.drawScreen(
-                &mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks,
-                systemTimeMillis, minecraft.getVersionType(), self.mouseInsideWindow,
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+                systemTimeMillis,
+                minecraft.getVersionType(),
+                self.mouseInsideWindow,
             ),
-            ActiveGuiScreen::AccountManager(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks, &self.accountConfig, minecraft.getSession().getUsername()),
-            ActiveGuiScreen::MicrosoftAuth(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::SessionLogin(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::OfflineLogin(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::Options(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
+            ActiveGuiScreen::AccountManager(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+                &self.accountConfig,
+                minecraft.getSession().getUsername(),
+            ),
+            ActiveGuiScreen::MicrosoftAuth(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::SessionLogin(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::OfflineLogin(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::Options(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
             ActiveGuiScreen::Controls(screen) => screen.drawScreen(
-                &mut drawList, &mut self.fontRendererObj, &self.locale,
-                &minecraft.gameSettings, mouseX, mouseY, partialTicks, false,
+                &mut drawList,
+                &mut self.fontRendererObj,
+                &self.locale,
+                &minecraft.gameSettings,
+                mouseX,
+                mouseY,
+                partialTicks,
+                false,
             ),
-            ActiveGuiScreen::VideoSettings(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::ShaderSettings(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::SoundSettings(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::ChatSettings(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::SkinSettings(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::ResourcePacks(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::Multiplayer(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::WorldSelection(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, &self.locale, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::CreateWorld(screen) => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, &self.locale, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::Language { screen, .. } => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, &self.locale, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::AddServer { screen, .. } => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::DirectConnect { screen, .. } => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::ConfirmDelete { screen, .. } => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::Connecting { screen, .. } => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::Disconnected { screen, .. } => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::DownloadTerrain { screen, .. } => screen.drawScreen(&mut drawList, &mut self.fontRendererObj, mouseX, mouseY, partialTicks),
-            ActiveGuiScreen::World { .. } => unreachable!("world rendering returned before GUI draw"),
+            ActiveGuiScreen::VideoSettings(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::ShaderSettings(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::SoundSettings(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::ChatSettings(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::SkinSettings(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::ResourcePacks(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::Multiplayer(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::WorldSelection(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                &self.locale,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::CreateWorld(screen) => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                &self.locale,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::Language { screen, .. } => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                &self.locale,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::AddServer { screen, .. } => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::DirectConnect { screen, .. } => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::ConfirmDelete { screen, .. } => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::Connecting { screen, .. } => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::Disconnected { screen, .. } => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::DownloadTerrain { screen, .. } => screen.drawScreen(
+                &mut drawList,
+                &mut self.fontRendererObj,
+                mouseX,
+                mouseY,
+                partialTicks,
+            ),
+            ActiveGuiScreen::World { .. } => {
+                unreachable!("world rendering returned before GUI draw")
+            }
         }
         let _ = renderBackend;
         self.guiRenderer
@@ -4377,26 +5429,34 @@ impl MainMenuRuntime {
     fn updateElytraSounds(&mut self) {
         let snapshot = match &self.currentScreen {
             ActiveGuiScreen::World { connection, .. }
-            | ActiveGuiScreen::DownloadTerrain { connection, .. } => connection
-                .getSharedPlayState()
-                .withRead(|state| state.thePlayer.as_ref().map(|player| (
-                    player.entity.isDead,
-                    player.isElytraFlying(),
-                    [
-                        player.entity.posX as f32,
-                        player.entity.posY as f32,
-                        player.entity.posZ as f32,
-                    ],
-                    [player.entity.motionX, player.entity.motionY, player.entity.motionZ],
-                ))),
+            | ActiveGuiScreen::DownloadTerrain { connection, .. } => {
+                connection.getSharedPlayState().withRead(|state| {
+                    state.thePlayer.as_ref().map(|player| {
+                        (
+                            player.entity.isDead,
+                            player.isElytraFlying(),
+                            [
+                                player.entity.posX as f32,
+                                player.entity.posY as f32,
+                                player.entity.posZ as f32,
+                            ],
+                            [
+                                player.entity.motionX,
+                                player.entity.motionY,
+                                player.entity.motionZ,
+                            ],
+                        )
+                    })
+                })
+            }
             _ => None,
         };
 
-        let (playerDead, elytraFlying, position, motion) = snapshot.unwrap_or((
-            true, false, [0.0; 3], [0.0; 3],
-        ));
+        let (playerDead, elytraFlying, position, motion) =
+            snapshot.unwrap_or((true, false, [0.0; 3], [0.0; 3]));
         if elytraFlying && !self.wasElytraFlying {
-            self.elytraSounds.push(ElytraSound::new(&mut self.soundHandler, position));
+            self.elytraSounds
+                .push(ElytraSound::new(&mut self.soundHandler, position));
         }
         self.wasElytraFlying = elytraFlying;
 
@@ -4452,7 +5512,8 @@ impl MainMenuRuntime {
         self.rightClickDelayTimer = tick_right_click_delay(self.rightClickDelayTimer);
 
         let ambientMusicType = self.ambientMusicType();
-        self.musicTicker.update(ambientMusicType, &mut self.soundHandler);
+        self.musicTicker
+            .update(ambientMusicType, &mut self.soundHandler);
         self.soundHandler.update();
 
         // Packet handlers mutate EntityPlayer.openContainer independently of
@@ -4467,11 +5528,13 @@ impl MainMenuRuntime {
         } else if let Some(DedicatedContainerGui::Crafting(gui)) = self.guiDedicated.as_mut() {
             gui.recipeBook.tick(1.0, controlHeld);
         }
-        if matches!(self.guiDedicated.as_ref(), Some(DedicatedContainerGui::Enchantment(_))) {
+        if matches!(
+            self.guiDedicated.as_ref(),
+            Some(DedicatedContainerGui::Enchantment(_))
+        ) {
             let enchantmentState = match &self.currentScreen {
-                ActiveGuiScreen::World { connection, .. } => connection
-                    .getSharedPlayState()
-                    .withRead(|state| {
+                ActiveGuiScreen::World { connection, .. } => {
+                    connection.getSharedPlayState().withRead(|state| {
                         let container = state.thePlayer.as_ref()?.openContainer.as_ref()?;
                         if container.windowKind() != Some(ContainerWindowKind::Enchantment) {
                             return None;
@@ -4484,7 +5547,8 @@ impl MainMenuRuntime {
                                 container.properties().get(2).copied().unwrap_or(0),
                             ],
                         ))
-                    }),
+                    })
+                }
                 _ => None,
             };
             if let (Some(gui), Some((inputStack, enchantLevels))) =
@@ -4502,7 +5566,10 @@ impl MainMenuRuntime {
         let (inWorld, handActive) = match &self.currentScreen {
             ActiveGuiScreen::World { connection, .. } => {
                 let active = connection.getSharedPlayState().withRead(|state| {
-                    state.thePlayer.as_ref().is_some_and(|player| player.isHandActive())
+                    state
+                        .thePlayer
+                        .as_ref()
+                        .is_some_and(|player| player.isHandActive())
                 });
                 (true, active)
             }
@@ -4520,10 +5587,13 @@ impl MainMenuRuntime {
             match self.worldActionButton(KeyBindingId::UseItem, true) {
                 Ok(sent) => heldUseRedraw = sent,
                 Err(message) => {
-                    return (true, Some(RuntimeGuiAction::OpenDisconnected {
-                        reasonKey: "connect.failed",
-                        message,
-                    }));
+                    return (
+                        true,
+                        Some(RuntimeGuiAction::OpenDisconnected {
+                            reasonKey: "connect.failed",
+                            message,
+                        }),
+                    );
                 }
             }
         }
@@ -4538,31 +5608,66 @@ impl MainMenuRuntime {
                 for (location, image) in avatarTextures {
                     self.guiRenderer.registerDynamicTexture(location, image);
                 }
-                (true, session.map(|session| RuntimeGuiAction::AccountAuthenticated { session, returnToManager: false }))
+                (
+                    true,
+                    session.map(|session| RuntimeGuiAction::AccountAuthenticated {
+                        session,
+                        returnToManager: false,
+                    }),
+                )
             }
             ActiveGuiScreen::MicrosoftAuth(screen) => {
-                let action = screen.updateScreen(&mut self.accountConfig).and_then(|action| match action {
-                    GuiMicrosoftAuthAction::Authenticated(session) => Some(RuntimeGuiAction::AccountAuthenticated { session, returnToManager: true }),
-                    _ => None,
-                });
+                let action = screen
+                    .updateScreen(&mut self.accountConfig)
+                    .and_then(|action| match action {
+                        GuiMicrosoftAuthAction::Authenticated(session) => {
+                            Some(RuntimeGuiAction::AccountAuthenticated {
+                                session,
+                                returnToManager: true,
+                            })
+                        }
+                        _ => None,
+                    });
                 (true, action)
             }
             ActiveGuiScreen::SessionLogin(screen) => {
-                let action = screen.updateScreen(&mut self.accountConfig).and_then(|action| match action {
-                    GuiSessionLoginAction::Authenticated(session) => Some(RuntimeGuiAction::AccountAuthenticated { session, returnToManager: false }),
-                    _ => None,
-                });
+                let action = screen
+                    .updateScreen(&mut self.accountConfig)
+                    .and_then(|action| match action {
+                        GuiSessionLoginAction::Authenticated(session) => {
+                            Some(RuntimeGuiAction::AccountAuthenticated {
+                                session,
+                                returnToManager: false,
+                            })
+                        }
+                        _ => None,
+                    });
                 (true, action)
             }
             ActiveGuiScreen::OfflineLogin(screen) => {
                 let session = screen.updateScreen();
-                (true, session.map(|session| RuntimeGuiAction::AccountAuthenticated { session, returnToManager: false }))
-            },
+                (
+                    true,
+                    session.map(|session| RuntimeGuiAction::AccountAuthenticated {
+                        session,
+                        returnToManager: false,
+                    }),
+                )
+            }
             ActiveGuiScreen::ShaderSettings(screen) => (screen.updateScreen(), None),
             ActiveGuiScreen::Multiplayer(screen) => (screen.updateScreen(), None),
-            ActiveGuiScreen::CreateWorld(screen) => { screen.updateScreen(); (true, None) }
-            ActiveGuiScreen::AddServer { screen, .. } => { screen.updateScreen(); (true, None) }
-            ActiveGuiScreen::DirectConnect { screen, .. } => { screen.updateScreen(); (true, None) }
+            ActiveGuiScreen::CreateWorld(screen) => {
+                screen.updateScreen();
+                (true, None)
+            }
+            ActiveGuiScreen::AddServer { screen, .. } => {
+                screen.updateScreen();
+                (true, None)
+            }
+            ActiveGuiScreen::DirectConnect { screen, .. } => {
+                screen.updateScreen();
+                (true, None)
+            }
             ActiveGuiScreen::Connecting { screen, .. } => {
                 let mut redraw = false;
                 let mut action = None;
@@ -4575,16 +5680,46 @@ impl MainMenuRuntime {
                         | GuiConnectingEvent::TerrainReady
                         | GuiConnectingEvent::Respawn { .. }
                         | GuiConnectingEvent::PlayerDied(_) => {}
-                        GuiConnectingEvent::WorldEffect { effectType, position, data, serverWide } => {
+                        GuiConnectingEvent::WorldEffect {
+                            effectType,
+                            position,
+                            data,
+                            serverWide,
+                        } => {
                             pendingWorldEffects.push((effectType, position, data, serverWide));
                         }
-                        GuiConnectingEvent::Sound { sound, category, x, y, z, volume, pitch } => {
+                        GuiConnectingEvent::Sound {
+                            sound,
+                            category,
+                            x,
+                            y,
+                            z,
+                            volume,
+                            pitch,
+                        } => {
                             pendingNetworkSounds.push((sound, category, x, y, z, volume, pitch));
                         }
-                        GuiConnectingEvent::JoinGame(_) => { action = Some(RuntimeGuiAction::OpenDownloadTerrain); break; }
-                        GuiConnectingEvent::Disconnected(message) => { action = Some(RuntimeGuiAction::OpenDisconnected { reasonKey: "connect.failed", message }); break; }
-                        GuiConnectingEvent::Failed { reasonKey, message } => { action = Some(RuntimeGuiAction::OpenDisconnected { reasonKey, message }); break; }
-                        GuiConnectingEvent::Cancelled => { action = Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: None }); break; }
+                        GuiConnectingEvent::JoinGame(_) => {
+                            action = Some(RuntimeGuiAction::OpenDownloadTerrain);
+                            break;
+                        }
+                        GuiConnectingEvent::Disconnected(message) => {
+                            action = Some(RuntimeGuiAction::OpenDisconnected {
+                                reasonKey: "connect.failed",
+                                message,
+                            });
+                            break;
+                        }
+                        GuiConnectingEvent::Failed { reasonKey, message } => {
+                            action =
+                                Some(RuntimeGuiAction::OpenDisconnected { reasonKey, message });
+                            break;
+                        }
+                        GuiConnectingEvent::Cancelled => {
+                            action =
+                                Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: None });
+                            break;
+                        }
                     }
                 }
                 (redraw, action)
@@ -4593,14 +5728,44 @@ impl MainMenuRuntime {
                 let mut action = None;
                 for event in connection.updateScreen() {
                     match event {
-                        GuiConnectingEvent::Disconnected(message) => { action = Some(RuntimeGuiAction::OpenDisconnected { reasonKey: "connect.failed", message }); break; }
-                        GuiConnectingEvent::Failed { reasonKey, message } => { action = Some(RuntimeGuiAction::OpenDisconnected { reasonKey, message }); break; }
-                        GuiConnectingEvent::TerrainReady => { action = Some(RuntimeGuiAction::OpenWorld); break; }
-                        GuiConnectingEvent::Cancelled => { action = Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: None }); break; }
-                        GuiConnectingEvent::Sound { sound, category, x, y, z, volume, pitch } => {
+                        GuiConnectingEvent::Disconnected(message) => {
+                            action = Some(RuntimeGuiAction::OpenDisconnected {
+                                reasonKey: "connect.failed",
+                                message,
+                            });
+                            break;
+                        }
+                        GuiConnectingEvent::Failed { reasonKey, message } => {
+                            action =
+                                Some(RuntimeGuiAction::OpenDisconnected { reasonKey, message });
+                            break;
+                        }
+                        GuiConnectingEvent::TerrainReady => {
+                            action = Some(RuntimeGuiAction::OpenWorld);
+                            break;
+                        }
+                        GuiConnectingEvent::Cancelled => {
+                            action =
+                                Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: None });
+                            break;
+                        }
+                        GuiConnectingEvent::Sound {
+                            sound,
+                            category,
+                            x,
+                            y,
+                            z,
+                            volume,
+                            pitch,
+                        } => {
                             pendingNetworkSounds.push((sound, category, x, y, z, volume, pitch));
                         }
-                        GuiConnectingEvent::WorldEffect { effectType, position, data, serverWide } => {
+                        GuiConnectingEvent::WorldEffect {
+                            effectType,
+                            position,
+                            data,
+                            serverWide,
+                        } => {
                             pendingWorldEffects.push((effectType, position, data, serverWide));
                         }
                         _ => {}
@@ -4612,18 +5777,51 @@ impl MainMenuRuntime {
                 let mut action = None;
                 for event in connection.updateScreen() {
                     match event {
-                        GuiConnectingEvent::Disconnected(message) => { action = Some(RuntimeGuiAction::OpenDisconnected { reasonKey: "connect.failed", message }); break; }
-                        GuiConnectingEvent::Failed { reasonKey, message } => { action = Some(RuntimeGuiAction::OpenDisconnected { reasonKey, message }); break; }
-                        GuiConnectingEvent::Cancelled => { action = Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: None }); break; }
-                        GuiConnectingEvent::Respawn { dimensionChanged: true, .. } => { action = Some(RuntimeGuiAction::OpenDownloadTerrain); break; }
+                        GuiConnectingEvent::Disconnected(message) => {
+                            action = Some(RuntimeGuiAction::OpenDisconnected {
+                                reasonKey: "connect.failed",
+                                message,
+                            });
+                            break;
+                        }
+                        GuiConnectingEvent::Failed { reasonKey, message } => {
+                            action =
+                                Some(RuntimeGuiAction::OpenDisconnected { reasonKey, message });
+                            break;
+                        }
+                        GuiConnectingEvent::Cancelled => {
+                            action =
+                                Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: None });
+                            break;
+                        }
+                        GuiConnectingEvent::Respawn {
+                            dimensionChanged: true,
+                            ..
+                        } => {
+                            action = Some(RuntimeGuiAction::OpenDownloadTerrain);
+                            break;
+                        }
                         GuiConnectingEvent::PlayerDied(message) => {
                             action = Some(RuntimeGuiAction::OpenGameOver(message));
                             break;
                         }
-                        GuiConnectingEvent::Sound { sound, category, x, y, z, volume, pitch } => {
+                        GuiConnectingEvent::Sound {
+                            sound,
+                            category,
+                            x,
+                            y,
+                            z,
+                            volume,
+                            pitch,
+                        } => {
                             pendingNetworkSounds.push((sound, category, x, y, z, volume, pitch));
                         }
-                        GuiConnectingEvent::WorldEffect { effectType, position, data, serverWide } => {
+                        GuiConnectingEvent::WorldEffect {
+                            effectType,
+                            position,
+                            data,
+                            serverWide,
+                        } => {
                             pendingWorldEffects.push((effectType, position, data, serverWide));
                         }
                         _ => {}
@@ -4633,10 +5831,14 @@ impl MainMenuRuntime {
                 if action.is_none() {
                     match self.worldGuiScreen.as_mut() {
                         Some(WorldGuiScreen::IngameMenu(screen)) => screen.updateScreen(),
-                        Some(WorldGuiScreen::ShaderSettings(screen)) => { screen.updateScreen(); }
+                        Some(WorldGuiScreen::ShaderSettings(screen)) => {
+                            screen.updateScreen();
+                        }
                         Some(WorldGuiScreen::EditSign(screen)) => screen.updateScreen(),
                         Some(WorldGuiScreen::GameOver(screen)) => screen.updateScreen(),
-                        Some(WorldGuiScreen::GameOverConfirm { screen, .. }) => screen.updateScreen(),
+                        Some(WorldGuiScreen::GameOverConfirm { screen, .. }) => {
+                            screen.updateScreen()
+                        }
                         _ => {}
                     }
                     // Keep the edited text mirrored into the live tile entity after
@@ -4646,7 +5848,9 @@ impl MainMenuRuntime {
                         let snapshot = screen.clone();
                         let shared = connection.getSharedPlayState();
                         shared.withWrite(|state| {
-                            let Some(world) = state.worldClient.as_mut() else { return; };
+                            let Some(world) = state.worldClient.as_mut() else {
+                                return;
+                            };
                             let sign = world.getOrCreateSignTileEntity(snapshot.getPosition());
                             snapshot.applyToTileEntity(sign);
                             state.revision = state.revision.wrapping_add(1);
@@ -4657,7 +5861,10 @@ impl MainMenuRuntime {
                     // ActionBar packet from losing one tick immediately.
                     self.worldRenderer.tickIngameGui();
                     let shared = connection.getSharedPlayState();
-                    let systemTimeMillis = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64;
+                    let systemTimeMillis = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64;
                     for packet in shared.takeTitlePackets() {
                         self.worldRenderer.handleTitle(&packet);
                     }
@@ -4667,11 +5874,21 @@ impl MainMenuRuntime {
                     let completionBatches = shared.takeTabCompleteMatches();
                     if let Some(chat) = self.guiChat.as_mut() {
                         for matches in completionBatches {
-                            if let Some(line) = chat.setCompletions(&matches, &self.fontRendererObj) {
-                                let wrapWidth = ((GuiNewChat::calculateChatboxWidth(chatWidth.clamp(0.0, 1.0)) as f32)
-                                    / chatScale.max(0.01)).floor() as i32;
-                                let ticks = shared.withRead(|state| state.thePlayer.as_ref().map_or(0, |player| player.entity.ticksExisted));
-                                self.worldRenderer.showChatCompletionCandidates(line, ticks, wrapWidth);
+                            if let Some(line) = chat.setCompletions(&matches, &self.fontRendererObj)
+                            {
+                                let wrapWidth =
+                                    ((GuiNewChat::calculateChatboxWidth(chatWidth.clamp(0.0, 1.0))
+                                        as f32)
+                                        / chatScale.max(0.01))
+                                    .floor() as i32;
+                                let ticks = shared.withRead(|state| {
+                                    state
+                                        .thePlayer
+                                        .as_ref()
+                                        .map_or(0, |player| player.entity.ticksExisted)
+                                });
+                                self.worldRenderer
+                                    .showChatCompletionCandidates(line, ticks, wrapWidth);
                             }
                         }
                         chat.updateScreen();
@@ -4699,11 +5916,20 @@ impl MainMenuRuntime {
                     // User-requested extension: logically hold the existing
                     // vanilla sprint binding. EntityPlayerSP still executes
                     // every original food, collision and item-use condition.
-                    if !modalWorldGuiOpen { movementKeys.sprint |= forceSprint; }
+                    if !modalWorldGuiOpen {
+                        movementKeys.sprint |= forceSprint;
+                    }
                     let mut packets = shared.tickLocalPlayer(movementKeys);
                     let (particleSpawns, particleViewPosition) = shared.withWrite(|state| {
-                        let requests = state.worldClient.as_mut().map_or_else(Vec::new, |world| world.takeParticleSpawns());
-                        let position = [state.playerPosition.posX, state.playerPosition.posY, state.playerPosition.posZ];
+                        let requests = state
+                            .worldClient
+                            .as_mut()
+                            .map_or_else(Vec::new, |world| world.takeParticleSpawns());
+                        let position = [
+                            state.playerPosition.posX,
+                            state.playerPosition.posY,
+                            state.playerPosition.posZ,
+                        ];
                         (requests, position)
                     });
                     self.particleManager.spawnEffects(
@@ -4716,15 +5942,23 @@ impl MainMenuRuntime {
                             self.particleManager.updateEffects(world);
                         }
                     });
-                    if let Some((mainHand, offHand, cooledAttackStrength)) = shared.heldItemState() {
+                    if let Some((mainHand, offHand, cooledAttackStrength)) = shared.heldItemState()
+                    {
                         self.itemRenderer.updateEquippedItem(
                             &mainHand,
                             &offHand,
                             shared.localPlayerIsRowingBoat(),
                             cooledAttackStrength,
                         );
-                        if let Some((active, hand, activeStack, useCount)) = shared.activeItemState() {
-                            self.itemRenderer.setActiveItemState(active, hand, &activeStack, useCount);
+                        if let Some((active, hand, activeStack, useCount)) =
+                            shared.activeItemState()
+                        {
+                            self.itemRenderer.setActiveItemState(
+                                active,
+                                hand,
+                                &activeStack,
+                                useCount,
+                            );
                         }
                     } else {
                         self.itemRenderer.clear();
@@ -4737,19 +5971,31 @@ impl MainMenuRuntime {
                     if self.attackButtonDown && !modalWorldGuiOpen {
                         let (mut miningPackets, swing, hitEffect) = shared.withRead(|state| {
                             self.playerController.setGameType(state.gameType);
-                            let (Some(world), Some(player)) = (&state.worldClient, &state.thePlayer) else {
+                            let (Some(world), Some(player)) =
+                                (&state.worldClient, &state.thePlayer)
+                            else {
                                 return (Vec::new(), false, None);
                             };
                             let reach = self.playerController.getBlockReachDistance();
                             let blockHit = player.rayTrace(world, reach, 1.0);
                             let eye = player.getPositionEyes(1.0);
                             let look = player.getLook(1.0);
-                            let blockDistance = blockHit.as_ref().map_or(reach, |hit| eye.distance_to(hit.hitVec));
+                            let blockDistance = blockHit
+                                .as_ref()
+                                .map_or(reach, |hit| eye.distance_to(hit.hitVec));
                             let entityHit = world.rayTraceEntities(
-                                player.entityId, player.entity.ridingEntityId,
-                                player.entity.boundingBox, eye, look,
-                                if self.playerController.extendedReach() { 6.0 } else { reach },
-                                blockDistance, self.playerController.extendedReach(),
+                                player.entityId,
+                                player.entity.ridingEntityId,
+                                player.entity.boundingBox,
+                                eye,
+                                look,
+                                if self.playerController.extendedReach() {
+                                    6.0
+                                } else {
+                                    reach
+                                },
+                                blockDistance,
+                                self.playerController.extendedReach(),
                             );
                             if entityHit.is_some() {
                                 return (self.playerController.resetBlockRemoving(), false, None);
@@ -4758,9 +6004,9 @@ impl MainMenuRuntime {
                                 Some(result) if result.typeOfHit == RayTraceType::Block => {
                                     let position = result.getBlockPos();
                                     let side = result.sideHit;
-                                    let (packets, swing) = self.playerController.onPlayerDamageBlock(
-                                        world, player, position, side,
-                                    );
+                                    let (packets, swing) = self
+                                        .playerController
+                                        .onPlayerDamageBlock(world, player, position, side);
                                     (packets, swing, swing.then_some((position, side)))
                                 }
                                 _ => {
@@ -4773,7 +6019,8 @@ impl MainMenuRuntime {
                         if let Some((position, side)) = hitEffect {
                             shared.withRead(|state| {
                                 if let Some(world) = state.worldClient.as_ref() {
-                                    self.particleManager.addBlockHitEffects(world, position, side);
+                                    self.particleManager
+                                        .addBlockHitEffects(world, position, side);
                                 }
                             });
                         }
@@ -4784,7 +6031,8 @@ impl MainMenuRuntime {
                         }
                         if swing {
                             shared.swingLocalArm(EnumHand::MainHand);
-                            packets.push(CPacketAnimation::new(EnumHand::MainHand).writePacketData());
+                            packets
+                                .push(CPacketAnimation::new(EnumHand::MainHand).writePacketData());
                         }
                     }
 
@@ -4801,18 +6049,16 @@ impl MainMenuRuntime {
                             });
                         }
                         Ok(()) => {
-                            if let Some((position, blockState)) = pendingContinuousBlockDestruction {
+                            if let Some((position, blockState)) = pendingContinuousBlockDestruction
+                            {
                                 // `onPlayerDamageBlock` queues STOP_DESTROY_BLOCK
                                 // before calling `onPlayerDestroyBlock`. Reproduce
                                 // that ordering for held mining as well as the
                                 // initial-click hardness>=1 path.
                                 shared.withRead(|state| {
                                     if let Some(world) = state.worldClient.as_ref() {
-                                        self.particleManager.addBlockDestroyEffects(
-                                            world,
-                                            position,
-                                            blockState,
-                                        );
+                                        self.particleManager
+                                            .addBlockDestroyEffects(world, position, blockState);
                                     }
                                 });
                                 let _ = shared.applyPredictedBlockDestruction(position, blockState);
@@ -4821,9 +6067,8 @@ impl MainMenuRuntime {
                     }
                 }
 
-                pendingLocalSounds.extend(
-                    connection.getSharedPlayState().takeLocalPlayerSoundEvents()
-                );
+                pendingLocalSounds
+                    .extend(connection.getSharedPlayState().takeLocalPlayerSoundEvents());
                 let revision = connection.getSharedPlayState().revision();
                 let redraw = revision != self.lastWorldRevision
                     || action.is_some()
@@ -4851,16 +6096,24 @@ impl MainMenuRuntime {
         }
         let viewPosition = match &self.currentScreen {
             ActiveGuiScreen::World { connection, .. }
-            | ActiveGuiScreen::DownloadTerrain { connection, .. } => connection
-                .getSharedPlayState()
-                .withRead(|state| state.thePlayer.as_ref().map(|player| [
-                    player.entity.posX, player.entity.posY, player.entity.posZ,
-                ])),
+            | ActiveGuiScreen::DownloadTerrain { connection, .. } => {
+                connection.getSharedPlayState().withRead(|state| {
+                    state
+                        .thePlayer
+                        .as_ref()
+                        .map(|player| [player.entity.posX, player.entity.posY, player.entity.posZ])
+                })
+            }
             _ => None,
         };
         for (effectType, position, data, serverWide) in pendingWorldEffects {
             if let Some(action) = world_event_audio(
-                effectType, position, data, serverWide, viewPosition, &mut self.worldEventRandom,
+                effectType,
+                position,
+                data,
+                serverWide,
+                viewPosition,
+                &mut self.worldEventRandom,
             ) {
                 match action {
                     WorldEventAudio::Play(record) => {
@@ -4869,7 +6122,9 @@ impl MainMenuRuntime {
                         }
                         self.soundHandler.playSound(record);
                     }
-                    WorldEventAudio::StopRecord(position) => self.soundHandler.stopRecordAt(position),
+                    WorldEventAudio::StopRecord(position) => {
+                        self.soundHandler.stopRecordAt(position)
+                    }
                 }
             }
         }
@@ -4880,11 +6135,8 @@ impl MainMenuRuntime {
             for event in soundEvents {
                 let subtitle = self.locale.translate_key(&event.subtitle).to_owned();
                 let startedAtMillis = event.startedAtMillis.min(u64::MAX as u128) as u64;
-                self.worldRenderer.soundPlay(
-                    subtitle,
-                    event.position,
-                    startedAtMillis,
-                );
+                self.worldRenderer
+                    .soundPlay(subtitle, event.position, startedAtMillis);
             }
         }
 
@@ -4922,19 +6174,25 @@ impl MainMenuRuntime {
         let soundHandler = &mut self.soundHandler;
         if worldGuiOpen {
             return match self.worldGuiScreen.as_mut() {
-                Some(WorldGuiScreen::IngameMenu(screen)) => screen
-                    .mouseClicked(mouseX, mouseY, 0)
-                    .map(|interaction| {
+                Some(WorldGuiScreen::IngameMenu(screen)) => {
+                    screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
                         playGuiSound(soundHandler, Some(&interaction.sound));
                         match interaction.action {
                             GuiIngameMenuAction::ReturnToGame => RuntimeGuiAction::ResumeWorld,
                             GuiIngameMenuAction::Options => RuntimeGuiAction::OpenWorldOptions,
                             GuiIngameMenuAction::Disconnect => RuntimeGuiAction::DisconnectWorld,
-                            GuiIngameMenuAction::Advancements => RuntimeGuiAction::NotConnected("GuiScreenAdvancements"),
-                            GuiIngameMenuAction::Statistics => RuntimeGuiAction::NotConnected("GuiStats"),
-                            GuiIngameMenuAction::ShareToLan => RuntimeGuiAction::NotConnected("GuiShareToLan"),
+                            GuiIngameMenuAction::Advancements => {
+                                RuntimeGuiAction::NotConnected("GuiScreenAdvancements")
+                            }
+                            GuiIngameMenuAction::Statistics => {
+                                RuntimeGuiAction::NotConnected("GuiStats")
+                            }
+                            GuiIngameMenuAction::ShareToLan => {
+                                RuntimeGuiAction::NotConnected("GuiShareToLan")
+                            }
                         }
-                    }),
+                    })
+                }
                 Some(WorldGuiScreen::Options(screen)) => screen
                     .mouseClicked(mouseX, mouseY, 0, &self.locale)
                     .map(|interaction| {
@@ -4942,19 +6200,35 @@ impl MainMenuRuntime {
                         match interaction.action {
                             GuiOptionsAction::Done => RuntimeGuiAction::ReturnToIngameMenu,
                             GuiOptionsAction::SetFov(value) => RuntimeGuiAction::SetFov(value),
-                            GuiOptionsAction::ToggleForceSprint => RuntimeGuiAction::ToggleForceSprint,
-                            GuiOptionsAction::OpenVideoSettings => RuntimeGuiAction::OpenWorldVideoSettings,
+                            GuiOptionsAction::ToggleForceSprint => {
+                                RuntimeGuiAction::ToggleForceSprint
+                            }
+                            GuiOptionsAction::OpenVideoSettings => {
+                                RuntimeGuiAction::OpenWorldVideoSettings
+                            }
                             GuiOptionsAction::OpenLanguage => RuntimeGuiAction::OpenWorldLanguage,
                             GuiOptionsAction::OpenControls => RuntimeGuiAction::OpenWorldControls,
-                            GuiOptionsAction::OpenSkinCustomisation => RuntimeGuiAction::OpenWorldSkinSettings,
-                            GuiOptionsAction::OpenSounds => RuntimeGuiAction::OpenWorldSoundSettings,
-                            GuiOptionsAction::OpenChatSettings => RuntimeGuiAction::OpenWorldChatSettings,
-                            GuiOptionsAction::OpenResourcePacks => RuntimeGuiAction::OpenWorldResourcePacks,
-                            GuiOptionsAction::OpenSnooper => RuntimeGuiAction::NotConnected("GuiSnooper"),
+                            GuiOptionsAction::OpenSkinCustomisation => {
+                                RuntimeGuiAction::OpenWorldSkinSettings
+                            }
+                            GuiOptionsAction::OpenSounds => {
+                                RuntimeGuiAction::OpenWorldSoundSettings
+                            }
+                            GuiOptionsAction::OpenChatSettings => {
+                                RuntimeGuiAction::OpenWorldChatSettings
+                            }
+                            GuiOptionsAction::OpenResourcePacks => {
+                                RuntimeGuiAction::OpenWorldResourcePacks
+                            }
+                            GuiOptionsAction::OpenSnooper => {
+                                RuntimeGuiAction::NotConnected("GuiSnooper")
+                            }
                         }
                     }),
                 Some(WorldGuiScreen::Controls(screen)) => mouse_button_from_index(mouseButton)
-                    .and_then(|button| screen.mouseClicked(mouseX, mouseY, button, &self.locale, settings))
+                    .and_then(|button| {
+                        screen.mouseClicked(mouseX, mouseY, button, &self.locale, settings)
+                    })
                     .map(|interaction| {
                         playGuiSound(soundHandler, interaction.sound.as_ref());
                         mapControlsAction(interaction.action, true)
@@ -4965,7 +6239,9 @@ impl MainMenuRuntime {
                         playGuiSound(soundHandler, interaction.sound.as_ref());
                         match interaction.action {
                             GuiVideoSettingsAction::Done => RuntimeGuiAction::ReturnToWorldOptions,
-                            GuiVideoSettingsAction::OpenShaders => RuntimeGuiAction::OpenWorldShaderSettings,
+                            GuiVideoSettingsAction::OpenShaders => {
+                                RuntimeGuiAction::OpenWorldShaderSettings
+                            }
                             other => mapVideoSettingsAction(other),
                         }
                     }),
@@ -4975,140 +6251,247 @@ impl MainMenuRuntime {
                         playGuiSound(soundHandler, Some(&interaction.sound));
                         match interaction.action {
                             GuiShaderAction::None => RuntimeGuiAction::None,
-                            GuiShaderAction::SelectShaderPack(name) => RuntimeGuiAction::SelectShaderPack(name),
+                            GuiShaderAction::SelectShaderPack(name) => {
+                                RuntimeGuiAction::SelectShaderPack(name)
+                            }
                             GuiShaderAction::ReloadShaderPack => RuntimeGuiAction::ReloadShaderPack,
-                            GuiShaderAction::OpenShaderPacksFolder => RuntimeGuiAction::OpenShaderPackFolder,
+                            GuiShaderAction::OpenShaderPacksFolder => {
+                                RuntimeGuiAction::OpenShaderPackFolder
+                            }
                             GuiShaderAction::Done => RuntimeGuiAction::ReturnToWorldVideoSettings,
                         }
                     }),
-                Some(WorldGuiScreen::SoundSettings(screen)) => screen.mouseClicked(mouseX, mouseY, 0, &self.locale, settings).map(|interaction| {
-                    playGuiSound(soundHandler, interaction.sound.as_ref());
-                    match interaction.action { GuiScreenOptionsSoundsAction::Done => RuntimeGuiAction::ReturnToWorldOptions, other => mapSoundSettingsAction(other) }
-                }),
-                Some(WorldGuiScreen::ChatSettings(screen)) => screen.mouseClicked(mouseX, mouseY, 0, &self.locale, settings).map(|interaction| {
-                    playGuiSound(soundHandler, interaction.sound.as_ref());
-                    match interaction.action { ScreenChatOptionsAction::Done => RuntimeGuiAction::ReturnToWorldOptions, other => mapChatSettingsAction(other) }
-                }),
-                Some(WorldGuiScreen::SkinSettings(screen)) => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                    playGuiSound(soundHandler, Some(&interaction.sound));
-                    match interaction.action { GuiCustomizeSkinAction::Done => RuntimeGuiAction::ReturnToWorldOptions, GuiCustomizeSkinAction::TogglePart(part) => RuntimeGuiAction::ToggleModelPart(part), GuiCustomizeSkinAction::ToggleMainHand => RuntimeGuiAction::ToggleMainHand }
-                }),
+                Some(WorldGuiScreen::SoundSettings(screen)) => screen
+                    .mouseClicked(mouseX, mouseY, 0, &self.locale, settings)
+                    .map(|interaction| {
+                        playGuiSound(soundHandler, interaction.sound.as_ref());
+                        match interaction.action {
+                            GuiScreenOptionsSoundsAction::Done => {
+                                RuntimeGuiAction::ReturnToWorldOptions
+                            }
+                            other => mapSoundSettingsAction(other),
+                        }
+                    }),
+                Some(WorldGuiScreen::ChatSettings(screen)) => screen
+                    .mouseClicked(mouseX, mouseY, 0, &self.locale, settings)
+                    .map(|interaction| {
+                        playGuiSound(soundHandler, interaction.sound.as_ref());
+                        match interaction.action {
+                            ScreenChatOptionsAction::Done => RuntimeGuiAction::ReturnToWorldOptions,
+                            other => mapChatSettingsAction(other),
+                        }
+                    }),
+                Some(WorldGuiScreen::SkinSettings(screen)) => {
+                    screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                        playGuiSound(soundHandler, Some(&interaction.sound));
+                        match interaction.action {
+                            GuiCustomizeSkinAction::Done => RuntimeGuiAction::ReturnToWorldOptions,
+                            GuiCustomizeSkinAction::TogglePart(part) => {
+                                RuntimeGuiAction::ToggleModelPart(part)
+                            }
+                            GuiCustomizeSkinAction::ToggleMainHand => {
+                                RuntimeGuiAction::ToggleMainHand
+                            }
+                        }
+                    })
+                }
                 Some(WorldGuiScreen::ResourcePacks(screen)) => {
                     let interaction = screen.mouseClicked(mouseX, mouseY, 0);
                     if let Some(interaction) = interaction {
                         playGuiSound(soundHandler, Some(&interaction.sound));
                         Some(match interaction.action {
-                            GuiScreenResourcePacksAction::Done if screen.hasChanges() => RuntimeGuiAction::ApplyResourcePacks { selected: screen.selected(), world: true },
-                            GuiScreenResourcePacksAction::Done => RuntimeGuiAction::ReturnToWorldOptions,
-                            GuiScreenResourcePacksAction::OpenFolder => RuntimeGuiAction::OpenResourcePackFolder,
-                            GuiScreenResourcePacksAction::Toggle(_) | GuiScreenResourcePacksAction::MoveSelected { .. } => RuntimeGuiAction::None,
+                            GuiScreenResourcePacksAction::Done if screen.hasChanges() => {
+                                RuntimeGuiAction::ApplyResourcePacks {
+                                    selected: screen.selected(),
+                                    world: true,
+                                }
+                            }
+                            GuiScreenResourcePacksAction::Done => {
+                                RuntimeGuiAction::ReturnToWorldOptions
+                            }
+                            GuiScreenResourcePacksAction::OpenFolder => {
+                                RuntimeGuiAction::OpenResourcePackFolder
+                            }
+                            GuiScreenResourcePacksAction::Toggle(_)
+                            | GuiScreenResourcePacksAction::MoveSelected { .. } => {
+                                RuntimeGuiAction::None
+                            }
                         })
                     } else if screen.isDraggingScrollbar() {
                         Some(RuntimeGuiAction::None)
                     } else {
                         None
                     }
-                },
-                Some(WorldGuiScreen::Language(screen)) => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                    playGuiSound(soundHandler, interaction.sound.as_ref());
-                    match interaction.action {
-                        GuiLanguageAction::Done => RuntimeGuiAction::ReturnToWorldOptions,
-                        GuiLanguageAction::ToggleUnicode => RuntimeGuiAction::ToggleUnicode,
-                        GuiLanguageAction::SelectLanguage(code) => RuntimeGuiAction::SetLanguage(code),
-                    }
-                }),
-                Some(WorldGuiScreen::EditSign(screen)) => screen
-                    .mouseClicked(mouseX, mouseY, 0)
-                    .map(|sound| {
+                }
+                Some(WorldGuiScreen::Language(screen)) => {
+                    screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                        playGuiSound(soundHandler, interaction.sound.as_ref());
+                        match interaction.action {
+                            GuiLanguageAction::Done => RuntimeGuiAction::ReturnToWorldOptions,
+                            GuiLanguageAction::ToggleUnicode => RuntimeGuiAction::ToggleUnicode,
+                            GuiLanguageAction::SelectLanguage(code) => {
+                                RuntimeGuiAction::SetLanguage(code)
+                            }
+                        }
+                    })
+                }
+                Some(WorldGuiScreen::EditSign(screen)) => {
+                    screen.mouseClicked(mouseX, mouseY, 0).map(|sound| {
                         playGuiSound(soundHandler, Some(&sound));
                         RuntimeGuiAction::FinishSignEditor
-                    }),
-                Some(WorldGuiScreen::GameOver(screen)) => screen
-                    .mouseClicked(mouseX, mouseY, 0)
-                    .map(|interaction| {
+                    })
+                }
+                Some(WorldGuiScreen::GameOver(screen)) => {
+                    screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
                         playGuiSound(soundHandler, Some(&interaction.sound));
                         match interaction.action {
                             GuiGameOverAction::Respawn => RuntimeGuiAction::RespawnPlayer,
-                            GuiGameOverAction::Quit if screen.isHardcore() => RuntimeGuiAction::LeaveWorldToMainMenu,
+                            GuiGameOverAction::Quit if screen.isHardcore() => {
+                                RuntimeGuiAction::LeaveWorldToMainMenu
+                            }
                             GuiGameOverAction::Quit => RuntimeGuiAction::OpenDeathQuitConfirm,
                         }
-                    }),
-                Some(WorldGuiScreen::GameOverConfirm { screen, .. }) => screen
-                    .mouseClicked(mouseX, mouseY, 0)
-                    .map(|interaction| {
+                    })
+                }
+                Some(WorldGuiScreen::GameOverConfirm { screen, .. }) => {
+                    screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
                         playGuiSound(soundHandler, Some(&interaction.sound));
                         RuntimeGuiAction::ConfirmDeathQuit(interaction.result)
-                    }),
+                    })
+                }
                 None => None,
             };
         }
         match &mut self.currentScreen {
             ActiveGuiScreen::Empty | ActiveGuiScreen::World { .. } => None,
-            ActiveGuiScreen::MainMenu(screen) => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    MainMenuAction::OpenOptions => RuntimeGuiAction::Switch(ScreenId::Options),
-                    MainMenuAction::OpenLanguage => RuntimeGuiAction::OpenLanguage(ScreenId::MainMenu),
-                    MainMenuAction::OpenWorldSelection => RuntimeGuiAction::Switch(ScreenId::WorldSelection),
-                    MainMenuAction::OpenMultiplayer => RuntimeGuiAction::Switch(ScreenId::Multiplayer),
-                    MainMenuAction::OpenAccounts => RuntimeGuiAction::OpenAccountManager { notification: None },
-                    MainMenuAction::Shutdown => RuntimeGuiAction::Shutdown,
-                    MainMenuAction::OpenCopyrightCredits => RuntimeGuiAction::NotConnected("GuiWinGame"),
-                    MainMenuAction::OpenCompatibilityWarning { .. } => RuntimeGuiAction::NotConnected("GuiConfirmOpenLink"),
-                }
-            }),
-            ActiveGuiScreen::AccountManager(screen) => screen.mouseClicked(mouseX, mouseY, mouseButton, &mut self.accountConfig, currentAccessToken).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiAccountManagerAction::Back => RuntimeGuiAction::Switch(ScreenId::MainMenu),
-                    GuiAccountManagerAction::OpenMicrosoft => RuntimeGuiAction::OpenMicrosoftAuth,
-                    GuiAccountManagerAction::OpenOffline => RuntimeGuiAction::OpenOfflineLogin,
-                    GuiAccountManagerAction::OpenToken => RuntimeGuiAction::OpenSessionLogin,
-                    GuiAccountManagerAction::None => RuntimeGuiAction::None,
-                }
-            }),
-            ActiveGuiScreen::MicrosoftAuth(screen) => screen.mouseClicked(mouseX, mouseY, mouseButton).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiMicrosoftAuthAction::Cancel => RuntimeGuiAction::OpenAccountManager { notification: None },
-                    GuiMicrosoftAuthAction::Authenticated(session) => RuntimeGuiAction::AccountAuthenticated { session, returnToManager: true },
-                    GuiMicrosoftAuthAction::None => RuntimeGuiAction::None,
-                }
-            }),
-            ActiveGuiScreen::SessionLogin(screen) => screen.mouseClicked(mouseX, mouseY, mouseButton, &self.fontRendererObj).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiSessionLoginAction::Cancel => RuntimeGuiAction::OpenAccountManager { notification: None },
-                    GuiSessionLoginAction::Authenticated(session) => RuntimeGuiAction::AccountAuthenticated { session, returnToManager: false },
-                    GuiSessionLoginAction::None => RuntimeGuiAction::None,
-                }
-            }),
-            ActiveGuiScreen::OfflineLogin(screen) => screen.mouseClicked(mouseX, mouseY, mouseButton, &self.fontRendererObj).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiAltCrackedAction::Cancel => RuntimeGuiAction::OpenAccountManager { notification: None },
-                    GuiAltCrackedAction::Authenticated(session) => RuntimeGuiAction::AccountAuthenticated { session, returnToManager: false },
-                    GuiAltCrackedAction::None => RuntimeGuiAction::None,
-                }
-            }),
-            ActiveGuiScreen::Options(screen) => screen.mouseClicked(mouseX, mouseY, 0, &self.locale).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiOptionsAction::Done => RuntimeGuiAction::Switch(ScreenId::MainMenu),
-                    GuiOptionsAction::OpenLanguage => RuntimeGuiAction::OpenLanguage(ScreenId::Options),
-                    GuiOptionsAction::SetFov(value) => RuntimeGuiAction::SetFov(value),
-                    GuiOptionsAction::ToggleForceSprint => RuntimeGuiAction::ToggleForceSprint,
-                    GuiOptionsAction::OpenVideoSettings => RuntimeGuiAction::OpenVideoSettings,
-                    GuiOptionsAction::OpenControls => RuntimeGuiAction::OpenControls,
-                    GuiOptionsAction::OpenSkinCustomisation => RuntimeGuiAction::OpenSkinSettings,
-                    GuiOptionsAction::OpenSounds => RuntimeGuiAction::OpenSoundSettings,
-                    GuiOptionsAction::OpenChatSettings => RuntimeGuiAction::OpenChatSettings,
-                    GuiOptionsAction::OpenResourcePacks => RuntimeGuiAction::OpenResourcePacks,
-                    GuiOptionsAction::OpenSnooper => RuntimeGuiAction::NotConnected("GuiSnooper"),
-                }
-            }),
+            ActiveGuiScreen::MainMenu(screen) => {
+                screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        MainMenuAction::OpenOptions => RuntimeGuiAction::Switch(ScreenId::Options),
+                        MainMenuAction::OpenLanguage => {
+                            RuntimeGuiAction::OpenLanguage(ScreenId::MainMenu)
+                        }
+                        MainMenuAction::OpenWorldSelection => {
+                            RuntimeGuiAction::Switch(ScreenId::WorldSelection)
+                        }
+                        MainMenuAction::OpenMultiplayer => {
+                            RuntimeGuiAction::Switch(ScreenId::Multiplayer)
+                        }
+                        MainMenuAction::OpenAccounts => {
+                            RuntimeGuiAction::OpenAccountManager { notification: None }
+                        }
+                        MainMenuAction::Shutdown => RuntimeGuiAction::Shutdown,
+                        MainMenuAction::OpenCopyrightCredits => {
+                            RuntimeGuiAction::NotConnected("GuiWinGame")
+                        }
+                        MainMenuAction::OpenCompatibilityWarning { .. } => {
+                            RuntimeGuiAction::NotConnected("GuiConfirmOpenLink")
+                        }
+                    }
+                })
+            }
+            ActiveGuiScreen::AccountManager(screen) => screen
+                .mouseClicked(
+                    mouseX,
+                    mouseY,
+                    mouseButton,
+                    &mut self.accountConfig,
+                    currentAccessToken,
+                )
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiAccountManagerAction::Back => {
+                            RuntimeGuiAction::Switch(ScreenId::MainMenu)
+                        }
+                        GuiAccountManagerAction::OpenMicrosoft => {
+                            RuntimeGuiAction::OpenMicrosoftAuth
+                        }
+                        GuiAccountManagerAction::OpenOffline => RuntimeGuiAction::OpenOfflineLogin,
+                        GuiAccountManagerAction::OpenToken => RuntimeGuiAction::OpenSessionLogin,
+                        GuiAccountManagerAction::None => RuntimeGuiAction::None,
+                    }
+                }),
+            ActiveGuiScreen::MicrosoftAuth(screen) => screen
+                .mouseClicked(mouseX, mouseY, mouseButton)
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiMicrosoftAuthAction::Cancel => {
+                            RuntimeGuiAction::OpenAccountManager { notification: None }
+                        }
+                        GuiMicrosoftAuthAction::Authenticated(session) => {
+                            RuntimeGuiAction::AccountAuthenticated {
+                                session,
+                                returnToManager: true,
+                            }
+                        }
+                        GuiMicrosoftAuthAction::None => RuntimeGuiAction::None,
+                    }
+                }),
+            ActiveGuiScreen::SessionLogin(screen) => screen
+                .mouseClicked(mouseX, mouseY, mouseButton, &self.fontRendererObj)
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiSessionLoginAction::Cancel => {
+                            RuntimeGuiAction::OpenAccountManager { notification: None }
+                        }
+                        GuiSessionLoginAction::Authenticated(session) => {
+                            RuntimeGuiAction::AccountAuthenticated {
+                                session,
+                                returnToManager: false,
+                            }
+                        }
+                        GuiSessionLoginAction::None => RuntimeGuiAction::None,
+                    }
+                }),
+            ActiveGuiScreen::OfflineLogin(screen) => screen
+                .mouseClicked(mouseX, mouseY, mouseButton, &self.fontRendererObj)
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiAltCrackedAction::Cancel => {
+                            RuntimeGuiAction::OpenAccountManager { notification: None }
+                        }
+                        GuiAltCrackedAction::Authenticated(session) => {
+                            RuntimeGuiAction::AccountAuthenticated {
+                                session,
+                                returnToManager: false,
+                            }
+                        }
+                        GuiAltCrackedAction::None => RuntimeGuiAction::None,
+                    }
+                }),
+            ActiveGuiScreen::Options(screen) => screen
+                .mouseClicked(mouseX, mouseY, 0, &self.locale)
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiOptionsAction::Done => RuntimeGuiAction::Switch(ScreenId::MainMenu),
+                        GuiOptionsAction::OpenLanguage => {
+                            RuntimeGuiAction::OpenLanguage(ScreenId::Options)
+                        }
+                        GuiOptionsAction::SetFov(value) => RuntimeGuiAction::SetFov(value),
+                        GuiOptionsAction::ToggleForceSprint => RuntimeGuiAction::ToggleForceSprint,
+                        GuiOptionsAction::OpenVideoSettings => RuntimeGuiAction::OpenVideoSettings,
+                        GuiOptionsAction::OpenControls => RuntimeGuiAction::OpenControls,
+                        GuiOptionsAction::OpenSkinCustomisation => {
+                            RuntimeGuiAction::OpenSkinSettings
+                        }
+                        GuiOptionsAction::OpenSounds => RuntimeGuiAction::OpenSoundSettings,
+                        GuiOptionsAction::OpenChatSettings => RuntimeGuiAction::OpenChatSettings,
+                        GuiOptionsAction::OpenResourcePacks => RuntimeGuiAction::OpenResourcePacks,
+                        GuiOptionsAction::OpenSnooper => {
+                            RuntimeGuiAction::NotConnected("GuiSnooper")
+                        }
+                    }
+                }),
             ActiveGuiScreen::Controls(screen) => mouse_button_from_index(mouseButton)
-                .and_then(|button| screen.mouseClicked(mouseX, mouseY, button, &self.locale, settings))
+                .and_then(|button| {
+                    screen.mouseClicked(mouseX, mouseY, button, &self.locale, settings)
+                })
                 .map(|interaction| {
                     playGuiSound(soundHandler, interaction.sound.as_ref());
                     mapControlsAction(interaction.action, false)
@@ -5125,118 +6508,240 @@ impl MainMenuRuntime {
                     playGuiSound(soundHandler, Some(&interaction.sound));
                     match interaction.action {
                         GuiShaderAction::None => RuntimeGuiAction::None,
-                        GuiShaderAction::SelectShaderPack(name) => RuntimeGuiAction::SelectShaderPack(name),
+                        GuiShaderAction::SelectShaderPack(name) => {
+                            RuntimeGuiAction::SelectShaderPack(name)
+                        }
                         GuiShaderAction::ReloadShaderPack => RuntimeGuiAction::ReloadShaderPack,
-                        GuiShaderAction::OpenShaderPacksFolder => RuntimeGuiAction::OpenShaderPackFolder,
+                        GuiShaderAction::OpenShaderPacksFolder => {
+                            RuntimeGuiAction::OpenShaderPackFolder
+                        }
                         GuiShaderAction::Done => RuntimeGuiAction::ReturnToVideoSettings,
                     }
                 }),
-            ActiveGuiScreen::SoundSettings(screen) => screen.mouseClicked(mouseX, mouseY, 0, &self.locale, settings).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action { GuiScreenOptionsSoundsAction::Done => RuntimeGuiAction::ReturnToOptions, other => mapSoundSettingsAction(other) }
-            }),
-            ActiveGuiScreen::ChatSettings(screen) => screen.mouseClicked(mouseX, mouseY, 0, &self.locale, settings).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action { ScreenChatOptionsAction::Done => RuntimeGuiAction::ReturnToOptions, other => mapChatSettingsAction(other) }
-            }),
-            ActiveGuiScreen::SkinSettings(screen) => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                playGuiSound(soundHandler, Some(&interaction.sound));
-                match interaction.action { GuiCustomizeSkinAction::Done => RuntimeGuiAction::ReturnToOptions, GuiCustomizeSkinAction::TogglePart(part) => RuntimeGuiAction::ToggleModelPart(part), GuiCustomizeSkinAction::ToggleMainHand => RuntimeGuiAction::ToggleMainHand }
-            }),
+            ActiveGuiScreen::SoundSettings(screen) => screen
+                .mouseClicked(mouseX, mouseY, 0, &self.locale, settings)
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiScreenOptionsSoundsAction::Done => RuntimeGuiAction::ReturnToOptions,
+                        other => mapSoundSettingsAction(other),
+                    }
+                }),
+            ActiveGuiScreen::ChatSettings(screen) => screen
+                .mouseClicked(mouseX, mouseY, 0, &self.locale, settings)
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        ScreenChatOptionsAction::Done => RuntimeGuiAction::ReturnToOptions,
+                        other => mapChatSettingsAction(other),
+                    }
+                }),
+            ActiveGuiScreen::SkinSettings(screen) => {
+                screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                    playGuiSound(soundHandler, Some(&interaction.sound));
+                    match interaction.action {
+                        GuiCustomizeSkinAction::Done => RuntimeGuiAction::ReturnToOptions,
+                        GuiCustomizeSkinAction::TogglePart(part) => {
+                            RuntimeGuiAction::ToggleModelPart(part)
+                        }
+                        GuiCustomizeSkinAction::ToggleMainHand => RuntimeGuiAction::ToggleMainHand,
+                    }
+                })
+            }
             ActiveGuiScreen::ResourcePacks(screen) => {
                 let interaction = screen.mouseClicked(mouseX, mouseY, 0);
                 if let Some(interaction) = interaction {
                     playGuiSound(soundHandler, Some(&interaction.sound));
                     Some(match interaction.action {
-                        GuiScreenResourcePacksAction::Done if screen.hasChanges() => RuntimeGuiAction::ApplyResourcePacks { selected: screen.selected(), world: false },
+                        GuiScreenResourcePacksAction::Done if screen.hasChanges() => {
+                            RuntimeGuiAction::ApplyResourcePacks {
+                                selected: screen.selected(),
+                                world: false,
+                            }
+                        }
                         GuiScreenResourcePacksAction::Done => RuntimeGuiAction::ReturnToOptions,
-                        GuiScreenResourcePacksAction::OpenFolder => RuntimeGuiAction::OpenResourcePackFolder,
-                        GuiScreenResourcePacksAction::Toggle(_) | GuiScreenResourcePacksAction::MoveSelected { .. } => RuntimeGuiAction::None,
+                        GuiScreenResourcePacksAction::OpenFolder => {
+                            RuntimeGuiAction::OpenResourcePackFolder
+                        }
+                        GuiScreenResourcePacksAction::Toggle(_)
+                        | GuiScreenResourcePacksAction::MoveSelected { .. } => {
+                            RuntimeGuiAction::None
+                        }
                     })
                 } else if screen.isDraggingScrollbar() {
                     Some(RuntimeGuiAction::None)
                 } else {
                     None
                 }
-            },
-            ActiveGuiScreen::Multiplayer(screen) => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiMultiplayerAction::Cancel => RuntimeGuiAction::Switch(ScreenId::MainMenu),
-                    GuiMultiplayerAction::Refresh => { screen.refreshServerList(); RuntimeGuiAction::None }
-                    GuiMultiplayerAction::DirectConnect => RuntimeGuiAction::OpenDirectConnect,
-                    GuiMultiplayerAction::AddServer => RuntimeGuiAction::OpenAddServer,
-                    GuiMultiplayerAction::Select(server) => RuntimeGuiAction::Connect(server),
-                    GuiMultiplayerAction::Edit { index, server } => RuntimeGuiAction::OpenEditServer { index, server },
-                    GuiMultiplayerAction::Delete { index, serverName } => RuntimeGuiAction::OpenDeleteConfirm { index, serverName },
-                    GuiMultiplayerAction::SelectionChanged => RuntimeGuiAction::None,
-                }
-            }),
-            ActiveGuiScreen::WorldSelection(screen) => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+            }
+            ActiveGuiScreen::Multiplayer(screen) => {
+                screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiMultiplayerAction::Cancel => {
+                            RuntimeGuiAction::Switch(ScreenId::MainMenu)
+                        }
+                        GuiMultiplayerAction::Refresh => {
+                            screen.refreshServerList();
+                            RuntimeGuiAction::None
+                        }
+                        GuiMultiplayerAction::DirectConnect => RuntimeGuiAction::OpenDirectConnect,
+                        GuiMultiplayerAction::AddServer => RuntimeGuiAction::OpenAddServer,
+                        GuiMultiplayerAction::Select(server) => RuntimeGuiAction::Connect(server),
+                        GuiMultiplayerAction::Edit { index, server } => {
+                            RuntimeGuiAction::OpenEditServer { index, server }
+                        }
+                        GuiMultiplayerAction::Delete { index, serverName } => {
+                            RuntimeGuiAction::OpenDeleteConfirm { index, serverName }
+                        }
+                        GuiMultiplayerAction::SelectionChanged => RuntimeGuiAction::None,
+                    }
+                })
+            }
+            ActiveGuiScreen::WorldSelection(screen) => {
+                screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                    playGuiSound(soundHandler, Some(&interaction.sound));
+                    match interaction.action {
+                        GuiWorldSelectionAction::Cancel => {
+                            RuntimeGuiAction::Switch(ScreenId::MainMenu)
+                        }
+                        GuiWorldSelectionAction::Create => RuntimeGuiAction::OpenCreateWorld,
+                        GuiWorldSelectionAction::Select => {
+                            if let Some(world) = screen.selectedWorld() {
+                                RuntimeGuiAction::JoinWorld {
+                                    folderName: world.getFileName().to_owned(),
+                                    worldName: world.getDisplayName().to_owned(),
+                                }
+                            } else {
+                                RuntimeGuiAction::None
+                            }
+                        }
+                        GuiWorldSelectionAction::Edit => {
+                            RuntimeGuiAction::NotConnected("GuiWorldEdit")
+                        }
+                        GuiWorldSelectionAction::Delete => {
+                            RuntimeGuiAction::NotConnected("GuiYesNo world delete")
+                        }
+                        GuiWorldSelectionAction::Recreate => RuntimeGuiAction::NotConnected(
+                            "GuiCreateWorld.recreateFromExistingWorld",
+                        ),
+                    }
+                })
+            }
+            ActiveGuiScreen::CreateWorld(screen) => screen
+                .mouseClicked(
+                    mouseX,
+                    mouseY,
+                    0,
+                    &self.fontRendererObj,
+                    &self.locale,
+                    shiftDown,
+                )
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiCreateWorldAction::None => RuntimeGuiAction::None,
+                        GuiCreateWorldAction::Cancel => {
+                            RuntimeGuiAction::Switch(ScreenId::WorldSelection)
+                        }
+                        GuiCreateWorldAction::Create(request) => {
+                            RuntimeGuiAction::CreateWorld(request)
+                        }
+                        GuiCreateWorldAction::CustomizeFlat => {
+                            RuntimeGuiAction::NotConnected("GuiCreateFlatWorld")
+                        }
+                        GuiCreateWorldAction::CustomizeWorld => {
+                            RuntimeGuiAction::NotConnected("GuiCustomizeWorldScreen")
+                        }
+                    }
+                }),
+            ActiveGuiScreen::Language { screen, parent } => {
+                screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiLanguageAction::Done => RuntimeGuiAction::Switch(*parent),
+                        GuiLanguageAction::ToggleUnicode => RuntimeGuiAction::ToggleUnicode,
+                        GuiLanguageAction::SelectLanguage(code) => {
+                            RuntimeGuiAction::SetLanguage(code)
+                        }
+                    }
+                })
+            }
+            ActiveGuiScreen::AddServer {
+                screen,
+                editingIndex,
+                ..
+            } => screen
+                .mouseClicked(mouseX, mouseY, 0, &self.fontRendererObj, &self.locale)
+                .map(|interaction| {
+                    playGuiSound(soundHandler, interaction.sound.as_ref());
+                    match interaction.action {
+                        GuiScreenAddServerAction::Confirm(server) => RuntimeGuiAction::SaveServer {
+                            editingIndex: *editingIndex,
+                            server,
+                        },
+                        GuiScreenAddServerAction::Cancel => {
+                            RuntimeGuiAction::ReturnToMultiplayer { lastServer: None }
+                        }
+                        GuiScreenAddServerAction::CycleResourceMode => RuntimeGuiAction::None,
+                    }
+                }),
+            ActiveGuiScreen::DirectConnect { screen, .. } => screen
+                .mouseClicked(mouseX, mouseY, 0, &self.fontRendererObj)
+                .map(|interaction| {
+                    playGuiSound(soundHandler, Some(&interaction.sound));
+                    match interaction.action {
+                        GuiScreenServerListAction::Confirm(server) => {
+                            RuntimeGuiAction::Connect(server)
+                        }
+                        GuiScreenServerListAction::Cancel => {
+                            RuntimeGuiAction::ReturnToMultiplayer {
+                                lastServer: Some(screen.getAddress()),
+                            }
+                        }
+                    }
+                }),
+            ActiveGuiScreen::ConfirmDelete {
+                screen,
+                serverIndex,
+                ..
+            } => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
                 playGuiSound(soundHandler, Some(&interaction.sound));
-                match interaction.action {
-                    GuiWorldSelectionAction::Cancel => RuntimeGuiAction::Switch(ScreenId::MainMenu),
-                    GuiWorldSelectionAction::Create => RuntimeGuiAction::OpenCreateWorld,
-                    GuiWorldSelectionAction::Select => {
-                        if let Some(world)=screen.selectedWorld() { RuntimeGuiAction::JoinWorld { folderName: world.getFileName().to_owned(), worldName: world.getDisplayName().to_owned() } } else { RuntimeGuiAction::None }
-                    },
-                    GuiWorldSelectionAction::Edit => RuntimeGuiAction::NotConnected("GuiWorldEdit"),
-                    GuiWorldSelectionAction::Delete => RuntimeGuiAction::NotConnected("GuiYesNo world delete"),
-                    GuiWorldSelectionAction::Recreate => RuntimeGuiAction::NotConnected("GuiCreateWorld.recreateFromExistingWorld"),
+                if interaction.result {
+                    RuntimeGuiAction::DeleteServer {
+                        index: *serverIndex,
+                    }
+                } else {
+                    RuntimeGuiAction::ReturnToMultiplayer { lastServer: None }
                 }
             }),
-            ActiveGuiScreen::CreateWorld(screen) => screen.mouseClicked(
-                mouseX, mouseY, 0, &self.fontRendererObj, &self.locale, shiftDown,
-            ).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiCreateWorldAction::None => RuntimeGuiAction::None,
-                    GuiCreateWorldAction::Cancel => RuntimeGuiAction::Switch(ScreenId::WorldSelection),
-                    GuiCreateWorldAction::Create(request) => RuntimeGuiAction::CreateWorld(request),
-                    GuiCreateWorldAction::CustomizeFlat => RuntimeGuiAction::NotConnected("GuiCreateFlatWorld"),
-                    GuiCreateWorldAction::CustomizeWorld => RuntimeGuiAction::NotConnected("GuiCustomizeWorldScreen"),
-                }
-            }),
-            ActiveGuiScreen::Language { screen, parent } => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiLanguageAction::Done => RuntimeGuiAction::Switch(*parent),
-                    GuiLanguageAction::ToggleUnicode => RuntimeGuiAction::ToggleUnicode,
-                    GuiLanguageAction::SelectLanguage(code) => RuntimeGuiAction::SetLanguage(code),
-                }
-            }),
-            ActiveGuiScreen::AddServer { screen, editingIndex, .. } => screen.mouseClicked(mouseX, mouseY, 0, &self.fontRendererObj, &self.locale).map(|interaction| {
-                playGuiSound(soundHandler, interaction.sound.as_ref());
-                match interaction.action {
-                    GuiScreenAddServerAction::Confirm(server) => RuntimeGuiAction::SaveServer { editingIndex: *editingIndex, server },
-                    GuiScreenAddServerAction::Cancel => RuntimeGuiAction::ReturnToMultiplayer { lastServer: None },
-                    GuiScreenAddServerAction::CycleResourceMode => RuntimeGuiAction::None,
-                }
-            }),
-            ActiveGuiScreen::DirectConnect { screen, .. } => screen.mouseClicked(mouseX, mouseY, 0, &self.fontRendererObj).map(|interaction| {
-                playGuiSound(soundHandler, Some(&interaction.sound));
-                match interaction.action {
-                    GuiScreenServerListAction::Confirm(server) => RuntimeGuiAction::Connect(server),
-                    GuiScreenServerListAction::Cancel => RuntimeGuiAction::ReturnToMultiplayer { lastServer: Some(screen.getAddress()) },
-                }
-            }),
-            ActiveGuiScreen::ConfirmDelete { screen, serverIndex, .. } => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                playGuiSound(soundHandler, Some(&interaction.sound));
-                if interaction.result { RuntimeGuiAction::DeleteServer { index: *serverIndex } } else { RuntimeGuiAction::ReturnToMultiplayer { lastServer: None } }
-            }),
-            ActiveGuiScreen::Connecting { screen, .. } => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                playGuiSound(soundHandler, Some(&interaction.sound));
-                match interaction.action { GuiConnectingAction::Cancel => RuntimeGuiAction::CancelConnecting }
-            }),
-            ActiveGuiScreen::Disconnected { screen, .. } => screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
-                playGuiSound(soundHandler, Some(&interaction.sound));
-                match interaction.action { GuiDisconnectedAction::ToMenu => RuntimeGuiAction::ReturnToMultiplayer { lastServer: None } }
-            }),
+            ActiveGuiScreen::Connecting { screen, .. } => {
+                screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                    playGuiSound(soundHandler, Some(&interaction.sound));
+                    match interaction.action {
+                        GuiConnectingAction::Cancel => RuntimeGuiAction::CancelConnecting,
+                    }
+                })
+            }
+            ActiveGuiScreen::Disconnected { screen, .. } => {
+                screen.mouseClicked(mouseX, mouseY, 0).map(|interaction| {
+                    playGuiSound(soundHandler, Some(&interaction.sound));
+                    match interaction.action {
+                        GuiDisconnectedAction::ToMenu => {
+                            RuntimeGuiAction::ReturnToMultiplayer { lastServer: None }
+                        }
+                    }
+                })
+            }
             ActiveGuiScreen::DownloadTerrain { .. } => None,
         }
     }
 
-    fn mouseDragged(&mut self, framebufferWidth: u32, framebufferHeight: u32) -> Option<RuntimeGuiAction> {
+    fn mouseDragged(
+        &mut self,
+        framebufferWidth: u32,
+        framebufferHeight: u32,
+    ) -> Option<RuntimeGuiAction> {
         self.syncOpenContainerGui();
         if self.isInventoryOpen() {
             self.inventoryMouseDragged(framebufferWidth, framebufferHeight);
@@ -5244,17 +6749,38 @@ impl MainMenuRuntime {
         }
         let (mouseX, mouseY) = self.cursorGuiPosition(framebufferWidth, framebufferHeight);
         match self.worldGuiScreen.as_mut() {
-            Some(WorldGuiScreen::Options(screen)) => return screen.mouseDragged(mouseX, &self.locale).map(|interaction| match interaction.action {
-                GuiOptionsAction::SetFov(value) => RuntimeGuiAction::SetFov(value),
-                _ => RuntimeGuiAction::None,
-            }),
-            Some(WorldGuiScreen::Controls(screen)) => return screen.mouseDragged(mouseX, mouseY, &self.locale)
-                .map(|interaction| mapControlsAction(interaction.action, true)),
-            Some(WorldGuiScreen::VideoSettings(screen)) => return screen.mouseDragged(mouseX, &self.locale).map(mapVideoSettingsAction),
-            Some(WorldGuiScreen::SoundSettings(screen)) => return screen.mouseDragged(mouseX, &self.locale).map(mapSoundSettingsAction),
-            Some(WorldGuiScreen::ChatSettings(screen)) => return screen.mouseDragged(mouseX, &self.locale).map(mapChatSettingsAction),
+            Some(WorldGuiScreen::Options(screen)) => {
+                return screen.mouseDragged(mouseX, &self.locale).map(
+                    |interaction| match interaction.action {
+                        GuiOptionsAction::SetFov(value) => RuntimeGuiAction::SetFov(value),
+                        _ => RuntimeGuiAction::None,
+                    },
+                )
+            }
+            Some(WorldGuiScreen::Controls(screen)) => {
+                return screen
+                    .mouseDragged(mouseX, mouseY, &self.locale)
+                    .map(|interaction| mapControlsAction(interaction.action, true))
+            }
+            Some(WorldGuiScreen::VideoSettings(screen)) => {
+                return screen
+                    .mouseDragged(mouseX, &self.locale)
+                    .map(mapVideoSettingsAction)
+            }
+            Some(WorldGuiScreen::SoundSettings(screen)) => {
+                return screen
+                    .mouseDragged(mouseX, &self.locale)
+                    .map(mapSoundSettingsAction)
+            }
+            Some(WorldGuiScreen::ChatSettings(screen)) => {
+                return screen
+                    .mouseDragged(mouseX, &self.locale)
+                    .map(mapChatSettingsAction)
+            }
             Some(WorldGuiScreen::ShaderSettings(screen)) => {
-                if screen.mouseDragged(mouseX) { return Some(RuntimeGuiAction::None); }
+                if screen.mouseDragged(mouseX) {
+                    return Some(RuntimeGuiAction::None);
+                }
             }
             Some(WorldGuiScreen::ResourcePacks(screen)) => {
                 if screen.mouseDragged(mouseY) {
@@ -5276,17 +6802,32 @@ impl MainMenuRuntime {
                     None
                 }
             }
-            ActiveGuiScreen::Options(screen) => screen.mouseDragged(mouseX, &self.locale).map(|interaction| match interaction.action {
-                GuiOptionsAction::SetFov(value) => RuntimeGuiAction::SetFov(value),
-                _ => RuntimeGuiAction::None,
-            }),
-            ActiveGuiScreen::Controls(screen) => screen.mouseDragged(mouseX, mouseY, &self.locale)
+            ActiveGuiScreen::Options(screen) => {
+                screen
+                    .mouseDragged(mouseX, &self.locale)
+                    .map(|interaction| match interaction.action {
+                        GuiOptionsAction::SetFov(value) => RuntimeGuiAction::SetFov(value),
+                        _ => RuntimeGuiAction::None,
+                    })
+            }
+            ActiveGuiScreen::Controls(screen) => screen
+                .mouseDragged(mouseX, mouseY, &self.locale)
                 .map(|interaction| mapControlsAction(interaction.action, false)),
-            ActiveGuiScreen::VideoSettings(screen) => screen.mouseDragged(mouseX, &self.locale).map(mapVideoSettingsAction),
-            ActiveGuiScreen::SoundSettings(screen) => screen.mouseDragged(mouseX, &self.locale).map(mapSoundSettingsAction),
-            ActiveGuiScreen::ChatSettings(screen) => screen.mouseDragged(mouseX, &self.locale).map(mapChatSettingsAction),
+            ActiveGuiScreen::VideoSettings(screen) => screen
+                .mouseDragged(mouseX, &self.locale)
+                .map(mapVideoSettingsAction),
+            ActiveGuiScreen::SoundSettings(screen) => screen
+                .mouseDragged(mouseX, &self.locale)
+                .map(mapSoundSettingsAction),
+            ActiveGuiScreen::ChatSettings(screen) => screen
+                .mouseDragged(mouseX, &self.locale)
+                .map(mapChatSettingsAction),
             ActiveGuiScreen::ShaderSettings(screen) => {
-                if screen.mouseDragged(mouseX) { Some(RuntimeGuiAction::None) } else { None }
+                if screen.mouseDragged(mouseX) {
+                    Some(RuntimeGuiAction::None)
+                } else {
+                    None
+                }
             }
             ActiveGuiScreen::ResourcePacks(screen) => {
                 if screen.mouseDragged(mouseY) {
@@ -5296,7 +6837,11 @@ impl MainMenuRuntime {
                 }
             }
             ActiveGuiScreen::Language { screen, .. } => {
-                if screen.mouseDragged(mouseY) { Some(RuntimeGuiAction::None) } else { None }
+                if screen.mouseDragged(mouseY) {
+                    Some(RuntimeGuiAction::None)
+                } else {
+                    None
+                }
             }
             _ => None,
         }
@@ -5305,18 +6850,39 @@ impl MainMenuRuntime {
     fn mouseReleased(&mut self, framebufferWidth: u32, framebufferHeight: u32) {
         let (mouseX, mouseY) = self.cursorGuiPosition(framebufferWidth, framebufferHeight);
         match self.worldGuiScreen.as_mut() {
-            Some(WorldGuiScreen::Options(screen)) => { screen.mouseReleased(mouseX, mouseY); return; }
-            Some(WorldGuiScreen::Controls(screen)) => { screen.mouseReleased(mouseX, mouseY); return; }
-            Some(WorldGuiScreen::VideoSettings(screen)) => { screen.mouseReleased(mouseX, mouseY); return; }
+            Some(WorldGuiScreen::Options(screen)) => {
+                screen.mouseReleased(mouseX, mouseY);
+                return;
+            }
+            Some(WorldGuiScreen::Controls(screen)) => {
+                screen.mouseReleased(mouseX, mouseY);
+                return;
+            }
+            Some(WorldGuiScreen::VideoSettings(screen)) => {
+                screen.mouseReleased(mouseX, mouseY);
+                return;
+            }
             Some(WorldGuiScreen::SoundSettings(screen)) => {
                 let sound = screen.mouseReleased(mouseX, mouseY);
                 playGuiSound(&mut self.soundHandler, sound.as_ref());
                 return;
             }
-            Some(WorldGuiScreen::ChatSettings(screen)) => { screen.mouseReleased(mouseX, mouseY); return; }
-            Some(WorldGuiScreen::ShaderSettings(screen)) => { screen.mouseReleased(); return; }
-            Some(WorldGuiScreen::ResourcePacks(screen)) => { screen.mouseReleased(); return; }
-            Some(WorldGuiScreen::Language(screen)) => { screen.mouseReleased(); return; }
+            Some(WorldGuiScreen::ChatSettings(screen)) => {
+                screen.mouseReleased(mouseX, mouseY);
+                return;
+            }
+            Some(WorldGuiScreen::ShaderSettings(screen)) => {
+                screen.mouseReleased();
+                return;
+            }
+            Some(WorldGuiScreen::ResourcePacks(screen)) => {
+                screen.mouseReleased();
+                return;
+            }
+            Some(WorldGuiScreen::Language(screen)) => {
+                screen.mouseReleased();
+                return;
+            }
             _ => {}
         }
         match &mut self.currentScreen {
@@ -5327,7 +6893,7 @@ impl MainMenuRuntime {
             ActiveGuiScreen::SoundSettings(screen) => {
                 let sound = screen.mouseReleased(mouseX, mouseY);
                 playGuiSound(&mut self.soundHandler, sound.as_ref());
-            },
+            }
             ActiveGuiScreen::ChatSettings(screen) => screen.mouseReleased(mouseX, mouseY),
             ActiveGuiScreen::ShaderSettings(screen) => screen.mouseReleased(),
             ActiveGuiScreen::ResourcePacks(screen) => screen.mouseReleased(),
@@ -5343,16 +6909,27 @@ impl MainMenuRuntime {
         match &mut self.currentScreen {
             ActiveGuiScreen::SessionLogin(screen) => screen.typedText(text, &self.fontRendererObj),
             ActiveGuiScreen::OfflineLogin(screen) => screen.typedText(text, &self.fontRendererObj),
-            ActiveGuiScreen::AddServer { screen, .. } => screen.typedText(text, &self.fontRendererObj),
-            ActiveGuiScreen::DirectConnect { screen, .. } => screen.typedText(text, &self.fontRendererObj),
+            ActiveGuiScreen::AddServer { screen, .. } => {
+                screen.typedText(text, &self.fontRendererObj)
+            }
+            ActiveGuiScreen::DirectConnect { screen, .. } => {
+                screen.typedText(text, &self.fontRendererObj)
+            }
             ActiveGuiScreen::CreateWorld(screen) => screen.typedText(text, &self.fontRendererObj),
             _ => false,
         }
     }
 
-    fn keyPressed(&mut self, key: KeyCode, modifiers: ModifiersState, eventText: Option<&str>) -> Option<RuntimeGuiAction> {
+    fn keyPressed(
+        &mut self,
+        key: KeyCode,
+        modifiers: ModifiersState,
+        eventText: Option<&str>,
+    ) -> Option<RuntimeGuiAction> {
         if let Some(WorldGuiScreen::Controls(screen)) = self.worldGuiScreen.as_mut() {
-            return screen.keyPressed(key, eventText).map(|interaction| mapControlsAction(interaction.action, true));
+            return screen
+                .keyPressed(key, eventText)
+                .map(|interaction| mapControlsAction(interaction.action, true));
         }
         if let Some(WorldGuiScreen::EditSign(screen)) = self.worldGuiScreen.as_mut() {
             let signKey = match key {
@@ -5373,14 +6950,22 @@ impl MainMenuRuntime {
             }
             return None;
         }
-        let fieldModifiers = GuiTextFieldModifiers { control: modifiers.control_key(), shift: modifiers.shift_key() };
+        let fieldModifiers = GuiTextFieldModifiers {
+            control: modifiers.control_key(),
+            shift: modifiers.shift_key(),
+        };
         let textKey = match key {
-            KeyCode::Backspace => Some(GuiTextFieldKey::Backspace), KeyCode::Delete => Some(GuiTextFieldKey::Delete),
-            KeyCode::ArrowLeft => Some(GuiTextFieldKey::Left), KeyCode::ArrowRight => Some(GuiTextFieldKey::Right),
-            KeyCode::Home => Some(GuiTextFieldKey::Home), KeyCode::End => Some(GuiTextFieldKey::End), _ => None,
+            KeyCode::Backspace => Some(GuiTextFieldKey::Backspace),
+            KeyCode::Delete => Some(GuiTextFieldKey::Delete),
+            KeyCode::ArrowLeft => Some(GuiTextFieldKey::Left),
+            KeyCode::ArrowRight => Some(GuiTextFieldKey::Right),
+            KeyCode::Home => Some(GuiTextFieldKey::Home),
+            KeyCode::End => Some(GuiTextFieldKey::End),
+            _ => None,
         };
         match &mut self.currentScreen {
-            ActiveGuiScreen::Controls(screen) => screen.keyPressed(key, eventText)
+            ActiveGuiScreen::Controls(screen) => screen
+                .keyPressed(key, eventText)
                 .map(|interaction| mapControlsAction(interaction.action, false)),
             ActiveGuiScreen::AccountManager(screen) => {
                 let accountKey = match key {
@@ -5391,61 +6976,143 @@ impl MainMenuRuntime {
                     KeyCode::KeyC if modifiers.control_key() => Some(AccountManagerKey::Copy),
                     _ => None,
                 };
-                accountKey.and_then(|value| screen.keyPressed(value, modifiers.control_key(), &mut self.accountConfig).map(|_| RuntimeGuiAction::None))
+                accountKey.and_then(|value| {
+                    screen
+                        .keyPressed(value, modifiers.control_key(), &mut self.accountConfig)
+                        .map(|_| RuntimeGuiAction::None)
+                })
             }
             ActiveGuiScreen::SessionLogin(screen) => {
-                if key == KeyCode::Enter || key == KeyCode::NumpadEnter { screen.enterPressed(); return Some(RuntimeGuiAction::None); }
-                if modifiers.control_key() && key == KeyCode::KeyA { screen.selectAll(&self.fontRendererObj); return Some(RuntimeGuiAction::None); }
-                textKey.and_then(|value| screen.keyPressed(value, fieldModifiers, &self.fontRendererObj).then_some(RuntimeGuiAction::None))
+                if key == KeyCode::Enter || key == KeyCode::NumpadEnter {
+                    screen.enterPressed();
+                    return Some(RuntimeGuiAction::None);
+                }
+                if modifiers.control_key() && key == KeyCode::KeyA {
+                    screen.selectAll(&self.fontRendererObj);
+                    return Some(RuntimeGuiAction::None);
+                }
+                textKey.and_then(|value| {
+                    screen
+                        .keyPressed(value, fieldModifiers, &self.fontRendererObj)
+                        .then_some(RuntimeGuiAction::None)
+                })
             }
             ActiveGuiScreen::OfflineLogin(screen) => {
-                if key == KeyCode::Tab { screen.tabPressed(); return Some(RuntimeGuiAction::None); }
+                if key == KeyCode::Tab {
+                    screen.tabPressed();
+                    return Some(RuntimeGuiAction::None);
+                }
                 if key == KeyCode::Enter || key == KeyCode::NumpadEnter {
                     return Some(match screen.enterPressed() {
-                        GuiAltCrackedAction::Authenticated(session) => RuntimeGuiAction::AccountAuthenticated { session, returnToManager: false },
+                        GuiAltCrackedAction::Authenticated(session) => {
+                            RuntimeGuiAction::AccountAuthenticated {
+                                session,
+                                returnToManager: false,
+                            }
+                        }
                         _ => RuntimeGuiAction::None,
                     });
                 }
-                if modifiers.control_key() && key == KeyCode::KeyA { screen.selectAll(&self.fontRendererObj); return Some(RuntimeGuiAction::None); }
-                textKey.and_then(|value| screen.keyPressed(value, fieldModifiers, &self.fontRendererObj).then_some(RuntimeGuiAction::None))
+                if modifiers.control_key() && key == KeyCode::KeyA {
+                    screen.selectAll(&self.fontRendererObj);
+                    return Some(RuntimeGuiAction::None);
+                }
+                textKey.and_then(|value| {
+                    screen
+                        .keyPressed(value, fieldModifiers, &self.fontRendererObj)
+                        .then_some(RuntimeGuiAction::None)
+                })
             }
             ActiveGuiScreen::CreateWorld(screen) => {
                 if key == KeyCode::Enter || key == KeyCode::NumpadEnter {
                     return screen.enterPressed().map(RuntimeGuiAction::CreateWorld);
                 }
                 if modifiers.control_key() && key == KeyCode::KeyA {
-                    return screen.selectAll(&self.fontRendererObj).then_some(RuntimeGuiAction::None);
+                    return screen
+                        .selectAll(&self.fontRendererObj)
+                        .then_some(RuntimeGuiAction::None);
                 }
-                textKey.and_then(|value| screen.keyPressed(value, fieldModifiers, &self.fontRendererObj).then_some(RuntimeGuiAction::None))
+                textKey.and_then(|value| {
+                    screen
+                        .keyPressed(value, fieldModifiers, &self.fontRendererObj)
+                        .then_some(RuntimeGuiAction::None)
+                })
             }
-            ActiveGuiScreen::AddServer { screen, editingIndex, .. } => {
-                if key == KeyCode::Tab { screen.tabPressed(); return Some(RuntimeGuiAction::None); }
-                if key == KeyCode::Enter || key == KeyCode::NumpadEnter {
-                    return screen.enterPressed().map(|action| match action { GuiScreenAddServerAction::Confirm(server) => RuntimeGuiAction::SaveServer { editingIndex: *editingIndex, server }, _ => RuntimeGuiAction::None });
+            ActiveGuiScreen::AddServer {
+                screen,
+                editingIndex,
+                ..
+            } => {
+                if key == KeyCode::Tab {
+                    screen.tabPressed();
+                    return Some(RuntimeGuiAction::None);
                 }
-                if modifiers.control_key() && key == KeyCode::KeyA { screen.selectAll(&self.fontRendererObj); return Some(RuntimeGuiAction::None); }
-                textKey.and_then(|value| screen.keyPressed(value, fieldModifiers, &self.fontRendererObj).then_some(RuntimeGuiAction::None))
+                if key == KeyCode::Enter || key == KeyCode::NumpadEnter {
+                    return screen.enterPressed().map(|action| match action {
+                        GuiScreenAddServerAction::Confirm(server) => RuntimeGuiAction::SaveServer {
+                            editingIndex: *editingIndex,
+                            server,
+                        },
+                        _ => RuntimeGuiAction::None,
+                    });
+                }
+                if modifiers.control_key() && key == KeyCode::KeyA {
+                    screen.selectAll(&self.fontRendererObj);
+                    return Some(RuntimeGuiAction::None);
+                }
+                textKey.and_then(|value| {
+                    screen
+                        .keyPressed(value, fieldModifiers, &self.fontRendererObj)
+                        .then_some(RuntimeGuiAction::None)
+                })
             }
             ActiveGuiScreen::DirectConnect { screen, .. } => {
                 if key == KeyCode::Enter || key == KeyCode::NumpadEnter {
-                    return screen.enterPressed().map(|action| match action { GuiScreenServerListAction::Confirm(server) => RuntimeGuiAction::Connect(server), _ => RuntimeGuiAction::None });
+                    return screen.enterPressed().map(|action| match action {
+                        GuiScreenServerListAction::Confirm(server) => {
+                            RuntimeGuiAction::Connect(server)
+                        }
+                        _ => RuntimeGuiAction::None,
+                    });
                 }
-                if modifiers.control_key() && key == KeyCode::KeyA { screen.selectAll(&self.fontRendererObj); return Some(RuntimeGuiAction::None); }
-                textKey.and_then(|value| screen.keyPressed(value, fieldModifiers, &self.fontRendererObj).then_some(RuntimeGuiAction::None))
+                if modifiers.control_key() && key == KeyCode::KeyA {
+                    screen.selectAll(&self.fontRendererObj);
+                    return Some(RuntimeGuiAction::None);
+                }
+                textKey.and_then(|value| {
+                    screen
+                        .keyPressed(value, fieldModifiers, &self.fontRendererObj)
+                        .then_some(RuntimeGuiAction::None)
+                })
             }
             ActiveGuiScreen::Multiplayer(screen) => match key {
                 KeyCode::ArrowUp if modifiers.shift_key() => {
-                    if let Err(error) = screen.moveSelectedServer(-1) { log::error!("Couldn't move server up: {error}"); }
+                    if let Err(error) = screen.moveSelectedServer(-1) {
+                        log::error!("Couldn't move server up: {error}");
+                    }
                     Some(RuntimeGuiAction::None)
                 }
                 KeyCode::ArrowDown if modifiers.shift_key() => {
-                    if let Err(error) = screen.moveSelectedServer(1) { log::error!("Couldn't move server down: {error}"); }
+                    if let Err(error) = screen.moveSelectedServer(1) {
+                        log::error!("Couldn't move server down: {error}");
+                    }
                     Some(RuntimeGuiAction::None)
                 }
-                KeyCode::ArrowUp => { screen.moveSelection(-1); Some(RuntimeGuiAction::None) }
-                KeyCode::ArrowDown => { screen.moveSelection(1); Some(RuntimeGuiAction::None) }
-                KeyCode::F5 => { screen.refreshServerList(); Some(RuntimeGuiAction::None) }
-                KeyCode::Enter | KeyCode::NumpadEnter => screen.selectedServer().map(|(_, server)| RuntimeGuiAction::Connect(server)),
+                KeyCode::ArrowUp => {
+                    screen.moveSelection(-1);
+                    Some(RuntimeGuiAction::None)
+                }
+                KeyCode::ArrowDown => {
+                    screen.moveSelection(1);
+                    Some(RuntimeGuiAction::None)
+                }
+                KeyCode::F5 => {
+                    screen.refreshServerList();
+                    Some(RuntimeGuiAction::None)
+                }
+                KeyCode::Enter | KeyCode::NumpadEnter => screen
+                    .selectedServer()
+                    .map(|(_, server)| RuntimeGuiAction::Connect(server)),
                 _ => None,
             },
             _ => None,
@@ -5461,7 +7128,9 @@ impl MainMenuRuntime {
             _ => {}
         }
         match &mut self.currentScreen {
-            ActiveGuiScreen::AccountManager(screen) => screen.scroll(lines, self.accountConfig.len()),
+            ActiveGuiScreen::AccountManager(screen) => {
+                screen.scroll(lines, self.accountConfig.len())
+            }
             ActiveGuiScreen::Multiplayer(screen) => {
                 screen.scroll(lines);
                 true
@@ -5478,14 +7147,24 @@ impl MainMenuRuntime {
     fn escapeAction(&mut self) -> Option<RuntimeGuiAction> {
         match &mut self.currentScreen {
             ActiveGuiScreen::Empty | ActiveGuiScreen::MainMenu(_) => None,
-            ActiveGuiScreen::AccountManager(_) => Some(RuntimeGuiAction::Switch(ScreenId::MainMenu)),
+            ActiveGuiScreen::AccountManager(_) => {
+                Some(RuntimeGuiAction::Switch(ScreenId::MainMenu))
+            }
             ActiveGuiScreen::MicrosoftAuth(screen) => {
                 screen.cancel();
                 Some(RuntimeGuiAction::OpenAccountManager { notification: None })
             }
-            ActiveGuiScreen::SessionLogin(_) | ActiveGuiScreen::OfflineLogin(_) => Some(RuntimeGuiAction::OpenAccountManager { notification: None }),
-            ActiveGuiScreen::Options(_) | ActiveGuiScreen::Multiplayer(_) | ActiveGuiScreen::WorldSelection(_) => Some(RuntimeGuiAction::Switch(ScreenId::MainMenu)),
-            ActiveGuiScreen::CreateWorld(_) => Some(RuntimeGuiAction::Switch(ScreenId::WorldSelection)),
+            ActiveGuiScreen::SessionLogin(_) | ActiveGuiScreen::OfflineLogin(_) => {
+                Some(RuntimeGuiAction::OpenAccountManager { notification: None })
+            }
+            ActiveGuiScreen::Options(_)
+            | ActiveGuiScreen::Multiplayer(_)
+            | ActiveGuiScreen::WorldSelection(_) => {
+                Some(RuntimeGuiAction::Switch(ScreenId::MainMenu))
+            }
+            ActiveGuiScreen::CreateWorld(_) => {
+                Some(RuntimeGuiAction::Switch(ScreenId::WorldSelection))
+            }
             ActiveGuiScreen::Controls(_) => Some(RuntimeGuiAction::Switch(ScreenId::MainMenu)),
             ActiveGuiScreen::VideoSettings(_) => Some(RuntimeGuiAction::CloseVideoSettings),
             ActiveGuiScreen::ShaderSettings(screen) if screen.isOptionsView() => {
@@ -5503,19 +7182,29 @@ impl MainMenuRuntime {
                     Some(RuntimeGuiAction::ReturnToOptions)
                 }
             }
-            ActiveGuiScreen::SoundSettings(_) | ActiveGuiScreen::ChatSettings(_) | ActiveGuiScreen::SkinSettings(_) => Some(RuntimeGuiAction::ReturnToOptions),
+            ActiveGuiScreen::SoundSettings(_)
+            | ActiveGuiScreen::ChatSettings(_)
+            | ActiveGuiScreen::SkinSettings(_) => Some(RuntimeGuiAction::ReturnToOptions),
             ActiveGuiScreen::Language { parent, .. } => Some(RuntimeGuiAction::Switch(*parent)),
-            ActiveGuiScreen::AddServer { .. } | ActiveGuiScreen::ConfirmDelete { .. } => Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: None }),
-            ActiveGuiScreen::DirectConnect { screen, .. } => Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: Some(screen.getAddress()) }),
+            ActiveGuiScreen::AddServer { .. } | ActiveGuiScreen::ConfirmDelete { .. } => {
+                Some(RuntimeGuiAction::ReturnToMultiplayer { lastServer: None })
+            }
+            ActiveGuiScreen::DirectConnect { screen, .. } => {
+                Some(RuntimeGuiAction::ReturnToMultiplayer {
+                    lastServer: Some(screen.getAddress()),
+                })
+            }
             ActiveGuiScreen::DownloadTerrain { .. } => Some(RuntimeGuiAction::OpenWorld),
-            ActiveGuiScreen::Connecting { .. } | ActiveGuiScreen::Disconnected { .. } | ActiveGuiScreen::World { .. } => None,
+            ActiveGuiScreen::Connecting { .. }
+            | ActiveGuiScreen::Disconnected { .. }
+            | ActiveGuiScreen::World { .. } => None,
         }
     }
 }
 
 fn player_container_inventory_group(slotId: i32) -> i32 {
     match slotId {
-        0 => 0,       // InventoryCraftResult
+        0 => 0,      // InventoryCraftResult
         1..=4 => 1,  // InventoryCrafting
         5..=45 => 2, // InventoryPlayer
         _ => -1,
@@ -5531,7 +7220,9 @@ fn mapControlsAction(action: GuiControlsAction, world: bool) -> RuntimeGuiAction
         GuiControlsAction::ToggleTouchscreen => RuntimeGuiAction::ToggleTouchscreen,
         GuiControlsAction::ToggleAutoJump => RuntimeGuiAction::ToggleAutoJump,
         GuiControlsAction::SelectKeyBinding(_) => RuntimeGuiAction::SelectKeyBinding,
-        GuiControlsAction::SetKeyBinding { binding, code } => RuntimeGuiAction::SetKeyBinding { binding, code },
+        GuiControlsAction::SetKeyBinding { binding, code } => {
+            RuntimeGuiAction::SetKeyBinding { binding, code }
+        }
         GuiControlsAction::ResetKeyBinding(binding) => RuntimeGuiAction::ResetKeyBinding(binding),
         GuiControlsAction::ResetAll => RuntimeGuiAction::ResetAllKeyBindings,
     }
@@ -5540,7 +7231,9 @@ fn mapControlsAction(action: GuiControlsAction, world: bool) -> RuntimeGuiAction
 fn mapVideoSettingsAction(action: GuiVideoSettingsAction) -> RuntimeGuiAction {
     match action {
         GuiVideoSettingsAction::SetGamma(value) => RuntimeGuiAction::SetGamma(value),
-        GuiVideoSettingsAction::SetRenderDistance(value) => RuntimeGuiAction::SetRenderDistance(value),
+        GuiVideoSettingsAction::SetRenderDistance(value) => {
+            RuntimeGuiAction::SetRenderDistance(value)
+        }
         GuiVideoSettingsAction::SetFramerate { limit, enableVsync } => {
             RuntimeGuiAction::SetFramerate { limit, enableVsync }
         }
@@ -5556,7 +7249,9 @@ fn mapVideoSettingsAction(action: GuiVideoSettingsAction) -> RuntimeGuiAction {
 
 fn mapSoundSettingsAction(action: GuiScreenOptionsSoundsAction) -> RuntimeGuiAction {
     match action {
-        GuiScreenOptionsSoundsAction::SetSoundLevel(category, value) => RuntimeGuiAction::SetSoundLevel(category, value),
+        GuiScreenOptionsSoundsAction::SetSoundLevel(category, value) => {
+            RuntimeGuiAction::SetSoundLevel(category, value)
+        }
         GuiScreenOptionsSoundsAction::ToggleSubtitles => RuntimeGuiAction::ToggleSubtitles,
         GuiScreenOptionsSoundsAction::Done => RuntimeGuiAction::ReturnToOptions,
     }
@@ -5572,8 +7267,12 @@ fn mapChatSettingsAction(action: ScreenChatOptionsAction) -> RuntimeGuiAction {
         ScreenChatOptionsAction::SetOpacity(value) => RuntimeGuiAction::SetChatOpacity(value),
         ScreenChatOptionsAction::SetScale(value) => RuntimeGuiAction::SetChatScale(value),
         ScreenChatOptionsAction::SetWidth(value) => RuntimeGuiAction::SetChatWidth(value),
-        ScreenChatOptionsAction::SetHeightFocused(value) => RuntimeGuiAction::SetChatHeightFocused(value),
-        ScreenChatOptionsAction::SetHeightUnfocused(value) => RuntimeGuiAction::SetChatHeightUnfocused(value),
+        ScreenChatOptionsAction::SetHeightFocused(value) => {
+            RuntimeGuiAction::SetChatHeightFocused(value)
+        }
+        ScreenChatOptionsAction::SetHeightUnfocused(value) => {
+            RuntimeGuiAction::SetChatHeightUnfocused(value)
+        }
         ScreenChatOptionsAction::Done => RuntimeGuiAction::ReturnToOptions,
     }
 }
@@ -5645,19 +7344,38 @@ fn world_event_audio(
     }
 
     let doorPitch = |random: &mut JavaRandom| random.next_f32() * 0.1 + 0.9;
-    let hostilePitch = |random: &mut JavaRandom| {
-        (random.next_f32() - random.next_f32()) * 0.2 + 1.0
-    };
+    let hostilePitch =
+        |random: &mut JavaRandom| (random.next_f32() - random.next_f32()) * 0.2 + 1.0;
     Some(match effectType {
         1000 => play("block.dispenser.dispense", SoundCategory::Blocks, 1.0, 1.0),
         1001 => play("block.dispenser.fail", SoundCategory::Blocks, 1.0, 1.2),
         1002 => play("block.dispenser.launch", SoundCategory::Blocks, 1.0, 1.2),
         1003 => play("entity.endereye.launch", SoundCategory::Neutral, 1.0, 1.2),
         1004 => play("entity.firework.shoot", SoundCategory::Neutral, 1.0, 1.2),
-        1005 => play("block.iron_door.open", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1006 => play("block.wooden_door.open", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1007 => play("block.wooden_trapdoor.open", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1008 => play("block.fence_gate.open", SoundCategory::Blocks, 1.0, doorPitch(random)),
+        1005 => play(
+            "block.iron_door.open",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1006 => play(
+            "block.wooden_door.open",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1007 => play(
+            "block.wooden_trapdoor.open",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1008 => play(
+            "block.fence_gate.open",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
         1009 => play(
             "block.fire.extinguish",
             SoundCategory::Blocks,
@@ -5682,30 +7400,126 @@ fn world_event_audio(
             };
             match recordName {
                 Some(name) => WorldEventAudio::Play(PositionedSoundRecord::getRecordSoundRecord(
-                    ResourceLocation::parse(name), center,
+                    ResourceLocation::parse(name),
+                    center,
                 )),
                 None => WorldEventAudio::StopRecord(center),
             }
         }
-        1011 => play("block.iron_door.close", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1012 => play("block.wooden_door.close", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1013 => play("block.wooden_trapdoor.close", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1014 => play("block.fence_gate.close", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1015 => play("entity.ghast.warn", SoundCategory::Hostile, 10.0, hostilePitch(random)),
-        1016 => play("entity.ghast.shoot", SoundCategory::Hostile, 10.0, hostilePitch(random)),
-        1017 => play("entity.enderdragon.shoot", SoundCategory::Hostile, 10.0, hostilePitch(random)),
-        1018 => play("entity.blaze.shoot", SoundCategory::Hostile, 2.0, hostilePitch(random)),
-        1019 => play("entity.zombie.attack_door_wood", SoundCategory::Hostile, 2.0, hostilePitch(random)),
-        1020 => play("entity.zombie.attack_iron_door", SoundCategory::Hostile, 2.0, hostilePitch(random)),
-        1021 => play("entity.zombie.break_door_wood", SoundCategory::Hostile, 2.0, hostilePitch(random)),
-        1022 => play("entity.wither.break_block", SoundCategory::Hostile, 2.0, hostilePitch(random)),
-        1024 => play("entity.wither.shoot", SoundCategory::Hostile, 2.0, hostilePitch(random)),
-        1025 => play("entity.bat.takeoff", SoundCategory::Neutral, 0.05, hostilePitch(random)),
-        1026 => play("entity.zombie.infect", SoundCategory::Hostile, 2.0, hostilePitch(random)),
-        1027 => play("entity.zombie_villager.converted", SoundCategory::Neutral, 2.0, hostilePitch(random)),
-        1029 => play("block.anvil.destroy", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1030 => play("block.anvil.use", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1031 => play("block.anvil.land", SoundCategory::Blocks, 0.3, doorPitch(random)),
+        1011 => play(
+            "block.iron_door.close",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1012 => play(
+            "block.wooden_door.close",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1013 => play(
+            "block.wooden_trapdoor.close",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1014 => play(
+            "block.fence_gate.close",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1015 => play(
+            "entity.ghast.warn",
+            SoundCategory::Hostile,
+            10.0,
+            hostilePitch(random),
+        ),
+        1016 => play(
+            "entity.ghast.shoot",
+            SoundCategory::Hostile,
+            10.0,
+            hostilePitch(random),
+        ),
+        1017 => play(
+            "entity.enderdragon.shoot",
+            SoundCategory::Hostile,
+            10.0,
+            hostilePitch(random),
+        ),
+        1018 => play(
+            "entity.blaze.shoot",
+            SoundCategory::Hostile,
+            2.0,
+            hostilePitch(random),
+        ),
+        1019 => play(
+            "entity.zombie.attack_door_wood",
+            SoundCategory::Hostile,
+            2.0,
+            hostilePitch(random),
+        ),
+        1020 => play(
+            "entity.zombie.attack_iron_door",
+            SoundCategory::Hostile,
+            2.0,
+            hostilePitch(random),
+        ),
+        1021 => play(
+            "entity.zombie.break_door_wood",
+            SoundCategory::Hostile,
+            2.0,
+            hostilePitch(random),
+        ),
+        1022 => play(
+            "entity.wither.break_block",
+            SoundCategory::Hostile,
+            2.0,
+            hostilePitch(random),
+        ),
+        1024 => play(
+            "entity.wither.shoot",
+            SoundCategory::Hostile,
+            2.0,
+            hostilePitch(random),
+        ),
+        1025 => play(
+            "entity.bat.takeoff",
+            SoundCategory::Neutral,
+            0.05,
+            hostilePitch(random),
+        ),
+        1026 => play(
+            "entity.zombie.infect",
+            SoundCategory::Hostile,
+            2.0,
+            hostilePitch(random),
+        ),
+        1027 => play(
+            "entity.zombie_villager.converted",
+            SoundCategory::Neutral,
+            2.0,
+            hostilePitch(random),
+        ),
+        1029 => play(
+            "block.anvil.destroy",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1030 => play(
+            "block.anvil.use",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1031 => play(
+            "block.anvil.land",
+            SoundCategory::Blocks,
+            0.3,
+            doorPitch(random),
+        ),
         1032 => WorldEventAudio::Play(PositionedSoundRecord::getMasterRecord(
             ResourceLocation::parse("block.portal.travel"),
             random.next_f32() * 0.4 + 0.8,
@@ -5713,8 +7527,18 @@ fn world_event_audio(
         1033 => play("block.chorus_flower.grow", SoundCategory::Blocks, 1.0, 1.0),
         1034 => play("block.chorus_flower.death", SoundCategory::Blocks, 1.0, 1.0),
         1035 => play("block.brewing_stand.brew", SoundCategory::Blocks, 1.0, 1.0),
-        1036 => play("block.iron_trapdoor.close", SoundCategory::Blocks, 1.0, doorPitch(random)),
-        1037 => play("block.iron_trapdoor.open", SoundCategory::Blocks, 1.0, doorPitch(random)),
+        1036 => play(
+            "block.iron_trapdoor.close",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
+        1037 => play(
+            "block.iron_trapdoor.open",
+            SoundCategory::Blocks,
+            1.0,
+            doorPitch(random),
+        ),
         2001 => {
             let block = Block::getBlockById(data & 4095);
             if block.isAir() {
@@ -5803,9 +7627,17 @@ struct MinecraftApplication {
 impl MinecraftApplication {
     fn new(minecraft: Minecraft) -> Self {
         Self {
-            minecraft: Some(minecraft), renderer: None, window: None, mainMenu: None, fatalError: None,
-            redrawPending: false, nextFrameDeadline: Instant::now(), nextTickDeadline: Instant::now(),
-            pendingResizeSince: None, keyboardModifiers: ModifiersState::empty(), worldMouseGrabbed: false,
+            minecraft: Some(minecraft),
+            renderer: None,
+            window: None,
+            mainMenu: None,
+            fatalError: None,
+            redrawPending: false,
+            nextFrameDeadline: Instant::now(),
+            nextTickDeadline: Instant::now(),
+            pendingResizeSince: None,
+            keyboardModifiers: ModifiersState::empty(),
+            worldMouseGrabbed: false,
             windowFocused: true,
             debugFps: 0,
             framesThisSecond: 0,
@@ -5823,16 +7655,11 @@ impl MinecraftApplication {
         }
     }
 
-    fn recordFrameProfile(
-        &mut self,
-        prepare: Duration,
-        render: Duration,
-        worldFrame: bool,
-    ) {
+    fn recordFrameProfile(&mut self, prepare: Duration, render: Duration, worldFrame: bool) {
         self.frameProfileFrames = self.frameProfileFrames.saturating_add(1);
-        self.frameProfileWorldFrames = self
-            .frameProfileWorldFrames
-            .saturating_add(if worldFrame { 1 } else { 0 });
+        self.frameProfileWorldFrames =
+            self.frameProfileWorldFrames
+                .saturating_add(if worldFrame { 1 } else { 0 });
         self.frameProfilePrepareNanos = self
             .frameProfilePrepareNanos
             .saturating_add(prepare.as_nanos());
@@ -5865,19 +7692,31 @@ impl MinecraftApplication {
     fn processDebugChord(&mut self, key: KeyCode) -> bool {
         match key {
             KeyCode::KeyA => {
-                let settings = self.minecraft.as_ref().map(|minecraft| minecraft.gameSettings.clone());
-                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                let settings = self
+                    .minecraft
+                    .as_ref()
+                    .map(|minecraft| minecraft.gameSettings.clone());
+                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref())
+                {
                     runtime.worldRenderer.reloadChunks();
                     runtime.printDebugMessage("debug.reload_chunks.message", settings);
                 }
                 true
             }
             KeyCode::KeyB => {
-                let settings = self.minecraft.as_ref().map(|minecraft| minecraft.gameSettings.clone());
-                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                let settings = self
+                    .minecraft
+                    .as_ref()
+                    .map(|minecraft| minecraft.gameSettings.clone());
+                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref())
+                {
                     let enabled = runtime.worldRenderer.toggleDebugHitboxes();
                     runtime.printDebugMessage(
-                        if enabled { "debug.show_hitboxes.on" } else { "debug.show_hitboxes.off" },
+                        if enabled {
+                            "debug.show_hitboxes.on"
+                        } else {
+                            "debug.show_hitboxes.off"
+                        },
                         settings,
                     );
                 }
@@ -5897,7 +7736,11 @@ impl MinecraftApplication {
             }
             KeyCode::KeyF => {
                 let settings = if let Some(minecraft) = self.minecraft.as_mut() {
-                    let step = if self.keyboardModifiers.shift_key() { -1 } else { 1 };
+                    let step = if self.keyboardModifiers.shift_key() {
+                        -1
+                    } else {
+                        1
+                    };
                     minecraft.gameSettings.renderDistanceChunks =
                         (minecraft.gameSettings.renderDistanceChunks + step).clamp(2, 32);
                     if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
@@ -5907,7 +7750,8 @@ impl MinecraftApplication {
                 } else {
                     None
                 };
-                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref())
+                {
                     runtime.printDebugValue(
                         "debug.cycle_renderdistance.message",
                         settings.renderDistanceChunks.to_string(),
@@ -5917,11 +7761,19 @@ impl MinecraftApplication {
                 true
             }
             KeyCode::KeyG => {
-                let settings = self.minecraft.as_ref().map(|minecraft| minecraft.gameSettings.clone());
-                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                let settings = self
+                    .minecraft
+                    .as_ref()
+                    .map(|minecraft| minecraft.gameSettings.clone());
+                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref())
+                {
                     let enabled = runtime.worldRenderer.toggleChunkBoundaries();
                     runtime.printDebugMessage(
-                        if enabled { "debug.chunk_boundaries.on" } else { "debug.chunk_boundaries.off" },
+                        if enabled {
+                            "debug.chunk_boundaries.on"
+                        } else {
+                            "debug.chunk_boundaries.off"
+                        },
                         settings,
                     );
                 }
@@ -5938,7 +7790,8 @@ impl MinecraftApplication {
                 } else {
                     None
                 };
-                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref())
+                {
                     runtime.printDebugMessage(
                         if settings.advancedItemTooltips {
                             "debug.advanced_tooltips.on"
@@ -5951,13 +7804,20 @@ impl MinecraftApplication {
                 true
             }
             KeyCode::KeyN => {
-                let result = self.mainMenu.as_ref()
+                let result = self
+                    .mainMenu
+                    .as_ref()
                     .map(MainMenuRuntime::toggleCreativeSpectator)
                     .unwrap_or(Ok(None));
                 match result {
                     Ok(Some(false)) => {
-                        let settings = self.minecraft.as_ref().map(|minecraft| minecraft.gameSettings.clone());
-                        if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                        let settings = self
+                            .minecraft
+                            .as_ref()
+                            .map(|minecraft| minecraft.gameSettings.clone());
+                        if let (Some(runtime), Some(settings)) =
+                            (self.mainMenu.as_mut(), settings.as_ref())
+                        {
                             runtime.printDebugMessage("debug.creative_spectator.error", settings);
                         }
                     }
@@ -5977,7 +7837,8 @@ impl MinecraftApplication {
                 } else {
                     None
                 };
-                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref())
+                {
                     runtime.printDebugMessage(
                         if settings.pauseOnLostFocus {
                             "debug.pause_focus.on"
@@ -5990,8 +7851,12 @@ impl MinecraftApplication {
                 true
             }
             KeyCode::KeyQ => {
-                let settings = self.minecraft.as_ref().map(|minecraft| minecraft.gameSettings.clone());
-                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                let settings = self
+                    .minecraft
+                    .as_ref()
+                    .map(|minecraft| minecraft.gameSettings.clone());
+                if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref())
+                {
                     runtime.printDebugHelp(settings);
                 }
                 true
@@ -6004,8 +7869,13 @@ impl MinecraftApplication {
                 if let Err(error) = result {
                     log::error!("Failed to reload resource packs: {error}");
                 } else {
-                    let settings = self.minecraft.as_ref().map(|minecraft| minecraft.gameSettings.clone());
-                    if let (Some(runtime), Some(settings)) = (self.mainMenu.as_mut(), settings.as_ref()) {
+                    let settings = self
+                        .minecraft
+                        .as_ref()
+                        .map(|minecraft| minecraft.gameSettings.clone());
+                    if let (Some(runtime), Some(settings)) =
+                        (self.mainMenu.as_mut(), settings.as_ref())
+                    {
                         runtime.printDebugMessage("debug.reload_resourcepacks.message", settings);
                     }
                 }
@@ -6034,9 +7904,8 @@ impl MinecraftApplication {
         }
         if let Some(runtime) = self.mainMenu.as_ref() {
             if let ActiveGuiScreen::World { connection, .. } = &runtime.currentScreen {
-                let (position, dimension, gameType, entityId) = connection
-                    .getSharedPlayState()
-                    .withRead(|state| {
+                let (position, dimension, gameType, entityId) =
+                    connection.getSharedPlayState().withRead(|state| {
                         (
                             state.playerPosition.clone(),
                             state.worldClient.as_ref().map(|world| world.getDimension()),
@@ -6104,7 +7973,9 @@ impl MinecraftApplication {
         } else {
             self.minecraft
                 .as_ref()
-                .map_or(FRAMERATE_LIMIT_MAX, |minecraft| minecraft.gameSettings.limitFramerate)
+                .map_or(FRAMERATE_LIMIT_MAX, |minecraft| {
+                    minecraft.gameSettings.limitFramerate
+                })
         }
     }
 
@@ -6124,7 +7995,9 @@ impl MinecraftApplication {
     }
 
     fn requestRedraw(&mut self) {
-        if self.redrawPending { return; }
+        if self.redrawPending {
+            return;
+        }
         if let Some(window) = self.window.as_ref() {
             window.request_redraw();
             self.redrawPending = true;
@@ -6137,8 +8010,13 @@ impl MinecraftApplication {
         // invariants here so packet-driven screens cannot leave relative mouse
         // motion enabled behind a visible menu.
         if grabbed {
-            let modalWorldGuiOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isModalWorldGuiOpen);
-            if !can_grab_world_mouse(self.windowFocused, modalWorldGuiOpen) { return; }
+            let modalWorldGuiOpen = self
+                .mainMenu
+                .as_ref()
+                .is_some_and(MainMenuRuntime::isModalWorldGuiOpen);
+            if !can_grab_world_mouse(self.windowFocused, modalWorldGuiOpen) {
+                return;
+            }
         }
         if self.worldMouseGrabbed == grabbed {
             return;
@@ -6175,7 +8053,9 @@ impl MinecraftApplication {
                     log::error!("failed aborting block removal while releasing mouse: {message}");
                 }
                 if let Err(message) = runtime.worldActionButton(KeyBindingId::UseItem, false) {
-                    log::error!("failed releasing active item use while releasing mouse: {message}");
+                    log::error!(
+                        "failed releasing active item use while releasing mouse: {message}"
+                    );
                 }
                 runtime.clearMovementKeys();
             }
@@ -6183,7 +8063,10 @@ impl MinecraftApplication {
     }
 
     fn applyRuntimeMouseFocusRequest(&mut self) {
-        let request = self.mainMenu.as_mut().and_then(MainMenuRuntime::takeWorldMouseFocusRequest);
+        let request = self
+            .mainMenu
+            .as_mut()
+            .and_then(MainMenuRuntime::takeWorldMouseFocusRequest);
         match request {
             Some(true) if !self.windowFocused => {
                 // Display.isActive() is false: vanilla defers setIngameFocus.
@@ -6199,43 +8082,70 @@ impl MinecraftApplication {
     }
 
     fn applyPendingResize(&mut self) -> anyhow::Result<bool> {
-        let Some(since) = self.pendingResizeSince else { return Ok(false); };
-        if since.elapsed() < RESIZE_DEBOUNCE { return Ok(false); }
+        let Some(since) = self.pendingResizeSince else {
+            return Ok(false);
+        };
+        if since.elapsed() < RESIZE_DEBOUNCE {
+            return Ok(false);
+        }
         let (Some(window), Some(renderer), Some(mainMenu), Some(minecraft)) = (
-            self.window.as_ref(), self.renderer.as_mut(), self.mainMenu.as_mut(), self.minecraft.as_ref(),
-        ) else { return Ok(false); };
-        renderer.resize(window).context("failed resizing Minecraft graphics surface")?;
+            self.window.as_ref(),
+            self.renderer.as_mut(),
+            self.mainMenu.as_mut(),
+            self.minecraft.as_ref(),
+        ) else {
+            return Ok(false);
+        };
+        renderer
+            .resize(window)
+            .context("failed resizing Minecraft graphics surface")?;
         let extent = renderer.extent();
-        if extent.width > 0 && extent.height > 0 { mainMenu.resize(minecraft, extent.width, extent.height); }
+        if extent.width > 0 && extent.height > 0 {
+            mainMenu.resize(minecraft, extent.width, extent.height);
+        }
         self.pendingResizeSince = None;
         Ok(true)
     }
 
-    fn launchIntegratedServer(&mut self, folderName:String, worldName:String, settings:WorldSettings) -> anyhow::Result<()> {
+    fn launchIntegratedServer(
+        &mut self,
+        folderName: String,
+        worldName: String,
+        settings: WorldSettings,
+    ) -> anyhow::Result<()> {
         // MCP `Minecraft#launchIntegratedServer`: unload any prior integrated
         // server, construct/start the new server, then connect through a local
         // in-memory NetworkManager rather than localhost TCP.
         self.integratedServer.take();
-        let minecraft=self.minecraft.as_ref().expect("Minecraft state");
-        let server=IntegratedServer::new(
-            minecraft.gameDir.join("saves"), minecraft.getSession().getUsername(),
-            folderName, worldName, settings, minecraft.isDemo(),
+        let minecraft = self.minecraft.as_ref().expect("Minecraft state");
+        let server = IntegratedServer::new(
+            minecraft.gameDir.join("saves"),
+            minecraft.getSession().getUsername(),
+            folderName,
+            worldName,
+            settings,
+            minecraft.isDemo(),
         );
-        let (handle,address)=IntegratedServerHandle::launch(server).map_err(anyhow::Error::msg)?;
-        let screen=GuiConnecting::newLocal(
-            address, minecraft.getSession().clone(), minecraft.gameSettings.language.clone(),
-            minecraft.gameSettings.renderDistanceChunks, minecraft.gameSettings.chatVisibility,
-            minecraft.gameSettings.chatColours, minecraft.gameSettings.modelPartFlags,
+        let (handle, address) =
+            IntegratedServerHandle::launch(server).map_err(anyhow::Error::msg)?;
+        let screen = GuiConnecting::newLocal(
+            address,
+            minecraft.getSession().clone(),
+            minecraft.gameSettings.language.clone(),
+            minecraft.gameSettings.renderDistanceChunks,
+            minecraft.gameSettings.chatVisibility,
+            minecraft.gameSettings.chatColours,
+            minecraft.gameSettings.modelPartFlags,
             minecraft.gameSettings.mainHand,
         );
         // The existing screen-state carrier still stores the historical
         // multiplayer return object; integrated cancel/leave is intercepted by
         // MinecraftApplication and returns to WorldSelection.
-        let parent=Box::new(GuiMultiplayer::new(minecraft.gameDir.clone()));
-        let runtime=self.mainMenu.as_mut().expect("GUI runtime");
-        runtime.currentScreen=ActiveGuiScreen::Connecting{screen,parent};
+        let parent = Box::new(GuiMultiplayer::new(minecraft.gameDir.clone()));
+        let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+        runtime.currentScreen = ActiveGuiScreen::Connecting { screen, parent };
         runtime.initCurrentScreen(minecraft);
-        self.integratedServer=Some(handle);
+        self.integratedServer = Some(handle);
         self.setWorldMouseGrabbed(false);
         Ok(())
     }
@@ -6250,19 +8160,37 @@ impl MinecraftApplication {
             RuntimeGuiAction::Switch(screen) => {
                 self.setWorldMouseGrabbed(false);
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").switchTo(minecraft, screen)?;
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .switchTo(minecraft, screen)?;
             }
             RuntimeGuiAction::OpenCreateWorld => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                let newWorldName = self.mainMenu.as_ref().expect("GUI runtime").locale.translate_key("selectWorld.newWorld").to_owned();
+                let newWorldName = self
+                    .mainMenu
+                    .as_ref()
+                    .expect("GUI runtime")
+                    .locale
+                    .translate_key("selectWorld.newWorld")
+                    .to_owned();
                 let runtime = self.mainMenu.as_mut().expect("GUI runtime");
-                runtime.currentScreen = ActiveGuiScreen::CreateWorld(GuiCreateWorld::new(minecraft.gameDir.join("saves"), newWorldName));
+                runtime.currentScreen = ActiveGuiScreen::CreateWorld(GuiCreateWorld::new(
+                    minecraft.gameDir.join("saves"),
+                    newWorldName,
+                ));
                 runtime.initCurrentScreen(minecraft);
             }
             RuntimeGuiAction::CreateWorld(request) => {
-                let minecraft=self.minecraft.as_ref().expect("Minecraft state");
-                let settings=minecraft.prepareIntegratedServerLaunch(&request.saveDirName,&request.worldName,Some(request.settings.clone()))?;
-                if let Err(error)=self.launchIntegratedServer(request.saveDirName,request.worldName,settings) {
+                let minecraft = self.minecraft.as_ref().expect("Minecraft state");
+                let settings = minecraft.prepareIntegratedServerLaunch(
+                    &request.saveDirName,
+                    &request.worldName,
+                    Some(request.settings.clone()),
+                )?;
+                if let Err(error) =
+                    self.launchIntegratedServer(request.saveDirName, request.worldName, settings)
+                {
                     // Development-boundary guard only: until every vanilla
                     // generator exists, a missing generator must not turn a
                     // GUI action into process termination. The screen remains
@@ -6270,56 +8198,90 @@ impl MinecraftApplication {
                     log::error!("IntegratedServer failed to start: {error}");
                 }
             }
-            RuntimeGuiAction::JoinWorld { folderName, worldName } => {
-                let minecraft=self.minecraft.as_ref().expect("Minecraft state");
-                let settings=minecraft.prepareIntegratedServerLaunch(&folderName,&worldName,None)?;
-                if let Err(error)=self.launchIntegratedServer(folderName,worldName,settings) {
+            RuntimeGuiAction::JoinWorld {
+                folderName,
+                worldName,
+            } => {
+                let minecraft = self.minecraft.as_ref().expect("Minecraft state");
+                let settings =
+                    minecraft.prepareIntegratedServerLaunch(&folderName, &worldName, None)?;
+                if let Err(error) = self.launchIntegratedServer(folderName, worldName, settings) {
                     log::error!("IntegratedServer failed to open world: {error}");
                 }
             }
             RuntimeGuiAction::OpenLanguage(parent) => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openLanguage(minecraft, parent);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openLanguage(minecraft, parent);
             }
             RuntimeGuiAction::OpenWorldLanguage => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldLanguage(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldLanguage(minecraft);
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::OpenAccountManager { notification } => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openAccountManager(minecraft, notification);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openAccountManager(minecraft, notification);
             }
             RuntimeGuiAction::OpenMicrosoftAuth => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openMicrosoftAuth(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openMicrosoftAuth(minecraft);
             }
             RuntimeGuiAction::OpenSessionLogin => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openSessionLogin(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openSessionLogin(minecraft);
             }
             RuntimeGuiAction::OpenOfflineLogin => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openOfflineLogin(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openOfflineLogin(minecraft);
             }
-            RuntimeGuiAction::AccountAuthenticated { session, returnToManager } => {
+            RuntimeGuiAction::AccountAuthenticated {
+                session,
+                returnToManager,
+            } => {
                 let username = session.getUsername().to_owned();
-                self.minecraft.as_mut().expect("Minecraft state").setSession(session);
+                self.minecraft
+                    .as_mut()
+                    .expect("Minecraft state")
+                    .setSession(session);
                 if returnToManager {
                     let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                    self.mainMenu.as_mut().expect("GUI runtime").openAccountManager(
-                        minecraft,
-                        Some(format!("§aSuccessful login! ({username})§r")),
-                    );
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .openAccountManager(
+                            minecraft,
+                            Some(format!("§aSuccessful login! ({username})§r")),
+                        );
                 }
             }
             RuntimeGuiAction::ToggleUnicode => {
                 let extent = self.renderer.as_ref().expect("renderer").extent();
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");
                 minecraft.gameSettings.forceUnicodeFont = !minecraft.gameSettings.forceUnicodeFont;
-                if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) { log::error!("Couldn't save options.txt: {error}"); }
+                if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
+                    log::error!("Couldn't save options.txt: {error}");
+                }
                 let runtime = self.mainMenu.as_mut().expect("GUI runtime");
-                let unicode = minecraft.gameSettings.forceUnicodeFont || runtime.locale.is_unicode();
+                let unicode =
+                    minecraft.gameSettings.forceUnicodeFont || runtime.locale.is_unicode();
                 runtime.fontRendererObj.set_unicode_flag(unicode);
                 runtime.worldRenderer.setUnicodeFlag(unicode);
                 runtime.resize(minecraft, extent.width, extent.height);
@@ -6329,7 +8291,9 @@ impl MinecraftApplication {
                 minecraft.gameSettings.language = code.clone();
                 let runtime = self.mainMenu.as_mut().expect("GUI runtime");
                 if let Err(error) = runtime.setLanguage(minecraft, &code) {
-                    log::error!("Couldn't refresh resources after language switch to {code}: {error}");
+                    log::error!(
+                        "Couldn't refresh resources after language switch to {code}: {error}"
+                    );
                 } else {
                     // MCP GuiLanguage.List#elementClicked saves only after
                     // refreshResources and the font/screen refresh complete.
@@ -6363,11 +8327,17 @@ impl MinecraftApplication {
             }
             RuntimeGuiAction::OpenControls => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openControls(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openControls(minecraft);
             }
             RuntimeGuiAction::OpenWorldControls => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldControls(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldControls(minecraft);
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::ReturnToControlsParent { world } => {
@@ -6376,10 +8346,16 @@ impl MinecraftApplication {
                     log::error!("Couldn't save controls to options.txt: {error}");
                 }
                 if world {
-                    self.mainMenu.as_mut().expect("GUI runtime").openWorldOptions(minecraft);
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .openWorldOptions(minecraft);
                     self.setWorldMouseGrabbed(false);
                 } else {
-                    self.mainMenu.as_mut().expect("GUI runtime").switchTo(minecraft, ScreenId::Options)?;
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .switchTo(minecraft, ScreenId::Options)?;
                 }
             }
             RuntimeGuiAction::SetMouseSensitivity(value) => {
@@ -6424,44 +8400,77 @@ impl MinecraftApplication {
                 }
             }
             RuntimeGuiAction::ResetAllKeyBindings => {
-                self.minecraft.as_mut().expect("Minecraft state").gameSettings.resetAllKeyBindings();
+                self.minecraft
+                    .as_mut()
+                    .expect("Minecraft state")
+                    .gameSettings
+                    .resetAllKeyBindings();
             }
             RuntimeGuiAction::OpenSoundSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openSoundSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openSoundSettings(minecraft);
             }
             RuntimeGuiAction::OpenChatSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openChatSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openChatSettings(minecraft);
             }
             RuntimeGuiAction::OpenSkinSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openSkinSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openSkinSettings(minecraft);
             }
             RuntimeGuiAction::OpenResourcePacks => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openResourcePacks(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openResourcePacks(minecraft);
             }
             RuntimeGuiAction::OpenWorldSoundSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldSoundSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldSoundSettings(minecraft);
             }
             RuntimeGuiAction::OpenWorldChatSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldChatSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldChatSettings(minecraft);
             }
             RuntimeGuiAction::OpenWorldSkinSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldSkinSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldSkinSettings(minecraft);
             }
             RuntimeGuiAction::OpenWorldResourcePacks => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldResourcePacks(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldResourcePacks(minecraft);
             }
             RuntimeGuiAction::ReturnToOptions => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) { log::error!("Couldn't save options.txt: {error}"); }
-                self.mainMenu.as_mut().expect("GUI runtime").switchTo(minecraft, ScreenId::Options)?;
+                if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
+                    log::error!("Couldn't save options.txt: {error}");
+                }
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .switchTo(minecraft, ScreenId::Options)?;
             }
             RuntimeGuiAction::SetSoundLevel(category, value) => {
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");
@@ -6469,7 +8478,11 @@ impl MinecraftApplication {
                 if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
                     log::error!("Couldn't save options.txt after changing sound level: {error}");
                 }
-                self.mainMenu.as_mut().expect("GUI runtime").soundHandler.setSoundLevel(category, value);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .soundHandler
+                    .setSoundLevel(category, value);
             }
             RuntimeGuiAction::ToggleSubtitles => {
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");
@@ -6483,60 +8496,174 @@ impl MinecraftApplication {
             }
             RuntimeGuiAction::CycleChatVisibility => {
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");
-                minecraft.gameSettings.chatVisibility = EnumChatVisibility::getChatVisibility((minecraft.gameSettings.chatVisibility.getChatVisibilityId()+1)%3);
-                let runtime = self.mainMenu.as_mut().expect("GUI runtime"); let _=runtime.sendClientSettings(&minecraft.gameSettings); runtime.initCurrentScreen(minecraft); runtime.initWorldGui(minecraft);
+                minecraft.gameSettings.chatVisibility = EnumChatVisibility::getChatVisibility(
+                    (minecraft.gameSettings.chatVisibility.getChatVisibilityId() + 1) % 3,
+                );
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                let _ = runtime.sendClientSettings(&minecraft.gameSettings);
+                runtime.initCurrentScreen(minecraft);
+                runtime.initWorldGui(minecraft);
             }
             RuntimeGuiAction::ToggleChatColours => {
-                let minecraft = self.minecraft.as_mut().expect("Minecraft state"); minecraft.gameSettings.chatColours=!minecraft.gameSettings.chatColours;
-                let runtime=self.mainMenu.as_mut().expect("GUI runtime"); let _=runtime.sendClientSettings(&minecraft.gameSettings); runtime.initCurrentScreen(minecraft); runtime.initWorldGui(minecraft);
+                let minecraft = self.minecraft.as_mut().expect("Minecraft state");
+                minecraft.gameSettings.chatColours = !minecraft.gameSettings.chatColours;
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                let _ = runtime.sendClientSettings(&minecraft.gameSettings);
+                runtime.initCurrentScreen(minecraft);
+                runtime.initWorldGui(minecraft);
             }
-            RuntimeGuiAction::ToggleChatLinks => { let minecraft=self.minecraft.as_mut().expect("Minecraft state"); minecraft.gameSettings.chatLinks=!minecraft.gameSettings.chatLinks; let runtime=self.mainMenu.as_mut().expect("GUI runtime"); runtime.initCurrentScreen(minecraft); runtime.initWorldGui(minecraft); }
-            RuntimeGuiAction::ToggleChatLinksPrompt => { let minecraft=self.minecraft.as_mut().expect("Minecraft state"); minecraft.gameSettings.chatLinksPrompt=!minecraft.gameSettings.chatLinksPrompt; let runtime=self.mainMenu.as_mut().expect("GUI runtime"); runtime.initCurrentScreen(minecraft); runtime.initWorldGui(minecraft); }
-            RuntimeGuiAction::ToggleReducedDebugInfo => { let minecraft=self.minecraft.as_mut().expect("Minecraft state"); minecraft.gameSettings.reducedDebugInfo=!minecraft.gameSettings.reducedDebugInfo; let runtime=self.mainMenu.as_mut().expect("GUI runtime"); runtime.initCurrentScreen(minecraft); runtime.initWorldGui(minecraft); }
-            RuntimeGuiAction::SetChatOpacity(value) => self.minecraft.as_mut().expect("Minecraft state").gameSettings.chatOpacity=value.clamp(0.0,1.0),
-            RuntimeGuiAction::SetChatScale(value) => self.minecraft.as_mut().expect("Minecraft state").gameSettings.chatScale=value.clamp(0.0,1.0),
-            RuntimeGuiAction::SetChatWidth(value) => self.minecraft.as_mut().expect("Minecraft state").gameSettings.chatWidth=value.clamp(0.0,1.0),
-            RuntimeGuiAction::SetChatHeightFocused(value) => self.minecraft.as_mut().expect("Minecraft state").gameSettings.chatHeightFocused=value.clamp(0.0,1.0),
-            RuntimeGuiAction::SetChatHeightUnfocused(value) => self.minecraft.as_mut().expect("Minecraft state").gameSettings.chatHeightUnfocused=value.clamp(0.0,1.0),
+            RuntimeGuiAction::ToggleChatLinks => {
+                let minecraft = self.minecraft.as_mut().expect("Minecraft state");
+                minecraft.gameSettings.chatLinks = !minecraft.gameSettings.chatLinks;
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                runtime.initCurrentScreen(minecraft);
+                runtime.initWorldGui(minecraft);
+            }
+            RuntimeGuiAction::ToggleChatLinksPrompt => {
+                let minecraft = self.minecraft.as_mut().expect("Minecraft state");
+                minecraft.gameSettings.chatLinksPrompt = !minecraft.gameSettings.chatLinksPrompt;
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                runtime.initCurrentScreen(minecraft);
+                runtime.initWorldGui(minecraft);
+            }
+            RuntimeGuiAction::ToggleReducedDebugInfo => {
+                let minecraft = self.minecraft.as_mut().expect("Minecraft state");
+                minecraft.gameSettings.reducedDebugInfo = !minecraft.gameSettings.reducedDebugInfo;
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                runtime.initCurrentScreen(minecraft);
+                runtime.initWorldGui(minecraft);
+            }
+            RuntimeGuiAction::SetChatOpacity(value) => {
+                self.minecraft
+                    .as_mut()
+                    .expect("Minecraft state")
+                    .gameSettings
+                    .chatOpacity = value.clamp(0.0, 1.0)
+            }
+            RuntimeGuiAction::SetChatScale(value) => {
+                self.minecraft
+                    .as_mut()
+                    .expect("Minecraft state")
+                    .gameSettings
+                    .chatScale = value.clamp(0.0, 1.0)
+            }
+            RuntimeGuiAction::SetChatWidth(value) => {
+                self.minecraft
+                    .as_mut()
+                    .expect("Minecraft state")
+                    .gameSettings
+                    .chatWidth = value.clamp(0.0, 1.0)
+            }
+            RuntimeGuiAction::SetChatHeightFocused(value) => {
+                self.minecraft
+                    .as_mut()
+                    .expect("Minecraft state")
+                    .gameSettings
+                    .chatHeightFocused = value.clamp(0.0, 1.0)
+            }
+            RuntimeGuiAction::SetChatHeightUnfocused(value) => {
+                self.minecraft
+                    .as_mut()
+                    .expect("Minecraft state")
+                    .gameSettings
+                    .chatHeightUnfocused = value.clamp(0.0, 1.0)
+            }
             RuntimeGuiAction::ToggleModelPart(part) => {
-                let minecraft=self.minecraft.as_mut().expect("Minecraft state"); minecraft.gameSettings.modelPartFlags ^= part.getPartMask();
-                let runtime=self.mainMenu.as_mut().expect("GUI runtime"); let _=runtime.sendClientSettings(&minecraft.gameSettings); runtime.initCurrentScreen(minecraft); runtime.initWorldGui(minecraft);
+                let minecraft = self.minecraft.as_mut().expect("Minecraft state");
+                minecraft.gameSettings.modelPartFlags ^= part.getPartMask();
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                let _ = runtime.sendClientSettings(&minecraft.gameSettings);
+                runtime.initCurrentScreen(minecraft);
+                runtime.initWorldGui(minecraft);
             }
             RuntimeGuiAction::ToggleMainHand => {
-                let minecraft=self.minecraft.as_mut().expect("Minecraft state"); minecraft.gameSettings.mainHand=minecraft.gameSettings.mainHand.opposite();
-                let runtime=self.mainMenu.as_mut().expect("GUI runtime"); let _=runtime.sendClientSettings(&minecraft.gameSettings); runtime.initCurrentScreen(minecraft); runtime.initWorldGui(minecraft);
+                let minecraft = self.minecraft.as_mut().expect("Minecraft state");
+                minecraft.gameSettings.mainHand = minecraft.gameSettings.mainHand.opposite();
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                let _ = runtime.sendClientSettings(&minecraft.gameSettings);
+                runtime.initCurrentScreen(minecraft);
+                runtime.initWorldGui(minecraft);
             }
             RuntimeGuiAction::ApplyResourcePacks { selected, world } => {
-                let minecraft=self.minecraft.as_mut().expect("Minecraft state");
-                minecraft.gameSettings.resourcePacks=selected;
-                let repository=ResourcePackRepository::scan(&minecraft.fileResourcepacks).unwrap_or_default();
-                minecraft.gameSettings.incompatibleResourcePacks=minecraft.gameSettings.resourcePacks.iter().filter(|name| repository.findByName(name).is_some_and(|entry| !entry.isCompatibleWith1122())).cloned().collect();
-                if let Err(error)=minecraft.rebuildSelectedResourcePacksFromRepository(&repository){log::error!("Couldn't apply resource packs: {error}");}
-                if let Err(error)=minecraft.gameSettings.saveOptions(&minecraft.gameDir){log::error!("Couldn't save options.txt: {error}");}
-                let runtime=self.mainMenu.as_mut().expect("GUI runtime");
-                if let Err(error)=runtime.reloadResources(minecraft){log::error!("Couldn't reload resource packs: {error}");}
-                if world { runtime.openWorldOptions(minecraft); } else { runtime.switchTo(minecraft,ScreenId::Options)?; }
+                let minecraft = self.minecraft.as_mut().expect("Minecraft state");
+                minecraft.gameSettings.resourcePacks = selected;
+                let repository =
+                    ResourcePackRepository::scan(&minecraft.fileResourcepacks).unwrap_or_default();
+                minecraft.gameSettings.incompatibleResourcePacks = minecraft
+                    .gameSettings
+                    .resourcePacks
+                    .iter()
+                    .filter(|name| {
+                        repository
+                            .findByName(name)
+                            .is_some_and(|entry| !entry.isCompatibleWith1122())
+                    })
+                    .cloned()
+                    .collect();
+                if let Err(error) =
+                    minecraft.rebuildSelectedResourcePacksFromRepository(&repository)
+                {
+                    log::error!("Couldn't apply resource packs: {error}");
+                }
+                if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
+                    log::error!("Couldn't save options.txt: {error}");
+                }
+                let runtime = self.mainMenu.as_mut().expect("GUI runtime");
+                if let Err(error) = runtime.reloadResources(minecraft) {
+                    log::error!("Couldn't reload resource packs: {error}");
+                }
+                if world {
+                    runtime.openWorldOptions(minecraft);
+                } else {
+                    runtime.switchTo(minecraft, ScreenId::Options)?;
+                }
             }
             RuntimeGuiAction::OpenResourcePackFolder => {
-                let path=self.minecraft.as_ref().expect("Minecraft state").fileResourcepacks.clone();
-                #[cfg(target_os="windows")] let result=std::process::Command::new("explorer").arg(&path).spawn();
-                #[cfg(target_os="macos")] let result=std::process::Command::new("open").arg(&path).spawn();
-                #[cfg(all(not(target_os="windows"),not(target_os="macos")))] let result=std::process::Command::new("xdg-open").arg(&path).spawn();
-                if let Err(error)=result{log::error!("Couldn't open resource pack folder {}: {error}",path.display());}
+                let path = self
+                    .minecraft
+                    .as_ref()
+                    .expect("Minecraft state")
+                    .fileResourcepacks
+                    .clone();
+                #[cfg(target_os = "windows")]
+                let result = std::process::Command::new("explorer").arg(&path).spawn();
+                #[cfg(target_os = "macos")]
+                let result = std::process::Command::new("open").arg(&path).spawn();
+                #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+                let result = std::process::Command::new("xdg-open").arg(&path).spawn();
+                if let Err(error) = result {
+                    log::error!(
+                        "Couldn't open resource pack folder {}: {error}",
+                        path.display()
+                    );
+                }
             }
             RuntimeGuiAction::OpenVideoSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openVideoSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openVideoSettings(minecraft);
             }
             RuntimeGuiAction::OpenShaderSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
                 if minecraft.gameSettings.activeRenderBackend
                     != crate::launcher::RenderBackend::RenderBackend::OpenGl
                 {
-                    log::warn!("Ignored shader-settings request while Vulkan is the active renderer");
+                    log::warn!(
+                        "Ignored shader-settings request while Vulkan is the active renderer"
+                    );
                 } else {
-                    let description = self.renderer.as_ref().expect("renderer").deviceName().to_owned();
-                    self.mainMenu.as_mut().expect("GUI runtime").openShaderSettings(minecraft, description);
+                    let description = self
+                        .renderer
+                        .as_ref()
+                        .expect("renderer")
+                        .deviceName()
+                        .to_owned();
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .openShaderSettings(minecraft, description);
                 }
             }
             RuntimeGuiAction::OpenWorldShaderSettings => {
@@ -6546,42 +8673,80 @@ impl MinecraftApplication {
                 {
                     log::warn!("Ignored in-world shader-settings request while Vulkan is the active renderer");
                 } else {
-                    let description = self.renderer.as_ref().expect("renderer").deviceName().to_owned();
-                    self.mainMenu.as_mut().expect("GUI runtime").openWorldShaderSettings(minecraft, description);
+                    let description = self
+                        .renderer
+                        .as_ref()
+                        .expect("renderer")
+                        .deviceName()
+                        .to_owned();
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .openWorldShaderSettings(minecraft, description);
                     self.setWorldMouseGrabbed(false);
                 }
             }
             RuntimeGuiAction::ReturnToVideoSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").returnToVideoSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .returnToVideoSettings(minecraft);
             }
             RuntimeGuiAction::ReturnToWorldVideoSettings => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").returnToWorldVideoSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .returnToWorldVideoSettings(minecraft);
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::SelectShaderPack(name) => {
-                let gameDir = self.minecraft.as_ref().expect("Minecraft state").gameDir.clone();
+                let gameDir = self
+                    .minecraft
+                    .as_ref()
+                    .expect("Minecraft state")
+                    .gameDir
+                    .clone();
                 let mut shaders = Shaders::loadConfig(gameDir);
                 if let Err(error) = shaders.setShaderPack(name.clone()) {
                     log::error!("Couldn't save selected shader pack {name:?}: {error}");
                 } else {
                     log::info!("Selected OptiFine shader pack resource set: {name}");
-                    self.renderer.as_mut().expect("desktop renderer").reloadShaderPack();
+                    self.renderer
+                        .as_mut()
+                        .expect("desktop renderer")
+                        .reloadShaderPack();
                 }
             }
             RuntimeGuiAction::ReloadShaderPack => {
                 log::info!("Reloading OptiFine shader pack after option changes");
-                self.renderer.as_mut().expect("desktop renderer").reloadShaderPack();
+                self.renderer
+                    .as_mut()
+                    .expect("desktop renderer")
+                    .reloadShaderPack();
             }
             RuntimeGuiAction::OpenShaderPackFolder => {
-                let gameDir = self.minecraft.as_ref().expect("Minecraft state").gameDir.clone();
+                let gameDir = self
+                    .minecraft
+                    .as_ref()
+                    .expect("Minecraft state")
+                    .gameDir
+                    .clone();
                 let shaders = Shaders::loadConfig(gameDir);
                 let path = shaders.shaderpacksdir;
-                #[cfg(target_os="windows")] let result=std::process::Command::new("explorer").arg(&path).spawn();
-                #[cfg(target_os="macos")] let result=std::process::Command::new("open").arg(&path).spawn();
-                #[cfg(all(not(target_os="windows"),not(target_os="macos")))] let result=std::process::Command::new("xdg-open").arg(&path).spawn();
-                if let Err(error)=result{log::error!("Couldn't open shader pack folder {}: {error}",path.display());}
+                #[cfg(target_os = "windows")]
+                let result = std::process::Command::new("explorer").arg(&path).spawn();
+                #[cfg(target_os = "macos")]
+                let result = std::process::Command::new("open").arg(&path).spawn();
+                #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+                let result = std::process::Command::new("xdg-open").arg(&path).spawn();
+                if let Err(error) = result {
+                    log::error!(
+                        "Couldn't open shader pack folder {}: {error}",
+                        path.display()
+                    );
+                }
             }
             RuntimeGuiAction::SetGamma(value) => {
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");
@@ -6618,19 +8783,34 @@ impl MinecraftApplication {
                     .current_monitor()
                     .map(|monitor| monitor.size())
                     .unwrap_or_else(|| window.inner_size());
-                let maxScale = ((displaySize.width / 320).min(displaySize.height / 240) as i32).max(1);
+                let maxScale =
+                    ((displaySize.width / 320).min(displaySize.height / 240) as i32).max(1);
                 let extent = self.renderer.as_ref().expect("renderer").extent();
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");
                 let unicode = minecraft.gameSettings.forceUnicodeFont
-                    || self.mainMenu.as_ref().expect("GUI runtime").locale.is_unicode();
+                    || self
+                        .mainMenu
+                        .as_ref()
+                        .expect("GUI runtime")
+                        .locale
+                        .is_unicode();
                 minecraft.gameSettings.guiScale += 1;
-                if unicode && minecraft.gameSettings.guiScale % 2 != 0 && minecraft.gameSettings.guiScale != 1 {
+                if unicode
+                    && minecraft.gameSettings.guiScale % 2 != 0
+                    && minecraft.gameSettings.guiScale != 1
+                {
                     minecraft.gameSettings.guiScale += 1;
                 }
-                if minecraft.gameSettings.guiScale < 0 || minecraft.gameSettings.guiScale >= maxScale {
+                if minecraft.gameSettings.guiScale < 0
+                    || minecraft.gameSettings.guiScale >= maxScale
+                {
                     minecraft.gameSettings.guiScale = 0;
                 }
-                self.mainMenu.as_mut().expect("GUI runtime").resize(minecraft, extent.width, extent.height);
+                self.mainMenu.as_mut().expect("GUI runtime").resize(
+                    minecraft,
+                    extent.width,
+                    extent.height,
+                );
             }
             RuntimeGuiAction::ToggleFullscreen => {
                 let window = self.window.as_ref().expect("Minecraft window");
@@ -6648,7 +8828,8 @@ impl MinecraftApplication {
             RuntimeGuiAction::ToggleRenderBackend => {
                 {
                     let minecraft = self.minecraft.as_mut().expect("Minecraft state");
-                    minecraft.gameSettings.renderBackend = minecraft.gameSettings.renderBackend.toggled();
+                    minecraft.gameSettings.renderBackend =
+                        minecraft.gameSettings.renderBackend.toggled();
                 }
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
                 let runtime = self.mainMenu.as_mut().expect("GUI runtime");
@@ -6660,12 +8841,21 @@ impl MinecraftApplication {
                 if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
                     log::error!("Couldn't save options.txt: {error}");
                 }
-                self.mainMenu.as_mut().expect("GUI runtime").switchTo(minecraft, ScreenId::Options)?;
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .switchTo(minecraft, ScreenId::Options)?;
             }
             RuntimeGuiAction::OpenIngameMenu => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                let opened = self.mainMenu.as_mut().expect("GUI runtime").openIngameMenu(minecraft);
-                if opened { self.setWorldMouseGrabbed(false); }
+                let opened = self
+                    .mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openIngameMenu(minecraft);
+                if opened {
+                    self.setWorldMouseGrabbed(false);
+                }
             }
             RuntimeGuiAction::ResumeWorld => {
                 self.mainMenu.as_mut().expect("GUI runtime").resumeWorld();
@@ -6680,14 +8870,21 @@ impl MinecraftApplication {
                 self.setWorldMouseGrabbed(true);
             }
             RuntimeGuiAction::FinishSignEditor => {
-                let result = self.mainMenu.as_mut().expect("GUI runtime").finishSignEditor();
+                let result = self
+                    .mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .finishSignEditor();
                 if let Err(message) = result {
                     log::error!("failed submitting CPacketUpdateSign: {message}");
                 }
                 self.setWorldMouseGrabbed(true);
             }
             RuntimeGuiAction::OpenGameOver(message) => {
-                self.mainMenu.as_mut().expect("GUI runtime").openGameOver(message);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openGameOver(message);
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::RespawnPlayer => {
@@ -6698,19 +8895,31 @@ impl MinecraftApplication {
                 self.setWorldMouseGrabbed(true);
             }
             RuntimeGuiAction::OpenDeathQuitConfirm => {
-                self.mainMenu.as_mut().expect("GUI runtime").openDeathQuitConfirm();
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openDeathQuitConfirm();
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::ConfirmDeathQuit(result) => {
                 if result {
                     self.integratedServer.take();
                     let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                    self.mainMenu.as_mut().expect("GUI runtime").leaveWorldToMainMenu(minecraft)?;
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .leaveWorldToMainMenu(minecraft)?;
                     self.setWorldMouseGrabbed(false);
                 } else {
-                    let result = self.mainMenu.as_mut().expect("GUI runtime").cancelDeathQuitAndRespawn();
+                    let result = self
+                        .mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .cancelDeathQuitAndRespawn();
                     if let Err(message) = result {
-                        log::error!("failed sending CPacketClientStatus(PERFORM_RESPAWN): {message}");
+                        log::error!(
+                            "failed sending CPacketClientStatus(PERFORM_RESPAWN): {message}"
+                        );
                     }
                     self.setWorldMouseGrabbed(true);
                 }
@@ -6718,12 +8927,18 @@ impl MinecraftApplication {
             RuntimeGuiAction::LeaveWorldToMainMenu => {
                 self.integratedServer.take();
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").leaveWorldToMainMenu(minecraft)?;
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .leaveWorldToMainMenu(minecraft)?;
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::OpenWorldOptions => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldOptions(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldOptions(minecraft);
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::OpenWorldVideoSettings => {
@@ -6731,7 +8946,10 @@ impl MinecraftApplication {
                 if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
                     log::error!("Couldn't save options.txt: {error}");
                 }
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldVideoSettings(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldVideoSettings(minecraft);
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::ReturnToWorldOptions => {
@@ -6739,7 +8957,10 @@ impl MinecraftApplication {
                 if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
                     log::error!("Couldn't save options.txt: {error}");
                 }
-                self.mainMenu.as_mut().expect("GUI runtime").openWorldOptions(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorldOptions(minecraft);
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::ReturnToIngameMenu => {
@@ -6747,56 +8968,98 @@ impl MinecraftApplication {
                 if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
                     log::error!("Couldn't save options.txt: {error}");
                 }
-                self.mainMenu.as_mut().expect("GUI runtime").returnToIngameMenu(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .returnToIngameMenu(minecraft);
                 self.setWorldMouseGrabbed(false);
             }
             RuntimeGuiAction::DisconnectWorld => {
-                let wasIntegrated=self.integratedServer.take().is_some();
+                let wasIntegrated = self.integratedServer.take().is_some();
                 self.setWorldMouseGrabbed(false);
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
                 if wasIntegrated {
-                    self.mainMenu.as_mut().expect("GUI runtime").leaveWorldToMainMenu(minecraft)?;
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .leaveWorldToMainMenu(minecraft)?;
                 } else {
-                    self.mainMenu.as_mut().expect("GUI runtime").returnToMultiplayer(minecraft);
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .returnToMultiplayer(minecraft);
                 }
             }
             RuntimeGuiAction::OpenDirectConnect => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openDirectConnect(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openDirectConnect(minecraft);
             }
             RuntimeGuiAction::OpenAddServer => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openAddServer(minecraft, None, None);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openAddServer(minecraft, None, None);
             }
             RuntimeGuiAction::OpenEditServer { index, server } => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openAddServer(minecraft, Some(index), Some(server));
+                self.mainMenu.as_mut().expect("GUI runtime").openAddServer(
+                    minecraft,
+                    Some(index),
+                    Some(server),
+                );
             }
             RuntimeGuiAction::OpenDeleteConfirm { index, serverName } => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openDeleteConfirm(minecraft, index, serverName);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openDeleteConfirm(minecraft, index, serverName);
             }
-            RuntimeGuiAction::SaveServer { editingIndex, server } => {
+            RuntimeGuiAction::SaveServer {
+                editingIndex,
+                server,
+            } => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").saveServerAndReturn(minecraft, editingIndex, server)?;
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .saveServerAndReturn(minecraft, editingIndex, server)?;
             }
             RuntimeGuiAction::DeleteServer { index } => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").deleteServerAndReturn(minecraft, index)?;
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .deleteServerAndReturn(minecraft, index)?;
             }
             RuntimeGuiAction::Connect(server) => {
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");
                 minecraft.gameSettings.lastServer = server.serverIP.clone();
-                if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) { log::error!("Couldn't save options.txt: {error}"); }
-                self.mainMenu.as_mut().expect("GUI runtime").openConnecting(minecraft, server);
+                if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
+                    log::error!("Couldn't save options.txt: {error}");
+                }
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openConnecting(minecraft, server);
             }
             RuntimeGuiAction::CancelConnecting => {
                 self.setWorldMouseGrabbed(false);
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
                 if self.integratedServer.take().is_some() {
-                    self.mainMenu.as_mut().expect("GUI runtime").switchTo(minecraft, ScreenId::WorldSelection)?;
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .switchTo(minecraft, ScreenId::WorldSelection)?;
                 } else {
-                    self.mainMenu.as_mut().expect("GUI runtime").cancelConnecting(minecraft);
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .cancelConnecting(minecraft);
                 }
             }
             RuntimeGuiAction::OpenDisconnected { reasonKey, message } => {
@@ -6806,33 +9069,52 @@ impl MinecraftApplication {
                 self.integratedServer.take();
                 self.setWorldMouseGrabbed(false);
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openDisconnected(minecraft, reasonKey, message);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openDisconnected(minecraft, reasonKey, message);
             }
             RuntimeGuiAction::OpenDownloadTerrain => {
                 self.setWorldMouseGrabbed(false);
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openDownloadTerrain(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openDownloadTerrain(minecraft);
             }
             RuntimeGuiAction::OpenWorld => {
                 let minecraft = self.minecraft.as_ref().expect("Minecraft state");
-                self.mainMenu.as_mut().expect("GUI runtime").openWorld(minecraft);
+                self.mainMenu
+                    .as_mut()
+                    .expect("GUI runtime")
+                    .openWorld(minecraft);
                 self.setWorldMouseGrabbed(true);
             }
             RuntimeGuiAction::ReturnToMultiplayer { lastServer } => {
                 self.setWorldMouseGrabbed(false);
-                let wasIntegrated=self.integratedServer.take().is_some();
+                let wasIntegrated = self.integratedServer.take().is_some();
                 let minecraft = self.minecraft.as_mut().expect("Minecraft state");
                 if wasIntegrated {
-                    self.mainMenu.as_mut().expect("GUI runtime").switchTo(minecraft, ScreenId::WorldSelection)?;
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .switchTo(minecraft, ScreenId::WorldSelection)?;
                 } else {
                     if let Some(lastServer) = lastServer {
                         minecraft.gameSettings.lastServer = lastServer;
-                        if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) { log::error!("Couldn't save options.txt: {error}"); }
+                        if let Err(error) = minecraft.gameSettings.saveOptions(&minecraft.gameDir) {
+                            log::error!("Couldn't save options.txt: {error}");
+                        }
                     }
-                    self.mainMenu.as_mut().expect("GUI runtime").returnToMultiplayer(minecraft);
+                    self.mainMenu
+                        .as_mut()
+                        .expect("GUI runtime")
+                        .returnToMultiplayer(minecraft);
                 }
             }
-            RuntimeGuiAction::NotConnected(className) => log::info!("MCP screen/action not yet connected: {className}"),
+            RuntimeGuiAction::NotConnected(className) => {
+                log::info!("MCP screen/action not yet connected: {className}")
+            }
         }
         Ok(false)
     }
@@ -6840,16 +9122,37 @@ impl MinecraftApplication {
 
 impl ApplicationHandler for MinecraftApplication {
     fn resumed(&mut self, eventLoop: &ActiveEventLoop) {
-        if self.window.is_some() { return; }
-        let minecraft = self.minecraft.as_ref().expect("Minecraft application state");
+        if self.window.is_some() {
+            return;
+        }
+        let minecraft = self
+            .minecraft
+            .as_ref()
+            .expect("Minecraft application state");
         let mut attributes = Window::default_attributes()
             .with_title("Minecraft 1.12.2")
-            .with_inner_size(LogicalSize::new(minecraft.displayWidth.max(1) as f64, minecraft.displayHeight.max(1) as f64))
+            .with_inner_size(LogicalSize::new(
+                minecraft.displayWidth.max(1) as f64,
+                minecraft.displayHeight.max(1) as f64,
+            ))
             .with_min_inner_size(LogicalSize::new(320.0_f64, 240.0_f64));
-        if minecraft.fullscreen { attributes = attributes.with_fullscreen(Some(Fullscreen::Borderless(None))); }
-        let (window, renderer) = match DesktopRenderer::create(eventLoop, attributes, &minecraft.gameSettings, &minecraft.gameDir) {
+        if minecraft.fullscreen {
+            attributes = attributes.with_fullscreen(Some(Fullscreen::Borderless(None)));
+        }
+        let (window, renderer) = match DesktopRenderer::create(
+            eventLoop,
+            attributes,
+            &minecraft.gameSettings,
+            &minecraft.gameDir,
+        ) {
             Ok(output) => output,
-            Err(error) => { self.fail(eventLoop, error.context("failed initializing Minecraft desktop renderer")); return; }
+            Err(error) => {
+                self.fail(
+                    eventLoop,
+                    error.context("failed initializing Minecraft desktop renderer"),
+                );
+                return;
+            }
         };
         let extent = renderer.extent();
         let activeBackend = renderer.backend();
@@ -6858,18 +9161,35 @@ impl ApplicationHandler for MinecraftApplication {
             .expect("Minecraft application state")
             .gameSettings
             .activeRenderBackend = activeBackend;
-        let minecraft = self.minecraft.as_ref().expect("Minecraft application state");
+        let minecraft = self
+            .minecraft
+            .as_ref()
+            .expect("Minecraft application state");
         let mainMenu = match MainMenuRuntime::new(minecraft, extent.width, extent.height) {
             Ok(mainMenu) => mainMenu,
-            Err(error) => { self.fail(eventLoop, error.context("failed initializing GuiMainMenu")); return; }
+            Err(error) => {
+                self.fail(eventLoop, error.context("failed initializing GuiMainMenu"));
+                return;
+            }
         };
-        self.renderer = Some(renderer); self.mainMenu = Some(mainMenu); self.window = Some(window);
-        let now = Instant::now(); self.nextFrameDeadline = now; self.nextTickDeadline = now + CLIENT_TICK_INTERVAL;
+        self.renderer = Some(renderer);
+        self.mainMenu = Some(mainMenu);
+        self.window = Some(window);
+        let now = Instant::now();
+        self.nextFrameDeadline = now;
+        self.nextTickDeadline = now + CLIENT_TICK_INTERVAL;
         self.requestRedraw();
     }
 
-    fn window_event(&mut self, eventLoop: &ActiveEventLoop, windowId: WindowId, event: WindowEvent) {
-        if self.window.as_ref().map(Window::id) != Some(windowId) { return; }
+    fn window_event(
+        &mut self,
+        eventLoop: &ActiveEventLoop,
+        windowId: WindowId,
+        event: WindowEvent,
+    ) {
+        if self.window.as_ref().map(Window::id) != Some(windowId) {
+            return;
+        }
         if let Some(runtime) = self.mainMenu.as_mut() {
             runtime.syncOpenContainerGui();
         }
@@ -6879,7 +9199,8 @@ impl ApplicationHandler for MinecraftApplication {
             WindowEvent::CloseRequested => eventLoop.exit(),
             WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
                 self.pendingResizeSince = Some(Instant::now());
-                eventLoop.set_control_flow(ControlFlow::WaitUntil(Instant::now() + RESIZE_DEBOUNCE));
+                eventLoop
+                    .set_control_flow(ControlFlow::WaitUntil(Instant::now() + RESIZE_DEBOUNCE));
             }
             WindowEvent::Focused(false) => {
                 self.windowFocused = false;
@@ -6905,7 +9226,9 @@ impl ApplicationHandler for MinecraftApplication {
             }
             WindowEvent::ModifiersChanged(modifiers) => self.keyboardModifiers = modifiers.state(),
             WindowEvent::CursorMoved { position, .. } => {
-                let dragAction = if let (Some(renderer), Some(runtime)) = (self.renderer.as_ref(), self.mainMenu.as_mut()) {
+                let dragAction = if let (Some(renderer), Some(runtime)) =
+                    (self.renderer.as_ref(), self.mainMenu.as_mut())
+                {
                     runtime.mousePosition = position;
                     runtime.mouseInsideWindow = true;
                     let extent = renderer.extent();
@@ -6918,44 +9241,123 @@ impl ApplicationHandler for MinecraftApplication {
                         fatalError = Some(error.context("failed applying dragged video option"));
                     }
                 }
-                if self.mainMenu.as_ref().is_some_and(|runtime| !runtime.isAnimated()) { self.requestRedraw(); }
+                if self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(|runtime| !runtime.isAnimated())
+                {
+                    self.requestRedraw();
+                }
             }
             WindowEvent::CursorEntered { .. } => {
-                if let Some(runtime) = self.mainMenu.as_mut() { runtime.mouseInsideWindow = true; }
-                if self.mainMenu.as_ref().is_some_and(|runtime| !runtime.isAnimated()) { self.requestRedraw(); }
+                if let Some(runtime) = self.mainMenu.as_mut() {
+                    runtime.mouseInsideWindow = true;
+                }
+                if self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(|runtime| !runtime.isAnimated())
+                {
+                    self.requestRedraw();
+                }
             }
             WindowEvent::CursorLeft { .. } => {
-                if let Some(runtime) = self.mainMenu.as_mut() { runtime.mouseInsideWindow = false; }
-                if self.mainMenu.as_ref().is_some_and(|runtime| !runtime.isAnimated()) { self.requestRedraw(); }
+                if let Some(runtime) = self.mainMenu.as_mut() {
+                    runtime.mouseInsideWindow = false;
+                }
+                if self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(|runtime| !runtime.isAnimated())
+                {
+                    self.requestRedraw();
+                }
             }
             WindowEvent::MouseWheel { delta, .. } => {
-                let lines = match delta { MouseScrollDelta::LineDelta(_, y) => y, MouseScrollDelta::PixelDelta(value) => (value.y / 20.0) as f32 };
+                let lines = match delta {
+                    MouseScrollDelta::LineDelta(_, y) => y,
+                    MouseScrollDelta::PixelDelta(value) => (value.y / 20.0) as f32,
+                };
                 let inWorld = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isWorld);
-                let inventoryOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isInventoryOpen);
-                let chatOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isChatOpen);
+                let inventoryOpen = self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(MainMenuRuntime::isInventoryOpen);
+                let chatOpen = self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(MainMenuRuntime::isChatOpen);
                 let changed = if inWorld && chatOpen {
                     // GuiNewChat#scroll uses one line while Shift is held and
                     // seven lines otherwise, matching the 1.12.2 mouse-wheel path.
-                    let step = if self.keyboardModifiers.shift_key() { 1 } else { 7 };
-                    let amount = if lines > 0.0 { step } else if lines < 0.0 { -step } else { 0 };
-                    let focusedHeight = self.minecraft.as_ref().map_or(1.0, |minecraft| minecraft.gameSettings.chatHeightFocused);
-                    self.mainMenu.as_mut().is_some_and(|runtime| runtime.scrollChat(amount, focusedHeight))
+                    let step = if self.keyboardModifiers.shift_key() {
+                        1
+                    } else {
+                        7
+                    };
+                    let amount = if lines > 0.0 {
+                        step
+                    } else if lines < 0.0 {
+                        -step
+                    } else {
+                        0
+                    };
+                    let focusedHeight = self
+                        .minecraft
+                        .as_ref()
+                        .map_or(1.0, |minecraft| minecraft.gameSettings.chatHeightFocused);
+                    self.mainMenu
+                        .as_mut()
+                        .is_some_and(|runtime| runtime.scrollChat(amount, focusedHeight))
                 } else if inWorld && inventoryOpen {
-                    let wheelDelta = if lines > 0.0 { 1 } else if lines < 0.0 { -1 } else { 0 };
-                    self.mainMenu.as_mut().is_some_and(|runtime| runtime.creativeInventoryOpen && runtime.creativeInventoryScroll(wheelDelta))
+                    let wheelDelta = if lines > 0.0 {
+                        1
+                    } else if lines < 0.0 {
+                        -1
+                    } else {
+                        0
+                    };
+                    self.mainMenu.as_mut().is_some_and(|runtime| {
+                        runtime.creativeInventoryOpen && runtime.creativeInventoryScroll(wheelDelta)
+                    })
                 } else if inWorld && self.worldMouseGrabbed {
-                    let wheelDelta = if lines > 0.0 { 1 } else if lines < 0.0 { -1 } else { 0 };
-                    self.mainMenu.as_mut().is_some_and(|runtime| runtime.worldScroll(wheelDelta))
+                    let wheelDelta = if lines > 0.0 {
+                        1
+                    } else if lines < 0.0 {
+                        -1
+                    } else {
+                        0
+                    };
+                    self.mainMenu
+                        .as_mut()
+                        .is_some_and(|runtime| runtime.worldScroll(wheelDelta))
                 } else {
-                    self.mainMenu.as_mut().is_some_and(|runtime| runtime.scroll(lines))
+                    self.mainMenu
+                        .as_mut()
+                        .is_some_and(|runtime| runtime.scroll(lines))
                 };
-                if changed { self.requestRedraw(); }
+                if changed {
+                    self.requestRedraw();
+                }
             }
-            WindowEvent::MouseInput { state: ElementState::Pressed, button, .. } => {
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button,
+                ..
+            } => {
                 let inWorld = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isWorld);
-                let inventoryOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isInventoryOpen);
-                let chatOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isChatOpen);
-                let worldGuiOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isWorldGuiOpen);
+                let inventoryOpen = self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(MainMenuRuntime::isInventoryOpen);
+                let chatOpen = self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(MainMenuRuntime::isChatOpen);
+                let worldGuiOpen = self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(MainMenuRuntime::isWorldGuiOpen);
                 if inWorld {
                     if worldGuiOpen && mouse_button_index(button).is_some() {
                         let action = if let (Some(renderer), Some(runtime), Some(minecraft)) = (
@@ -6972,12 +9374,20 @@ impl ApplicationHandler for MinecraftApplication {
                                 &minecraft.gameSettings,
                                 minecraft.getSession().getToken(),
                             )
-                        } else { None };
+                        } else {
+                            None
+                        };
                         if let Some(action) = action {
                             match self.applyGuiAction(action) {
-                                Ok(true) => { eventLoop.exit(); return; }
+                                Ok(true) => {
+                                    eventLoop.exit();
+                                    return;
+                                }
                                 Ok(false) => self.requestRedraw(),
-                                Err(error) => fatalError = Some(error.context("failed applying world GUI action")),
+                                Err(error) => {
+                                    fatalError =
+                                        Some(error.context("failed applying world GUI action"))
+                                }
                             }
                         }
                     } else if worldGuiOpen {
@@ -6988,24 +9398,39 @@ impl ApplicationHandler for MinecraftApplication {
                         // style/event port; until then never leak a click into
                         // attack/use or recapture the gameplay cursor.
                         self.requestRedraw();
-                    } else if inventoryOpen && matches!(button, MouseButton::Left | MouseButton::Right | MouseButton::Middle) {
+                    } else if inventoryOpen
+                        && matches!(
+                            button,
+                            MouseButton::Left | MouseButton::Right | MouseButton::Middle
+                        )
+                    {
                         let interaction = if let (Some(renderer), Some(runtime)) =
                             (self.renderer.as_ref(), self.mainMenu.as_mut())
                         {
                             let extent = renderer.extent();
-                            Some(runtime.inventoryMouseClicked(extent.width, extent.height, button, self.keyboardModifiers))
-                        } else { None };
+                            Some(runtime.inventoryMouseClicked(
+                                extent.width,
+                                extent.height,
+                                button,
+                                self.keyboardModifiers,
+                            ))
+                        } else {
+                            None
+                        };
                         match interaction {
                             Some(Ok(true)) => self.requestRedraw(),
                             Some(Ok(false)) | None => {}
-                            Some(Err(message)) => log::error!("failed sending inventory click: {message}"),
+                            Some(Err(message)) => {
+                                log::error!("failed sending inventory click: {message}")
+                            }
                         }
                     } else if !self.worldMouseGrabbed && button == MouseButton::Left {
                         self.setWorldMouseGrabbed(true);
                         self.requestRedraw();
                     } else if self.worldMouseGrabbed {
                         let binding = self.minecraft.as_ref().and_then(|minecraft| {
-                            mouse_code(button).and_then(|code| minecraft.gameSettings.keyBindingIdForCode(code))
+                            mouse_code(button)
+                                .and_then(|code| minecraft.gameSettings.keyBindingIdForCode(code))
                         });
                         let mut redraw = false;
                         let mut releaseMouse = false;
@@ -7020,8 +9445,12 @@ impl ApplicationHandler for MinecraftApplication {
                                         }
                                     }
                                 }
-                                KeyBindingId::Forward | KeyBindingId::Back | KeyBindingId::Left
-                                | KeyBindingId::Right | KeyBindingId::Jump | KeyBindingId::Sneak
+                                KeyBindingId::Forward
+                                | KeyBindingId::Back
+                                | KeyBindingId::Left
+                                | KeyBindingId::Right
+                                | KeyBindingId::Jump
+                                | KeyBindingId::Sneak
                                 | KeyBindingId::Sprint => {
                                     if let Some(runtime) = self.mainMenu.as_mut() {
                                         runtime.setMovementBinding(binding, true);
@@ -7032,19 +9461,32 @@ impl ApplicationHandler for MinecraftApplication {
                                         redraw |= runtime.setPlayerListKeyDown(true);
                                     }
                                 }
-                                KeyBindingId::Hotbar1 | KeyBindingId::Hotbar2 | KeyBindingId::Hotbar3
-                                | KeyBindingId::Hotbar4 | KeyBindingId::Hotbar5 | KeyBindingId::Hotbar6
-                                | KeyBindingId::Hotbar7 | KeyBindingId::Hotbar8 | KeyBindingId::Hotbar9
-                                | KeyBindingId::Drop | KeyBindingId::SwapHands => {
+                                KeyBindingId::Hotbar1
+                                | KeyBindingId::Hotbar2
+                                | KeyBindingId::Hotbar3
+                                | KeyBindingId::Hotbar4
+                                | KeyBindingId::Hotbar5
+                                | KeyBindingId::Hotbar6
+                                | KeyBindingId::Hotbar7
+                                | KeyBindingId::Hotbar8
+                                | KeyBindingId::Hotbar9
+                                | KeyBindingId::Drop
+                                | KeyBindingId::SwapHands => {
                                     if let Some(runtime) = self.mainMenu.as_mut() {
-                                        match runtime.worldHotbarBinding(binding, self.keyboardModifiers) {
+                                        match runtime
+                                            .worldHotbarBinding(binding, self.keyboardModifiers)
+                                        {
                                             Ok(changed) => redraw |= changed,
                                             Err(message) => interactionError = Some(message),
                                         }
                                     }
                                 }
                                 KeyBindingId::Inventory => {
-                                    if self.mainMenu.as_mut().is_some_and(MainMenuRuntime::openInventory) {
+                                    if self
+                                        .mainMenu
+                                        .as_mut()
+                                        .is_some_and(MainMenuRuntime::openInventory)
+                                    {
                                         releaseMouse = true;
                                         redraw = true;
                                     }
@@ -7052,11 +9494,20 @@ impl ApplicationHandler for MinecraftApplication {
                                 KeyBindingId::Chat | KeyBindingId::Command => {
                                     let allowed = binding == KeyBindingId::Command
                                         || self.minecraft.as_ref().is_some_and(|minecraft| {
-                                            minecraft.gameSettings.chatVisibility != EnumChatVisibility::Hidden
+                                            minecraft.gameSettings.chatVisibility
+                                                != EnumChatVisibility::Hidden
                                         });
                                     if allowed {
-                                        let prefix = if binding == KeyBindingId::Command { "/" } else { "" };
-                                        if self.mainMenu.as_mut().is_some_and(|runtime| runtime.openChat(prefix)) {
+                                        let prefix = if binding == KeyBindingId::Command {
+                                            "/"
+                                        } else {
+                                            ""
+                                        };
+                                        if self
+                                            .mainMenu
+                                            .as_mut()
+                                            .is_some_and(|runtime| runtime.openChat(prefix))
+                                        {
                                             releaseMouse = true;
                                             redraw = true;
                                         }
@@ -7065,7 +9516,8 @@ impl ApplicationHandler for MinecraftApplication {
                                 KeyBindingId::TogglePerspective => {
                                     if let Some(minecraft) = self.minecraft.as_mut() {
                                         minecraft.gameSettings.thirdPersonView =
-                                            (minecraft.gameSettings.thirdPersonView + 1).rem_euclid(3);
+                                            (minecraft.gameSettings.thirdPersonView + 1)
+                                                .rem_euclid(3);
                                         redraw = true;
                                     }
                                 }
@@ -7075,8 +9527,12 @@ impl ApplicationHandler for MinecraftApplication {
                         if let Some(message) = interactionError {
                             log::error!("failed sending bound mouse action: {message}");
                         }
-                        if releaseMouse { self.setWorldMouseGrabbed(false); }
-                        if redraw { self.requestRedraw(); }
+                        if releaseMouse {
+                            self.setWorldMouseGrabbed(false);
+                        }
+                        if redraw {
+                            self.requestRedraw();
+                        }
                     }
                 } else if mouse_button_index(button).is_some() {
                     let action = if let (Some(renderer), Some(runtime), Some(minecraft)) = (
@@ -7093,31 +9549,59 @@ impl ApplicationHandler for MinecraftApplication {
                             &minecraft.gameSettings,
                             minecraft.getSession().getToken(),
                         )
-                    } else { None };
+                    } else {
+                        None
+                    };
                     if let Some(action) = action {
                         match self.applyGuiAction(action) {
-                            Ok(true) => { eventLoop.exit(); return; }
+                            Ok(true) => {
+                                eventLoop.exit();
+                                return;
+                            }
                             Ok(false) => self.requestRedraw(),
-                            Err(error) => fatalError = Some(error.context("failed applying GUI action")),
+                            Err(error) => {
+                                fatalError = Some(error.context("failed applying GUI action"))
+                            }
                         }
                     }
                 }
             }
-            WindowEvent::MouseInput { state: ElementState::Released, button, .. } => {
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button,
+                ..
+            } => {
                 let inWorld = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isWorld);
-                let inventoryOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isInventoryOpen);
-                let chatOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isChatOpen);
-                let worldGuiOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isWorldGuiOpen);
+                let inventoryOpen = self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(MainMenuRuntime::isInventoryOpen);
+                let chatOpen = self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(MainMenuRuntime::isChatOpen);
+                let worldGuiOpen = self
+                    .mainMenu
+                    .as_ref()
+                    .is_some_and(MainMenuRuntime::isWorldGuiOpen);
                 if inWorld && worldGuiOpen {
                     if button == MouseButton::Left {
-                        if let (Some(renderer), Some(runtime)) = (self.renderer.as_ref(), self.mainMenu.as_mut()) {
+                        if let (Some(renderer), Some(runtime)) =
+                            (self.renderer.as_ref(), self.mainMenu.as_mut())
+                        {
                             let extent = renderer.extent();
                             runtime.mouseReleased(extent.width, extent.height);
                         }
                     }
                 } else if inWorld && chatOpen {
                     // Consumed by GuiChat; see the matching press branch.
-                } else if inWorld && inventoryOpen && matches!(button, MouseButton::Left | MouseButton::Right | MouseButton::Middle) {
+                } else if inWorld
+                    && inventoryOpen
+                    && matches!(
+                        button,
+                        MouseButton::Left | MouseButton::Right | MouseButton::Middle
+                    )
+                {
                     let interaction = if let (Some(renderer), Some(runtime)) =
                         (self.renderer.as_ref(), self.mainMenu.as_mut())
                     {
@@ -7134,21 +9618,30 @@ impl ApplicationHandler for MinecraftApplication {
                     match interaction {
                         Some(Ok(true)) => self.requestRedraw(),
                         Some(Ok(false)) | None => {}
-                        Some(Err(message)) => log::error!("failed releasing inventory click: {message}"),
+                        Some(Err(message)) => {
+                            log::error!("failed releasing inventory click: {message}")
+                        }
                     }
                 } else if inWorld && self.worldMouseGrabbed {
                     let binding = self.minecraft.as_ref().and_then(|minecraft| {
-                        mouse_code(button).and_then(|code| minecraft.gameSettings.keyBindingIdForCode(code))
+                        mouse_code(button)
+                            .and_then(|code| minecraft.gameSettings.keyBindingIdForCode(code))
                     });
                     if let (Some(binding), Some(runtime)) = (binding, self.mainMenu.as_mut()) {
                         match binding {
                             KeyBindingId::Attack | KeyBindingId::UseItem => {
                                 if let Err(message) = runtime.worldActionButton(binding, false) {
-                                    log::error!("failed releasing in-world bound action: {message}");
+                                    log::error!(
+                                        "failed releasing in-world bound action: {message}"
+                                    );
                                 }
                             }
-                            KeyBindingId::Forward | KeyBindingId::Back | KeyBindingId::Left
-                            | KeyBindingId::Right | KeyBindingId::Jump | KeyBindingId::Sneak
+                            KeyBindingId::Forward
+                            | KeyBindingId::Back
+                            | KeyBindingId::Left
+                            | KeyBindingId::Right
+                            | KeyBindingId::Jump
+                            | KeyBindingId::Sneak
                             | KeyBindingId::Sprint => {
                                 runtime.setMovementBinding(binding, false);
                             }
@@ -7159,21 +9652,26 @@ impl ApplicationHandler for MinecraftApplication {
                         }
                     }
                 } else if button == MouseButton::Left {
-                    if let (Some(renderer), Some(runtime)) = (self.renderer.as_ref(), self.mainMenu.as_mut()) {
+                    if let (Some(renderer), Some(runtime)) =
+                        (self.renderer.as_ref(), self.mainMenu.as_mut())
+                    {
                         let extent = renderer.extent();
                         runtime.mouseReleased(extent.width, extent.height);
                     }
                 }
             }
             WindowEvent::KeyboardInput { event, .. } => {
-                let keyCode = match event.physical_key { PhysicalKey::Code(code) => Some(code), _ => None };
+                let keyCode = match event.physical_key {
+                    PhysicalKey::Code(code) => Some(code),
+                    _ => None,
+                };
                 let pressed = event.state == ElementState::Pressed;
                 let inWorld = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isWorld);
-                let bindingId = keyCode
-                    .and_then(lwjgl_from_winit)
-                    .and_then(|code| self.minecraft.as_ref().and_then(|minecraft| {
-                        minecraft.gameSettings.keyBindingIdForCode(code)
-                    }));
+                let bindingId = keyCode.and_then(lwjgl_from_winit).and_then(|code| {
+                    self.minecraft
+                        .as_ref()
+                        .and_then(|minecraft| minecraft.gameSettings.keyBindingIdForCode(code))
+                });
                 let mut handled = false;
 
                 // MCP `dispatchKeypresses`: fullscreen is a configurable key
@@ -7183,7 +9681,10 @@ impl ApplicationHandler for MinecraftApplication {
                 // toggle the window during the capture event.
                 if pressed
                     && bindingId == Some(KeyBindingId::Fullscreen)
-                    && !self.mainMenu.as_ref().is_some_and(MainMenuRuntime::controlsAwaitingBinding)
+                    && !self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::controlsAwaitingBinding)
                 {
                     handled = true;
                     if let Err(error) = self.applyGuiAction(RuntimeGuiAction::ToggleFullscreen) {
@@ -7236,12 +9737,7 @@ impl ApplicationHandler for MinecraftApplication {
                     self.requestRedraw();
                 }
 
-                if inWorld
-                    && pressed
-                    && !handled
-                    && self.debugKeyDown
-                    && self.worldMouseGrabbed
-                {
+                if inWorld && pressed && !handled && self.debugKeyDown && self.worldMouseGrabbed {
                     if let Some(code) = keyCode {
                         if self.processDebugChord(code) {
                             self.debugActionUsed = true;
@@ -7258,7 +9754,10 @@ impl ApplicationHandler for MinecraftApplication {
                     && pressed
                     && self.worldMouseGrabbed
                     && bindingId == Some(KeyBindingId::TogglePerspective)
-                    && !self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isModalWorldGuiOpen)
+                    && !self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isModalWorldGuiOpen)
                 {
                     if let Some(minecraft) = self.minecraft.as_mut() {
                         minecraft.gameSettings.thirdPersonView =
@@ -7268,8 +9767,14 @@ impl ApplicationHandler for MinecraftApplication {
                     self.requestRedraw();
                 }
 
-                if inWorld && pressed && self.worldMouseGrabbed && !handled
-                    && !self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isChatOpen)
+                if inWorld
+                    && pressed
+                    && self.worldMouseGrabbed
+                    && !handled
+                    && !self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isChatOpen)
                 {
                     let chatVisible = self.minecraft.as_ref().is_some_and(|minecraft| {
                         minecraft.gameSettings.chatVisibility != EnumChatVisibility::Hidden
@@ -7280,7 +9785,11 @@ impl ApplicationHandler for MinecraftApplication {
                         _ => None,
                     };
                     if let Some(defaultText) = defaultText {
-                        if self.mainMenu.as_mut().is_some_and(|runtime| runtime.openChat(defaultText)) {
+                        if self
+                            .mainMenu
+                            .as_mut()
+                            .is_some_and(|runtime| runtime.openChat(defaultText))
+                        {
                             self.setWorldMouseGrabbed(false);
                             self.requestRedraw();
                             handled = true;
@@ -7288,39 +9797,58 @@ impl ApplicationHandler for MinecraftApplication {
                     }
                 }
 
-                if inWorld && !handled
-                    && self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isChatOpen)
+                if inWorld
+                    && !handled
+                    && self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isChatOpen)
                 {
                     if pressed {
-                        let (focusedHeight, chatWidth, chatScale) = self.minecraft.as_ref().map_or(
-                            (1.0, 1.0, 1.0),
-                            |minecraft| (
-                                minecraft.gameSettings.chatHeightFocused,
-                                minecraft.gameSettings.chatWidth,
-                                minecraft.gameSettings.chatScale,
-                            ),
-                        );
-                        let result = keyCode.and_then(|code| self.mainMenu.as_mut().map(|runtime| {
-                            runtime.chatKeyPressed(
-                                code,
-                                self.keyboardModifiers,
-                                focusedHeight,
-                                chatWidth,
-                                chatScale,
-                            )
-                        }));
+                        let (focusedHeight, chatWidth, chatScale) =
+                            self.minecraft
+                                .as_ref()
+                                .map_or((1.0, 1.0, 1.0), |minecraft| {
+                                    (
+                                        minecraft.gameSettings.chatHeightFocused,
+                                        minecraft.gameSettings.chatWidth,
+                                        minecraft.gameSettings.chatScale,
+                                    )
+                                });
+                        let result = keyCode.and_then(|code| {
+                            self.mainMenu.as_mut().map(|runtime| {
+                                runtime.chatKeyPressed(
+                                    code,
+                                    self.keyboardModifiers,
+                                    focusedHeight,
+                                    chatWidth,
+                                    chatScale,
+                                )
+                            })
+                        });
                         let mut closeChat = false;
                         match result {
                             Some(Ok((keyHandled, closed))) => {
                                 closeChat = closed;
-                                if keyHandled { self.requestRedraw(); }
+                                if keyHandled {
+                                    self.requestRedraw();
+                                }
                             }
-                            Some(Err(message)) => log::error!("failed handling chat key: {message}"),
+                            Some(Err(message)) => {
+                                log::error!("failed handling chat key: {message}")
+                            }
                             None => {}
                         }
-                        if !closeChat && !self.keyboardModifiers.control_key() && !self.keyboardModifiers.alt_key() {
+                        if !closeChat
+                            && !self.keyboardModifiers.control_key()
+                            && !self.keyboardModifiers.alt_key()
+                        {
                             if let Some(text) = event.text.as_ref() {
-                                if self.mainMenu.as_mut().is_some_and(|runtime| runtime.chatTypedText(text.as_str())) {
+                                if self
+                                    .mainMenu
+                                    .as_mut()
+                                    .is_some_and(|runtime| runtime.chatTypedText(text.as_str()))
+                                {
                                     self.requestRedraw();
                                 }
                             }
@@ -7338,9 +9866,15 @@ impl ApplicationHandler for MinecraftApplication {
                 if inWorld
                     && pressed
                     && !handled
-                    && self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isWorldGuiOpen)
+                    && self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isWorldGuiOpen)
                     && (keyCode != Some(KeyCode::Escape)
-                        || self.mainMenu.as_ref().is_some_and(MainMenuRuntime::controlsAwaitingBinding))
+                        || self
+                            .mainMenu
+                            .as_ref()
+                            .is_some_and(MainMenuRuntime::controlsAwaitingBinding))
                 {
                     let action = keyCode.and_then(|code| {
                         self.mainMenu.as_mut().and_then(|runtime| {
@@ -7349,13 +9883,25 @@ impl ApplicationHandler for MinecraftApplication {
                     });
                     if let Some(action) = action {
                         match self.applyGuiAction(action) {
-                            Ok(true) => { eventLoop.exit(); return; }
+                            Ok(true) => {
+                                eventLoop.exit();
+                                return;
+                            }
                             Ok(false) => self.requestRedraw(),
-                            Err(error) => fatalError = Some(error.context("failed applying world GUI key action")),
+                            Err(error) => {
+                                fatalError =
+                                    Some(error.context("failed applying world GUI key action"))
+                            }
                         }
-                    } else if !self.keyboardModifiers.control_key() && !self.keyboardModifiers.alt_key() {
+                    } else if !self.keyboardModifiers.control_key()
+                        && !self.keyboardModifiers.alt_key()
+                    {
                         if let Some(text) = event.text.as_ref() {
-                            if self.mainMenu.as_mut().is_some_and(|runtime| runtime.typedText(text.as_str())) {
+                            if self
+                                .mainMenu
+                                .as_mut()
+                                .is_some_and(|runtime| runtime.typedText(text.as_str()))
+                            {
                                 self.requestRedraw();
                             }
                         }
@@ -7365,14 +9911,21 @@ impl ApplicationHandler for MinecraftApplication {
                     handled = true;
                 }
 
-                if inWorld && self.worldMouseGrabbed && !handled
-                    && matches!(bindingId, Some(KeyBindingId::Attack | KeyBindingId::UseItem))
+                if inWorld
+                    && self.worldMouseGrabbed
+                    && !handled
+                    && matches!(
+                        bindingId,
+                        Some(KeyBindingId::Attack | KeyBindingId::UseItem)
+                    )
                 {
                     if let (Some(binding), Some(runtime)) = (bindingId, self.mainMenu.as_mut()) {
                         match runtime.worldActionButton(binding, pressed) {
                             Ok(redraw) => {
                                 handled = true;
-                                if redraw { self.requestRedraw(); }
+                                if redraw {
+                                    self.requestRedraw();
+                                }
                             }
                             Err(message) => {
                                 handled = true;
@@ -7383,7 +9936,10 @@ impl ApplicationHandler for MinecraftApplication {
                 }
 
                 if inWorld && pressed && !handled && bindingId == Some(KeyBindingId::Inventory) {
-                    let inventoryOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isInventoryOpen);
+                    let inventoryOpen = self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isInventoryOpen);
                     if inventoryOpen {
                         let result = self.mainMenu.as_mut().map(MainMenuRuntime::closeInventory);
                         match result {
@@ -7392,11 +9948,16 @@ impl ApplicationHandler for MinecraftApplication {
                                 self.requestRedraw();
                                 handled = true;
                             }
-                            Some(Err(message)) => log::error!("failed closing inventory: {message}"),
+                            Some(Err(message)) => {
+                                log::error!("failed closing inventory: {message}")
+                            }
                             _ => {}
                         }
                     } else if self.worldMouseGrabbed
-                        && self.mainMenu.as_mut().is_some_and(MainMenuRuntime::openInventory)
+                        && self
+                            .mainMenu
+                            .as_mut()
+                            .is_some_and(MainMenuRuntime::openInventory)
                     {
                         self.setWorldMouseGrabbed(false);
                         self.requestRedraw();
@@ -7404,8 +9965,13 @@ impl ApplicationHandler for MinecraftApplication {
                     }
                 }
 
-                if inWorld && pressed && !handled
-                    && self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isInventoryOpen)
+                if inWorld
+                    && pressed
+                    && !handled
+                    && self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isInventoryOpen)
                 {
                     let result = if let (Some(code), Some(renderer), Some(runtime)) =
                         (keyCode, self.renderer.as_ref(), self.mainMenu.as_mut())
@@ -7419,31 +9985,49 @@ impl ApplicationHandler for MinecraftApplication {
                             self.keyboardModifiers,
                             event.text.as_ref().map(|text| text.as_str()),
                         ))
-                    } else { None };
+                    } else {
+                        None
+                    };
                     match result {
-                        Some(Ok(true)) => { handled = true; self.requestRedraw(); }
+                        Some(Ok(true)) => {
+                            handled = true;
+                            self.requestRedraw();
+                        }
                         Some(Ok(false)) | None => {}
-                        Some(Err(message)) => log::error!("failed sending inventory key click: {message}"),
+                        Some(Err(message)) => {
+                            log::error!("failed sending inventory key click: {message}")
+                        }
                     }
                 }
 
                 if inWorld
                     && pressed
                     && !handled
-                    && self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isInventoryOpen)
-                    && self.mainMenu.as_ref().is_some_and(|runtime| !runtime.creativeInventoryOpen)
+                    && self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isInventoryOpen)
+                    && self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(|runtime| !runtime.creativeInventoryOpen)
                     && !self.keyboardModifiers.control_key()
                     && !self.keyboardModifiers.alt_key()
                 {
                     if let Some(text) = event.text.as_ref() {
-                        let result = self.mainMenu.as_mut().map(|runtime| runtime.repairTypedText(text.as_str()));
+                        let result = self
+                            .mainMenu
+                            .as_mut()
+                            .map(|runtime| runtime.repairTypedText(text.as_str()));
                         match result {
                             Some(Ok(true)) => {
                                 handled = true;
                                 self.requestRedraw();
                             }
                             Some(Ok(false)) | None => {}
-                            Some(Err(message)) => log::error!("failed sending anvil rename text: {message}"),
+                            Some(Err(message)) => {
+                                log::error!("failed sending anvil rename text: {message}")
+                            }
                         }
                     }
                 }
@@ -7451,22 +10035,37 @@ impl ApplicationHandler for MinecraftApplication {
                 if inWorld
                     && pressed
                     && !handled
-                    && self.mainMenu.as_ref().is_some_and(|runtime| runtime.creativeInventoryOpen)
+                    && self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(|runtime| runtime.creativeInventoryOpen)
                     && !self.keyboardModifiers.control_key()
                     && !self.keyboardModifiers.alt_key()
                 {
                     if let Some(text) = event.text.as_ref() {
-                        if self.mainMenu.as_mut().is_some_and(|runtime| runtime.creativeInventoryTypedText(text.as_str())) {
+                        if self.mainMenu.as_mut().is_some_and(|runtime| {
+                            runtime.creativeInventoryTypedText(text.as_str())
+                        }) {
                             handled = true;
                             self.requestRedraw();
                         }
                     }
                 }
 
-                if inWorld && self.worldMouseGrabbed && !handled && bindingId == Some(KeyBindingId::PlayerList)
-                    && !self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isInventoryOpen)
+                if inWorld
+                    && self.worldMouseGrabbed
+                    && !handled
+                    && bindingId == Some(KeyBindingId::PlayerList)
+                    && !self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isInventoryOpen)
                 {
-                    if self.mainMenu.as_mut().is_some_and(|runtime| runtime.setPlayerListKeyDown(pressed)) {
+                    if self
+                        .mainMenu
+                        .as_mut()
+                        .is_some_and(|runtime| runtime.setPlayerListKeyDown(pressed))
+                    {
                         self.requestRedraw();
                     }
                     handled = true;
@@ -7487,7 +10086,10 @@ impl ApplicationHandler for MinecraftApplication {
                         None
                     };
                     match hotbarResult {
-                        Some(Ok(true)) => { handled = true; self.requestRedraw(); }
+                        Some(Ok(true)) => {
+                            handled = true;
+                            self.requestRedraw();
+                        }
                         Some(Ok(false)) | None => {}
                         Some(Err(message)) => {
                             log::error!("failed sending in-world key action: {message}")
@@ -7495,24 +10097,42 @@ impl ApplicationHandler for MinecraftApplication {
                     }
                 }
 
-                if pressed && !handled && keyCode == Some(KeyCode::Escape)
-                    && self.mainMenu.as_ref().is_some_and(MainMenuRuntime::controlsAwaitingBinding)
+                if pressed
+                    && !handled
+                    && keyCode == Some(KeyCode::Escape)
+                    && self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::controlsAwaitingBinding)
                 {
                     let action = self.mainMenu.as_mut().and_then(|runtime| {
-                        runtime.keyPressed(KeyCode::Escape, self.keyboardModifiers, event.text.as_deref())
+                        runtime.keyPressed(
+                            KeyCode::Escape,
+                            self.keyboardModifiers,
+                            event.text.as_deref(),
+                        )
                     });
                     if let Some(action) = action {
                         handled = true;
                         match self.applyGuiAction(action) {
-                            Ok(true) => { eventLoop.exit(); return; }
+                            Ok(true) => {
+                                eventLoop.exit();
+                                return;
+                            }
                             Ok(false) => self.requestRedraw(),
-                            Err(error) => fatalError = Some(error.context("failed clearing selected key binding")),
+                            Err(error) => {
+                                fatalError =
+                                    Some(error.context("failed clearing selected key binding"))
+                            }
                         }
                     }
                 }
 
                 if pressed && !handled && keyCode == Some(KeyCode::Escape) {
-                    let inventoryOpen = self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isInventoryOpen);
+                    let inventoryOpen = self
+                        .mainMenu
+                        .as_ref()
+                        .is_some_and(MainMenuRuntime::isInventoryOpen);
                     if inWorld && inventoryOpen {
                         let result = self.mainMenu.as_mut().map(MainMenuRuntime::closeInventory);
                         match result {
@@ -7521,27 +10141,41 @@ impl ApplicationHandler for MinecraftApplication {
                                 self.requestRedraw();
                                 handled = true;
                             }
-                            Some(Err(message)) => log::error!("failed closing inventory: {message}"),
+                            Some(Err(message)) => {
+                                log::error!("failed closing inventory: {message}")
+                            }
                             _ => {}
                         }
                     } else if inWorld {
-                        let action = match self.mainMenu.as_mut().and_then(|runtime| runtime.worldGuiScreen.as_mut()) {
+                        let action = match self
+                            .mainMenu
+                            .as_mut()
+                            .and_then(|runtime| runtime.worldGuiScreen.as_mut())
+                        {
                             Some(WorldGuiScreen::IngameMenu(_)) => RuntimeGuiAction::ResumeWorld,
-                            Some(WorldGuiScreen::Options(_)) => RuntimeGuiAction::ResumeWorldSaveOptions,
+                            Some(WorldGuiScreen::Options(_)) => {
+                                RuntimeGuiAction::ResumeWorldSaveOptions
+                            }
                             Some(WorldGuiScreen::Controls(_)) => RuntimeGuiAction::ResumeWorld,
                             Some(WorldGuiScreen::VideoSettings(_))
                             | Some(WorldGuiScreen::SoundSettings(_))
                             | Some(WorldGuiScreen::ChatSettings(_))
                             | Some(WorldGuiScreen::SkinSettings(_))
-                            | Some(WorldGuiScreen::Language(_)) => RuntimeGuiAction::ReturnToWorldOptions,
-                            Some(WorldGuiScreen::ShaderSettings(screen)) if screen.isOptionsView() => {
+                            | Some(WorldGuiScreen::Language(_)) => {
+                                RuntimeGuiAction::ReturnToWorldOptions
+                            }
+                            Some(WorldGuiScreen::ShaderSettings(screen))
+                                if screen.isOptionsView() =>
+                            {
                                 if screen.closeOptionsView() {
                                     RuntimeGuiAction::ReloadShaderPack
                                 } else {
                                     RuntimeGuiAction::None
                                 }
                             }
-                            Some(WorldGuiScreen::ShaderSettings(_)) => RuntimeGuiAction::ReturnToWorldVideoSettings,
+                            Some(WorldGuiScreen::ShaderSettings(_)) => {
+                                RuntimeGuiAction::ReturnToWorldVideoSettings
+                            }
                             Some(WorldGuiScreen::ResourcePacks(screen)) => {
                                 if screen.cancelConfirmation() {
                                     RuntimeGuiAction::None
@@ -7551,42 +10185,77 @@ impl ApplicationHandler for MinecraftApplication {
                             }
                             Some(WorldGuiScreen::EditSign(_)) => RuntimeGuiAction::FinishSignEditor,
                             Some(WorldGuiScreen::GameOver(_))
-                            | Some(WorldGuiScreen::GameOverConfirm { .. }) => RuntimeGuiAction::None,
+                            | Some(WorldGuiScreen::GameOverConfirm { .. }) => {
+                                RuntimeGuiAction::None
+                            }
                             None => RuntimeGuiAction::OpenIngameMenu,
                         };
                         handled = true;
                         match self.applyGuiAction(action) {
-                            Ok(true) => { eventLoop.exit(); return; }
+                            Ok(true) => {
+                                eventLoop.exit();
+                                return;
+                            }
                             Ok(false) => self.requestRedraw(),
-                            Err(error) => fatalError = Some(error.context("failed applying in-world Escape action")),
+                            Err(error) => {
+                                fatalError =
+                                    Some(error.context("failed applying in-world Escape action"))
+                            }
                         }
                     } else {
-                        let action = self.mainMenu.as_mut().and_then(MainMenuRuntime::escapeAction);
+                        let action = self
+                            .mainMenu
+                            .as_mut()
+                            .and_then(MainMenuRuntime::escapeAction);
                         if let Some(action) = action {
                             handled = true;
                             match self.applyGuiAction(action) {
-                                Ok(true) => { eventLoop.exit(); return; }
+                                Ok(true) => {
+                                    eventLoop.exit();
+                                    return;
+                                }
                                 Ok(false) => self.requestRedraw(),
-                                Err(error) => fatalError = Some(error.context("failed applying Escape action")),
+                                Err(error) => {
+                                    fatalError =
+                                        Some(error.context("failed applying Escape action"))
+                                }
                             }
                         }
                     }
                 } else if pressed && !handled {
                     if let (Some(code), Some(runtime)) = (keyCode, self.mainMenu.as_mut()) {
-                        if let Some(action) = runtime.keyPressed(code, self.keyboardModifiers, event.text.as_deref()) {
+                        if let Some(action) =
+                            runtime.keyPressed(code, self.keyboardModifiers, event.text.as_deref())
+                        {
                             handled = true;
                             match self.applyGuiAction(action) {
-                                Ok(true) => { eventLoop.exit(); return; }
+                                Ok(true) => {
+                                    eventLoop.exit();
+                                    return;
+                                }
                                 Ok(false) => self.requestRedraw(),
-                                Err(error) => fatalError = Some(error.context("failed applying keyboard GUI action")),
+                                Err(error) => {
+                                    fatalError =
+                                        Some(error.context("failed applying keyboard GUI action"))
+                                }
                             }
                         }
                     }
                 }
 
-                if pressed && !handled && !self.keyboardModifiers.control_key() && !self.keyboardModifiers.alt_key() {
+                if pressed
+                    && !handled
+                    && !self.keyboardModifiers.control_key()
+                    && !self.keyboardModifiers.alt_key()
+                {
                     if let Some(text) = event.text.as_ref() {
-                        if self.mainMenu.as_mut().is_some_and(|runtime| runtime.typedText(text.as_str())) { self.requestRedraw(); }
+                        if self
+                            .mainMenu
+                            .as_mut()
+                            .is_some_and(|runtime| runtime.typedText(text.as_str()))
+                        {
+                            self.requestRedraw();
+                        }
                     }
                 }
             }
@@ -7601,14 +10270,15 @@ impl ApplicationHandler for MinecraftApplication {
                     // waits about 28 ms rather than 33 ms more.
                     let frameStarted = Instant::now();
                     if let (Some(window), Some(renderer), Some(runtime), Some(minecraft)) = (
-                        self.window.as_ref(), self.renderer.as_mut(), self.mainMenu.as_mut(), self.minecraft.as_ref(),
+                        self.window.as_ref(),
+                        self.renderer.as_mut(),
+                        self.mainMenu.as_mut(),
+                        self.minecraft.as_ref(),
                     ) {
                         let extent = renderer.extent();
                         if extent.width > 0 && extent.height > 0 {
-                            let partialTicks = render_partial_ticks(
-                                Instant::now(),
-                                self.nextTickDeadline,
-                            );
+                            let partialTicks =
+                                render_partial_ticks(Instant::now(), self.nextTickDeadline);
                             let graphicsDevice = renderer.deviceName().to_owned();
                             let prepareStarted = frameStarted;
                             let preparedFrame = runtime.draw(
@@ -7625,31 +10295,39 @@ impl ApplicationHandler for MinecraftApplication {
                             let mut worldFrame = false;
                             match preparedFrame {
                                 Ok(RuntimeFrame::Gui(frame)) => {
-                                    fatalError = renderer
-                                        .drawFrame(window, &frame)
-                                        .err()
-                                        .map(|error| error.context("failed drawing Minecraft GUI frame"));
+                                    fatalError =
+                                        renderer.drawFrame(window, &frame).err().map(|error| {
+                                            error.context("failed drawing Minecraft GUI frame")
+                                        });
                                 }
                                 Ok(RuntimeFrame::NativeGui(frame)) => {
                                     fatalError = renderer
                                         .drawNativeGuiFrame(window, &frame)
                                         .err()
-                                        .map(|error| error.context("failed drawing native Minecraft GUI frame"));
+                                        .map(|error| {
+                                            error.context(
+                                                "failed drawing native Minecraft GUI frame",
+                                            )
+                                        });
                                 }
                                 Ok(RuntimeFrame::World(frame)) => {
                                     worldFrame = true;
-                                    fatalError = renderer
-                                        .drawWorldFrame(window, &frame)
-                                        .err()
-                                        .map(|error| error.context("failed drawing Minecraft world frame"));
+                                    fatalError = renderer.drawWorldFrame(window, &frame).err().map(
+                                        |error| {
+                                            error.context("failed drawing Minecraft world frame")
+                                        },
+                                    );
                                 }
                                 Err(error) => {
-                                    fatalError = Some(error.context("failed preparing current Minecraft screen"));
+                                    fatalError = Some(
+                                        error.context("failed preparing current Minecraft screen"),
+                                    );
                                 }
                             }
                             let renderElapsed = renderStarted.elapsed();
                             if fatalError.is_none() {
-                                frameProfileSample = Some((prepareElapsed, renderElapsed, worldFrame));
+                                frameProfileSample =
+                                    Some((prepareElapsed, renderElapsed, worldFrame));
                             }
                             self.framesThisSecond = self.framesThisSecond.saturating_add(1);
                             let fpsNow = Instant::now();
@@ -7684,24 +10362,39 @@ impl ApplicationHandler for MinecraftApplication {
             }
             _ => {}
         }
-        if let Some(error) = fatalError { self.fail(eventLoop, error); }
+        if let Some(error) = fatalError {
+            self.fail(eventLoop, error);
+        }
     }
 
-    fn device_event(&mut self, _eventLoop: &ActiveEventLoop, _deviceId: DeviceId, event: DeviceEvent) {
+    fn device_event(
+        &mut self,
+        _eventLoop: &ActiveEventLoop,
+        _deviceId: DeviceId,
+        event: DeviceEvent,
+    ) {
         if let Some(runtime) = self.mainMenu.as_mut() {
             runtime.syncOpenContainerGui();
         }
         self.applyRuntimeMouseFocusRequest();
         if !self.worldMouseGrabbed
-            || self.mainMenu.as_ref().is_some_and(MainMenuRuntime::isModalWorldGuiOpen)
+            || self
+                .mainMenu
+                .as_ref()
+                .is_some_and(MainMenuRuntime::isModalWorldGuiOpen)
         {
             return;
         }
-        let DeviceEvent::MouseMotion { delta: (deltaX, deltaY) } = event else {
+        let DeviceEvent::MouseMotion {
+            delta: (deltaX, deltaY),
+        } = event
+        else {
             return;
         };
         let turned = match (self.mainMenu.as_mut(), self.minecraft.as_ref()) {
-            (Some(runtime), Some(minecraft)) => runtime.turnPlayer(deltaX, deltaY, &minecraft.gameSettings),
+            (Some(runtime), Some(minecraft)) => {
+                runtime.turnPlayer(deltaX, deltaY, &minecraft.gameSettings)
+            }
             _ => false,
         };
         if turned {
@@ -7711,7 +10404,10 @@ impl ApplicationHandler for MinecraftApplication {
 
     fn suspended(&mut self, _eventLoop: &ActiveEventLoop) {
         self.setWorldMouseGrabbed(false);
-        self.mainMenu = None; self.renderer = None; self.window = None; self.redrawPending = false;
+        self.mainMenu = None;
+        self.renderer = None;
+        self.window = None;
+        self.redrawPending = false;
     }
 
     fn about_to_wait(&mut self, eventLoop: &ActiveEventLoop) {
@@ -7726,49 +10422,71 @@ impl ApplicationHandler for MinecraftApplication {
             return;
         }
         match self.applyPendingResize() {
-            Ok(true) => self.requestRedraw(), Ok(false) => {}
-            Err(error) => { self.fail(eventLoop, error); return; }
+            Ok(true) => self.requestRedraw(),
+            Ok(false) => {}
+            Err(error) => {
+                self.fail(eventLoop, error);
+                return;
+            }
         }
         if let Some(since) = self.pendingResizeSince {
-            eventLoop.set_control_flow(ControlFlow::WaitUntil(since + RESIZE_DEBOUNCE)); return;
+            eventLoop.set_control_flow(ControlFlow::WaitUntil(since + RESIZE_DEBOUNCE));
+            return;
         }
 
         let now = Instant::now();
         if now >= self.nextTickDeadline {
-            let (forceSprint, chatWidth, chatScale, particleSetting, showSubtitles) = self.minecraft.as_ref().map_or(
-                (false, 1.0, 1.0, 0, false),
-                |minecraft| (
-                    minecraft.gameSettings.forceSprint,
-                    minecraft.gameSettings.chatWidth,
-                    minecraft.gameSettings.chatScale,
-                    minecraft.gameSettings.particleSetting,
-                    minecraft.gameSettings.showSubtitles,
-                ),
-            );
+            let (forceSprint, chatWidth, chatScale, particleSetting, showSubtitles) = self
+                .minecraft
+                .as_ref()
+                .map_or((false, 1.0, 1.0, 0, false), |minecraft| {
+                    (
+                        minecraft.gameSettings.forceSprint,
+                        minecraft.gameSettings.chatWidth,
+                        minecraft.gameSettings.chatScale,
+                        minecraft.gameSettings.particleSetting,
+                        minecraft.gameSettings.showSubtitles,
+                    )
+                });
             let controlHeld = self.keyboardModifiers.control_key();
             let (redraw, action) = self
                 .mainMenu
                 .as_mut()
-                .map(|runtime| runtime.updateScreen(
-                    forceSprint,
-                    chatWidth,
-                    chatScale,
-                    particleSetting,
-                    controlHeld,
-                    showSubtitles,
-                ))
+                .map(|runtime| {
+                    runtime.updateScreen(
+                        forceSprint,
+                        chatWidth,
+                        chatScale,
+                        particleSetting,
+                        controlHeld,
+                        showSubtitles,
+                    )
+                })
                 .unwrap_or((false, None));
             let hadAction = action.is_some();
             if let Some(action) = action {
                 match self.applyGuiAction(action) {
-                    Ok(true) => { eventLoop.exit(); return; }
+                    Ok(true) => {
+                        eventLoop.exit();
+                        return;
+                    }
                     Ok(false) => {}
-                    Err(error) => { self.fail(eventLoop, error.context("failed applying network GUI action")); return; }
+                    Err(error) => {
+                        self.fail(
+                            eventLoop,
+                            error.context("failed applying network GUI action"),
+                        );
+                        return;
+                    }
                 }
             }
             self.applyRuntimeMouseFocusRequest();
-            if redraw || hadAction { self.requestRedraw(); }
-            while self.nextTickDeadline <= now { self.nextTickDeadline += CLIENT_TICK_INTERVAL; }
+            if redraw || hadAction {
+                self.requestRedraw();
+            }
+            while self.nextTickDeadline <= now {
+                self.nextTickDeadline += CLIENT_TICK_INTERVAL;
+            }
         }
 
         if self.window.is_some() && self.mainMenu.is_some() {
@@ -7791,7 +10509,6 @@ impl ApplicationHandler for MinecraftApplication {
     }
 }
 
-
 fn render_partial_ticks(now: Instant, nextTickDeadline: Instant) -> f32 {
     let tickStart = nextTickDeadline
         .checked_sub(CLIENT_TICK_INTERVAL)
@@ -7801,13 +10518,16 @@ fn render_partial_ticks(now: Instant, nextTickDeadline: Instant) -> f32 {
     } else if now >= nextTickDeadline {
         1.0
     } else {
-        now.duration_since(tickStart).as_secs_f32()
-            / CLIENT_TICK_INTERVAL.as_secs_f32()
+        now.duration_since(tickStart).as_secs_f32() / CLIENT_TICK_INTERVAL.as_secs_f32()
     }
 }
 
 const fn tick_right_click_delay(timer: i32) -> i32 {
-    if timer > 0 { timer - 1 } else { 0 }
+    if timer > 0 {
+        timer - 1
+    } else {
+        0
+    }
 }
 
 const fn held_right_click_due(
@@ -7847,17 +10567,24 @@ fn frame_deadline_from_start(
 }
 
 fn current_menu_date() -> MainMenuDate {
-    let seconds = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+    let seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
     let days = seconds.div_euclid(86_400);
     let (_, month, day) = civil_from_days(days);
-    MainMenuDate { month: month as u8, day: day as u8 }
+    MainMenuDate {
+        month: month as u8,
+        day: day as u8,
+    }
 }
 
 fn civil_from_days(daysSinceUnixEpoch: i64) -> (i32, u32, u32) {
     let z = daysSinceUnixEpoch + 719_468;
     let era = if z >= 0 { z } else { z - 146_096 }.div_euclid(146_097);
     let dayOfEra = z - era * 146_097;
-    let yearOfEra = (dayOfEra - dayOfEra / 1_460 + dayOfEra / 36_524 - dayOfEra / 146_096).div_euclid(365);
+    let yearOfEra =
+        (dayOfEra - dayOfEra / 1_460 + dayOfEra / 36_524 - dayOfEra / 146_096).div_euclid(365);
     let mut year = yearOfEra + era * 400;
     let dayOfYear = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100);
     let monthPrime = (5 * dayOfYear + 2).div_euclid(153);
@@ -7870,8 +10597,14 @@ fn civil_from_days(daysSinceUnixEpoch: i64) -> (i32, u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test] fn unix_epoch_date_conversion_is_1970_01_01() { assert_eq!(civil_from_days(0), (1970, 1, 1)); }
-    #[test] fn minecraft_112_release_date_is_preserved() { assert_eq!(civil_from_days(17_427), (2017, 9, 18)); }
+    #[test]
+    fn unix_epoch_date_conversion_is_1970_01_01() {
+        assert_eq!(civil_from_days(0), (1970, 1, 1));
+    }
+    #[test]
+    fn minecraft_112_release_date_is_preserved() {
+        assert_eq!(civil_from_days(17_427), (2017, 9, 18));
+    }
 }
 
 #[cfg(test)]
@@ -7895,7 +10628,9 @@ mod frame_rate_tests {
     #[test]
     fn right_click_delay_counts_four_client_ticks() {
         let mut timer = RIGHT_CLICK_DELAY_TICKS;
-        assert!(!held_right_click_due(true, true, timer, false, false, false));
+        assert!(!held_right_click_due(
+            true, true, timer, false, false, false
+        ));
         for expected in [3, 2, 1, 0] {
             timer = tick_right_click_delay(timer);
             assert_eq!(timer, expected);
@@ -7943,10 +10678,7 @@ mod frame_rate_tests {
         let tickStart = Instant::now();
         let nextTick = tickStart + CLIENT_TICK_INTERVAL;
         assert_eq!(render_partial_ticks(tickStart, nextTick), 0.0);
-        let middle = render_partial_ticks(
-            tickStart + Duration::from_millis(25),
-            nextTick,
-        );
+        let middle = render_partial_ticks(tickStart + Duration::from_millis(25), nextTick);
         assert!((middle - 0.5).abs() < 1.0e-6);
         assert_eq!(render_partial_ticks(nextTick, nextTick), 1.0);
     }

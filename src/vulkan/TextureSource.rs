@@ -2,7 +2,9 @@ use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::{ResourceManager, ResourceManagerError};
+use crate::net::minecraft::client::resources::SimpleReloadableResourceManager::{
+    ResourceManager, ResourceManagerError,
+};
 use crate::vulkan::NativeImage::{NativeImage, NativeImageError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -38,7 +40,9 @@ impl TextureAnimation {
         let cycle = self
             .frames
             .iter()
-            .fold(0_u64, |sum, frame| sum.saturating_add(frame.time.max(1) as u64))
+            .fold(0_u64, |sum, frame| {
+                sum.saturating_add(frame.time.max(1) as u64)
+            })
             .max(1);
         let mut cursor = tick.rem_euclid(cycle as i64) as u64;
         for frame in &self.frames {
@@ -69,7 +73,10 @@ pub enum TextureSourceError {
     #[error(transparent)]
     Image(#[from] NativeImageError),
     #[error("invalid animation metadata for {location}: {message}")]
-    AnimationMetadata { location: ResourceLocation, message: String },
+    AnimationMetadata {
+        location: ResourceLocation,
+        message: String,
+    },
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -104,7 +111,9 @@ enum RawAnimationFrame {
     Timed { index: u32, time: u32 },
 }
 
-const fn default_frame_time() -> u32 { 1 }
+const fn default_frame_time() -> u32 {
+    1
+}
 
 fn build_animation(
     location: &ResourceLocation,
@@ -123,14 +132,18 @@ fn build_animation(
             location: location.clone(),
             message: format!(
                 "animated sprite height {} is not divisible by frame width {}",
-                image.height(), frame_width,
+                image.height(),
+                frame_width,
             ),
         });
     }
     let available = (image.height() / frame_width).max(1);
     let frames = if raw.frames.is_empty() {
         (0..available)
-            .map(|index| TextureAnimationFrame { index, time: raw.frametime })
+            .map(|index| TextureAnimationFrame {
+                index,
+                time: raw.frametime,
+            })
             .collect::<Vec<_>>()
     } else {
         let mut frames = Vec::with_capacity(raw.frames.len());
@@ -148,14 +161,19 @@ fn build_animation(
             if index >= available {
                 return Err(TextureSourceError::AnimationMetadata {
                     location: location.clone(),
-                    message: format!("frame index {index} exceeds available frame count {available}"),
+                    message: format!(
+                        "frame index {index} exceeds available frame count {available}"
+                    ),
                 });
             }
             frames.push(TextureAnimationFrame { index, time });
         }
         frames
     };
-    Ok(TextureAnimation { frames, interpolate: raw.interpolate })
+    Ok(TextureAnimation {
+        frames,
+        interpolate: raw.interpolate,
+    })
 }
 
 impl TextureSource {
@@ -195,7 +213,6 @@ impl TextureSource {
         })
     }
 
-
     /// Internal one-texel equivalent of rendering with texturing disabled. It
     /// allows the shared Vulkan atlas pipeline to preserve MapItemRenderer's
     /// exact per-vertex ARGB colors without borrowing an unrelated game sprite.
@@ -205,29 +222,37 @@ impl TextureSource {
             source_pack: "builtin/solid-white".to_owned(),
             image: NativeImage::from_rgba(1, 1, vec![255, 255, 255, 255])
                 .expect("fixed solid-white texture dimensions"),
-            sampling: TextureSampling { blur: false, clamp: true },
+            sampling: TextureSampling {
+                blur: false,
+                clamp: true,
+            },
             animation: None,
             missing: false,
         }
     }
-
 
     /// Static transparent checker produced by `MapItemRenderer.Instance` for
     /// map color index zero. Non-air map pixels are overlaid separately.
     /// `ThreadDownloadImageData` result already decoded and processed by
     /// SkinManager. Dynamic player textures use native nearest sampling and
     /// clamp just like vanilla entity sheets.
-    pub fn dynamic(location: ResourceLocation, image: NativeImage, source: impl Into<String>) -> Self {
+    pub fn dynamic(
+        location: ResourceLocation,
+        image: NativeImage,
+        source: impl Into<String>,
+    ) -> Self {
         Self {
             requested_location: location,
             source_pack: source.into(),
             image,
-            sampling: TextureSampling { blur: false, clamp: true },
+            sampling: TextureSampling {
+                blur: false,
+                clamp: true,
+            },
             animation: None,
             missing: false,
         }
     }
-
 
     pub fn map_checker(location: ResourceLocation) -> Self {
         let mut rgba = Vec::with_capacity(128 * 128 * 4);
@@ -240,7 +265,10 @@ impl TextureSource {
             source_pack: "builtin/map-checker".to_owned(),
             image: NativeImage::from_rgba(128, 128, rgba)
                 .expect("fixed map-checker texture dimensions"),
-            sampling: TextureSampling { blur: false, clamp: true },
+            sampling: TextureSampling {
+                blur: false,
+                clamp: true,
+            },
             animation: None,
             missing: false,
         }
@@ -267,7 +295,11 @@ pub fn missing_texture_image() -> NativeImage {
     let mut rgba = Vec::with_capacity(16 * 16 * 4);
     for y in 0..16 {
         for x in 0..16 {
-            let color = if (x < 8) == (y < 8) { MAGENTA_ARGB } else { BLACK_ARGB };
+            let color = if (x < 8) == (y < 8) {
+                MAGENTA_ARGB
+            } else {
+                BLACK_ARGB
+            };
             rgba.extend_from_slice(&[
                 ((color >> 16) & 0xFF) as u8,
                 ((color >> 8) & 0xFF) as u8,

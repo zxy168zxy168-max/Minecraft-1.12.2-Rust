@@ -1,5 +1,5 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::{CStr, CString};
 use std::num::NonZeroU32;
 use std::os::raw::c_void;
@@ -21,18 +21,17 @@ use raw_window_handle::HasWindowHandle;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes};
 
-use crate::net::minecraft::client::renderer::EntityRenderer::EntityRenderer;
+use self::BlendMode::{
+    Additive, Alpha, BlockDamage, Disabled, Glint, InvertCrosshair, SourceAlphaAdditive, TntFlash,
+};
 use crate::net::minecraft::client::renderer::chunk::RenderChunk::RenderChunkKey;
+use crate::net::minecraft::client::renderer::EntityRenderer::EntityRenderer;
 use crate::net::minecraft::client::settings::GameSettings::GameSettings;
 use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
-use self::BlendMode::{
-    Additive, Alpha, BlockDamage, Disabled, Glint, InvertCrosshair, SourceAlphaAdditive,
-    TntFlash,
-};
-use crate::renderer::DesktopRenderer::RendererExtent;
 use crate::opengl::OptifineShaderRuntime::{
     GbufferDrawState, GbufferProgram, OptifineShaderRuntime,
 };
+use crate::renderer::DesktopRenderer::RendererExtent;
 use crate::vulkan::CpuFrame::CpuFrame;
 use crate::vulkan::GuiCompiler::{CompiledGuiStep, GuiBatch, VulkanGuiVertex};
 use crate::vulkan::GuiDrawList::GuiTopology;
@@ -307,7 +306,6 @@ void main() {
 }
 "#;
 
-
 #[derive(Clone, Copy)]
 enum BlendMode {
     Disabled,
@@ -423,22 +421,12 @@ unsafe fn upload_gl_buffer(
 ) {
     if requiredBytes > *capacity {
         *capacity = requiredBytes.next_power_of_two().max(256);
-        gl::BufferData(
-            target,
-            *capacity as GLsizeiptr,
-            std::ptr::null(),
-            usage,
-        );
+        gl::BufferData(target, *capacity as GLsizeiptr, std::ptr::null(), usage);
     } else if usage == gl::DYNAMIC_DRAW {
         // Orphan dynamic storage before updating it. This follows the
         // reference-renderer-style frame-streaming contract and avoids waiting for a
         // previous high-FPS draw which still reads the same GL buffer.
-        gl::BufferData(
-            target,
-            *capacity as GLsizeiptr,
-            std::ptr::null(),
-            usage,
-        );
+        gl::BufferData(target, *capacity as GLsizeiptr, std::ptr::null(), usage);
     }
     gl::BufferSubData(target, 0, requiredBytes as GLsizeiptr, data);
 }
@@ -453,7 +441,10 @@ impl GlMesh {
             gl::GenBuffers(1, &mut vertexBuffer);
             gl::GenBuffers(1, &mut indexBuffer);
         }
-        anyhow::ensure!(vao != 0 && vertexBuffer != 0 && indexBuffer != 0, "OpenGL buffer allocation failed");
+        anyhow::ensure!(
+            vao != 0 && vertexBuffer != 0 && indexBuffer != 0,
+            "OpenGL buffer allocation failed"
+        );
         let mesh = Self {
             vao,
             vertexBuffer,
@@ -489,15 +480,43 @@ impl GlMesh {
             gl::VertexAttribPointer(3, 2, gl::FLOAT, gl::FALSE, stride, 36usize as *const c_void);
             if shaderAttributes {
                 gl::EnableVertexAttribArray(4);
-                gl::VertexAttribPointer(4, 3, gl::FLOAT, gl::FALSE, stride, 44usize as *const c_void);
+                gl::VertexAttribPointer(
+                    4,
+                    3,
+                    gl::FLOAT,
+                    gl::FALSE,
+                    stride,
+                    44usize as *const c_void,
+                );
                 // SVertexBuilder binds mc_Entity as three unnormalised shorts:
                 // mapped block id, metadata and EnumBlockRenderType ordinal.
                 gl::EnableVertexAttribArray(5);
-                gl::VertexAttribPointer(5, 3, gl::SHORT, gl::FALSE, stride, 56usize as *const c_void);
+                gl::VertexAttribPointer(
+                    5,
+                    3,
+                    gl::SHORT,
+                    gl::FALSE,
+                    stride,
+                    56usize as *const c_void,
+                );
                 gl::EnableVertexAttribArray(6);
-                gl::VertexAttribPointer(6, 2, gl::FLOAT, gl::FALSE, stride, 64usize as *const c_void);
+                gl::VertexAttribPointer(
+                    6,
+                    2,
+                    gl::FLOAT,
+                    gl::FALSE,
+                    stride,
+                    64usize as *const c_void,
+                );
                 gl::EnableVertexAttribArray(7);
-                gl::VertexAttribPointer(7, 4, gl::SHORT, gl::FALSE, stride, 72usize as *const c_void);
+                gl::VertexAttribPointer(
+                    7,
+                    4,
+                    gl::SHORT,
+                    gl::FALSE,
+                    stride,
+                    72usize as *const c_void,
+                );
             } else {
                 for attribute in 4..=7 {
                     gl::DisableVertexAttribArray(attribute);
@@ -527,13 +546,17 @@ impl GlMesh {
             return;
         }
         self.indexCount = indices.len() as u32;
-        let contentHash = contentGeneration.is_none().then(|| {
-            cacheUnchanged.then(|| gl_mesh_content_hash(vertices, indices, topology, shaderAttributes))
-        }).flatten();
+        let contentHash = contentGeneration
+            .is_none()
+            .then(|| {
+                cacheUnchanged
+                    .then(|| gl_mesh_content_hash(vertices, indices, topology, shaderAttributes))
+            })
+            .flatten();
         if self.shaderAttributes == shaderAttributes
-            && (contentGeneration.is_some_and(|generation| {
-                self.contentGeneration == Some(generation)
-            }) || (contentHash.is_some() && self.contentHash == contentHash))
+            && (contentGeneration
+                .is_some_and(|generation| self.contentGeneration == Some(generation))
+                || (contentHash.is_some() && self.contentHash == contentHash))
         {
             return;
         }
@@ -704,7 +727,9 @@ impl GlMesh {
     }
 
     fn draw(&self, topology: GLenum, firstIndex: u32, indexCount: u32) {
-        if indexCount == 0 { return; }
+        if indexCount == 0 {
+            return;
+        }
         unsafe {
             gl::BindVertexArray(self.vao);
             gl::DrawElements(
@@ -730,14 +755,20 @@ impl GlMesh {
         let mut offsets = [std::ptr::null::<c_void>(); MAX_REGION_RANGES];
         let mut drawCount = 0usize;
         for range in ranges.iter().copied() {
-            if range.indexCount == 0 { continue; }
-            if drawCount == MAX_REGION_RANGES { break; }
+            if range.indexCount == 0 {
+                continue;
+            }
+            if drawCount == MAX_REGION_RANGES {
+                break;
+            }
             counts[drawCount] = range.indexCount as GLsizei;
             offsets[drawCount] =
                 (range.firstIndex as usize * std::mem::size_of::<u32>()) as *const c_void;
             drawCount += 1;
         }
-        if drawCount == 0 { return 0; }
+        if drawCount == 0 {
+            return 0;
+        }
         unsafe {
             gl::BindVertexArray(self.vao);
             gl::MultiDrawElements(
@@ -763,7 +794,9 @@ impl GlMesh {
         let mut submitCalls = 0usize;
         let mut logicalRanges = 0usize;
         let mut cursor = 0usize;
-        unsafe { gl::BindVertexArray(self.vao); }
+        unsafe {
+            gl::BindVertexArray(self.vao);
+        }
         while cursor < ranges.len() {
             let end = (cursor + MAX_MULTI_DRAW_RANGES).min(ranges.len());
             let mut counts = [0 as GLsizei; MAX_MULTI_DRAW_RANGES];
@@ -800,9 +833,15 @@ impl GlMesh {
 
     fn destroy(&mut self) {
         unsafe {
-            if self.indexBuffer != 0 { gl::DeleteBuffers(1, &self.indexBuffer); }
-            if self.vertexBuffer != 0 { gl::DeleteBuffers(1, &self.vertexBuffer); }
-            if self.vao != 0 { gl::DeleteVertexArrays(1, &self.vao); }
+            if self.indexBuffer != 0 {
+                gl::DeleteBuffers(1, &self.indexBuffer);
+            }
+            if self.vertexBuffer != 0 {
+                gl::DeleteBuffers(1, &self.vertexBuffer);
+            }
+            if self.vao != 0 {
+                gl::DeleteVertexArrays(1, &self.vao);
+            }
         }
         self.vao = 0;
         self.vertexBuffer = 0;
@@ -860,25 +899,32 @@ fn buildShaderVerticesInto(
                 accumulateShaderFace(vertices, &face, &mut scratch.accumulators);
             } else {
                 for triangle in group.chunks_exact(3) {
-                    let face = [triangle[0] as usize, triangle[1] as usize, triangle[2] as usize];
+                    let face = [
+                        triangle[0] as usize,
+                        triangle[1] as usize,
+                        triangle[2] as usize,
+                    ];
                     accumulateShaderFace(vertices, &face, &mut scratch.accumulators);
                 }
             }
         }
         for triangle in groups.remainder().chunks_exact(3) {
-            let face = [triangle[0] as usize, triangle[1] as usize, triangle[2] as usize];
+            let face = [
+                triangle[0] as usize,
+                triangle[1] as usize,
+                triangle[2] as usize,
+            ];
             accumulateShaderFace(vertices, &face, &mut scratch.accumulators);
         }
     }
 
     scratch.vertices.clear();
     if scratch.vertices.capacity() < vertices.len() {
-        scratch.vertices.reserve(vertices.len() - scratch.vertices.capacity());
+        scratch
+            .vertices
+            .reserve(vertices.len() - scratch.vertices.capacity());
     }
-    for (vertex, accumulator) in vertices
-        .iter()
-        .zip(scratch.accumulators.iter().copied())
-    {
+    for (vertex, accumulator) in vertices.iter().zip(scratch.accumulators.iter().copied()) {
         let normal = normalize3(accumulator.normal).unwrap_or([0.0, 1.0, 0.0]);
         let projectedTangent = sub3(
             accumulator.tangent,
@@ -944,7 +990,10 @@ fn accumulateShaderFace(
     // quad. Retain the triangle cross product only for genuinely triangular
     // geometry generated outside BufferBuilder's GL_QUADS path.
     let normal = if face.len() >= 4 {
-        cross3(sub3(vertices[face[2]].position, p0), sub3(vertices[face[3]].position, p1))
+        cross3(
+            sub3(vertices[face[2]].position, p0),
+            sub3(vertices[face[3]].position, p1),
+        )
     } else {
         cross3(sub3(p1, p0), sub3(p2, p0))
     };
@@ -1105,10 +1154,7 @@ impl OpenGlGuiPipeline {
     fn new() -> anyhow::Result<Self> {
         let program = compileProgram(GUI_VERTEX_SHADER, GUI_FRAGMENT_SHADER)?;
         let vertices: [f32; 16] = [
-            -1.0, -1.0, 0.0, 1.0,
-             1.0, -1.0, 1.0, 1.0,
-            -1.0,  1.0, 0.0, 0.0,
-             1.0,  1.0, 1.0, 0.0,
+            -1.0, -1.0, 0.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0,
         ];
         let mut vao = 0;
         let mut vertexBuffer = 0;
@@ -1119,7 +1165,12 @@ impl OpenGlGuiPipeline {
             gl::GenTextures(1, &mut texture);
             gl::BindVertexArray(vao);
             gl::BindBuffer(gl::ARRAY_BUFFER, vertexBuffer);
-            gl::BufferData(gl::ARRAY_BUFFER, std::mem::size_of_val(&vertices) as GLsizeiptr, vertices.as_ptr().cast(), gl::STATIC_DRAW);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                std::mem::size_of_val(&vertices) as GLsizeiptr,
+                vertices.as_ptr().cast(),
+                gl::STATIC_DRAW,
+            );
             gl::EnableVertexAttribArray(0);
             gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, 16, std::ptr::null());
             gl::EnableVertexAttribArray(1);
@@ -1127,17 +1178,34 @@ impl OpenGlGuiPipeline {
             gl::BindTexture(gl::TEXTURE_2D, texture);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as GLint);
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_WRAP_S,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_WRAP_T,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
             gl::UseProgram(program);
             gl::Uniform1i(uniformLocation(program, "gui_texture"), 0);
             gl::BindVertexArray(0);
         }
-        Ok(Self { program, vao, vertexBuffer, texture, textureSize: RendererExtent::default() })
+        Ok(Self {
+            program,
+            vao,
+            vertexBuffer,
+            texture,
+            textureSize: RendererExtent::default(),
+        })
     }
 
     fn draw(&mut self, frame: &CpuFrame, extent: RendererExtent) -> anyhow::Result<()> {
-        anyhow::ensure!(frame.width() == extent.width && frame.height() == extent.height, "CPU GUI frame does not match OpenGL drawable size");
+        anyhow::ensure!(
+            frame.width() == extent.width && frame.height() == extent.height,
+            "CPU GUI frame does not match OpenGL drawable size"
+        );
         unsafe {
             gl::Viewport(0, 0, extent.width as GLsizei, extent.height as GLsizei);
             gl::Disable(gl::DEPTH_TEST);
@@ -1150,16 +1218,28 @@ impl OpenGlGuiPipeline {
             gl::PixelStorei(gl::UNPACK_ALIGNMENT, 4);
             if self.textureSize != extent {
                 gl::TexImage2D(
-                    gl::TEXTURE_2D, 0, gl::RGBA8 as GLint,
-                    extent.width as GLsizei, extent.height as GLsizei, 0,
-                    gl::RGBA, gl::UNSIGNED_BYTE, frame.rgba().as_ptr().cast(),
+                    gl::TEXTURE_2D,
+                    0,
+                    gl::RGBA8 as GLint,
+                    extent.width as GLsizei,
+                    extent.height as GLsizei,
+                    0,
+                    gl::RGBA,
+                    gl::UNSIGNED_BYTE,
+                    frame.rgba().as_ptr().cast(),
                 );
                 self.textureSize = extent;
             } else {
                 gl::TexSubImage2D(
-                    gl::TEXTURE_2D, 0, 0, 0,
-                    extent.width as GLsizei, extent.height as GLsizei,
-                    gl::RGBA, gl::UNSIGNED_BYTE, frame.rgba().as_ptr().cast(),
+                    gl::TEXTURE_2D,
+                    0,
+                    0,
+                    0,
+                    extent.width as GLsizei,
+                    extent.height as GLsizei,
+                    gl::RGBA,
+                    gl::UNSIGNED_BYTE,
+                    frame.rgba().as_ptr().cast(),
                 );
             }
             gl::BindVertexArray(self.vao);
@@ -1178,7 +1258,6 @@ impl OpenGlGuiPipeline {
         }
     }
 }
-
 
 struct GlGuiTexture {
     id: GLuint,
@@ -1336,15 +1415,25 @@ impl OpenGlNativeGuiPipeline {
             }
         }
         if let Some(old) = self.textures.remove(location) {
-            unsafe { gl::DeleteTextures(1, &old.id); }
+            unsafe {
+                gl::DeleteTextures(1, &old.id);
+            }
         }
         let mut id = 0;
         unsafe {
             gl::GenTextures(1, &mut id);
             gl::BindTexture(gl::TEXTURE_2D, id);
             gl::PixelStorei(gl::UNPACK_ALIGNMENT, 4);
-            let filter = if source.sampling.blur { gl::LINEAR } else { gl::NEAREST } as GLint;
-            let wrap = if source.sampling.clamp { gl::CLAMP_TO_EDGE } else { gl::REPEAT } as GLint;
+            let filter = if source.sampling.blur {
+                gl::LINEAR
+            } else {
+                gl::NEAREST
+            } as GLint;
+            let wrap = if source.sampling.clamp {
+                gl::CLAMP_TO_EDGE
+            } else {
+                gl::REPEAT
+            } as GLint;
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, wrap);
@@ -1361,7 +1450,13 @@ impl OpenGlNativeGuiPipeline {
                 source.image.rgba().as_ptr().cast(),
             );
         }
-        self.textures.insert(location.clone(), GlGuiTexture { id, source: Arc::clone(source) });
+        self.textures.insert(
+            location.clone(),
+            GlGuiTexture {
+                id,
+                source: Arc::clone(source),
+            },
+        );
         id
     }
 
@@ -1379,12 +1474,7 @@ impl OpenGlNativeGuiPipeline {
             gl::DepthMask(gl::FALSE);
             gl::Disable(gl::CULL_FACE);
             gl::Enable(gl::BLEND);
-            gl::BlendFuncSeparate(
-                gl::SRC_ALPHA,
-                gl::ONE_MINUS_SRC_ALPHA,
-                gl::ONE,
-                gl::ZERO,
-            );
+            gl::BlendFuncSeparate(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA, gl::ONE, gl::ZERO);
             gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
             gl::ClearColor(0.0, 0.0, 0.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -1411,7 +1501,12 @@ impl OpenGlNativeGuiPipeline {
                         );
                         gl::ActiveTexture(gl::TEXTURE0);
                     }
-                    self.drawPanoramaComposite(plan, panoramaTexture, frame.guiWidth, frame.guiHeight);
+                    self.drawPanoramaComposite(
+                        plan,
+                        panoramaTexture,
+                        frame.guiWidth,
+                        frame.guiHeight,
+                    );
                     // One panorama draw, one draw for each source blur invocation,
                     // and one final GUI composite.
                     drawCount = drawCount
@@ -1420,7 +1515,10 @@ impl OpenGlNativeGuiPipeline {
                 }
                 CompiledGuiStep::Draw(batch) => {
                     let texture = batch.texture.as_ref().and_then(|location| {
-                        frame.textures.get(location).map(|source| self.texture(location, source))
+                        frame
+                            .textures
+                            .get(location)
+                            .map(|source| self.texture(location, source))
                     });
                     self.drawBatch(batch, texture, frame.guiWidth, frame.guiHeight);
                     drawCount += 1;
@@ -1456,8 +1554,15 @@ impl OpenGlNativeGuiPipeline {
         Ok(())
     }
 
-    fn renderPanorama(&mut self, plan: &PanoramaPassPlan, frame: &GuiRenderFrame) -> anyhow::Result<GLuint> {
-        let firstSample = plan.samples.first().context("panorama plan has no samples")?;
+    fn renderPanorama(
+        &mut self,
+        plan: &PanoramaPassPlan,
+        frame: &GuiRenderFrame,
+    ) -> anyhow::Result<GLuint> {
+        let firstSample = plan
+            .samples
+            .first()
+            .context("panorama plan has no samples")?;
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, self.panoramaFramebuffer);
             gl::FramebufferTexture2D(
@@ -1467,7 +1572,12 @@ impl OpenGlNativeGuiPipeline {
                 self.panoramaTextures[0],
                 0,
             );
-            gl::Viewport(0, 0, plan.target_width as GLsizei, plan.target_height as GLsizei);
+            gl::Viewport(
+                0,
+                0,
+                plan.target_width as GLsizei,
+                plan.target_height as GLsizei,
+            );
             gl::Disable(gl::DEPTH_TEST);
             gl::DepthMask(gl::FALSE);
             gl::Disable(gl::CULL_FACE);
@@ -1475,9 +1585,14 @@ impl OpenGlNativeGuiPipeline {
             gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
             gl::UseProgram(self.panoramaProgram);
             gl::Uniform1f(self.panoramaTimerUniform, inferPanoramaTimer(plan));
-            gl::Uniform1i(self.panoramaSampleCountUniform, plan.samples.len().min(64) as GLint);
+            gl::Uniform1i(
+                self.panoramaSampleCountUniform,
+                plan.samples.len().min(64) as GLint,
+            );
             for (unit, face) in firstSample.faces.iter().enumerate() {
-                let source = frame.textures.get(&face.texture)
+                let source = frame
+                    .textures
+                    .get(&face.texture)
                     .with_context(|| format!("missing panorama texture {}", face.texture))?;
                 let texture = self.texture(&face.texture, source);
                 gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
@@ -1499,7 +1614,10 @@ impl OpenGlNativeGuiPipeline {
                     0,
                 );
                 gl::UseProgram(self.blurProgram);
-                gl::Uniform1i(self.blurLayerCountUniform, invocation.layers.len().min(16) as GLint);
+                gl::Uniform1i(
+                    self.blurLayerCountUniform,
+                    invocation.layers.len().min(16) as GLint,
+                );
                 gl::ActiveTexture(gl::TEXTURE0);
                 gl::BindTexture(gl::TEXTURE_2D, self.panoramaTextures[current]);
                 gl::BindVertexArray(self.fullscreenVao);
@@ -1517,7 +1635,9 @@ impl OpenGlNativeGuiPipeline {
         guiWidth: i32,
         guiHeight: i32,
     ) {
-        let vertices = plan.composite.map(|vertex| panoramaCompositeGuiVertex(vertex));
+        let vertices = plan
+            .composite
+            .map(|vertex| panoramaCompositeGuiVertex(vertex));
         let batch = GuiBatch {
             texture: None,
             topology: GuiTopology::Quads,
@@ -1527,12 +1647,27 @@ impl OpenGlNativeGuiPipeline {
         self.drawBatch(&batch, Some(texture), guiWidth, guiHeight);
     }
 
-    fn drawBatch(&mut self, batch: &GuiBatch, texture: Option<GLuint>, guiWidth: i32, guiHeight: i32) {
-        if batch.indices.is_empty() || batch.vertices.is_empty() { return; }
+    fn drawBatch(
+        &mut self,
+        batch: &GuiBatch,
+        texture: Option<GLuint>,
+        guiWidth: i32,
+        guiHeight: i32,
+    ) {
+        if batch.indices.is_empty() || batch.vertices.is_empty() {
+            return;
+        }
         unsafe {
             gl::UseProgram(self.program);
-            gl::Uniform2f(self.guiSizeUniform, guiWidth.max(1) as f32, guiHeight.max(1) as f32);
-            gl::Uniform1i(self.useTextureUniform, if texture.is_some() { 1 } else { 0 });
+            gl::Uniform2f(
+                self.guiSizeUniform,
+                guiWidth.max(1) as f32,
+                guiHeight.max(1) as f32,
+            );
+            gl::Uniform1i(
+                self.useTextureUniform,
+                if texture.is_some() { 1 } else { 0 },
+            );
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, texture.unwrap_or(0));
             gl::BindVertexArray(self.vao);
@@ -1580,7 +1715,9 @@ impl OpenGlNativeGuiPipeline {
 }
 
 fn inferPanoramaTimer(plan: &PanoramaPassPlan) -> f32 {
-    let Some(sample) = plan.samples.first() else { return 0.0; };
+    let Some(sample) = plan.samples.first() else {
+        return 0.0;
+    };
     // PanoramaPassPlan already stores the exact animated pitch/yaw. Recovering
     // from yaw avoids duplicating GuiMainMenu state in the backend.
     -sample.yaw_degrees * 10.0
@@ -1672,7 +1809,10 @@ impl OpenGlWorldPipeline {
         unsafe {
             gl::GenTextures(textures.len() as GLsizei, textures.as_mut_ptr());
         }
-        anyhow::ensure!(textures.iter().all(|texture| *texture != 0), "OpenGL world texture allocation failed");
+        anyhow::ensure!(
+            textures.iter().all(|texture| *texture != 0),
+            "OpenGL world texture allocation failed"
+        );
         let [atlasTexture, lightmapTexture, normalTexture, specularTexture] = textures;
         unsafe {
             gl::ActiveTexture(gl::TEXTURE0);
@@ -1683,8 +1823,15 @@ impl OpenGlWorldPipeline {
             gl::BindTexture(gl::TEXTURE_2D, lightmapTexture);
             configureWorldTexture(gl::LINEAR as GLint, gl::CLAMP_TO_EDGE as GLint);
             gl::TexImage2D(
-                gl::TEXTURE_2D, 0, gl::RGBA8 as GLint, 16, 16, 0,
-                gl::RGBA, gl::UNSIGNED_BYTE, std::ptr::null(),
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA8 as GLint,
+                16,
+                16,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null(),
             );
 
             gl::ActiveTexture(gl::TEXTURE2);
@@ -1692,8 +1839,15 @@ impl OpenGlWorldPipeline {
             configureWorldTexture(gl::NEAREST as GLint, gl::REPEAT as GLint);
             let normal = [127_u8, 127, 255, 255];
             gl::TexImage2D(
-                gl::TEXTURE_2D, 0, gl::RGBA8 as GLint, 1, 1, 0,
-                gl::RGBA, gl::UNSIGNED_BYTE, normal.as_ptr().cast(),
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA8 as GLint,
+                1,
+                1,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                normal.as_ptr().cast(),
             );
 
             gl::ActiveTexture(gl::TEXTURE3);
@@ -1701,8 +1855,15 @@ impl OpenGlWorldPipeline {
             configureWorldTexture(gl::NEAREST as GLint, gl::REPEAT as GLint);
             let specular = [0_u8, 0, 0, 0];
             gl::TexImage2D(
-                gl::TEXTURE_2D, 0, gl::RGBA8 as GLint, 1, 1, 0,
-                gl::RGBA, gl::UNSIGNED_BYTE, specular.as_ptr().cast(),
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA8 as GLint,
+                1,
+                1,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                specular.as_ptr().cast(),
             );
 
             gl::ActiveTexture(gl::TEXTURE0);
@@ -1802,23 +1963,33 @@ impl OpenGlWorldPipeline {
             .filter_map(|key| self.chunks.get(key))
             .map(|chunk| chunk.indices.len())
             .sum::<usize>();
-        anyhow::ensure!(vertexCount <= u32::MAX as usize, "OpenGL render region exceeds u32 vertex addressing");
-        anyhow::ensure!(indexCount <= u32::MAX as usize, "OpenGL render region exceeds u32 index addressing");
+        anyhow::ensure!(
+            vertexCount <= u32::MAX as usize,
+            "OpenGL render region exceeds u32 vertex addressing"
+        );
+        anyhow::ensure!(
+            indexCount <= u32::MAX as usize,
+            "OpenGL render region exceeds u32 index addressing"
+        );
 
         region.stagingVertices.clear();
         region.stagingShaderVertices.clear();
         region.stagingIndices.clear();
         if self.shaderAttributes {
             if region.stagingShaderVertices.capacity() < vertexCount {
-                region.stagingShaderVertices.reserve(
-                    vertexCount - region.stagingShaderVertices.capacity(),
-                );
+                region
+                    .stagingShaderVertices
+                    .reserve(vertexCount - region.stagingShaderVertices.capacity());
             }
         } else if region.stagingVertices.capacity() < vertexCount {
-            region.stagingVertices.reserve(vertexCount - region.stagingVertices.capacity());
+            region
+                .stagingVertices
+                .reserve(vertexCount - region.stagingVertices.capacity());
         }
         if region.stagingIndices.capacity() < indexCount {
-            region.stagingIndices.reserve(indexCount - region.stagingIndices.capacity());
+            region
+                .stagingIndices
+                .reserve(indexCount - region.stagingIndices.capacity());
         }
         region.chunkLayerRanges.clear();
         region.chunkLayerRanges.reserve(region.chunkKeys.len());
@@ -1841,17 +2012,22 @@ impl OpenGlWorldPipeline {
             region.chunkVertexBases.insert(key, vertexBase);
             region.chunkIndexBases.insert(key, indexBase);
             if self.shaderAttributes {
-                let expanded = chunk.shaderVertices.as_ref().context(
-                    "OpenGL shader vertex cache missing during RenderRegion rebuild",
-                )?;
+                let expanded = chunk
+                    .shaderVertices
+                    .as_ref()
+                    .context("OpenGL shader vertex cache missing during RenderRegion rebuild")?;
                 anyhow::ensure!(
                     expanded.len() == chunk.vertices.len(),
                     "OpenGL shader vertex cache length diverged for {:?}",
                     key,
                 );
-                region.stagingShaderVertices.extend_from_slice(expanded.as_slice());
+                region
+                    .stagingShaderVertices
+                    .extend_from_slice(expanded.as_slice());
             } else {
-                region.stagingVertices.extend_from_slice(chunk.vertices.as_slice());
+                region
+                    .stagingVertices
+                    .extend_from_slice(chunk.vertices.as_slice());
             }
             for &index in chunk.indices.iter() {
                 anyhow::ensure!(
@@ -1911,9 +2087,15 @@ impl OpenGlWorldPipeline {
             }
         }
         for key in keys.iter().copied() {
-            let Some(chunk) = self.chunks.get(&key) else { continue; };
-            let Some(region) = self.regions.get(&chunk.region) else { continue; };
-            let Some(ranges) = region.chunkLayerRanges.get(&key) else { continue; };
+            let Some(chunk) = self.chunks.get(&key) else {
+                continue;
+            };
+            let Some(region) = self.regions.get(&chunk.region) else {
+                continue;
+            };
+            let Some(ranges) = region.chunkLayerRanges.get(&key) else {
+                continue;
+            };
             let layerPlan = self
                 .shadowBatchPlan
                 .entry(chunk.region)
@@ -1933,8 +2115,12 @@ impl OpenGlWorldPipeline {
         let mut logicalRanges = 0_u64;
         for (regionKey, layers) in &self.shadowBatchPlan {
             let ranges = &layers[layer];
-            if ranges.is_empty() { continue; }
-            let Some(region) = self.regions.get(regionKey) else { continue; };
+            if ranges.is_empty() {
+                continue;
+            }
+            let Some(region) = self.regions.get(regionKey) else {
+                continue;
+            };
             let drawn = region.mesh.drawRanges(gl::TRIANGLES, ranges.as_slice());
             if drawn > 0 {
                 submitCalls = submitCalls.saturating_add(1);
@@ -1958,8 +2144,12 @@ impl OpenGlWorldPipeline {
                      ranges: &[ChunkLayerRange],
                      submitCalls: &mut u64,
                      logicalRanges: &mut u64| {
-            let Some(regionKey) = regionKey else { return; };
-            let Some(region) = self.regions.get(&regionKey) else { return; };
+            let Some(regionKey) = regionKey else {
+                return;
+            };
+            let Some(region) = self.regions.get(&regionKey) else {
+                return;
+            };
             let drawn = region.mesh.drawRanges(gl::TRIANGLES, ranges);
             if drawn > 0 {
                 *submitCalls = (*submitCalls).saturating_add(1);
@@ -1968,11 +2158,19 @@ impl OpenGlWorldPipeline {
         };
 
         for key in keys {
-            let Some(chunk) = self.chunks.get(&key) else { continue; };
-            let Some(region) = self.regions.get(&chunk.region) else { continue; };
-            let Some(chunkRanges) = region.chunkLayerRanges.get(&key) else { continue; };
+            let Some(chunk) = self.chunks.get(&key) else {
+                continue;
+            };
+            let Some(region) = self.regions.get(&chunk.region) else {
+                continue;
+            };
+            let Some(chunkRanges) = region.chunkLayerRanges.get(&key) else {
+                continue;
+            };
             let range = chunkRanges[layer];
-            if range.indexCount == 0 { continue; }
+            if range.indexCount == 0 {
+                continue;
+            }
 
             if currentRegion != Some(chunk.region) || rangeCount == GlRenderRegionKey::MAX_CHUNKS {
                 flush(
@@ -2020,9 +2218,15 @@ impl OpenGlWorldPipeline {
         // translucent list is reversed afterwards to preserve vanilla order.
         for visible in &frame.visibleChunks {
             let key = visible.key;
-            let Some(chunk) = self.chunks.get(&key) else { continue; };
-            let Some(region) = self.regions.get(&chunk.region) else { continue; };
-            let Some(ranges) = region.chunkLayerRanges.get(&key) else { continue; };
+            let Some(chunk) = self.chunks.get(&key) else {
+                continue;
+            };
+            let Some(region) = self.regions.get(&chunk.region) else {
+                continue;
+            };
+            let Some(ranges) = region.chunkLayerRanges.get(&key) else {
+                continue;
+            };
             let layerPlan = self
                 .terrainBatchPlan
                 .entry(chunk.region)
@@ -2035,7 +2239,9 @@ impl OpenGlWorldPipeline {
             }
             let translucent = ranges[3];
             if translucent.indexCount > 0 {
-                if let Some(run) = self.terrainTranslucentPlan.last_mut()
+                if let Some(run) = self
+                    .terrainTranslucentPlan
+                    .last_mut()
                     .filter(|run| run.region == chunk.region)
                 {
                     run.ranges.push(translucent);
@@ -2065,8 +2271,12 @@ impl OpenGlWorldPipeline {
         let mut logicalRanges = 0_u64;
         for (regionKey, layers) in &self.terrainBatchPlan {
             let ranges = &layers[layer];
-            if ranges.is_empty() { continue; }
-            let Some(region) = self.regions.get(regionKey) else { continue; };
+            if ranges.is_empty() {
+                continue;
+            }
+            let Some(region) = self.regions.get(regionKey) else {
+                continue;
+            };
             let drawn = region.mesh.drawRanges(gl::TRIANGLES, ranges.as_slice());
             if drawn > 0 {
                 submitCalls = submitCalls.saturating_add(1);
@@ -2080,7 +2290,9 @@ impl OpenGlWorldPipeline {
         let mut submitCalls = 0_u64;
         let mut logicalRanges = 0_u64;
         for run in &self.terrainTranslucentPlan {
-            let Some(region) = self.regions.get(&run.region) else { continue; };
+            let Some(region) = self.regions.get(&run.region) else {
+                continue;
+            };
             let drawn = region.mesh.drawRanges(gl::TRIANGLES, run.ranges.as_slice());
             if drawn > 0 {
                 submitCalls = submitCalls.saturating_add(1);
@@ -2101,9 +2313,15 @@ impl OpenGlWorldPipeline {
                 gl::BindTexture(gl::TEXTURE_2D, self.atlasTexture);
                 gl::PixelStorei(gl::UNPACK_ALIGNMENT, 4);
                 gl::TexImage2D(
-                    gl::TEXTURE_2D, 0, gl::RGBA8 as GLint,
-                    frame.atlas.width as GLsizei, frame.atlas.height as GLsizei, 0,
-                    gl::RGBA, gl::UNSIGNED_BYTE, frame.atlas.rgba.as_ptr().cast(),
+                    gl::TEXTURE_2D,
+                    0,
+                    gl::RGBA8 as GLint,
+                    frame.atlas.width as GLsizei,
+                    frame.atlas.height as GLsizei,
+                    0,
+                    gl::RGBA,
+                    gl::UNSIGNED_BYTE,
+                    frame.atlas.rgba.as_ptr().cast(),
                 );
             }
             self.atlasRevision = frame.atlasRevision;
@@ -2112,7 +2330,8 @@ impl OpenGlWorldPipeline {
 
         self.dirtyRegionsScratch.clear();
         if self.shaderAttributes != shaderAttributes {
-            self.dirtyRegionsScratch.extend(self.regions.keys().copied());
+            self.dirtyRegionsScratch
+                .extend(self.regions.keys().copied());
             self.shaderAttributes = shaderAttributes;
             if shaderAttributes {
                 for chunk in self.chunks.values_mut() {
@@ -2150,7 +2369,9 @@ impl OpenGlWorldPipeline {
                 .chunks
                 .get(&upload.key)
                 .map_or(true, |chunk| chunk.meshRevision != upload.meshRevision);
-            if !replace { continue; }
+            if !replace {
+                continue;
+            }
             let regionKey = GlRenderRegionKey::fromChunk(upload.key);
             if !self.regions.contains_key(&regionKey) {
                 self.regions.insert(regionKey, Self::newRegion()?);
@@ -2230,12 +2451,18 @@ impl OpenGlWorldPipeline {
                 });
             if canUpdateChunkInPlace {
                 let (vertexBase, indexBase) = {
-                    let region = self.regions.get(&regionKey)
+                    let region = self
+                        .regions
+                        .get(&regionKey)
                         .context("OpenGL render region disappeared during resident chunk update")?;
                     (
-                        *region.chunkVertexBases.get(&upload.key)
+                        *region
+                            .chunkVertexBases
+                            .get(&upload.key)
                             .context("OpenGL resident chunk vertex base missing")?,
-                        *region.chunkIndexBases.get(&upload.key)
+                        *region
+                            .chunkIndexBases
+                            .get(&upload.key)
                             .context("OpenGL resident chunk index base missing")?,
                     )
                 };
@@ -2252,15 +2479,18 @@ impl OpenGlWorldPipeline {
                     ))
                 });
 
-                let region = self.regions.get_mut(&regionKey)
+                let region = self
+                    .regions
+                    .get_mut(&regionKey)
                     .context("OpenGL render region disappeared during resident span update")?;
                 anyhow::ensure!(
                     indexEnd <= region.stagingIndices.len(),
                     "OpenGL resident chunk index span exceeds render-region storage"
                 );
                 if self.shaderAttributes {
-                    let expanded = shaderVertices.as_ref()
-                        .context("OpenGL shader vertex expansion missing for resident span update")?;
+                    let expanded = shaderVertices.as_ref().context(
+                        "OpenGL shader vertex expansion missing for resident span update",
+                    )?;
                     anyhow::ensure!(
                         vertexEnd <= region.stagingShaderVertices.len()
                             && expanded.len() == upload.vertices.len(),
@@ -2276,8 +2506,7 @@ impl OpenGlWorldPipeline {
                         vertexEnd <= region.stagingVertices.len(),
                         "OpenGL resident vertex span exceeds render-region storage"
                     );
-                    let (mesh, stagingVertices) =
-                        (&mut region.mesh, &mut region.stagingVertices);
+                    let (mesh, stagingVertices) = (&mut region.mesh, &mut region.stagingVertices);
                     stagingVertices[vertexStart..vertexEnd]
                         .copy_from_slice(upload.vertices.as_slice());
                     mesh.updateWorldVertexRange(vertexBase, upload.vertices.as_slice());
@@ -2300,7 +2529,9 @@ impl OpenGlWorldPipeline {
                 let mut adjusted = [ChunkLayerRange::default(); 4];
                 for (layer, range) in upload.layerRanges.iter().copied().enumerate() {
                     adjusted[layer] = ChunkLayerRange {
-                        firstIndex: range.firstIndex.checked_add(indexBase)
+                        firstIndex: range
+                            .firstIndex
+                            .checked_add(indexBase)
                             .context("OpenGL resident chunk layer offset overflow")?,
                         indexCount: range.indexCount,
                     };
@@ -2317,12 +2548,22 @@ impl OpenGlWorldPipeline {
                 self.performanceResidentSpanUpdates =
                     self.performanceResidentSpanUpdates.saturating_add(1);
                 let vertexBytes = if self.shaderAttributes {
-                    upload.vertices.len().saturating_mul(std::mem::size_of::<GlShaderVertex>())
+                    upload
+                        .vertices
+                        .len()
+                        .saturating_mul(std::mem::size_of::<GlShaderVertex>())
                 } else {
-                    upload.vertices.len().saturating_mul(std::mem::size_of::<WorldVertex>())
+                    upload
+                        .vertices
+                        .len()
+                        .saturating_mul(std::mem::size_of::<WorldVertex>())
                 };
-                let indexBytes = upload.indices.len().saturating_mul(std::mem::size_of::<u32>());
-                self.performanceResidentSpanBytes = self.performanceResidentSpanBytes
+                let indexBytes = upload
+                    .indices
+                    .len()
+                    .saturating_mul(std::mem::size_of::<u32>());
+                self.performanceResidentSpanBytes = self
+                    .performanceResidentSpanBytes
                     .saturating_add(vertexBytes.saturating_add(indexBytes) as u64);
                 continue;
             }
@@ -2334,14 +2575,17 @@ impl OpenGlWorldPipeline {
                     gl::TRIANGLES,
                 ))
             });
-            if let Some(old) = self.chunks.insert(upload.key, GlChunk {
-                layerRanges: upload.layerRanges,
-                meshRevision: upload.meshRevision,
-                vertices: Arc::clone(&upload.vertices),
-                indices: Arc::clone(&upload.indices),
-                shaderVertices,
-                region: regionKey,
-            }) {
+            if let Some(old) = self.chunks.insert(
+                upload.key,
+                GlChunk {
+                    layerRanges: upload.layerRanges,
+                    meshRevision: upload.meshRevision,
+                    vertices: Arc::clone(&upload.vertices),
+                    indices: Arc::clone(&upload.indices),
+                    shaderVertices,
+                    region: regionKey,
+                },
+            ) {
                 if old.region != regionKey {
                     if let Some(region) = self.regions.get_mut(&old.region) {
                         region.chunkKeys.remove(&upload.key);
@@ -2376,62 +2620,115 @@ impl OpenGlWorldPipeline {
 
         let dynamicUploadStarted = Instant::now();
         self.entityMesh.upload(
-            frame.entityVertices.as_slice(), frame.entityIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.entityMeshGeneration), false,
+            frame.entityVertices.as_slice(),
+            frame.entityIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.entityMeshGeneration),
+            false,
             &mut self.shaderBuildScratch,
         );
         self.blockEntityMesh.upload(
-            frame.blockEntityVertices.as_slice(), frame.blockEntityIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes,
-            Some(frame.blockEntityMeshGeneration), false,
+            frame.blockEntityVertices.as_slice(),
+            frame.blockEntityIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.blockEntityMeshGeneration),
+            false,
             &mut self.shaderBuildScratch,
         );
         self.staticEntityMesh.upload(
-            frame.staticEntityVertices.as_slice(), frame.staticEntityIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes,
-            Some(frame.staticEntityMeshGeneration), false,
+            frame.staticEntityVertices.as_slice(),
+            frame.staticEntityIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.staticEntityMeshGeneration),
+            false,
             &mut self.shaderBuildScratch,
         );
         self.entityDepthMesh.upload(
-            frame.entityDepthVertices.as_slice(), frame.entityDepthIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.entityDepthMeshGeneration), false,
+            frame.entityDepthVertices.as_slice(),
+            frame.entityDepthIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.entityDepthMeshGeneration),
+            false,
             &mut self.shaderBuildScratch,
         );
         self.overlayMesh.upload(
-            frame.entityOverlayVertices.as_slice(), frame.entityOverlayIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.entityOverlayMeshGeneration), false,
+            frame.entityOverlayVertices.as_slice(),
+            frame.entityOverlayIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.entityOverlayMeshGeneration),
+            false,
             &mut self.shaderBuildScratch,
         );
         self.particleMesh.upload(
-            frame.particleVertices.as_slice(), frame.particleIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.particleMeshGeneration), false,
+            frame.particleVertices.as_slice(),
+            frame.particleIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.particleMeshGeneration),
+            false,
             &mut self.shaderBuildScratch,
         );
         self.transparentParticleMesh.upload(
-            frame.transparentParticleVertices.as_slice(), frame.transparentParticleIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.transparentParticleMeshGeneration), false,
+            frame.transparentParticleVertices.as_slice(),
+            frame.transparentParticleIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.transparentParticleMeshGeneration),
+            false,
             &mut self.shaderBuildScratch,
         );
         self.damageMesh.upload(
-            frame.damageVertices.as_slice(), frame.damageIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.damageMeshGeneration), true,
+            frame.damageVertices.as_slice(),
+            frame.damageIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.damageMeshGeneration),
+            true,
             &mut self.shaderBuildScratch,
         );
         self.selectionMesh.upload(
-            frame.selectionVertices.as_slice(), frame.selectionIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::LINE_STRIP, shaderAttributes, Some(frame.selectionMeshGeneration), true,
+            frame.selectionVertices.as_slice(),
+            frame.selectionIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::LINE_STRIP,
+            shaderAttributes,
+            Some(frame.selectionMeshGeneration),
+            true,
             &mut self.shaderBuildScratch,
         );
         self.firstPersonMesh.upload(
-            frame.firstPersonVertices.as_slice(), frame.firstPersonIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, shaderAttributes, Some(frame.firstPersonMeshGeneration), false,
+            frame.firstPersonVertices.as_slice(),
+            frame.firstPersonIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            shaderAttributes,
+            Some(frame.firstPersonMeshGeneration),
+            false,
             &mut self.shaderBuildScratch,
         );
         // GuiIngame is outside Shaders.endRender and never consumes the
         // extended SVertexBuilder attributes.
         self.hudMesh.upload(
-            frame.hudVertices.as_slice(), frame.hudIndices.as_slice(),
-            gl::DYNAMIC_DRAW, gl::TRIANGLES, false, Some(frame.hudMeshGeneration), true,
+            frame.hudVertices.as_slice(),
+            frame.hudIndices.as_slice(),
+            gl::DYNAMIC_DRAW,
+            gl::TRIANGLES,
+            false,
+            Some(frame.hudMeshGeneration),
+            true,
             &mut self.shaderBuildScratch,
         );
         self.performanceDynamicUploadNanos = self
@@ -2450,8 +2747,15 @@ impl OpenGlWorldPipeline {
             gl::BindTexture(gl::TEXTURE_2D, self.lightmapTexture);
             gl::PixelStorei(gl::UNPACK_ALIGNMENT, 4);
             gl::TexSubImage2D(
-                gl::TEXTURE_2D, 0, 0, 0, 16, 16,
-                gl::RGBA, gl::UNSIGNED_BYTE, lightmap.as_ptr().cast(),
+                gl::TEXTURE_2D,
+                0,
+                0,
+                0,
+                16,
+                16,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                lightmap.as_ptr().cast(),
             );
             gl::ActiveTexture(gl::TEXTURE0);
         }
@@ -2505,9 +2809,13 @@ impl OpenGlWorldPipeline {
             if runtime.bindGbufferProgram(draw, &frame.shaderState, extent) {
                 return;
             }
-            unsafe { gl::DrawBuffer(gl::COLOR_ATTACHMENT0); }
+            unsafe {
+                gl::DrawBuffer(gl::COLOR_ATTACHMENT0);
+            }
         } else {
-            unsafe { gl::DrawBuffer(gl::BACK); }
+            unsafe {
+                gl::DrawBuffer(gl::BACK);
+            }
         }
         self.uploadConstants(constants);
     }
@@ -2614,7 +2922,9 @@ impl OpenGlWorldPipeline {
             setDrawState(Alpha, true, true, gl::LEQUAL, false, false, None);
             self.entityDepthMesh
                 .draw(gl::TRIANGLES, 0, self.entityDepthMesh.indexCount);
-            unsafe { gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE); }
+            unsafe {
+                gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
+            }
         }
 
         shaderRuntime.captureOpaqueShadowDepth();
@@ -2689,7 +2999,9 @@ impl OpenGlWorldPipeline {
         setDrawState(Alpha, true, true, gl::LEQUAL, false, true, None);
         self.overlayMesh
             .draw(gl::TRIANGLES, firstIndex, frame.cloudIndexCount);
-        unsafe { gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE); }
+        unsafe {
+            gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
+        }
         draws + 1
     }
 
@@ -2738,11 +3050,20 @@ impl OpenGlWorldPipeline {
                     -1,
                     [0.0; 4],
                 );
-                self.overlayMesh.draw(gl::TRIANGLES, 0, frame.skyAlphaIndexCount);
+                self.overlayMesh
+                    .draw(gl::TRIANGLES, 0, frame.skyAlphaIndexCount);
                 drawCount += 1;
             }
             if frame.skyCelestialIndexCount > 0 {
-                setDrawState(SourceAlphaAdditive, false, false, gl::ALWAYS, false, true, None);
+                setDrawState(
+                    SourceAlphaAdditive,
+                    false,
+                    false,
+                    gl::ALWAYS,
+                    false,
+                    true,
+                    None,
+                );
                 self.bindPassProgram(
                     &mut shaderRuntime,
                     frame,
@@ -2959,8 +3280,11 @@ impl OpenGlWorldPipeline {
                     [0.0; 4],
                 );
                 setDrawState(blend, true, depthWrite, depthFunction, cull, true, None);
-                self.overlayMesh.draw(gl::TRIANGLES, range.firstIndex, range.indexCount);
-                if range.indexCount > 0 { drawCount += 1; }
+                self.overlayMesh
+                    .draw(gl::TRIANGLES, range.firstIndex, range.indexCount);
+                if range.indexCount > 0 {
+                    drawCount += 1;
+                }
             }
         }
 
@@ -2978,13 +3302,16 @@ impl OpenGlWorldPipeline {
                 -1,
                 [0.0; 4],
             );
-            self.entityDepthMesh.draw(gl::TRIANGLES, 0, self.entityDepthMesh.indexCount);
+            self.entityDepthMesh
+                .draw(gl::TRIANGLES, 0, self.entityDepthMesh.indexCount);
             drawCount += 1;
         }
 
         if self.selectionMesh.indexCount > 0 {
             setDrawState(Alpha, true, false, gl::LEQUAL, false, true, None);
-            unsafe { gl::LineWidth(2.0); }
+            unsafe {
+                gl::LineWidth(2.0);
+            }
             let mut constants = frame.pushConstants;
             constants.fogParameters[3] = -2.0;
             self.bindPassProgram(
@@ -2997,13 +3324,24 @@ impl OpenGlWorldPipeline {
                 -1,
                 [0.0; 4],
             );
-            self.selectionMesh.draw(gl::LINE_STRIP, 0, self.selectionMesh.indexCount);
-            unsafe { gl::LineWidth(1.0); }
+            self.selectionMesh
+                .draw(gl::LINE_STRIP, 0, self.selectionMesh.indexCount);
+            unsafe {
+                gl::LineWidth(1.0);
+            }
             drawCount += 1;
         }
 
         if self.damageMesh.indexCount > 0 {
-            setDrawState(BlockDamage, true, true, gl::LEQUAL, true, true, Some((-3.0, -3.0)));
+            setDrawState(
+                BlockDamage,
+                true,
+                true,
+                gl::LEQUAL,
+                true,
+                true,
+                Some((-3.0, -3.0)),
+            );
             let mut constants = frame.pushConstants;
             constants.fogParameters[3] = 0.1;
             constants.lightmapParameters[3] = 98.0;
@@ -3017,7 +3355,8 @@ impl OpenGlWorldPipeline {
                 -1,
                 [0.0; 4],
             );
-            self.damageMesh.draw(gl::TRIANGLES, 0, self.damageMesh.indexCount);
+            self.damageMesh
+                .draw(gl::TRIANGLES, 0, self.damageMesh.indexCount);
             drawCount += 1;
         }
 
@@ -3056,7 +3395,8 @@ impl OpenGlWorldPipeline {
                 -1,
                 [0.0; 4],
             );
-            self.particleMesh.draw(gl::TRIANGLES, 0, self.particleMesh.indexCount);
+            self.particleMesh
+                .draw(gl::TRIANGLES, 0, self.particleMesh.indexCount);
             drawCount += 1;
         }
 
@@ -3138,8 +3478,11 @@ impl OpenGlWorldPipeline {
                     -1,
                     [0.0; 4],
                 );
-                self.firstPersonMesh.draw(gl::TRIANGLES, range.firstIndex, range.indexCount);
-                if range.indexCount > 0 { drawCount += 1; }
+                self.firstPersonMesh
+                    .draw(gl::TRIANGLES, range.firstIndex, range.indexCount);
+                if range.indexCount > 0 {
+                    drawCount += 1;
+                }
             }
         }
 
@@ -3194,7 +3537,9 @@ impl OpenGlWorldPipeline {
     }
 
     fn drawHud(&mut self, frame: &WorldRenderFrame, extent: RendererExtent) {
-        if self.hudMesh.indexCount == 0 { return; }
+        if self.hudMesh.indexCount == 0 {
+            return;
+        }
         unsafe {
             gl::Viewport(0, 0, extent.width as GLsizei, extent.height as GLsizei);
             gl::UseProgram(self.program);
@@ -3209,7 +3554,8 @@ impl OpenGlWorldPipeline {
                 HudPipelineKind::Glint => Glint,
             };
             setDrawState(blend, false, false, gl::LEQUAL, false, true, None);
-            self.hudMesh.draw(gl::TRIANGLES, range.firstIndex, range.indexCount);
+            self.hudMesh
+                .draw(gl::TRIANGLES, range.firstIndex, range.indexCount);
         }
         unsafe {
             gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
@@ -3221,16 +3567,35 @@ impl OpenGlWorldPipeline {
     fn uploadConstants(&self, constants: &WorldPushConstants) {
         unsafe {
             gl::UseProgram(self.program);
-            gl::UniformMatrix4fv(self.uniforms.viewProjection, 1, gl::FALSE, constants.viewProjection.as_ptr());
-            gl::Uniform4fv(self.uniforms.cameraPosition, 1, constants.cameraPosition.as_ptr());
+            gl::UniformMatrix4fv(
+                self.uniforms.viewProjection,
+                1,
+                gl::FALSE,
+                constants.viewProjection.as_ptr(),
+            );
+            gl::Uniform4fv(
+                self.uniforms.cameraPosition,
+                1,
+                constants.cameraPosition.as_ptr(),
+            );
             gl::Uniform4fv(self.uniforms.fogColor, 1, constants.fogColor.as_ptr());
-            gl::Uniform4fv(self.uniforms.fogParameters, 1, constants.fogParameters.as_ptr());
-            gl::Uniform4fv(self.uniforms.lightmapParameters, 1, constants.lightmapParameters.as_ptr());
+            gl::Uniform4fv(
+                self.uniforms.fogParameters,
+                1,
+                constants.fogParameters.as_ptr(),
+            );
+            gl::Uniform4fv(
+                self.uniforms.lightmapParameters,
+                1,
+                constants.lightmapParameters.as_ptr(),
+            );
         }
     }
 
     fn destroy(&mut self) {
-        for region in self.regions.values_mut() { region.mesh.destroy(); }
+        for region in self.regions.values_mut() {
+            region.mesh.destroy();
+        }
         self.regions.clear();
         self.chunks.clear();
         self.entityMesh.destroy();
@@ -3308,8 +3673,9 @@ impl OpenGlWindow {
             .with_profile(GlProfile::Compatibility)
             .build(Some(rawWindow));
         let display = config.display();
-        let notCurrent = unsafe { display.create_context(&config, &contextAttributes) }
-            .context("failed creating OpenGL 3.3 compatibility context required by OptiFine shaders")?;
+        let notCurrent = unsafe { display.create_context(&config, &contextAttributes) }.context(
+            "failed creating OpenGL 3.3 compatibility context required by OptiFine shaders",
+        )?;
         let surfaceAttributes = window
             .build_surface_attributes(Default::default())
             .context("failed building OpenGL window-surface attributes")?;
@@ -3323,11 +3689,16 @@ impl OpenGlWindow {
             display.get_proc_address(symbol.as_c_str()).cast()
         });
         let version = glString(gl::VERSION).unwrap_or_else(|| "unknown OpenGL version".to_owned());
-        let renderer = glString(gl::RENDERER).unwrap_or_else(|| "unknown OpenGL renderer".to_owned());
-        let shading = glString(gl::SHADING_LANGUAGE_VERSION).unwrap_or_else(|| "unknown GLSL version".to_owned());
+        let renderer =
+            glString(gl::RENDERER).unwrap_or_else(|| "unknown OpenGL renderer".to_owned());
+        let shading = glString(gl::SHADING_LANGUAGE_VERSION)
+            .unwrap_or_else(|| "unknown GLSL version".to_owned());
         log::info!("OpenGL output device: {renderer}; version={version}; GLSL={shading}");
         let size = window.inner_size();
-        let extent = RendererExtent { width: size.width, height: size.height };
+        let extent = RendererExtent {
+            width: size.width,
+            height: size.height,
+        };
         let output = Self {
             context,
             surface,
@@ -3352,25 +3723,50 @@ impl OpenGlWindow {
         Ok((window, output))
     }
 
-    pub const fn extent(&self) -> RendererExtent { self.extent }
-    pub fn deviceName(&self) -> &str { &self.deviceName }
+    pub const fn extent(&self) -> RendererExtent {
+        self.extent
+    }
+    pub fn deviceName(&self) -> &str {
+        &self.deviceName
+    }
 
     pub fn drawFrame(&mut self, _window: &Window, frame: &CpuFrame) -> anyhow::Result<()> {
-        if self.extent.width == 0 || self.extent.height == 0 { return Ok(()); }
+        if self.extent.width == 0 || self.extent.height == 0 {
+            return Ok(());
+        }
         self.guiPipeline.draw(frame, self.extent)?;
-        self.surface.swap_buffers(&self.context).context("failed swapping OpenGL GUI buffers")
+        self.surface
+            .swap_buffers(&self.context)
+            .context("failed swapping OpenGL GUI buffers")
     }
 
-    pub fn drawNativeGuiFrame(&mut self, _window: &Window, frame: &GuiRenderFrame) -> anyhow::Result<()> {
-        if self.extent.width == 0 || self.extent.height == 0 { return Ok(()); }
+    pub fn drawNativeGuiFrame(
+        &mut self,
+        _window: &Window,
+        frame: &GuiRenderFrame,
+    ) -> anyhow::Result<()> {
+        if self.extent.width == 0 || self.extent.height == 0 {
+            return Ok(());
+        }
         self.nativeGuiPipeline.draw(frame, self.extent)?;
-        self.surface.swap_buffers(&self.context).context("failed swapping native OpenGL GUI buffers")
+        self.surface
+            .swap_buffers(&self.context)
+            .context("failed swapping native OpenGL GUI buffers")
     }
 
-    pub fn drawWorldFrame(&mut self, _window: &Window, frame: &WorldRenderFrame) -> anyhow::Result<()> {
-        if self.extent.width == 0 || self.extent.height == 0 { return Ok(()); }
+    pub fn drawWorldFrame(
+        &mut self,
+        _window: &Window,
+        frame: &WorldRenderFrame,
+    ) -> anyhow::Result<()> {
+        if self.extent.width == 0 || self.extent.height == 0 {
+            return Ok(());
+        }
         let shaderPrepareStarted = Instant::now();
-        let shaderActive = match self.shaderRuntime.prepareScene(&frame.shaderState, self.extent) {
+        let shaderActive = match self
+            .shaderRuntime
+            .prepareScene(&frame.shaderState, self.extent)
+        {
             Ok(active) => active,
             Err(error) => {
                 self.shaderRuntime.disableAfterRuntimeError(&error);
@@ -3380,21 +3776,20 @@ impl OpenGlWindow {
         self.worldShaderPrepareNanos = self
             .worldShaderPrepareNanos
             .saturating_add(shaderPrepareStarted.elapsed().as_nanos());
-        let shaderAttributes = shaderActive
-            && self.shaderRuntime.requiresExtendedVertexAttributes();
+        let shaderAttributes =
+            shaderActive && self.shaderRuntime.requiresExtendedVertexAttributes();
         let resourceUpdateStarted = Instant::now();
-        self.worldPipeline.updateFrameResources(frame, shaderAttributes)?;
+        self.worldPipeline
+            .updateFrameResources(frame, shaderAttributes)?;
         self.worldResourceUpdateNanos = self
             .worldResourceUpdateNanos
             .saturating_add(resourceUpdateStarted.elapsed().as_nanos());
         if shaderActive {
             let shadowStarted = Instant::now();
             if self.shaderRuntime.beginShadowPass() {
-                let shadowResult = self.worldPipeline.drawShadowScene(
-                    frame,
-                    self.extent,
-                    &mut self.shaderRuntime,
-                );
+                let shadowResult =
+                    self.worldPipeline
+                        .drawShadowScene(frame, self.extent, &mut self.shaderRuntime);
                 // Always restore the deferred scene framebuffer, even when a
                 // shadow traversal draw fails, so the runtime does not leave
                 // the next frame attached to the shadow FBO.
@@ -3405,23 +3800,23 @@ impl OpenGlWindow {
                 .worldShadowNanos
                 .saturating_add(shadowStarted.elapsed().as_nanos());
             let sceneStarted = Instant::now();
-            self.worldPipeline.drawScene(
-                frame,
-                self.extent,
-                Some(&mut self.shaderRuntime),
-            )?;
+            self.worldPipeline
+                .drawScene(frame, self.extent, Some(&mut self.shaderRuntime))?;
             self.worldSceneNanos = self
                 .worldSceneNanos
                 .saturating_add(sceneStarted.elapsed().as_nanos());
             let compositeStarted = Instant::now();
-            self.shaderRuntime.finishScene(&frame.shaderState, self.extent)?;
+            self.shaderRuntime
+                .finishScene(&frame.shaderState, self.extent)?;
             self.worldCompositeNanos = self
                 .worldCompositeNanos
                 .saturating_add(compositeStarted.elapsed().as_nanos());
         } else {
             let sceneStarted = Instant::now();
             self.worldPipeline.drawScene(frame, self.extent, None)?;
-            unsafe { gl::BindFramebuffer(gl::FRAMEBUFFER, 0); }
+            unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            }
             self.worldSceneNanos = self
                 .worldSceneNanos
                 .saturating_add(sceneStarted.elapsed().as_nanos());
@@ -3475,8 +3870,13 @@ impl OpenGlWindow {
 
     pub fn resize(&mut self, window: &Window) -> anyhow::Result<()> {
         let size = window.inner_size();
-        self.extent = RendererExtent { width: size.width, height: size.height };
-        let (Some(width), Some(height)) = (NonZeroU32::new(size.width), NonZeroU32::new(size.height)) else {
+        self.extent = RendererExtent {
+            width: size.width,
+            height: size.height,
+        };
+        let (Some(width), Some(height)) =
+            (NonZeroU32::new(size.width), NonZeroU32::new(size.height))
+        else {
             return Ok(());
         };
         self.surface.resize(&self.context, width, height);
@@ -3484,7 +3884,9 @@ impl OpenGlWindow {
     }
 
     pub fn setVsync(&mut self, enableVsync: bool) -> anyhow::Result<()> {
-        if self.enableVsync == enableVsync { return Ok(()); }
+        if self.enableVsync == enableVsync {
+            return Ok(());
+        }
         self.enableVsync = enableVsync;
         self.applySwapInterval()
     }
@@ -3534,7 +3936,9 @@ fn compileProgram(vertexSource: &str, fragmentSource: &str) -> anyhow::Result<GL
     let fragment = match compileShader(gl::FRAGMENT_SHADER, fragmentSource) {
         Ok(shader) => shader,
         Err(error) => {
-            unsafe { gl::DeleteShader(vertex); }
+            unsafe {
+                gl::DeleteShader(vertex);
+            }
             return Err(error);
         }
     };
@@ -3547,10 +3951,16 @@ fn compileProgram(vertexSource: &str, fragmentSource: &str) -> anyhow::Result<GL
         gl::DeleteShader(fragment);
     }
     let mut status = 0;
-    unsafe { gl::GetProgramiv(program, gl::LINK_STATUS, &mut status); }
-    if status == gl::TRUE as GLint { return Ok(program); }
+    unsafe {
+        gl::GetProgramiv(program, gl::LINK_STATUS, &mut status);
+    }
+    if status == gl::TRUE as GLint {
+        return Ok(program);
+    }
     let log = programLog(program);
-    unsafe { gl::DeleteProgram(program); }
+    unsafe {
+        gl::DeleteProgram(program);
+    }
     Err(anyhow!("OpenGL program link failed: {log}"))
 }
 
@@ -3562,27 +3972,55 @@ fn compileShader(kind: GLenum, source: &str) -> anyhow::Result<GLuint> {
         gl::CompileShader(shader);
     }
     let mut status = 0;
-    unsafe { gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status); }
-    if status == gl::TRUE as GLint { return Ok(shader); }
+    unsafe {
+        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
+    }
+    if status == gl::TRUE as GLint {
+        return Ok(shader);
+    }
     let log = shaderLog(shader);
-    unsafe { gl::DeleteShader(shader); }
+    unsafe {
+        gl::DeleteShader(shader);
+    }
     Err(anyhow!("OpenGL shader compilation failed: {log}"))
 }
 
 fn shaderLog(shader: GLuint) -> String {
     let mut length = 0;
-    unsafe { gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut length); }
+    unsafe {
+        gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut length);
+    }
     let mut buffer = vec![0_u8; length.max(1) as usize];
-    unsafe { gl::GetShaderInfoLog(shader, length, std::ptr::null_mut(), buffer.as_mut_ptr().cast::<GLchar>()); }
-    String::from_utf8_lossy(&buffer).trim_end_matches('\0').to_owned()
+    unsafe {
+        gl::GetShaderInfoLog(
+            shader,
+            length,
+            std::ptr::null_mut(),
+            buffer.as_mut_ptr().cast::<GLchar>(),
+        );
+    }
+    String::from_utf8_lossy(&buffer)
+        .trim_end_matches('\0')
+        .to_owned()
 }
 
 fn programLog(program: GLuint) -> String {
     let mut length = 0;
-    unsafe { gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut length); }
+    unsafe {
+        gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut length);
+    }
     let mut buffer = vec![0_u8; length.max(1) as usize];
-    unsafe { gl::GetProgramInfoLog(program, length, std::ptr::null_mut(), buffer.as_mut_ptr().cast::<GLchar>()); }
-    String::from_utf8_lossy(&buffer).trim_end_matches('\0').to_owned()
+    unsafe {
+        gl::GetProgramInfoLog(
+            program,
+            length,
+            std::ptr::null_mut(),
+            buffer.as_mut_ptr().cast::<GLchar>(),
+        );
+    }
+    String::from_utf8_lossy(&buffer)
+        .trim_end_matches('\0')
+        .to_owned()
 }
 
 fn uniformLocation(program: GLuint, name: &str) -> GLint {
@@ -3592,8 +4030,14 @@ fn uniformLocation(program: GLuint, name: &str) -> GLint {
 
 fn glString(name: GLenum) -> Option<String> {
     let pointer = unsafe { gl::GetString(name) };
-    if pointer.is_null() { return None; }
-    Some(unsafe { CStr::from_ptr(pointer.cast()) }.to_string_lossy().into_owned())
+    if pointer.is_null() {
+        return None;
+    }
+    Some(
+        unsafe { CStr::from_ptr(pointer.cast()) }
+            .to_string_lossy()
+            .into_owned(),
+    )
 }
 
 fn setDrawState(
@@ -3606,7 +4050,11 @@ fn setDrawState(
     polygonOffset: Option<(f32, f32)>,
 ) {
     unsafe {
-        if depthTest { gl::Enable(gl::DEPTH_TEST); } else { gl::Disable(gl::DEPTH_TEST); }
+        if depthTest {
+            gl::Enable(gl::DEPTH_TEST);
+        } else {
+            gl::Disable(gl::DEPTH_TEST);
+        }
         gl::DepthMask(if depthWrite { gl::TRUE } else { gl::FALSE });
         gl::DepthFunc(depthFunction);
         if cullBackFaces {
@@ -3635,7 +4083,12 @@ fn setDrawState(
             }
             InvertCrosshair => {
                 gl::Enable(gl::BLEND);
-                gl::BlendFuncSeparate(gl::ONE_MINUS_DST_COLOR, gl::ONE_MINUS_SRC_COLOR, gl::ONE, gl::ZERO);
+                gl::BlendFuncSeparate(
+                    gl::ONE_MINUS_DST_COLOR,
+                    gl::ONE_MINUS_SRC_COLOR,
+                    gl::ONE,
+                    gl::ZERO,
+                );
             }
             Glint => {
                 gl::Enable(gl::BLEND);

@@ -1,22 +1,20 @@
-use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
-use crate::net::minecraft::client::gui::GuiTextField::{
-    GuiTextField, GuiTextFieldKey, GuiTextFieldModifiers, GuiTextFieldRenderState,
-};
 use crate::net::minecraft::client::gui::recipebook::GhostRecipe::GhostRecipe;
 use crate::net::minecraft::client::gui::recipebook::GuiRecipeOverlay::{
     GuiRecipeOverlay, RecipeOverlayRenderState,
+};
+use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
+use crate::net::minecraft::client::gui::GuiTextField::{
+    GuiTextField, GuiTextFieldKey, GuiTextFieldModifiers, GuiTextFieldRenderState,
 };
 use crate::net::minecraft::client::resources::Locale::Locale;
 use crate::net::minecraft::client::util::RecipeBookClient::RecipeBookClient;
 use crate::net::minecraft::client::util::RecipeItemHelper::RecipeItemHelper;
 use crate::net::minecraft::entity::player::InventoryPlayer::InventoryPlayer;
-use crate::net::minecraft::item::ItemStack::ItemStack;
-use crate::net::minecraft::item::ItemTooltip::getTooltip;
 use crate::net::minecraft::item::crafting::CraftingManager::CraftingManager;
 use crate::net::minecraft::item::crafting::Ingredient::Ingredient;
-use crate::net::minecraft::item::crafting::RecipeRegistryData::{
-    RecipeCategory, RecipeKind,
-};
+use crate::net::minecraft::item::crafting::RecipeRegistryData::{RecipeCategory, RecipeKind};
+use crate::net::minecraft::item::ItemStack::ItemStack;
+use crate::net::minecraft::item::ItemTooltip::getTooltip;
 use crate::net::minecraft::stats::RecipeBook::RecipeBook;
 use std::array;
 
@@ -136,7 +134,9 @@ pub struct GuiRecipeBook {
 }
 
 impl Default for GuiRecipeBook {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl GuiRecipeBook {
@@ -161,13 +161,7 @@ impl GuiRecipeBook {
         }
     }
 
-    pub fn init(
-        &mut self,
-        width: i32,
-        height: i32,
-        widthTooNarrow: bool,
-        book: &RecipeBook,
-    ) {
+    pub fn init(&mut self, width: i32, height: i32, widthTooNarrow: bool, book: &RecipeBook) {
         self.screenWidth = width;
         self.screenHeight = height;
         self.widthTooNarrow = widthTooNarrow;
@@ -182,12 +176,24 @@ impl GuiRecipeBook {
         self.buttonBounceTicks = [0.0; PAGE_SIZE];
     }
 
-    pub const fn isOpen(&self) -> bool { self.open }
-    pub const fn isWidthTooNarrow(&self) -> bool { self.widthTooNarrow }
-    pub const fn isFilteringCraftable(&self) -> bool { self.filteringCraftable }
-    pub const fn selectedCategory(&self) -> RecipeCategory { self.selectedCategory }
-    pub fn searchText(&self) -> String { self.searchField.getText() }
-    pub const fn searchFocused(&self) -> bool { self.searchField.isFocused() }
+    pub const fn isOpen(&self) -> bool {
+        self.open
+    }
+    pub const fn isWidthTooNarrow(&self) -> bool {
+        self.widthTooNarrow
+    }
+    pub const fn isFilteringCraftable(&self) -> bool {
+        self.filteringCraftable
+    }
+    pub const fn selectedCategory(&self) -> RecipeCategory {
+        self.selectedCategory
+    }
+    pub fn searchText(&self) -> String {
+        self.searchField.getText()
+    }
+    pub const fn searchFocused(&self) -> bool {
+        self.searchField.isFocused()
+    }
 
     pub fn setSearchText(&mut self, text: &str) {
         self.searchField.setText(text);
@@ -197,7 +203,9 @@ impl GuiRecipeBook {
         (self.screenWidth - RECIPE_BOOK_WIDTH) / 2 - if self.widthTooNarrow { 0 } else { 86 }
     }
 
-    pub fn panelTop(&self) -> i32 { (self.screenHeight - RECIPE_BOOK_HEIGHT) / 2 }
+    pub fn panelTop(&self) -> i32 {
+        (self.screenHeight - RECIPE_BOOK_HEIGHT) / 2
+    }
 
     pub fn containerLeft(&self, containerWidth: i32) -> i32 {
         if self.open && !self.widthTooNarrow {
@@ -210,27 +218,56 @@ impl GuiRecipeBook {
     pub fn toggleRect(&self, inventory: bool) -> GuiRect {
         let x = self.containerLeft(176) + if inventory { 104 } else { 5 };
         let y = self.screenHeight / 2 + if inventory { -22 } else { -49 };
-        GuiRect { x, y, width: 20, height: 18 }
+        GuiRect {
+            x,
+            y,
+            width: 20,
+            height: 18,
+        }
     }
 
     pub fn filterRect(&self) -> GuiRect {
-        GuiRect { x: self.panelLeft() + 110, y: self.panelTop() + 12, width: 26, height: 16 }
+        GuiRect {
+            x: self.panelLeft() + 110,
+            y: self.panelTop() + 12,
+            width: 26,
+            height: 16,
+        }
     }
 
     pub fn searchRect(&self) -> GuiRect {
-        GuiRect { x: self.panelLeft() + 25, y: self.panelTop() + 14, width: 80, height: 14 }
+        GuiRect {
+            x: self.panelLeft() + 25,
+            y: self.panelTop() + 14,
+            width: 80,
+            height: 14,
+        }
     }
 
     pub fn previousRect(&self) -> GuiRect {
-        GuiRect { x: self.panelLeft() + 38, y: self.panelTop() + 137, width: 12, height: 17 }
+        GuiRect {
+            x: self.panelLeft() + 38,
+            y: self.panelTop() + 137,
+            width: 12,
+            height: 17,
+        }
     }
 
     pub fn nextRect(&self) -> GuiRect {
-        GuiRect { x: self.panelLeft() + 93, y: self.panelTop() + 137, width: 12, height: 17 }
+        GuiRect {
+            x: self.panelLeft() + 93,
+            y: self.panelTop() + 137,
+            width: 12,
+            height: 17,
+        }
     }
 
-    pub fn pageCount(&self) -> usize { (self.visibleLists.len() + PAGE_SIZE - 1) / PAGE_SIZE }
-    pub const fn currentPage(&self) -> usize { self.page }
+    pub fn pageCount(&self) -> usize {
+        (self.visibleLists.len() + PAGE_SIZE - 1) / PAGE_SIZE
+    }
+    pub const fn currentPage(&self) -> usize {
+        self.page
+    }
 
     pub fn tabs(&self) -> Vec<RecipeTabState> {
         let mut result = Vec::new();
@@ -272,8 +309,12 @@ impl GuiRecipeBook {
         self.open = book.isGuiOpen();
         self.filteringCraftable = book.isFilteringCraftable();
         let mut helper = RecipeItemHelper::default();
-        for stack in &inventory.mainInventory { helper.accountStack(stack); }
-        for stack in craftingStacks { helper.accountStack(stack); }
+        for stack in &inventory.mainInventory {
+            helper.accountStack(stack);
+        }
+        for stack in craftingStacks {
+            helper.accountStack(stack);
+        }
 
         let indices = self.client.listIndices(self.selectedCategory).to_vec();
         for &index in &indices {
@@ -294,11 +335,15 @@ impl GuiRecipeBook {
                     {
                         return false;
                     }
-                    if search.is_empty() { return true; }
+                    if search.is_empty() {
+                        return true;
+                    }
                     list.recipes().iter().any(|&id| {
                         CraftingManager::getRecipe(id).is_some_and(|recipe| {
                             let registry = recipe.getRegistryName().to_lowercase();
-                            if search.contains(':') && registry.contains(&search) { return true; }
+                            if search.contains(':') && registry.contains(&search) {
+                                return true;
+                            }
                             getTooltip(&recipe.getRecipeOutput(), locale, false)
                                 .into_iter()
                                 .map(|line| stripFormatting(&line).trim().to_lowercase())
@@ -308,7 +353,9 @@ impl GuiRecipeBook {
                 })
             })
             .collect();
-        if resetPage || self.page >= self.pageCount().max(1) { self.page = 0; }
+        if resetPage || self.page >= self.pageCount().max(1) {
+            self.page = 0;
+        }
         self.lastSearchText = search;
 
         // `RecipeBookPage#func_194198_d` assigns the current page's lists to
@@ -321,11 +368,16 @@ impl GuiRecipeBook {
             let containsNew = assigned
                 .and_then(|index| self.client.list(index))
                 .is_some_and(|list| {
-                    list.visibleRecipes(self.filteringCraftable).into_iter().any(|recipeId| {
-                        CraftingManager::getRecipe(recipeId).is_some_and(|recipe| book.isNew(recipe))
-                    })
+                    list.visibleRecipes(self.filteringCraftable)
+                        .into_iter()
+                        .any(|recipeId| {
+                            CraftingManager::getRecipe(recipeId)
+                                .is_some_and(|recipe| book.isNew(recipe))
+                        })
                 });
-            if containsNew { self.buttonBounceTicks[button] = 15.0; }
+            if containsNew {
+                self.buttonBounceTicks[button] = 15.0;
+            }
         }
     }
 
@@ -342,8 +394,11 @@ impl GuiRecipeBook {
                 if !self.filteringCraftable {
                     recipes.extend(list.recipesByCraftability(false));
                 }
-                if recipes.is_empty() { return None; }
-                let recipeId = recipes[((self.buttonCycleTicks[button] / 30.0).floor() as usize) % recipes.len()];
+                if recipes.is_empty() {
+                    return None;
+                }
+                let recipeId = recipes
+                    [((self.buttonCycleTicks[button] / 30.0).floor() as usize) % recipes.len()];
                 let bounce = self.buttonBounceTicks[button];
                 let animationScale = if bounce > 0.0 {
                     1.0 + 0.1 * (bounce / 15.0 * std::f32::consts::PI).sin()
@@ -372,8 +427,12 @@ impl GuiRecipeBook {
         if self.open {
             self.searchField.updateCursorCounter();
             for button in 0..PAGE_SIZE {
-                if self.buttonListIndices[button].is_none() { continue; }
-                if !controlHeld { self.buttonCycleTicks[button] += partialTicks; }
+                if self.buttonListIndices[button].is_none() {
+                    continue;
+                }
+                if !controlHeld {
+                    self.buttonCycleTicks[button] += partialTicks;
+                }
                 if self.buttonBounceTicks[button] > 0.0 {
                     self.buttonBounceTicks[button] =
                         (self.buttonBounceTicks[button] - partialTicks).max(0.0);
@@ -398,13 +457,17 @@ impl GuiRecipeBook {
         if !(self.open && self.widthTooNarrow) && self.toggleRect(inventoryScreen).contains(x, y) {
             self.open = !self.open;
             book.setGuiOpen(self.open);
-            if !self.open { self.ghost.clear(); }
+            if !self.open {
+                self.ghost.clear();
+            }
             return RecipeBookClick::SettingsChanged {
                 open: self.open,
                 filtering: self.filteringCraftable,
             };
         }
-        if !self.open { return RecipeBookClick::None; }
+        if !self.open {
+            return RecipeBookClick::None;
+        }
 
         // `RecipeBookPage` gives an active GuiRecipeOverlay first refusal for
         // every mouse button. A primary-button hit selects that exact recipe;
@@ -449,7 +512,9 @@ impl GuiRecipeBook {
             return RecipeBookClick::Consumed;
         }
         for state in self.recipeButtons(book) {
-            if !state.rect.contains(x, y) { continue; }
+            if !state.rect.contains(x, y) {
+                continue;
+            }
             if button == 0 {
                 if !state.craftable && self.ghost.recipeId() == Some(state.recipeId) {
                     return RecipeBookClick::None;
@@ -483,7 +548,9 @@ impl GuiRecipeBook {
             }
             return RecipeBookClick::Consumed;
         }
-        if button != 0 { return RecipeBookClick::None; }
+        if button != 0 {
+            return RecipeBookClick::None;
+        }
 
         if self.searchField.mouseClicked(x, y, button, font) {
             return RecipeBookClick::Consumed;
@@ -511,7 +578,9 @@ impl GuiRecipeBook {
     }
 
     pub fn focusSearchFromChatKey(&mut self) -> bool {
-        if !self.open || self.searchField.isFocused() { return false; }
+        if !self.open || self.searchField.isFocused() {
+            return false;
+        }
         self.searchField.setFocused(true);
         true
     }
@@ -522,7 +591,9 @@ impl GuiRecipeBook {
         modifiers: GuiTextFieldModifiers,
         font: &FontRenderer,
     ) -> (bool, bool) {
-        if !self.open { return (false, false); }
+        if !self.open {
+            return (false, false);
+        }
         let before = self.searchField.getText();
         let handled = self.searchField.keyPressed(key, modifiers, font);
         let textChanged = handled && before != self.searchField.getText();
@@ -530,20 +601,26 @@ impl GuiRecipeBook {
     }
 
     pub fn selectAllSearch(&mut self, font: &FontRenderer) -> bool {
-        if !self.open || !self.searchField.isFocused() { return false; }
+        if !self.open || !self.searchField.isFocused() {
+            return false;
+        }
         self.searchField.selectAll(font);
         true
     }
 
     pub fn typedText(&mut self, text: &str, font: &FontRenderer) -> bool {
-        if !self.open || !self.searchField.isFocused() { return false; }
+        if !self.open || !self.searchField.isFocused() {
+            return false;
+        }
         let before = self.searchField.getText();
         let handled = self.searchField.writeText(text, Some(font));
         handled && before != self.searchField.getText()
     }
 
     pub fn closeOnEscape(&mut self, book: &mut RecipeBook) -> Option<RecipeBookClick> {
-        if !self.open || !self.widthTooNarrow { return None; }
+        if !self.open || !self.widthTooNarrow {
+            return None;
+        }
         self.open = false;
         self.ghost.clear();
         self.overlay.close();
@@ -561,8 +638,12 @@ impl GuiRecipeBook {
         gridWidth: usize,
         gridHeight: usize,
     ) {
-        let Some(recipe) = CraftingManager::getRecipe(recipeId) else { return; };
-        if slotPositions.is_empty() { return; }
+        let Some(recipe) = CraftingManager::getRecipe(recipeId) else {
+            return;
+        };
+        if slotPositions.is_empty() {
+            return;
+        }
         self.ghost.clear();
         self.ghost.setRecipe(recipeId);
         self.ghost.addIngredient(
@@ -580,7 +661,9 @@ impl GuiRecipeBook {
         let mut slot = 1_usize;
         for _row in 0..gridHeight {
             for _column in 0..width {
-                let Some(ingredient) = iterator.next() else { return; };
+                let Some(ingredient) = iterator.next() else {
+                    return;
+                };
                 if !ingredient.getMatchingStacks().is_empty() {
                     if let Some(&(x, y)) = slotPositions.get(slot) {
                         self.ghost.addIngredient(ingredient, x, y);
@@ -588,7 +671,9 @@ impl GuiRecipeBook {
                 }
                 slot += 1;
             }
-            if width < gridWidth { slot += gridWidth - width; }
+            if width < gridWidth {
+                slot += gridWidth - width;
+            }
         }
     }
 
@@ -597,20 +682,28 @@ impl GuiRecipeBook {
     /// recipe-list button. Only the twenty lists assigned to the active page
     /// participate, matching `RecipeBookPage#func_194198_d`.
     pub fn newlyDisplayedRecipeIds(&self, book: &RecipeBook) -> Vec<i32> {
-        if !self.open { return Vec::new(); }
+        if !self.open {
+            return Vec::new();
+        }
         let mut result = Vec::new();
         let start = self.page * PAGE_SIZE;
         for &listIndex in self.visibleLists.iter().skip(start).take(PAGE_SIZE) {
-            let Some(list) = self.client.list(listIndex) else { continue; };
+            let Some(list) = self.client.list(listIndex) else {
+                continue;
+            };
             let visible = list.visibleRecipes(self.filteringCraftable);
             let containsNew = visible.iter().any(|&recipeId| {
                 CraftingManager::getRecipe(recipeId).is_some_and(|recipe| book.isNew(recipe))
             });
-            if !containsNew { continue; }
+            if !containsNew {
+                continue;
+            }
             for recipeId in visible {
-                let isNew = CraftingManager::getRecipe(recipeId)
-                    .is_some_and(|recipe| book.isNew(recipe));
-                if isNew && !result.contains(&recipeId) { result.push(recipeId); }
+                let isNew =
+                    CraftingManager::getRecipe(recipeId).is_some_and(|recipe| book.isNew(recipe));
+                if isNew && !result.contains(&recipeId) {
+                    result.push(recipeId);
+                }
             }
         }
         result
@@ -657,8 +750,12 @@ impl GuiRecipeBook {
         }
     }
 
-    pub fn ghost(&self) -> &GhostRecipe { &self.ghost }
-    pub fn clearGhost(&mut self) { self.ghost.clear(); }
+    pub fn ghost(&self) -> &GhostRecipe {
+        &self.ghost
+    }
+    pub fn clearGhost(&mut self) {
+        self.ghost.clear();
+    }
 
     pub fn isPointOutside(
         &self,
@@ -669,7 +766,9 @@ impl GuiRecipeBook {
         xSize: i32,
         ySize: i32,
     ) -> bool {
-        if !self.open { return true; }
+        if !self.open {
+            return true;
+        }
         let outside = mouseX < guiLeft
             || mouseY < guiTop
             || mouseX >= guiLeft + xSize
@@ -704,7 +803,11 @@ fn stripFormatting(value: &str) -> String {
             skip = false;
             continue;
         }
-        if character == '§' { skip = true; } else { output.push(character); }
+        if character == '§' {
+            skip = true;
+        } else {
+            output.push(character);
+        }
     }
     output
 }
@@ -720,7 +823,15 @@ mod tests {
         gui.init(400, 240, false, &book);
         assert_eq!(gui.panelLeft(), 40);
         assert_eq!(gui.panelTop(), 37);
-        assert_eq!(gui.filterRect(), GuiRect { x: 150, y: 49, width: 26, height: 16 });
+        assert_eq!(
+            gui.filterRect(),
+            GuiRect {
+                x: 150,
+                y: 49,
+                width: 26,
+                height: 16
+            }
+        );
         assert_eq!(gui.containerLeft(176), 112);
     }
 

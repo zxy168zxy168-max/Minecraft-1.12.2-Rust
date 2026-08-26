@@ -247,14 +247,21 @@ impl GuiShader {
                 GuiShaderOptionsAction::None => GuiShaderAction::None,
                 GuiShaderOptionsAction::Reload => GuiShaderAction::ReloadShaderPack,
                 GuiShaderOptionsAction::Close { reload } => {
-                    if reload { GuiShaderAction::ReloadShaderPack } else { GuiShaderAction::None }
+                    if reload {
+                        GuiShaderAction::ReloadShaderPack
+                    } else {
+                        GuiShaderAction::None
+                    }
                 }
             };
             if close {
                 self.shaderOptions = None;
                 self.initGui(self.GuiScreen.width, self.GuiScreen.height);
             }
-            return Some(GuiShaderInteraction { action, sound: interaction.sound });
+            return Some(GuiShaderInteraction {
+                action,
+                sound: interaction.sound,
+            });
         }
 
         if mouseButton != 0 {
@@ -295,7 +302,10 @@ impl GuiShader {
         if self.shaderOptionsButton.mousePressed(mouseX, mouseY) {
             let sound = self.shaderOptionsButton.playPressSound();
             self.openShaderOptions();
-            return Some(GuiShaderInteraction { action: GuiShaderAction::None, sound });
+            return Some(GuiShaderInteraction {
+                action: GuiShaderAction::None,
+                sound,
+            });
         }
         if mouseX < 0
             || mouseX >= self.listWidth
@@ -367,14 +377,22 @@ impl GuiShader {
         self.amountScrolled = self.amountScrolled.clamp(0.0, self.maxScroll());
     }
 
-    pub fn shaderpacksDir(&self) -> PathBuf { self.shaders.shaderpacksdir.clone() }
-    pub fn selectedName(&self) -> &str { &self.shaders.currentshadername }
-    pub fn isOptionsView(&self) -> bool { self.shaderOptions.is_some() }
+    pub fn shaderpacksDir(&self) -> PathBuf {
+        self.shaders.shaderpacksdir.clone()
+    }
+    pub fn selectedName(&self) -> &str {
+        &self.shaders.currentshadername
+    }
+    pub fn isOptionsView(&self) -> bool {
+        self.shaderOptions.is_some()
+    }
 
     /// Escape/on-close behavior of OptiFine `GuiShaderOptions#onGuiClosed`.
     pub fn closeOptionsView(&mut self) -> bool {
         let action = {
-            let Some(options) = self.shaderOptions.as_mut() else { return false; };
+            let Some(options) = self.shaderOptions.as_mut() else {
+                return false;
+            };
             options.close()
         };
         match action {
@@ -443,12 +461,22 @@ impl GuiShader {
         for (_, button) in &mut self.enumButtons {
             button.drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
         }
-        self.shaderPacksFolderButton
-            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.shaderPacksFolderButton.drawButton(
+            drawList,
+            fontRendererObj,
+            mouseX,
+            mouseY,
+            partialTicks,
+        );
         self.doneButton
             .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
-        self.shaderOptionsButton
-            .drawButton(drawList, fontRendererObj, mouseX, mouseY, partialTicks);
+        self.shaderOptionsButton.drawButton(
+            drawList,
+            fontRendererObj,
+            mouseX,
+            mouseY,
+            partialTicks,
+        );
     }
 
     fn updateButtons(&mut self) {
@@ -470,11 +498,21 @@ impl GuiShader {
                 },
                 EnumShaderOption::NormalMap => onOff(self.shaders.configNormalMap).to_owned(),
                 EnumShaderOption::SpecularMap => onOff(self.shaders.configSpecularMap).to_owned(),
-                EnumShaderOption::RenderResMul => qualityName(self.shaders.configRenderResMul).to_owned(),
-                EnumShaderOption::ShadowResMul => qualityName(self.shaders.configShadowResMul).to_owned(),
-                EnumShaderOption::HandDepthMul => handDepthName(self.shaders.configHandDepthMul).to_owned(),
-                EnumShaderOption::OldHandLight => self.shaders.configOldHandLight.userValue().to_owned(),
-                EnumShaderOption::OldLighting => self.shaders.configOldLighting.userValue().to_owned(),
+                EnumShaderOption::RenderResMul => {
+                    qualityName(self.shaders.configRenderResMul).to_owned()
+                }
+                EnumShaderOption::ShadowResMul => {
+                    qualityName(self.shaders.configShadowResMul).to_owned()
+                }
+                EnumShaderOption::HandDepthMul => {
+                    handDepthName(self.shaders.configHandDepthMul).to_owned()
+                }
+                EnumShaderOption::OldHandLight => {
+                    self.shaders.configOldHandLight.userValue().to_owned()
+                }
+                EnumShaderOption::OldLighting => {
+                    self.shaders.configOldLighting.userValue().to_owned()
+                }
             };
             button.displayString = format!("{}: {value}", option.label());
         }
@@ -483,7 +521,9 @@ impl GuiShader {
     fn changeEnumOption(&mut self, option: EnumShaderOption, previous: bool) {
         match option {
             EnumShaderOption::Antialiasing => self.shaders.nextAntialiasingLevel(),
-            EnumShaderOption::NormalMap => self.shaders.configNormalMap = !self.shaders.configNormalMap,
+            EnumShaderOption::NormalMap => {
+                self.shaders.configNormalMap = !self.shaders.configNormalMap
+            }
             EnumShaderOption::SpecularMap => {
                 self.shaders.configSpecularMap = !self.shaders.configSpecularMap;
             }
@@ -524,8 +564,12 @@ impl GuiShader {
         pack.close();
     }
 
-    fn listBottom(&self) -> i32 { self.GuiScreen.height - LIST_BOTTOM_MARGIN }
-    fn contentHeight(&self) -> i32 { self.shaderslist.len() as i32 * CONTENT_SLOT_HEIGHT }
+    fn listBottom(&self) -> i32 {
+        self.GuiScreen.height - LIST_BOTTOM_MARGIN
+    }
+    fn contentHeight(&self) -> i32 {
+        self.shaderslist.len() as i32 * CONTENT_SLOT_HEIGHT
+    }
     fn maxScroll(&self) -> f32 {
         (self.contentHeight() - (self.listBottom() - LIST_TOP)).max(0) as f32
     }
@@ -549,8 +593,20 @@ impl GuiShader {
                 continue;
             }
             if index == self.selectedIndex {
-                drawList.draw_rect(2, y, self.listWidth - 2, y + SLOT_HEIGHT, 0xFF80_8080_u32 as i32);
-                drawList.draw_rect(3, y + 1, self.listWidth - 3, y + SLOT_HEIGHT - 1, 0xFF00_0000_u32 as i32);
+                drawList.draw_rect(
+                    2,
+                    y,
+                    self.listWidth - 2,
+                    y + SLOT_HEIGHT,
+                    0xFF80_8080_u32 as i32,
+                );
+                drawList.draw_rect(
+                    3,
+                    y + 1,
+                    self.listWidth - 3,
+                    y + SLOT_HEIGHT - 1,
+                    0xFF00_0000_u32 as i32,
+                );
             }
             let name = if entry.name == packNameNone {
                 "OFF"
@@ -589,7 +645,11 @@ impl GuiShader {
 }
 
 const fn onOff(value: bool) -> &'static str {
-    if value { "ON" } else { "OFF" }
+    if value {
+        "ON"
+    } else {
+        "OFF"
+    }
 }
 
 #[cfg(test)]

@@ -2,483 +2,483 @@
 /// Values are the exact default-state `blockHardness` and
 /// `Material.isToolNotRequired()` results for protocol block IDs 0..255.
 pub const BLOCK_HARDNESS: [f32; 256] = [
-    0_f32, // 0: minecraft:air
-    1.5_f32, // 1: minecraft:stone
+    0_f32,           // 0: minecraft:air
+    1.5_f32,         // 1: minecraft:stone
     0.600000024_f32, // 2: minecraft:grass
-    0.5_f32, // 3: minecraft:dirt
-    2_f32, // 4: minecraft:cobblestone
-    2_f32, // 5: minecraft:planks
-    0_f32, // 6: minecraft:sapling
-    -1_f32, // 7: minecraft:bedrock
-    100_f32, // 8: minecraft:flowing_water
-    100_f32, // 9: minecraft:water
-    100_f32, // 10: minecraft:flowing_lava
-    100_f32, // 11: minecraft:lava
-    0.5_f32, // 12: minecraft:sand
+    0.5_f32,         // 3: minecraft:dirt
+    2_f32,           // 4: minecraft:cobblestone
+    2_f32,           // 5: minecraft:planks
+    0_f32,           // 6: minecraft:sapling
+    -1_f32,          // 7: minecraft:bedrock
+    100_f32,         // 8: minecraft:flowing_water
+    100_f32,         // 9: minecraft:water
+    100_f32,         // 10: minecraft:flowing_lava
+    100_f32,         // 11: minecraft:lava
+    0.5_f32,         // 12: minecraft:sand
     0.600000024_f32, // 13: minecraft:gravel
-    3_f32, // 14: minecraft:gold_ore
-    3_f32, // 15: minecraft:iron_ore
-    3_f32, // 16: minecraft:coal_ore
-    2_f32, // 17: minecraft:log
+    3_f32,           // 14: minecraft:gold_ore
+    3_f32,           // 15: minecraft:iron_ore
+    3_f32,           // 16: minecraft:coal_ore
+    2_f32,           // 17: minecraft:log
     0.200000003_f32, // 18: minecraft:leaves
     0.600000024_f32, // 19: minecraft:sponge
     0.300000012_f32, // 20: minecraft:glass
-    3_f32, // 21: minecraft:lapis_ore
-    3_f32, // 22: minecraft:lapis_block
-    3.5_f32, // 23: minecraft:dispenser
+    3_f32,           // 21: minecraft:lapis_ore
+    3_f32,           // 22: minecraft:lapis_block
+    3.5_f32,         // 23: minecraft:dispenser
     0.800000012_f32, // 24: minecraft:sandstone
     0.800000012_f32, // 25: minecraft:noteblock
     0.200000003_f32, // 26: minecraft:bed
     0.699999988_f32, // 27: minecraft:golden_rail
     0.699999988_f32, // 28: minecraft:detector_rail
-    0.5_f32, // 29: minecraft:sticky_piston
-    4_f32, // 30: minecraft:web
-    0_f32, // 31: minecraft:tallgrass
-    0_f32, // 32: minecraft:deadbush
-    0.5_f32, // 33: minecraft:piston
-    0.5_f32, // 34: minecraft:piston_head
+    0.5_f32,         // 29: minecraft:sticky_piston
+    4_f32,           // 30: minecraft:web
+    0_f32,           // 31: minecraft:tallgrass
+    0_f32,           // 32: minecraft:deadbush
+    0.5_f32,         // 33: minecraft:piston
+    0.5_f32,         // 34: minecraft:piston_head
     0.800000012_f32, // 35: minecraft:wool
-    -1_f32, // 36: minecraft:piston_extension
-    0_f32, // 37: minecraft:yellow_flower
-    0_f32, // 38: minecraft:red_flower
-    0_f32, // 39: minecraft:brown_mushroom
-    0_f32, // 40: minecraft:red_mushroom
-    3_f32, // 41: minecraft:gold_block
-    5_f32, // 42: minecraft:iron_block
-    2_f32, // 43: minecraft:double_stone_slab
-    2_f32, // 44: minecraft:stone_slab
-    2_f32, // 45: minecraft:brick_block
-    0_f32, // 46: minecraft:tnt
-    1.5_f32, // 47: minecraft:bookshelf
-    2_f32, // 48: minecraft:mossy_cobblestone
-    50_f32, // 49: minecraft:obsidian
-    0_f32, // 50: minecraft:torch
-    0_f32, // 51: minecraft:fire
-    5_f32, // 52: minecraft:mob_spawner
-    2_f32, // 53: minecraft:oak_stairs
-    2.5_f32, // 54: minecraft:chest
-    0_f32, // 55: minecraft:redstone_wire
-    3_f32, // 56: minecraft:diamond_ore
-    5_f32, // 57: minecraft:diamond_block
-    2.5_f32, // 58: minecraft:crafting_table
-    0_f32, // 59: minecraft:wheat
+    -1_f32,          // 36: minecraft:piston_extension
+    0_f32,           // 37: minecraft:yellow_flower
+    0_f32,           // 38: minecraft:red_flower
+    0_f32,           // 39: minecraft:brown_mushroom
+    0_f32,           // 40: minecraft:red_mushroom
+    3_f32,           // 41: minecraft:gold_block
+    5_f32,           // 42: minecraft:iron_block
+    2_f32,           // 43: minecraft:double_stone_slab
+    2_f32,           // 44: minecraft:stone_slab
+    2_f32,           // 45: minecraft:brick_block
+    0_f32,           // 46: minecraft:tnt
+    1.5_f32,         // 47: minecraft:bookshelf
+    2_f32,           // 48: minecraft:mossy_cobblestone
+    50_f32,          // 49: minecraft:obsidian
+    0_f32,           // 50: minecraft:torch
+    0_f32,           // 51: minecraft:fire
+    5_f32,           // 52: minecraft:mob_spawner
+    2_f32,           // 53: minecraft:oak_stairs
+    2.5_f32,         // 54: minecraft:chest
+    0_f32,           // 55: minecraft:redstone_wire
+    3_f32,           // 56: minecraft:diamond_ore
+    5_f32,           // 57: minecraft:diamond_block
+    2.5_f32,         // 58: minecraft:crafting_table
+    0_f32,           // 59: minecraft:wheat
     0.600000024_f32, // 60: minecraft:farmland
-    3.5_f32, // 61: minecraft:furnace
-    3.5_f32, // 62: minecraft:lit_furnace
-    1_f32, // 63: minecraft:standing_sign
-    3_f32, // 64: minecraft:wooden_door
+    3.5_f32,         // 61: minecraft:furnace
+    3.5_f32,         // 62: minecraft:lit_furnace
+    1_f32,           // 63: minecraft:standing_sign
+    3_f32,           // 64: minecraft:wooden_door
     0.400000006_f32, // 65: minecraft:ladder
     0.699999988_f32, // 66: minecraft:rail
-    2_f32, // 67: minecraft:stone_stairs
-    1_f32, // 68: minecraft:wall_sign
-    0.5_f32, // 69: minecraft:lever
-    0.5_f32, // 70: minecraft:stone_pressure_plate
-    5_f32, // 71: minecraft:iron_door
-    0.5_f32, // 72: minecraft:wooden_pressure_plate
-    3_f32, // 73: minecraft:redstone_ore
-    3_f32, // 74: minecraft:lit_redstone_ore
-    0_f32, // 75: minecraft:unlit_redstone_torch
-    0_f32, // 76: minecraft:redstone_torch
-    0.5_f32, // 77: minecraft:stone_button
+    2_f32,           // 67: minecraft:stone_stairs
+    1_f32,           // 68: minecraft:wall_sign
+    0.5_f32,         // 69: minecraft:lever
+    0.5_f32,         // 70: minecraft:stone_pressure_plate
+    5_f32,           // 71: minecraft:iron_door
+    0.5_f32,         // 72: minecraft:wooden_pressure_plate
+    3_f32,           // 73: minecraft:redstone_ore
+    3_f32,           // 74: minecraft:lit_redstone_ore
+    0_f32,           // 75: minecraft:unlit_redstone_torch
+    0_f32,           // 76: minecraft:redstone_torch
+    0.5_f32,         // 77: minecraft:stone_button
     0.100000001_f32, // 78: minecraft:snow_layer
-    0.5_f32, // 79: minecraft:ice
+    0.5_f32,         // 79: minecraft:ice
     0.200000003_f32, // 80: minecraft:snow
     0.400000006_f32, // 81: minecraft:cactus
     0.600000024_f32, // 82: minecraft:clay
-    0_f32, // 83: minecraft:reeds
-    2_f32, // 84: minecraft:jukebox
-    2_f32, // 85: minecraft:fence
-    1_f32, // 86: minecraft:pumpkin
+    0_f32,           // 83: minecraft:reeds
+    2_f32,           // 84: minecraft:jukebox
+    2_f32,           // 85: minecraft:fence
+    1_f32,           // 86: minecraft:pumpkin
     0.400000006_f32, // 87: minecraft:netherrack
-    0.5_f32, // 88: minecraft:soul_sand
+    0.5_f32,         // 88: minecraft:soul_sand
     0.300000012_f32, // 89: minecraft:glowstone
-    -1_f32, // 90: minecraft:portal
-    1_f32, // 91: minecraft:lit_pumpkin
-    0.5_f32, // 92: minecraft:cake
-    0_f32, // 93: minecraft:unpowered_repeater
-    0_f32, // 94: minecraft:powered_repeater
+    -1_f32,          // 90: minecraft:portal
+    1_f32,           // 91: minecraft:lit_pumpkin
+    0.5_f32,         // 92: minecraft:cake
+    0_f32,           // 93: minecraft:unpowered_repeater
+    0_f32,           // 94: minecraft:powered_repeater
     0.300000012_f32, // 95: minecraft:stained_glass
-    3_f32, // 96: minecraft:trapdoor
-    0.75_f32, // 97: minecraft:monster_egg
-    1.5_f32, // 98: minecraft:stonebrick
+    3_f32,           // 96: minecraft:trapdoor
+    0.75_f32,        // 97: minecraft:monster_egg
+    1.5_f32,         // 98: minecraft:stonebrick
     0.200000003_f32, // 99: minecraft:brown_mushroom_block
     0.200000003_f32, // 100: minecraft:red_mushroom_block
-    5_f32, // 101: minecraft:iron_bars
+    5_f32,           // 101: minecraft:iron_bars
     0.300000012_f32, // 102: minecraft:glass_pane
-    1_f32, // 103: minecraft:melon_block
-    0_f32, // 104: minecraft:pumpkin_stem
-    0_f32, // 105: minecraft:melon_stem
+    1_f32,           // 103: minecraft:melon_block
+    0_f32,           // 104: minecraft:pumpkin_stem
+    0_f32,           // 105: minecraft:melon_stem
     0.200000003_f32, // 106: minecraft:vine
-    2_f32, // 107: minecraft:fence_gate
-    2_f32, // 108: minecraft:brick_stairs
-    1.5_f32, // 109: minecraft:stone_brick_stairs
+    2_f32,           // 107: minecraft:fence_gate
+    2_f32,           // 108: minecraft:brick_stairs
+    1.5_f32,         // 109: minecraft:stone_brick_stairs
     0.600000024_f32, // 110: minecraft:mycelium
-    0_f32, // 111: minecraft:waterlily
-    2_f32, // 112: minecraft:nether_brick
-    2_f32, // 113: minecraft:nether_brick_fence
-    2_f32, // 114: minecraft:nether_brick_stairs
-    0_f32, // 115: minecraft:nether_wart
-    5_f32, // 116: minecraft:enchanting_table
-    0.5_f32, // 117: minecraft:brewing_stand
-    2_f32, // 118: minecraft:cauldron
-    -1_f32, // 119: minecraft:end_portal
-    -1_f32, // 120: minecraft:end_portal_frame
-    3_f32, // 121: minecraft:end_stone
-    3_f32, // 122: minecraft:dragon_egg
+    0_f32,           // 111: minecraft:waterlily
+    2_f32,           // 112: minecraft:nether_brick
+    2_f32,           // 113: minecraft:nether_brick_fence
+    2_f32,           // 114: minecraft:nether_brick_stairs
+    0_f32,           // 115: minecraft:nether_wart
+    5_f32,           // 116: minecraft:enchanting_table
+    0.5_f32,         // 117: minecraft:brewing_stand
+    2_f32,           // 118: minecraft:cauldron
+    -1_f32,          // 119: minecraft:end_portal
+    -1_f32,          // 120: minecraft:end_portal_frame
+    3_f32,           // 121: minecraft:end_stone
+    3_f32,           // 122: minecraft:dragon_egg
     0.300000012_f32, // 123: minecraft:redstone_lamp
     0.300000012_f32, // 124: minecraft:lit_redstone_lamp
-    2_f32, // 125: minecraft:double_wooden_slab
-    2_f32, // 126: minecraft:wooden_slab
+    2_f32,           // 125: minecraft:double_wooden_slab
+    2_f32,           // 126: minecraft:wooden_slab
     0.200000003_f32, // 127: minecraft:cocoa
     0.800000012_f32, // 128: minecraft:sandstone_stairs
-    3_f32, // 129: minecraft:emerald_ore
-    22.5_f32, // 130: minecraft:ender_chest
-    0_f32, // 131: minecraft:tripwire_hook
-    0_f32, // 132: minecraft:tripwire
-    5_f32, // 133: minecraft:emerald_block
-    2_f32, // 134: minecraft:spruce_stairs
-    2_f32, // 135: minecraft:birch_stairs
-    2_f32, // 136: minecraft:jungle_stairs
-    -1_f32, // 137: minecraft:command_block
-    3_f32, // 138: minecraft:beacon
-    2_f32, // 139: minecraft:cobblestone_wall
-    0_f32, // 140: minecraft:flower_pot
-    0_f32, // 141: minecraft:carrots
-    0_f32, // 142: minecraft:potatoes
-    0.5_f32, // 143: minecraft:wooden_button
-    1_f32, // 144: minecraft:skull
-    5_f32, // 145: minecraft:anvil
-    2.5_f32, // 146: minecraft:trapped_chest
-    0.5_f32, // 147: minecraft:light_weighted_pressure_plate
-    0.5_f32, // 148: minecraft:heavy_weighted_pressure_plate
-    0_f32, // 149: minecraft:unpowered_comparator
-    0_f32, // 150: minecraft:powered_comparator
+    3_f32,           // 129: minecraft:emerald_ore
+    22.5_f32,        // 130: minecraft:ender_chest
+    0_f32,           // 131: minecraft:tripwire_hook
+    0_f32,           // 132: minecraft:tripwire
+    5_f32,           // 133: minecraft:emerald_block
+    2_f32,           // 134: minecraft:spruce_stairs
+    2_f32,           // 135: minecraft:birch_stairs
+    2_f32,           // 136: minecraft:jungle_stairs
+    -1_f32,          // 137: minecraft:command_block
+    3_f32,           // 138: minecraft:beacon
+    2_f32,           // 139: minecraft:cobblestone_wall
+    0_f32,           // 140: minecraft:flower_pot
+    0_f32,           // 141: minecraft:carrots
+    0_f32,           // 142: minecraft:potatoes
+    0.5_f32,         // 143: minecraft:wooden_button
+    1_f32,           // 144: minecraft:skull
+    5_f32,           // 145: minecraft:anvil
+    2.5_f32,         // 146: minecraft:trapped_chest
+    0.5_f32,         // 147: minecraft:light_weighted_pressure_plate
+    0.5_f32,         // 148: minecraft:heavy_weighted_pressure_plate
+    0_f32,           // 149: minecraft:unpowered_comparator
+    0_f32,           // 150: minecraft:powered_comparator
     0.200000003_f32, // 151: minecraft:daylight_detector
-    5_f32, // 152: minecraft:redstone_block
-    3_f32, // 153: minecraft:quartz_ore
-    3_f32, // 154: minecraft:hopper
+    5_f32,           // 152: minecraft:redstone_block
+    3_f32,           // 153: minecraft:quartz_ore
+    3_f32,           // 154: minecraft:hopper
     0.800000012_f32, // 155: minecraft:quartz_block
     0.800000012_f32, // 156: minecraft:quartz_stairs
     0.699999988_f32, // 157: minecraft:activator_rail
-    3.5_f32, // 158: minecraft:dropper
-    1.25_f32, // 159: minecraft:stained_hardened_clay
+    3.5_f32,         // 158: minecraft:dropper
+    1.25_f32,        // 159: minecraft:stained_hardened_clay
     0.300000012_f32, // 160: minecraft:stained_glass_pane
     0.200000003_f32, // 161: minecraft:leaves2
-    2_f32, // 162: minecraft:log2
-    2_f32, // 163: minecraft:acacia_stairs
-    2_f32, // 164: minecraft:dark_oak_stairs
-    0_f32, // 165: minecraft:slime
-    -1_f32, // 166: minecraft:barrier
-    5_f32, // 167: minecraft:iron_trapdoor
-    1.5_f32, // 168: minecraft:prismarine
+    2_f32,           // 162: minecraft:log2
+    2_f32,           // 163: minecraft:acacia_stairs
+    2_f32,           // 164: minecraft:dark_oak_stairs
+    0_f32,           // 165: minecraft:slime
+    -1_f32,          // 166: minecraft:barrier
+    5_f32,           // 167: minecraft:iron_trapdoor
+    1.5_f32,         // 168: minecraft:prismarine
     0.300000012_f32, // 169: minecraft:sea_lantern
-    0.5_f32, // 170: minecraft:hay_block
+    0.5_f32,         // 170: minecraft:hay_block
     0.100000001_f32, // 171: minecraft:carpet
-    1.25_f32, // 172: minecraft:hardened_clay
-    5_f32, // 173: minecraft:coal_block
-    0.5_f32, // 174: minecraft:packed_ice
-    0_f32, // 175: minecraft:double_plant
-    1_f32, // 176: minecraft:standing_banner
-    1_f32, // 177: minecraft:wall_banner
+    1.25_f32,        // 172: minecraft:hardened_clay
+    5_f32,           // 173: minecraft:coal_block
+    0.5_f32,         // 174: minecraft:packed_ice
+    0_f32,           // 175: minecraft:double_plant
+    1_f32,           // 176: minecraft:standing_banner
+    1_f32,           // 177: minecraft:wall_banner
     0.200000003_f32, // 178: minecraft:daylight_detector_inverted
     0.800000012_f32, // 179: minecraft:red_sandstone
     0.800000012_f32, // 180: minecraft:red_sandstone_stairs
-    2_f32, // 181: minecraft:double_stone_slab2
-    2_f32, // 182: minecraft:stone_slab2
-    2_f32, // 183: minecraft:spruce_fence_gate
-    2_f32, // 184: minecraft:birch_fence_gate
-    2_f32, // 185: minecraft:jungle_fence_gate
-    2_f32, // 186: minecraft:dark_oak_fence_gate
-    2_f32, // 187: minecraft:acacia_fence_gate
-    2_f32, // 188: minecraft:spruce_fence
-    2_f32, // 189: minecraft:birch_fence
-    2_f32, // 190: minecraft:jungle_fence
-    2_f32, // 191: minecraft:dark_oak_fence
-    2_f32, // 192: minecraft:acacia_fence
-    3_f32, // 193: minecraft:spruce_door
-    3_f32, // 194: minecraft:birch_door
-    3_f32, // 195: minecraft:jungle_door
-    3_f32, // 196: minecraft:acacia_door
-    3_f32, // 197: minecraft:dark_oak_door
-    0_f32, // 198: minecraft:end_rod
+    2_f32,           // 181: minecraft:double_stone_slab2
+    2_f32,           // 182: minecraft:stone_slab2
+    2_f32,           // 183: minecraft:spruce_fence_gate
+    2_f32,           // 184: minecraft:birch_fence_gate
+    2_f32,           // 185: minecraft:jungle_fence_gate
+    2_f32,           // 186: minecraft:dark_oak_fence_gate
+    2_f32,           // 187: minecraft:acacia_fence_gate
+    2_f32,           // 188: minecraft:spruce_fence
+    2_f32,           // 189: minecraft:birch_fence
+    2_f32,           // 190: minecraft:jungle_fence
+    2_f32,           // 191: minecraft:dark_oak_fence
+    2_f32,           // 192: minecraft:acacia_fence
+    3_f32,           // 193: minecraft:spruce_door
+    3_f32,           // 194: minecraft:birch_door
+    3_f32,           // 195: minecraft:jungle_door
+    3_f32,           // 196: minecraft:acacia_door
+    3_f32,           // 197: minecraft:dark_oak_door
+    0_f32,           // 198: minecraft:end_rod
     0.400000006_f32, // 199: minecraft:chorus_plant
     0.400000006_f32, // 200: minecraft:chorus_flower
-    1.5_f32, // 201: minecraft:purpur_block
-    1.5_f32, // 202: minecraft:purpur_pillar
-    1.5_f32, // 203: minecraft:purpur_stairs
-    2_f32, // 204: minecraft:purpur_double_slab
-    2_f32, // 205: minecraft:purpur_slab
+    1.5_f32,         // 201: minecraft:purpur_block
+    1.5_f32,         // 202: minecraft:purpur_pillar
+    1.5_f32,         // 203: minecraft:purpur_stairs
+    2_f32,           // 204: minecraft:purpur_double_slab
+    2_f32,           // 205: minecraft:purpur_slab
     0.800000012_f32, // 206: minecraft:end_bricks
-    0_f32, // 207: minecraft:beetroots
+    0_f32,           // 207: minecraft:beetroots
     0.649999976_f32, // 208: minecraft:grass_path
-    -1_f32, // 209: minecraft:end_gateway
-    -1_f32, // 210: minecraft:repeating_command_block
-    -1_f32, // 211: minecraft:chain_command_block
-    0.5_f32, // 212: minecraft:frosted_ice
-    0.5_f32, // 213: minecraft:magma
-    1_f32, // 214: minecraft:nether_wart_block
-    2_f32, // 215: minecraft:red_nether_brick
-    2_f32, // 216: minecraft:bone_block
-    0_f32, // 217: minecraft:structure_void
-    3_f32, // 218: minecraft:observer
-    2_f32, // 219: minecraft:white_shulker_box
-    2_f32, // 220: minecraft:orange_shulker_box
-    2_f32, // 221: minecraft:magenta_shulker_box
-    2_f32, // 222: minecraft:light_blue_shulker_box
-    2_f32, // 223: minecraft:yellow_shulker_box
-    2_f32, // 224: minecraft:lime_shulker_box
-    2_f32, // 225: minecraft:pink_shulker_box
-    2_f32, // 226: minecraft:gray_shulker_box
-    2_f32, // 227: minecraft:silver_shulker_box
-    2_f32, // 228: minecraft:cyan_shulker_box
-    2_f32, // 229: minecraft:purple_shulker_box
-    2_f32, // 230: minecraft:blue_shulker_box
-    2_f32, // 231: minecraft:brown_shulker_box
-    2_f32, // 232: minecraft:green_shulker_box
-    2_f32, // 233: minecraft:red_shulker_box
-    2_f32, // 234: minecraft:black_shulker_box
-    1.39999998_f32, // 235: minecraft:white_glazed_terracotta
-    1.39999998_f32, // 236: minecraft:orange_glazed_terracotta
-    1.39999998_f32, // 237: minecraft:magenta_glazed_terracotta
-    1.39999998_f32, // 238: minecraft:light_blue_glazed_terracotta
-    1.39999998_f32, // 239: minecraft:yellow_glazed_terracotta
-    1.39999998_f32, // 240: minecraft:lime_glazed_terracotta
-    1.39999998_f32, // 241: minecraft:pink_glazed_terracotta
-    1.39999998_f32, // 242: minecraft:gray_glazed_terracotta
-    1.39999998_f32, // 243: minecraft:silver_glazed_terracotta
-    1.39999998_f32, // 244: minecraft:cyan_glazed_terracotta
-    1.39999998_f32, // 245: minecraft:purple_glazed_terracotta
-    1.39999998_f32, // 246: minecraft:blue_glazed_terracotta
-    1.39999998_f32, // 247: minecraft:brown_glazed_terracotta
-    1.39999998_f32, // 248: minecraft:green_glazed_terracotta
-    1.39999998_f32, // 249: minecraft:red_glazed_terracotta
-    1.39999998_f32, // 250: minecraft:black_glazed_terracotta
-    1.79999995_f32, // 251: minecraft:concrete
-    0.5_f32, // 252: minecraft:concrete_powder
-    0_f32, // 253: minecraft:air
-    0_f32, // 254: minecraft:air
-    -1_f32, // 255: minecraft:structure_block
+    -1_f32,          // 209: minecraft:end_gateway
+    -1_f32,          // 210: minecraft:repeating_command_block
+    -1_f32,          // 211: minecraft:chain_command_block
+    0.5_f32,         // 212: minecraft:frosted_ice
+    0.5_f32,         // 213: minecraft:magma
+    1_f32,           // 214: minecraft:nether_wart_block
+    2_f32,           // 215: minecraft:red_nether_brick
+    2_f32,           // 216: minecraft:bone_block
+    0_f32,           // 217: minecraft:structure_void
+    3_f32,           // 218: minecraft:observer
+    2_f32,           // 219: minecraft:white_shulker_box
+    2_f32,           // 220: minecraft:orange_shulker_box
+    2_f32,           // 221: minecraft:magenta_shulker_box
+    2_f32,           // 222: minecraft:light_blue_shulker_box
+    2_f32,           // 223: minecraft:yellow_shulker_box
+    2_f32,           // 224: minecraft:lime_shulker_box
+    2_f32,           // 225: minecraft:pink_shulker_box
+    2_f32,           // 226: minecraft:gray_shulker_box
+    2_f32,           // 227: minecraft:silver_shulker_box
+    2_f32,           // 228: minecraft:cyan_shulker_box
+    2_f32,           // 229: minecraft:purple_shulker_box
+    2_f32,           // 230: minecraft:blue_shulker_box
+    2_f32,           // 231: minecraft:brown_shulker_box
+    2_f32,           // 232: minecraft:green_shulker_box
+    2_f32,           // 233: minecraft:red_shulker_box
+    2_f32,           // 234: minecraft:black_shulker_box
+    1.39999998_f32,  // 235: minecraft:white_glazed_terracotta
+    1.39999998_f32,  // 236: minecraft:orange_glazed_terracotta
+    1.39999998_f32,  // 237: minecraft:magenta_glazed_terracotta
+    1.39999998_f32,  // 238: minecraft:light_blue_glazed_terracotta
+    1.39999998_f32,  // 239: minecraft:yellow_glazed_terracotta
+    1.39999998_f32,  // 240: minecraft:lime_glazed_terracotta
+    1.39999998_f32,  // 241: minecraft:pink_glazed_terracotta
+    1.39999998_f32,  // 242: minecraft:gray_glazed_terracotta
+    1.39999998_f32,  // 243: minecraft:silver_glazed_terracotta
+    1.39999998_f32,  // 244: minecraft:cyan_glazed_terracotta
+    1.39999998_f32,  // 245: minecraft:purple_glazed_terracotta
+    1.39999998_f32,  // 246: minecraft:blue_glazed_terracotta
+    1.39999998_f32,  // 247: minecraft:brown_glazed_terracotta
+    1.39999998_f32,  // 248: minecraft:green_glazed_terracotta
+    1.39999998_f32,  // 249: minecraft:red_glazed_terracotta
+    1.39999998_f32,  // 250: minecraft:black_glazed_terracotta
+    1.79999995_f32,  // 251: minecraft:concrete
+    0.5_f32,         // 252: minecraft:concrete_powder
+    0_f32,           // 253: minecraft:air
+    0_f32,           // 254: minecraft:air
+    -1_f32,          // 255: minecraft:structure_block
 ];
 
 pub const TOOL_NOT_REQUIRED: [bool; 256] = [
-    true, // 0: minecraft:air
+    true,  // 0: minecraft:air
     false, // 1: minecraft:stone
-    true, // 2: minecraft:grass
-    true, // 3: minecraft:dirt
+    true,  // 2: minecraft:grass
+    true,  // 3: minecraft:dirt
     false, // 4: minecraft:cobblestone
-    true, // 5: minecraft:planks
-    true, // 6: minecraft:sapling
+    true,  // 5: minecraft:planks
+    true,  // 6: minecraft:sapling
     false, // 7: minecraft:bedrock
-    true, // 8: minecraft:flowing_water
-    true, // 9: minecraft:water
-    true, // 10: minecraft:flowing_lava
-    true, // 11: minecraft:lava
-    true, // 12: minecraft:sand
-    true, // 13: minecraft:gravel
+    true,  // 8: minecraft:flowing_water
+    true,  // 9: minecraft:water
+    true,  // 10: minecraft:flowing_lava
+    true,  // 11: minecraft:lava
+    true,  // 12: minecraft:sand
+    true,  // 13: minecraft:gravel
     false, // 14: minecraft:gold_ore
     false, // 15: minecraft:iron_ore
     false, // 16: minecraft:coal_ore
-    true, // 17: minecraft:log
-    true, // 18: minecraft:leaves
-    true, // 19: minecraft:sponge
-    true, // 20: minecraft:glass
+    true,  // 17: minecraft:log
+    true,  // 18: minecraft:leaves
+    true,  // 19: minecraft:sponge
+    true,  // 20: minecraft:glass
     false, // 21: minecraft:lapis_ore
     false, // 22: minecraft:lapis_block
     false, // 23: minecraft:dispenser
     false, // 24: minecraft:sandstone
-    true, // 25: minecraft:noteblock
-    true, // 26: minecraft:bed
-    true, // 27: minecraft:golden_rail
-    true, // 28: minecraft:detector_rail
-    true, // 29: minecraft:sticky_piston
+    true,  // 25: minecraft:noteblock
+    true,  // 26: minecraft:bed
+    true,  // 27: minecraft:golden_rail
+    true,  // 28: minecraft:detector_rail
+    true,  // 29: minecraft:sticky_piston
     false, // 30: minecraft:web
-    true, // 31: minecraft:tallgrass
-    true, // 32: minecraft:deadbush
-    true, // 33: minecraft:piston
-    true, // 34: minecraft:piston_head
-    true, // 35: minecraft:wool
-    true, // 36: minecraft:piston_extension
-    true, // 37: minecraft:yellow_flower
-    true, // 38: minecraft:red_flower
-    true, // 39: minecraft:brown_mushroom
-    true, // 40: minecraft:red_mushroom
+    true,  // 31: minecraft:tallgrass
+    true,  // 32: minecraft:deadbush
+    true,  // 33: minecraft:piston
+    true,  // 34: minecraft:piston_head
+    true,  // 35: minecraft:wool
+    true,  // 36: minecraft:piston_extension
+    true,  // 37: minecraft:yellow_flower
+    true,  // 38: minecraft:red_flower
+    true,  // 39: minecraft:brown_mushroom
+    true,  // 40: minecraft:red_mushroom
     false, // 41: minecraft:gold_block
     false, // 42: minecraft:iron_block
     false, // 43: minecraft:double_stone_slab
     false, // 44: minecraft:stone_slab
     false, // 45: minecraft:brick_block
-    true, // 46: minecraft:tnt
-    true, // 47: minecraft:bookshelf
+    true,  // 46: minecraft:tnt
+    true,  // 47: minecraft:bookshelf
     false, // 48: minecraft:mossy_cobblestone
     false, // 49: minecraft:obsidian
-    true, // 50: minecraft:torch
-    true, // 51: minecraft:fire
+    true,  // 50: minecraft:torch
+    true,  // 51: minecraft:fire
     false, // 52: minecraft:mob_spawner
-    true, // 53: minecraft:oak_stairs
-    true, // 54: minecraft:chest
-    true, // 55: minecraft:redstone_wire
+    true,  // 53: minecraft:oak_stairs
+    true,  // 54: minecraft:chest
+    true,  // 55: minecraft:redstone_wire
     false, // 56: minecraft:diamond_ore
     false, // 57: minecraft:diamond_block
-    true, // 58: minecraft:crafting_table
-    true, // 59: minecraft:wheat
-    true, // 60: minecraft:farmland
+    true,  // 58: minecraft:crafting_table
+    true,  // 59: minecraft:wheat
+    true,  // 60: minecraft:farmland
     false, // 61: minecraft:furnace
     false, // 62: minecraft:lit_furnace
-    true, // 63: minecraft:standing_sign
-    true, // 64: minecraft:wooden_door
-    true, // 65: minecraft:ladder
-    true, // 66: minecraft:rail
+    true,  // 63: minecraft:standing_sign
+    true,  // 64: minecraft:wooden_door
+    true,  // 65: minecraft:ladder
+    true,  // 66: minecraft:rail
     false, // 67: minecraft:stone_stairs
-    true, // 68: minecraft:wall_sign
-    true, // 69: minecraft:lever
+    true,  // 68: minecraft:wall_sign
+    true,  // 69: minecraft:lever
     false, // 70: minecraft:stone_pressure_plate
     false, // 71: minecraft:iron_door
-    true, // 72: minecraft:wooden_pressure_plate
+    true,  // 72: minecraft:wooden_pressure_plate
     false, // 73: minecraft:redstone_ore
     false, // 74: minecraft:lit_redstone_ore
-    true, // 75: minecraft:unlit_redstone_torch
-    true, // 76: minecraft:redstone_torch
-    true, // 77: minecraft:stone_button
+    true,  // 75: minecraft:unlit_redstone_torch
+    true,  // 76: minecraft:redstone_torch
+    true,  // 77: minecraft:stone_button
     false, // 78: minecraft:snow_layer
-    true, // 79: minecraft:ice
+    true,  // 79: minecraft:ice
     false, // 80: minecraft:snow
-    true, // 81: minecraft:cactus
-    true, // 82: minecraft:clay
-    true, // 83: minecraft:reeds
-    true, // 84: minecraft:jukebox
-    true, // 85: minecraft:fence
-    true, // 86: minecraft:pumpkin
+    true,  // 81: minecraft:cactus
+    true,  // 82: minecraft:clay
+    true,  // 83: minecraft:reeds
+    true,  // 84: minecraft:jukebox
+    true,  // 85: minecraft:fence
+    true,  // 86: minecraft:pumpkin
     false, // 87: minecraft:netherrack
-    true, // 88: minecraft:soul_sand
-    true, // 89: minecraft:glowstone
-    true, // 90: minecraft:portal
-    true, // 91: minecraft:lit_pumpkin
-    true, // 92: minecraft:cake
-    true, // 93: minecraft:unpowered_repeater
-    true, // 94: minecraft:powered_repeater
-    true, // 95: minecraft:stained_glass
-    true, // 96: minecraft:trapdoor
-    true, // 97: minecraft:monster_egg
+    true,  // 88: minecraft:soul_sand
+    true,  // 89: minecraft:glowstone
+    true,  // 90: minecraft:portal
+    true,  // 91: minecraft:lit_pumpkin
+    true,  // 92: minecraft:cake
+    true,  // 93: minecraft:unpowered_repeater
+    true,  // 94: minecraft:powered_repeater
+    true,  // 95: minecraft:stained_glass
+    true,  // 96: minecraft:trapdoor
+    true,  // 97: minecraft:monster_egg
     false, // 98: minecraft:stonebrick
-    true, // 99: minecraft:brown_mushroom_block
-    true, // 100: minecraft:red_mushroom_block
+    true,  // 99: minecraft:brown_mushroom_block
+    true,  // 100: minecraft:red_mushroom_block
     false, // 101: minecraft:iron_bars
-    true, // 102: minecraft:glass_pane
-    true, // 103: minecraft:melon_block
-    true, // 104: minecraft:pumpkin_stem
-    true, // 105: minecraft:melon_stem
-    true, // 106: minecraft:vine
-    true, // 107: minecraft:fence_gate
+    true,  // 102: minecraft:glass_pane
+    true,  // 103: minecraft:melon_block
+    true,  // 104: minecraft:pumpkin_stem
+    true,  // 105: minecraft:melon_stem
+    true,  // 106: minecraft:vine
+    true,  // 107: minecraft:fence_gate
     false, // 108: minecraft:brick_stairs
     false, // 109: minecraft:stone_brick_stairs
-    true, // 110: minecraft:mycelium
-    true, // 111: minecraft:waterlily
+    true,  // 110: minecraft:mycelium
+    true,  // 111: minecraft:waterlily
     false, // 112: minecraft:nether_brick
     false, // 113: minecraft:nether_brick_fence
     false, // 114: minecraft:nether_brick_stairs
-    true, // 115: minecraft:nether_wart
+    true,  // 115: minecraft:nether_wart
     false, // 116: minecraft:enchanting_table
     false, // 117: minecraft:brewing_stand
     false, // 118: minecraft:cauldron
-    true, // 119: minecraft:end_portal
+    true,  // 119: minecraft:end_portal
     false, // 120: minecraft:end_portal_frame
     false, // 121: minecraft:end_stone
-    true, // 122: minecraft:dragon_egg
-    true, // 123: minecraft:redstone_lamp
-    true, // 124: minecraft:lit_redstone_lamp
-    true, // 125: minecraft:double_wooden_slab
-    true, // 126: minecraft:wooden_slab
-    true, // 127: minecraft:cocoa
+    true,  // 122: minecraft:dragon_egg
+    true,  // 123: minecraft:redstone_lamp
+    true,  // 124: minecraft:lit_redstone_lamp
+    true,  // 125: minecraft:double_wooden_slab
+    true,  // 126: minecraft:wooden_slab
+    true,  // 127: minecraft:cocoa
     false, // 128: minecraft:sandstone_stairs
     false, // 129: minecraft:emerald_ore
     false, // 130: minecraft:ender_chest
-    true, // 131: minecraft:tripwire_hook
-    true, // 132: minecraft:tripwire
+    true,  // 131: minecraft:tripwire_hook
+    true,  // 132: minecraft:tripwire
     false, // 133: minecraft:emerald_block
-    true, // 134: minecraft:spruce_stairs
-    true, // 135: minecraft:birch_stairs
-    true, // 136: minecraft:jungle_stairs
+    true,  // 134: minecraft:spruce_stairs
+    true,  // 135: minecraft:birch_stairs
+    true,  // 136: minecraft:jungle_stairs
     false, // 137: minecraft:command_block
-    true, // 138: minecraft:beacon
+    true,  // 138: minecraft:beacon
     false, // 139: minecraft:cobblestone_wall
-    true, // 140: minecraft:flower_pot
-    true, // 141: minecraft:carrots
-    true, // 142: minecraft:potatoes
-    true, // 143: minecraft:wooden_button
-    true, // 144: minecraft:skull
+    true,  // 140: minecraft:flower_pot
+    true,  // 141: minecraft:carrots
+    true,  // 142: minecraft:potatoes
+    true,  // 143: minecraft:wooden_button
+    true,  // 144: minecraft:skull
     false, // 145: minecraft:anvil
-    true, // 146: minecraft:trapped_chest
+    true,  // 146: minecraft:trapped_chest
     false, // 147: minecraft:light_weighted_pressure_plate
     false, // 148: minecraft:heavy_weighted_pressure_plate
-    true, // 149: minecraft:unpowered_comparator
-    true, // 150: minecraft:powered_comparator
-    true, // 151: minecraft:daylight_detector
+    true,  // 149: minecraft:unpowered_comparator
+    true,  // 150: minecraft:powered_comparator
+    true,  // 151: minecraft:daylight_detector
     false, // 152: minecraft:redstone_block
     false, // 153: minecraft:quartz_ore
     false, // 154: minecraft:hopper
     false, // 155: minecraft:quartz_block
     false, // 156: minecraft:quartz_stairs
-    true, // 157: minecraft:activator_rail
+    true,  // 157: minecraft:activator_rail
     false, // 158: minecraft:dropper
     false, // 159: minecraft:stained_hardened_clay
-    true, // 160: minecraft:stained_glass_pane
-    true, // 161: minecraft:leaves2
-    true, // 162: minecraft:log2
-    true, // 163: minecraft:acacia_stairs
-    true, // 164: minecraft:dark_oak_stairs
-    true, // 165: minecraft:slime
+    true,  // 160: minecraft:stained_glass_pane
+    true,  // 161: minecraft:leaves2
+    true,  // 162: minecraft:log2
+    true,  // 163: minecraft:acacia_stairs
+    true,  // 164: minecraft:dark_oak_stairs
+    true,  // 165: minecraft:slime
     false, // 166: minecraft:barrier
     false, // 167: minecraft:iron_trapdoor
     false, // 168: minecraft:prismarine
-    true, // 169: minecraft:sea_lantern
-    true, // 170: minecraft:hay_block
-    true, // 171: minecraft:carpet
+    true,  // 169: minecraft:sea_lantern
+    true,  // 170: minecraft:hay_block
+    true,  // 171: minecraft:carpet
     false, // 172: minecraft:hardened_clay
     false, // 173: minecraft:coal_block
-    true, // 174: minecraft:packed_ice
-    true, // 175: minecraft:double_plant
-    true, // 176: minecraft:standing_banner
-    true, // 177: minecraft:wall_banner
-    true, // 178: minecraft:daylight_detector_inverted
+    true,  // 174: minecraft:packed_ice
+    true,  // 175: minecraft:double_plant
+    true,  // 176: minecraft:standing_banner
+    true,  // 177: minecraft:wall_banner
+    true,  // 178: minecraft:daylight_detector_inverted
     false, // 179: minecraft:red_sandstone
     false, // 180: minecraft:red_sandstone_stairs
     false, // 181: minecraft:double_stone_slab2
     false, // 182: minecraft:stone_slab2
-    true, // 183: minecraft:spruce_fence_gate
-    true, // 184: minecraft:birch_fence_gate
-    true, // 185: minecraft:jungle_fence_gate
-    true, // 186: minecraft:dark_oak_fence_gate
-    true, // 187: minecraft:acacia_fence_gate
-    true, // 188: minecraft:spruce_fence
-    true, // 189: minecraft:birch_fence
-    true, // 190: minecraft:jungle_fence
-    true, // 191: minecraft:dark_oak_fence
-    true, // 192: minecraft:acacia_fence
-    true, // 193: minecraft:spruce_door
-    true, // 194: minecraft:birch_door
-    true, // 195: minecraft:jungle_door
-    true, // 196: minecraft:acacia_door
-    true, // 197: minecraft:dark_oak_door
-    true, // 198: minecraft:end_rod
-    true, // 199: minecraft:chorus_plant
-    true, // 200: minecraft:chorus_flower
+    true,  // 183: minecraft:spruce_fence_gate
+    true,  // 184: minecraft:birch_fence_gate
+    true,  // 185: minecraft:jungle_fence_gate
+    true,  // 186: minecraft:dark_oak_fence_gate
+    true,  // 187: minecraft:acacia_fence_gate
+    true,  // 188: minecraft:spruce_fence
+    true,  // 189: minecraft:birch_fence
+    true,  // 190: minecraft:jungle_fence
+    true,  // 191: minecraft:dark_oak_fence
+    true,  // 192: minecraft:acacia_fence
+    true,  // 193: minecraft:spruce_door
+    true,  // 194: minecraft:birch_door
+    true,  // 195: minecraft:jungle_door
+    true,  // 196: minecraft:acacia_door
+    true,  // 197: minecraft:dark_oak_door
+    true,  // 198: minecraft:end_rod
+    true,  // 199: minecraft:chorus_plant
+    true,  // 200: minecraft:chorus_flower
     false, // 201: minecraft:purpur_block
     false, // 202: minecraft:purpur_pillar
     false, // 203: minecraft:purpur_stairs
     false, // 204: minecraft:purpur_double_slab
     false, // 205: minecraft:purpur_slab
     false, // 206: minecraft:end_bricks
-    true, // 207: minecraft:beetroots
-    true, // 208: minecraft:grass_path
-    true, // 209: minecraft:end_gateway
+    true,  // 207: minecraft:beetroots
+    true,  // 208: minecraft:grass_path
+    true,  // 209: minecraft:end_gateway
     false, // 210: minecraft:repeating_command_block
     false, // 211: minecraft:chain_command_block
-    true, // 212: minecraft:frosted_ice
+    true,  // 212: minecraft:frosted_ice
     false, // 213: minecraft:magma
-    true, // 214: minecraft:nether_wart_block
+    true,  // 214: minecraft:nether_wart_block
     false, // 215: minecraft:red_nether_brick
     false, // 216: minecraft:bone_block
-    true, // 217: minecraft:structure_void
+    true,  // 217: minecraft:structure_void
     false, // 218: minecraft:observer
     false, // 219: minecraft:white_shulker_box
     false, // 220: minecraft:orange_shulker_box
@@ -513,8 +513,8 @@ pub const TOOL_NOT_REQUIRED: [bool; 256] = [
     false, // 249: minecraft:red_glazed_terracotta
     false, // 250: minecraft:black_glazed_terracotta
     false, // 251: minecraft:concrete
-    true, // 252: minecraft:concrete_powder
-    true, // 253: minecraft:air
-    true, // 254: minecraft:air
+    true,  // 252: minecraft:concrete_powder
+    true,  // 253: minecraft:air
+    true,  // 254: minecraft:air
     false, // 255: minecraft:structure_block
 ];

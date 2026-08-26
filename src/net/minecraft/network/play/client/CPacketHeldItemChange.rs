@@ -8,8 +8,12 @@ pub struct CPacketHeldItemChange {
 }
 
 impl CPacketHeldItemChange {
-    pub const fn new(slotIdIn: i32) -> Self { Self { slotId: slotIdIn } }
-    pub const fn getSlotId(self) -> i32 { self.slotId }
+    pub const fn new(slotIdIn: i32) -> Self {
+        Self { slotId: slotIdIn }
+    }
+    pub const fn getSlotId(self) -> i32 {
+        self.slotId
+    }
 
     pub fn writePacketData(self) -> RawPacket {
         let mut payload = Vec::with_capacity(2);

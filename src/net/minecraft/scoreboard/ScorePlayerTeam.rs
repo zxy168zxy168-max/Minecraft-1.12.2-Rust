@@ -49,13 +49,27 @@ impl ScorePlayerTeam {
         self.chatColor = color;
     }
 
-    pub fn addPlayer(&mut self, player: impl Into<String>) { self.membership.insert(player.into()); }
-    pub fn removePlayer(&mut self, player: &str) { self.membership.remove(player); }
-    pub fn getRegisteredName(&self) -> &str { &self.registeredName }
-    pub fn getTeamName(&self) -> &str { &self.teamName }
-    pub fn getColorPrefix(&self) -> &str { &self.colorPrefix }
-    pub fn getColorSuffix(&self) -> &str { &self.colorSuffix }
-    pub const fn getFriendlyFlags(&self) -> i32 { self.friendlyFlags }
+    pub fn addPlayer(&mut self, player: impl Into<String>) {
+        self.membership.insert(player.into());
+    }
+    pub fn removePlayer(&mut self, player: &str) {
+        self.membership.remove(player);
+    }
+    pub fn getRegisteredName(&self) -> &str {
+        &self.registeredName
+    }
+    pub fn getTeamName(&self) -> &str {
+        &self.teamName
+    }
+    pub fn getColorPrefix(&self) -> &str {
+        &self.colorPrefix
+    }
+    pub fn getColorSuffix(&self) -> &str {
+        &self.colorSuffix
+    }
+    pub const fn getFriendlyFlags(&self) -> i32 {
+        self.friendlyFlags
+    }
     /// MCP `Team#getSeeFriendlyInvisiblesEnabled`: bit 1 of the friendly
     /// flags sent by `SPacketTeams`.
     pub const fn getSeeFriendlyInvisiblesEnabled(&self) -> bool {
@@ -65,8 +79,12 @@ impl ScorePlayerTeam {
     pub fn getNameTagVisibility(&self) -> &str {
         &self.nameTagVisibility
     }
-    pub const fn getChatFormatColorIndex(&self) -> i32 { self.chatColor }
-    pub fn getMembershipCollection(&self) -> &HashSet<String> { &self.membership }
+    pub const fn getChatFormatColorIndex(&self) -> i32 {
+        self.chatColor
+    }
+    pub fn getMembershipCollection(&self) -> &HashSet<String> {
+        &self.membership
+    }
 
     pub fn isSameTeam(&self, other: &ScorePlayerTeam) -> bool {
         self.registeredName == other.registeredName

@@ -7,9 +7,9 @@ use std::time::{Duration, Instant};
 use anyhow::{anyhow, Context};
 use ash::{vk, Device, Instance};
 
+use crate::net::minecraft::client::renderer::chunk::RenderChunk::RenderChunkKey;
 use crate::net::minecraft::client::renderer::EntityRenderer::EntityRenderer;
 use crate::net::minecraft::util::BlockRenderLayer::BlockRenderLayer;
-use crate::net::minecraft::client::renderer::chunk::RenderChunk::RenderChunkKey;
 use crate::vulkan::VulkanWorldRenderer::{
     ChunkLayerRange, EntityOverlayPipelineKind, FirstPersonPipelineKind, HudPipelineKind,
     WorldEntityMeshKind, WorldEntityPipelineKind, WorldRenderFrame, WorldVertex,
@@ -81,8 +81,7 @@ impl ElementArenaAllocator {
                 .start
                 .saturating_add(self.freeSpans[insertAt - 1].count)
                 == start;
-        let mergeRight = insertAt < self.freeSpans.len()
-            && end == self.freeSpans[insertAt].start;
+        let mergeRight = insertAt < self.freeSpans.len() && end == self.freeSpans[insertAt].start;
 
         match (mergeLeft, mergeRight) {
             (true, true) => {
@@ -94,25 +93,20 @@ impl ElementArenaAllocator {
                 self.freeSpans.remove(insertAt);
             }
             (true, false) => {
-                self.freeSpans[insertAt - 1].count = self.freeSpans[insertAt - 1]
-                    .count
-                    .saturating_add(count);
+                self.freeSpans[insertAt - 1].count =
+                    self.freeSpans[insertAt - 1].count.saturating_add(count);
             }
             (false, true) => {
                 self.freeSpans[insertAt].start = start;
-                self.freeSpans[insertAt].count = self.freeSpans[insertAt]
-                    .count
-                    .saturating_add(count);
+                self.freeSpans[insertAt].count =
+                    self.freeSpans[insertAt].count.saturating_add(count);
             }
             (false, false) => self.freeSpans.insert(insertAt, FreeSpan { start, count }),
         }
     }
 
     fn free_count(&self) -> u64 {
-        self.freeSpans
-            .iter()
-            .map(|span| span.count as u64)
-            .sum()
+        self.freeSpans.iter().map(|span| span.count as u64).sum()
     }
 }
 
@@ -390,13 +384,15 @@ impl WorldGpuPipeline {
         wideLinesEnabled: bool,
         multiDrawIndirect: bool,
     ) -> anyhow::Result<Self> {
-        anyhow::ensure!(framesInFlight > 0, "world pipeline requires at least one frame slot");
-        let maxDrawIndirectCount = unsafe {
-            instance.get_physical_device_properties(physicalDevice)
-        }
-        .limits
-        .max_draw_indirect_count
-        .max(1);
+        anyhow::ensure!(
+            framesInFlight > 0,
+            "world pipeline requires at least one frame slot"
+        );
+        let maxDrawIndirectCount =
+            unsafe { instance.get_physical_device_properties(physicalDevice) }
+                .limits
+                .max_draw_indirect_count
+                .max(1);
         let atlasDescriptorBinding = vk::DescriptorSetLayoutBinding::default()
             .binding(0)
             .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
@@ -410,10 +406,9 @@ impl WorldGpuPipeline {
         let descriptorBindings = [atlasDescriptorBinding, lightmapDescriptorBinding];
         let descriptorSetLayoutInfo =
             vk::DescriptorSetLayoutCreateInfo::default().bindings(&descriptorBindings);
-        let descriptorSetLayout = unsafe {
-            device.create_descriptor_set_layout(&descriptorSetLayoutInfo, None)
-        }
-        .context("failed creating world descriptor-set layout")?;
+        let descriptorSetLayout =
+            unsafe { device.create_descriptor_set_layout(&descriptorSetLayoutInfo, None) }
+                .context("failed creating world descriptor-set layout")?;
 
         let poolSize = vk::DescriptorPoolSize::default()
             .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
@@ -422,49 +417,53 @@ impl WorldGpuPipeline {
         let descriptorPoolInfo = vk::DescriptorPoolCreateInfo::default()
             .pool_sizes(&poolSizes)
             .max_sets(framesInFlight as u32);
-        let descriptorPool = match unsafe { device.create_descriptor_pool(&descriptorPoolInfo, None) } {
-            Ok(pool) => pool,
-            Err(error) => {
-                unsafe { device.destroy_descriptor_set_layout(descriptorSetLayout, None) };
-                return Err(anyhow!("failed creating world descriptor pool: {error:?}"));
-            }
-        };
+        let descriptorPool =
+            match unsafe { device.create_descriptor_pool(&descriptorPoolInfo, None) } {
+                Ok(pool) => pool,
+                Err(error) => {
+                    unsafe { device.destroy_descriptor_set_layout(descriptorSetLayout, None) };
+                    return Err(anyhow!("failed creating world descriptor pool: {error:?}"));
+                }
+            };
         let setLayouts = vec![descriptorSetLayout; framesInFlight];
         let descriptorAllocateInfo = vk::DescriptorSetAllocateInfo::default()
             .descriptor_pool(descriptorPool)
             .set_layouts(&setLayouts);
-        let descriptorSets = match unsafe { device.allocate_descriptor_sets(&descriptorAllocateInfo) } {
-            Ok(sets) => sets,
-            Err(error) => {
-                unsafe {
-                    device.destroy_descriptor_pool(descriptorPool, None);
-                    device.destroy_descriptor_set_layout(descriptorSetLayout, None);
+        let descriptorSets =
+            match unsafe { device.allocate_descriptor_sets(&descriptorAllocateInfo) } {
+                Ok(sets) => sets,
+                Err(error) => {
+                    unsafe {
+                        device.destroy_descriptor_pool(descriptorPool, None);
+                        device.destroy_descriptor_set_layout(descriptorSetLayout, None);
+                    }
+                    return Err(anyhow!("failed allocating world descriptor set: {error:?}"));
                 }
-                return Err(anyhow!("failed allocating world descriptor set: {error:?}"));
-            }
-        };
+            };
 
         let pushRange = vk::PushConstantRange::default()
             .stage_flags(vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT)
             .offset(0)
-            .size(std::mem::size_of::<
-                crate::vulkan::VulkanWorldRenderer::WorldPushConstants,
-            >() as u32);
+            .size(
+                std::mem::size_of::<crate::vulkan::VulkanWorldRenderer::WorldPushConstants>()
+                    as u32,
+            );
         let pushRanges = [pushRange];
         let pipelineLayouts = [descriptorSetLayout];
         let pipelineLayoutInfo = vk::PipelineLayoutCreateInfo::default()
             .set_layouts(&pipelineLayouts)
             .push_constant_ranges(&pushRanges);
-        let pipelineLayout = match unsafe { device.create_pipeline_layout(&pipelineLayoutInfo, None) } {
-            Ok(layout) => layout,
-            Err(error) => {
-                unsafe {
-                    device.destroy_descriptor_pool(descriptorPool, None);
-                    device.destroy_descriptor_set_layout(descriptorSetLayout, None);
+        let pipelineLayout =
+            match unsafe { device.create_pipeline_layout(&pipelineLayoutInfo, None) } {
+                Ok(layout) => layout,
+                Err(error) => {
+                    unsafe {
+                        device.destroy_descriptor_pool(descriptorPool, None);
+                        device.destroy_descriptor_set_layout(descriptorSetLayout, None);
+                    }
+                    return Err(anyhow!("failed creating world pipeline layout: {error:?}"));
                 }
-                return Err(anyhow!("failed creating world pipeline layout: {error:?}"));
-            }
-        };
+            };
 
         let depthFormat = find_depth_format(instance, physicalDevice)
             .context("Vulkan device has no supported depth attachment format")?;
@@ -501,14 +500,12 @@ impl WorldGpuPipeline {
                 return Err(error.context("failed creating shared chunk index arena"));
             }
         };
-        let chunkVertexCapacity = u32::try_from(
-            CHUNK_VERTEX_ARENA_BYTES / std::mem::size_of::<WorldVertex>() as u64,
-        )
-        .context("shared chunk vertex arena exceeds u32 element addressing")?;
-        let chunkIndexCapacity = u32::try_from(
-            CHUNK_INDEX_ARENA_BYTES / std::mem::size_of::<u32>() as u64,
-        )
-        .context("shared chunk index arena exceeds u32 element addressing")?;
+        let chunkVertexCapacity =
+            u32::try_from(CHUNK_VERTEX_ARENA_BYTES / std::mem::size_of::<WorldVertex>() as u64)
+                .context("shared chunk vertex arena exceeds u32 element addressing")?;
+        let chunkIndexCapacity =
+            u32::try_from(CHUNK_INDEX_ARENA_BYTES / std::mem::size_of::<u32>() as u64)
+                .context("shared chunk index arena exceeds u32 element addressing")?;
         let mut result = Self {
             descriptorSetLayout,
             descriptorPool,
@@ -657,7 +654,10 @@ impl WorldGpuPipeline {
                     self.chunkVertexRanges.recycle(firstVertex, vertexCount);
                     self.chunkIndexRanges.recycle(firstIndex, indexCount);
                 }
-                ChunkStorage::Dedicated { vertexBuffer, indexBuffer } => {
+                ChunkStorage::Dedicated {
+                    vertexBuffer,
+                    indexBuffer,
+                } => {
                     destroy_buffer(device, Some(vertexBuffer));
                     destroy_buffer(device, Some(indexBuffer));
                 }
@@ -869,8 +869,7 @@ impl WorldGpuPipeline {
             frame.hudMeshGeneration,
         );
         if lightmapNeedsUpload {
-            uploadBytes = align_up(uploadBytes, 4)
-                .saturating_add((16 * 16 * 4) as vk::DeviceSize);
+            uploadBytes = align_up(uploadBytes, 4).saturating_add((16 * 16 * 4) as vk::DeviceSize);
         }
         if uploadBytes > 0 {
             ensure_staging_capacity(
@@ -1005,7 +1004,10 @@ impl WorldGpuPipeline {
                         return Err(error);
                     }
                 };
-                ChunkStorage::Dedicated { vertexBuffer, indexBuffer }
+                ChunkStorage::Dedicated {
+                    vertexBuffer,
+                    indexBuffer,
+                }
             };
 
             let staging = self.stagingBuffers[frameSlot]
@@ -1030,21 +1032,27 @@ impl WorldGpuPipeline {
                     indexBytes.len(),
                 );
             }
-            let (vertexDestination, vertexDestinationOffset, indexDestination, indexDestinationOffset) =
-                match &storage {
-                    ChunkStorage::Shared { firstVertex, firstIndex, .. } => (
-                        self.chunkVertexArena.buffer,
-                        *firstVertex as u64 * std::mem::size_of::<WorldVertex>() as u64,
-                        self.chunkIndexArena.buffer,
-                        *firstIndex as u64 * std::mem::size_of::<u32>() as u64,
-                    ),
-                    ChunkStorage::Dedicated { vertexBuffer, indexBuffer } => (
-                        vertexBuffer.buffer,
-                        0,
-                        indexBuffer.buffer,
-                        0,
-                    ),
-                };
+            let (
+                vertexDestination,
+                vertexDestinationOffset,
+                indexDestination,
+                indexDestinationOffset,
+            ) = match &storage {
+                ChunkStorage::Shared {
+                    firstVertex,
+                    firstIndex,
+                    ..
+                } => (
+                    self.chunkVertexArena.buffer,
+                    *firstVertex as u64 * std::mem::size_of::<WorldVertex>() as u64,
+                    self.chunkIndexArena.buffer,
+                    *firstIndex as u64 * std::mem::size_of::<u32>() as u64,
+                ),
+                ChunkStorage::Dedicated {
+                    vertexBuffer,
+                    indexBuffer,
+                } => (vertexBuffer.buffer, 0, indexBuffer.buffer, 0),
+            };
             self.pendingCopies[frameSlot].push(PendingBufferCopy {
                 destination: vertexDestination,
                 region: vk::BufferCopy {
@@ -1341,18 +1349,8 @@ impl WorldGpuPipeline {
             self.performanceLightmapUploads = self.performanceLightmapUploads.saturating_add(1);
         }
 
-        self.prepare_chunk_indirect_commands(
-            device,
-            memoryProperties,
-            frameSlot,
-            frame,
-        )?;
-        self.prepare_entity_indirect_commands(
-            device,
-            memoryProperties,
-            frameSlot,
-            frame,
-        )?;
+        self.prepare_chunk_indirect_commands(device, memoryProperties, frameSlot, frame)?;
+        self.prepare_entity_indirect_commands(device, memoryProperties, frameSlot, frame)?;
 
         if !hadDrawableChunks && !self.chunks.is_empty() && !self.loggedFirstChunkUpload {
             log::info!(
@@ -1364,9 +1362,7 @@ impl WorldGpuPipeline {
         self.performanceUploadNanos = self
             .performanceUploadNanos
             .saturating_add(uploadStarted.elapsed().as_nanos());
-        self.performanceUploadBytes = self
-            .performanceUploadBytes
-            .saturating_add(stagingOffset);
+        self.performanceUploadBytes = self.performanceUploadBytes.saturating_add(stagingOffset);
         self.performanceCopyRegions = self
             .performanceCopyRegions
             .saturating_add(self.pendingCopies[frameSlot].len() as u64);
@@ -1412,9 +1408,8 @@ impl WorldGpuPipeline {
             self.chunkIndirectLayerOffsets[frameSlot][layerIndex] =
                 self.chunkIndirectCommands.len() as u64 * stride;
             let firstCommand = self.chunkIndirectCommands.len();
-            let mut plan = std::mem::take(
-                &mut self.chunkLayerSubmissionPlans[frameSlot][layerIndex],
-            );
+            let mut plan =
+                std::mem::take(&mut self.chunkLayerSubmissionPlans[frameSlot][layerIndex]);
             plan.clear();
             let mut sharedCursor = 0_u32;
             let mut runStart = 0_u32;
@@ -1422,11 +1417,19 @@ impl WorldGpuPipeline {
             let mut runIndices = 0_u64;
 
             let mut append = |key: RenderChunkKey| -> anyhow::Result<()> {
-                let Some(chunk) = self.chunks.get(&key) else { return Ok(()); };
+                let Some(chunk) = self.chunks.get(&key) else {
+                    return Ok(());
+                };
                 let range = chunk.layerRanges[layerIndex];
-                if range.indexCount == 0 { return Ok(()); }
+                if range.indexCount == 0 {
+                    return Ok(());
+                }
                 match &chunk.storage {
-                    ChunkStorage::Shared { firstVertex, firstIndex, .. } => {
+                    ChunkStorage::Shared {
+                        firstVertex,
+                        firstIndex,
+                        ..
+                    } => {
                         let globalFirstIndex = (*firstIndex)
                             .checked_add(range.firstIndex)
                             .context("shared RenderChunk index offset overflow")?;
@@ -1445,7 +1448,10 @@ impl WorldGpuPipeline {
                         runIndices = runIndices.saturating_add(range.indexCount as u64);
                         sharedCursor = sharedCursor.saturating_add(1);
                     }
-                    ChunkStorage::Dedicated { vertexBuffer, indexBuffer } => {
+                    ChunkStorage::Dedicated {
+                        vertexBuffer,
+                        indexBuffer,
+                    } => {
                         if runCount > 0 {
                             plan.push(ChunkLayerSubmission::SharedRun {
                                 firstCommand: runStart,
@@ -1549,8 +1555,12 @@ impl WorldGpuPipeline {
                 let range = ranges[runEnd];
                 let mesh = match range.mesh {
                     WorldEntityMeshKind::Dynamic => self.entityMeshes[frameSlot].as_ref(),
-                    WorldEntityMeshKind::BlockEntities => self.blockEntityMeshes[frameSlot].as_ref(),
-                    WorldEntityMeshKind::StaticEntities => self.staticEntityMeshes[frameSlot].as_ref(),
+                    WorldEntityMeshKind::BlockEntities => {
+                        self.blockEntityMeshes[frameSlot].as_ref()
+                    }
+                    WorldEntityMeshKind::StaticEntities => {
+                        self.staticEntityMeshes[frameSlot].as_ref()
+                    }
                 };
                 if mesh.is_some_and(|mesh| {
                     range.indexCount > 0
@@ -1644,12 +1654,7 @@ impl WorldGpuPipeline {
             + firstCommand as u64 * stride as u64;
 
         unsafe {
-            device.cmd_bind_vertex_buffers(
-                commandBuffer,
-                0,
-                &[self.chunkVertexArena.buffer],
-                &[0],
-            );
+            device.cmd_bind_vertex_buffers(commandBuffer, 0, &[self.chunkVertexArena.buffer], &[0]);
             device.cmd_bind_index_buffer(
                 commandBuffer,
                 self.chunkIndexArena.buffer,
@@ -1734,14 +1739,7 @@ impl WorldGpuPipeline {
                             0,
                             vk::IndexType::UINT32,
                         );
-                        device.cmd_draw_indexed(
-                            commandBuffer,
-                            indexCount,
-                            1,
-                            firstIndex,
-                            0,
-                            0,
-                        );
+                        device.cmd_draw_indexed(commandBuffer, indexCount, 1, firstIndex, 0, 0);
                     }
                     submitCalls = submitCalls.saturating_add(1);
                     logicalRanges = logicalRanges.saturating_add(1);
@@ -1777,8 +1775,14 @@ impl WorldGpuPipeline {
         extent: vk::Extent2D,
         frame: &WorldRenderFrame,
     ) -> anyhow::Result<()> {
-        anyhow::ensure!(imageIndex < self.framebuffers.len(), "world framebuffer index out of range");
-        anyhow::ensure!(frameSlot < self.pendingCopies.len(), "world copy frame-slot index out of range");
+        anyhow::ensure!(
+            imageIndex < self.framebuffers.len(),
+            "world framebuffer index out of range"
+        );
+        anyhow::ensure!(
+            frameSlot < self.pendingCopies.len(),
+            "world copy frame-slot index out of range"
+        );
         anyhow::ensure!(
             frameSlot < self.descriptorSets.len()
                 && frameSlot < self.pendingTextureUploads.len()
@@ -1815,7 +1819,9 @@ impl WorldGpuPipeline {
                     vk::PipelineStageFlags::TOP_OF_PIPE,
                     vk::PipelineStageFlags::TRANSFER,
                     vk::DependencyFlags::empty(),
-                    &[], &[], &[toTransfer],
+                    &[],
+                    &[],
+                    &[toTransfer],
                 );
                 let region = vk::BufferImageCopy::default()
                     .buffer_offset(0)
@@ -1829,7 +1835,11 @@ impl WorldGpuPipeline {
                             .layer_count(1),
                     )
                     .image_offset(vk::Offset3D { x: 0, y: 0, z: 0 })
-                    .image_extent(vk::Extent3D { width: pending.width, height: pending.height, depth: 1 });
+                    .image_extent(vk::Extent3D {
+                        width: pending.width,
+                        height: pending.height,
+                        depth: 1,
+                    });
                 device.cmd_copy_buffer_to_image(
                     commandBuffer,
                     pending.staging.buffer,
@@ -1851,7 +1861,9 @@ impl WorldGpuPipeline {
                     vk::PipelineStageFlags::TRANSFER,
                     vk::PipelineStageFlags::FRAGMENT_SHADER,
                     vk::DependencyFlags::empty(),
-                    &[], &[], &[toShader],
+                    &[],
+                    &[],
+                    &[toShader],
                 );
             }
             // The staging allocation remains alive until this frame-slot fence
@@ -1900,7 +1912,11 @@ impl WorldGpuPipeline {
                             .layer_count(1),
                     )
                     .image_offset(vk::Offset3D { x: 0, y: 0, z: 0 })
-                    .image_extent(vk::Extent3D { width: 16, height: 16, depth: 1 });
+                    .image_extent(vk::Extent3D {
+                        width: 16,
+                        height: 16,
+                        depth: 1,
+                    });
                 let staging = self.stagingBuffers[frameSlot]
                     .as_ref()
                     .context("world staging buffer missing while recording lightmap upload")?;
@@ -1954,7 +1970,8 @@ impl WorldGpuPipeline {
                     let index = activeGroups;
                     activeGroups += 1;
                     if index == self.copyGroups.len() {
-                        self.copyGroups.push(PendingBufferCopyGroup::new(copy.destination));
+                        self.copyGroups
+                            .push(PendingBufferCopyGroup::new(copy.destination));
                     } else {
                         self.copyGroups[index].reset(copy.destination);
                     }
@@ -1967,7 +1984,8 @@ impl WorldGpuPipeline {
             }
             self.copyBarriers.clear();
             if self.copyBarriers.capacity() < activeGroups {
-                self.copyBarriers.reserve(activeGroups - self.copyBarriers.capacity());
+                self.copyBarriers
+                    .reserve(activeGroups - self.copyBarriers.capacity());
             }
             let (copyGroups, copyBarriers) = (&self.copyGroups, &mut self.copyBarriers);
             unsafe {
@@ -2010,10 +2028,15 @@ impl WorldGpuPipeline {
 
         let clearValues = [
             vk::ClearValue {
-                color: vk::ClearColorValue { float32: frame.clearColor },
+                color: vk::ClearColorValue {
+                    float32: frame.clearColor,
+                },
             },
             vk::ClearValue {
-                depth_stencil: vk::ClearDepthStencilValue { depth: 1.0, stencil: 0 },
+                depth_stencil: vk::ClearDepthStencilValue {
+                    depth: 1.0,
+                    stencil: 0,
+                },
             },
         ];
         let renderArea = vk::Rect2D {
@@ -2063,8 +2086,18 @@ impl WorldGpuPipeline {
                     .as_ref()
                     .filter(|mesh| mesh.indexCount > 0)
                 {
-                    device.cmd_bind_vertex_buffers(commandBuffer, 0, &[mesh.vertexBuffer.buffer], &[0]);
-                    device.cmd_bind_index_buffer(commandBuffer, mesh.indexBuffer.buffer, 0, vk::IndexType::UINT32);
+                    device.cmd_bind_vertex_buffers(
+                        commandBuffer,
+                        0,
+                        &[mesh.vertexBuffer.buffer],
+                        &[0],
+                    );
+                    device.cmd_bind_index_buffer(
+                        commandBuffer,
+                        mesh.indexBuffer.buffer,
+                        0,
+                        vk::IndexType::UINT32,
+                    );
                     if frame.skyAlphaIndexCount > 0 {
                         device.cmd_bind_pipeline(
                             commandBuffer,
@@ -2126,8 +2159,18 @@ impl WorldGpuPipeline {
                 {
                     let firstIndex = frame.skyAlphaIndexCount + frame.skyCelestialIndexCount;
                     if firstIndex.saturating_add(frame.cloudIndexCount) <= mesh.indexCount {
-                        device.cmd_bind_vertex_buffers(commandBuffer, 0, &[mesh.vertexBuffer.buffer], &[0]);
-                        device.cmd_bind_index_buffer(commandBuffer, mesh.indexBuffer.buffer, 0, vk::IndexType::UINT32);
+                        device.cmd_bind_vertex_buffers(
+                            commandBuffer,
+                            0,
+                            &[mesh.vertexBuffer.buffer],
+                            &[0],
+                        );
+                        device.cmd_bind_index_buffer(
+                            commandBuffer,
+                            mesh.indexBuffer.buffer,
+                            0,
+                            vk::IndexType::UINT32,
+                        );
                         device.cmd_push_constants(
                             commandBuffer,
                             self.pipelineLayout,
@@ -2199,12 +2242,8 @@ impl WorldGpuPipeline {
                     0,
                     struct_as_bytes(&constants),
                 );
-                let (layerSubmitCalls, layerRanges, layerIndices) = self.record_chunk_layer(
-                    device,
-                    commandBuffer,
-                    frameSlot,
-                    layer.index(),
-                );
+                let (layerSubmitCalls, layerRanges, layerIndices) =
+                    self.record_chunk_layer(device, commandBuffer, frameSlot, layer.index());
                 drawCount = drawCount.saturating_add(layerSubmitCalls as usize);
                 logicalChunkRanges = logicalChunkRanges.saturating_add(layerRanges);
                 submittedIndices = submittedIndices.saturating_add(layerIndices);
@@ -2264,10 +2303,16 @@ impl WorldGpuPipeline {
                         }
                         let mesh = match run.mesh {
                             WorldEntityMeshKind::Dynamic => self.entityMeshes[frameSlot].as_ref(),
-                            WorldEntityMeshKind::BlockEntities => self.blockEntityMeshes[frameSlot].as_ref(),
-                            WorldEntityMeshKind::StaticEntities => self.staticEntityMeshes[frameSlot].as_ref(),
+                            WorldEntityMeshKind::BlockEntities => {
+                                self.blockEntityMeshes[frameSlot].as_ref()
+                            }
+                            WorldEntityMeshKind::StaticEntities => {
+                                self.staticEntityMeshes[frameSlot].as_ref()
+                            }
                         };
-                        let Some(mesh) = mesh else { continue; };
+                        let Some(mesh) = mesh else {
+                            continue;
+                        };
                         if boundMesh != Some(run.mesh) {
                             device.cmd_bind_vertex_buffers(
                                 commandBuffer,
@@ -2297,8 +2342,8 @@ impl WorldGpuPipeline {
                         } else {
                             let mut submitted = 0_u32;
                             while submitted < run.commandCount {
-                                let batchCount = (run.commandCount - submitted)
-                                    .min(self.maxDrawIndirectCount);
+                                let batchCount =
+                                    (run.commandCount - submitted).min(self.maxDrawIndirectCount);
                                 device.cmd_draw_indexed_indirect(
                                     commandBuffer,
                                     indirect.buffer,
@@ -2310,10 +2355,9 @@ impl WorldGpuPipeline {
                                 submitted = submitted.saturating_add(batchCount);
                             }
                         }
-                        logicalEntityRanges = logicalEntityRanges
-                            .saturating_add(run.commandCount as u64);
-                        submittedIndices = submittedIndices
-                            .saturating_add(run.submittedIndices);
+                        logicalEntityRanges =
+                            logicalEntityRanges.saturating_add(run.commandCount as u64);
+                        submittedIndices = submittedIndices.saturating_add(run.submittedIndices);
                     }
                 } else {
                     // Exact pre-Batch-118 fallback for hardware without
@@ -2356,13 +2400,20 @@ impl WorldGpuPipeline {
                         }
                         let mesh = match range.mesh {
                             WorldEntityMeshKind::Dynamic => self.entityMeshes[frameSlot].as_ref(),
-                            WorldEntityMeshKind::BlockEntities => self.blockEntityMeshes[frameSlot].as_ref(),
-                            WorldEntityMeshKind::StaticEntities => self.staticEntityMeshes[frameSlot].as_ref(),
+                            WorldEntityMeshKind::BlockEntities => {
+                                self.blockEntityMeshes[frameSlot].as_ref()
+                            }
+                            WorldEntityMeshKind::StaticEntities => {
+                                self.staticEntityMeshes[frameSlot].as_ref()
+                            }
                         };
                         let Some(mesh) = mesh.filter(|mesh| {
                             range.indexCount > 0
-                                && range.firstIndex.saturating_add(range.indexCount) <= mesh.indexCount
-                        }) else { continue; };
+                                && range.firstIndex.saturating_add(range.indexCount)
+                                    <= mesh.indexCount
+                        }) else {
+                            continue;
+                        };
                         if boundMesh != Some(range.mesh) {
                             device.cmd_bind_vertex_buffers(
                                 commandBuffer,
@@ -2516,14 +2567,7 @@ impl WorldGpuPipeline {
                     0,
                     vk::IndexType::UINT32,
                 );
-                device.cmd_draw_indexed(
-                    commandBuffer,
-                    entityDepthMesh.indexCount,
-                    1,
-                    0,
-                    0,
-                    0,
-                );
+                device.cmd_draw_indexed(commandBuffer, entityDepthMesh.indexCount, 1, 0, 0, 0);
                 drawCount += 1;
                 submittedIndices += entityDepthMesh.indexCount as u64;
             }
@@ -2707,12 +2751,8 @@ impl WorldGpuPipeline {
                 struct_as_bytes(&constants),
             );
             let translucentLayer = BlockRenderLayer::Translucent.index();
-            let (layerSubmitCalls, layerRanges, layerIndices) = self.record_chunk_layer(
-                device,
-                commandBuffer,
-                frameSlot,
-                translucentLayer,
-            );
+            let (layerSubmitCalls, layerRanges, layerIndices) =
+                self.record_chunk_layer(device, commandBuffer, frameSlot, translucentLayer);
             drawCount = drawCount.saturating_add(layerSubmitCalls as usize);
             logicalChunkRanges = logicalChunkRanges.saturating_add(layerRanges);
             submittedIndices = submittedIndices.saturating_add(layerIndices);
@@ -2726,8 +2766,18 @@ impl WorldGpuPipeline {
                 {
                     let firstIndex = frame.skyAlphaIndexCount + frame.skyCelestialIndexCount;
                     if firstIndex.saturating_add(frame.cloudIndexCount) <= mesh.indexCount {
-                        device.cmd_bind_vertex_buffers(commandBuffer, 0, &[mesh.vertexBuffer.buffer], &[0]);
-                        device.cmd_bind_index_buffer(commandBuffer, mesh.indexBuffer.buffer, 0, vk::IndexType::UINT32);
+                        device.cmd_bind_vertex_buffers(
+                            commandBuffer,
+                            0,
+                            &[mesh.vertexBuffer.buffer],
+                            &[0],
+                        );
+                        device.cmd_bind_index_buffer(
+                            commandBuffer,
+                            mesh.indexBuffer.buffer,
+                            0,
+                            vk::IndexType::UINT32,
+                        );
                         device.cmd_push_constants(
                             commandBuffer,
                             self.pipelineLayout,
@@ -2783,7 +2833,10 @@ impl WorldGpuPipeline {
                     aspect_mask: vk::ImageAspectFlags::DEPTH,
                     color_attachment: 0,
                     clear_value: vk::ClearValue {
-                        depth_stencil: vk::ClearDepthStencilValue { depth: 1.0, stencil: 0 },
+                        depth_stencil: vk::ClearDepthStencilValue {
+                            depth: 1.0,
+                            stencil: 0,
+                        },
                     },
                     ..Default::default()
                 };
@@ -2814,7 +2867,9 @@ impl WorldGpuPipeline {
                 );
                 let mut boundPipeline = vk::Pipeline::null();
                 for range in frame.firstPersonDrawRanges.iter() {
-                    if range.indexCount == 0 { continue; }
+                    if range.indexCount == 0 {
+                        continue;
+                    }
                     let pipeline = match range.pipeline {
                         FirstPersonPipelineKind::Alpha => self.firstPersonPipeline,
                         FirstPersonPipelineKind::Fire => self.firstPersonFirePipeline,
@@ -2849,8 +2904,18 @@ impl WorldGpuPipeline {
                 .as_ref()
                 .filter(|mesh| mesh.indexCount > 0)
             {
-                device.cmd_bind_vertex_buffers(commandBuffer, 0, &[hudMesh.vertexBuffer.buffer], &[0]);
-                device.cmd_bind_index_buffer(commandBuffer, hudMesh.indexBuffer.buffer, 0, vk::IndexType::UINT32);
+                device.cmd_bind_vertex_buffers(
+                    commandBuffer,
+                    0,
+                    &[hudMesh.vertexBuffer.buffer],
+                    &[0],
+                );
+                device.cmd_bind_index_buffer(
+                    commandBuffer,
+                    hudMesh.indexBuffer.buffer,
+                    0,
+                    vk::IndexType::UINT32,
+                );
                 device.cmd_push_constants(
                     commandBuffer,
                     self.pipelineLayout,
@@ -2860,7 +2925,9 @@ impl WorldGpuPipeline {
                 );
                 let mut boundPipeline = vk::Pipeline::null();
                 for range in frame.hudDrawRanges.iter() {
-                    if range.indexCount == 0 { continue; }
+                    if range.indexCount == 0 {
+                        continue;
+                    }
                     let pipeline = match range.pipeline {
                         HudPipelineKind::Alpha => self.hudPipeline,
                         HudPipelineKind::Crosshair => self.crosshairPipeline,
@@ -2895,16 +2962,22 @@ impl WorldGpuPipeline {
             let performanceElapsed = self.performanceLogStarted.elapsed();
             if performanceElapsed >= Duration::from_secs(5) {
                 let sharedVertexUsed = CHUNK_VERTEX_ARENA_BYTES.saturating_sub(
-                    self.chunkVertexRanges.free_count()
+                    self.chunkVertexRanges
+                        .free_count()
                         .saturating_mul(std::mem::size_of::<WorldVertex>() as u64),
                 );
                 let sharedIndexUsed = CHUNK_INDEX_ARENA_BYTES.saturating_sub(
-                    self.chunkIndexRanges.free_count()
+                    self.chunkIndexRanges
+                        .free_count()
                         .saturating_mul(std::mem::size_of::<u32>() as u64),
                 );
                 let mut residentBytes = sharedVertexUsed.saturating_add(sharedIndexUsed);
                 for chunk in self.chunks.values() {
-                    if let ChunkStorage::Dedicated { vertexBuffer, indexBuffer } = &chunk.storage {
+                    if let ChunkStorage::Dedicated {
+                        vertexBuffer,
+                        indexBuffer,
+                    } = &chunk.storage
+                    {
                         residentBytes = residentBytes
                             .saturating_add(vertexBuffer.size)
                             .saturating_add(indexBuffer.size);
@@ -3117,14 +3190,22 @@ impl WorldGpuPipeline {
     pub fn destroy(&mut self, device: &Device) {
         self.destroy_swapchain_resources(device);
         for (_, chunk) in self.chunks.drain() {
-            if let ChunkStorage::Dedicated { vertexBuffer, indexBuffer } = chunk.storage {
+            if let ChunkStorage::Dedicated {
+                vertexBuffer,
+                indexBuffer,
+            } = chunk.storage
+            {
                 destroy_buffer(device, Some(vertexBuffer));
                 destroy_buffer(device, Some(indexBuffer));
             }
         }
         for retired in &mut self.retiredChunkStorage {
             for storage in retired.drain(..) {
-                if let ChunkStorage::Dedicated { vertexBuffer, indexBuffer } = storage {
+                if let ChunkStorage::Dedicated {
+                    vertexBuffer,
+                    indexBuffer,
+                } = storage
+                {
                     destroy_buffer(device, Some(vertexBuffer));
                     destroy_buffer(device, Some(indexBuffer));
                 }
@@ -3144,14 +3225,28 @@ impl WorldGpuPipeline {
         self.copyGroupLookup.clear();
         self.copyGroups.clear();
         self.copyBarriers.clear();
-        destroy_buffer(device, Some(std::mem::replace(
-            &mut self.chunkVertexArena,
-            GpuBuffer { buffer: vk::Buffer::null(), memory: vk::DeviceMemory::null(), size: 0 },
-        )));
-        destroy_buffer(device, Some(std::mem::replace(
-            &mut self.chunkIndexArena,
-            GpuBuffer { buffer: vk::Buffer::null(), memory: vk::DeviceMemory::null(), size: 0 },
-        )));
+        destroy_buffer(
+            device,
+            Some(std::mem::replace(
+                &mut self.chunkVertexArena,
+                GpuBuffer {
+                    buffer: vk::Buffer::null(),
+                    memory: vk::DeviceMemory::null(),
+                    size: 0,
+                },
+            )),
+        );
+        destroy_buffer(
+            device,
+            Some(std::mem::replace(
+                &mut self.chunkIndexArena,
+                GpuBuffer {
+                    buffer: vk::Buffer::null(),
+                    memory: vk::DeviceMemory::null(),
+                    size: 0,
+                },
+            )),
+        );
         for entityMesh in &mut self.entityMeshes {
             if let Some(mesh) = entityMesh.take() {
                 destroy_buffer(device, Some(mesh.vertexBuffer));
@@ -3230,13 +3325,19 @@ impl WorldGpuPipeline {
             copies.clear();
         }
         for pending in &mut self.pendingTextureUploads {
-            if let Some(pending) = pending.take() { destroy_buffer(device, Some(pending.staging)); }
+            if let Some(pending) = pending.take() {
+                destroy_buffer(device, Some(pending.staging));
+            }
         }
         for pending in &mut self.pendingLightmapUploads {
             *pending = None;
         }
-        for texture in &mut self.textures { destroy_texture(device, texture.take()); }
-        for texture in &mut self.lightmapTextures { destroy_texture(device, texture.take()); }
+        for texture in &mut self.textures {
+            destroy_texture(device, texture.take());
+        }
+        for texture in &mut self.lightmapTextures {
+            destroy_texture(device, texture.take());
+        }
         unsafe {
             if self.pipelineLayout != vk::PipelineLayout::null() {
                 device.destroy_pipeline_layout(self.pipelineLayout, None);
@@ -3612,38 +3713,18 @@ impl WorldGpuPipeline {
             ])
         })();
         drop(create);
-        let [
-            opaquePipeline,
-            entityPipeline,
-            nameplateSeeThroughPipeline,
-            nameplateDepthNoWritePipeline,
-            nameplateDepthWritePipeline,
-            entityOverlayPipeline,
-            endPortalAdditivePipeline,
-            beaconCorePipeline,
-            beaconGlowPipeline,
-            skyCelestialPipeline,
-            entityDepthPipeline,
-            damagePipeline,
-            selectionPipeline,
-            firstPersonPipeline,
-            firstPersonFirePipeline,
-            firstPersonGlintPipeline,
-            translucentPipeline,
-            hudPipeline,
-            crosshairPipeline,
-            glintPipeline,
-        ] = match pipelines {
-            Ok(pipelines) => pipelines,
-            Err(error) => {
-                unsafe {
-                    for pipeline in createdPipelines.drain(..) {
-                        device.destroy_pipeline(pipeline, None);
+        let [opaquePipeline, entityPipeline, nameplateSeeThroughPipeline, nameplateDepthNoWritePipeline, nameplateDepthWritePipeline, entityOverlayPipeline, endPortalAdditivePipeline, beaconCorePipeline, beaconGlowPipeline, skyCelestialPipeline, entityDepthPipeline, damagePipeline, selectionPipeline, firstPersonPipeline, firstPersonFirePipeline, firstPersonGlintPipeline, translucentPipeline, hudPipeline, crosshairPipeline, glintPipeline] =
+            match pipelines {
+                Ok(pipelines) => pipelines,
+                Err(error) => {
+                    unsafe {
+                        for pipeline in createdPipelines.drain(..) {
+                            device.destroy_pipeline(pipeline, None);
+                        }
                     }
+                    return Err(error);
                 }
-                return Err(error);
-            }
-        };
+            };
         self.opaquePipeline = opaquePipeline;
         self.entityPipeline = entityPipeline;
         self.nameplateSeeThroughPipeline = nameplateSeeThroughPipeline;
@@ -3664,10 +3745,7 @@ impl WorldGpuPipeline {
         self.hudPipeline = hudPipeline;
         self.crosshairPipeline = crosshairPipeline;
         self.glintPipeline = glintPipeline;
-        for (&colorView, &depthView) in self
-            .swapchainImageViews
-            .iter()
-            .zip(self.depthViews.iter())
+        for (&colorView, &depthView) in self.swapchainImageViews.iter().zip(self.depthViews.iter())
         {
             let attachments = [colorView, depthView];
             let info = vk::FramebufferCreateInfo::default()
@@ -3779,7 +3857,9 @@ fn create_pipeline(
         Ok(module) => module,
         Err(error) => {
             unsafe { device.destroy_shader_module(vertexModule, None) };
-            return Err(anyhow!("failed creating world fragment shader module: {error:?}"));
+            return Err(anyhow!(
+                "failed creating world fragment shader module: {error:?}"
+            ));
         }
     };
     let entryPoint = CString::new("main").expect("static shader entry point");
@@ -3947,8 +4027,7 @@ fn create_pipeline(
     let colorBlend =
         vk::PipelineColorBlendStateCreateInfo::default().attachments(&blendAttachments);
     let dynamicStates = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
-    let dynamic =
-        vk::PipelineDynamicStateCreateInfo::default().dynamic_states(&dynamicStates);
+    let dynamic = vk::PipelineDynamicStateCreateInfo::default().dynamic_states(&dynamicStates);
     let pipelineInfo = vk::GraphicsPipelineCreateInfo::default()
         .stages(&stages)
         .vertex_input_state(&vertexInput)
@@ -3985,8 +4064,8 @@ fn create_host_buffer(
         .size(size)
         .usage(usage)
         .sharing_mode(vk::SharingMode::EXCLUSIVE);
-    let buffer = unsafe { device.create_buffer(&info, None) }
-        .context("failed creating world GPU buffer")?;
+    let buffer =
+        unsafe { device.create_buffer(&info, None) }.context("failed creating world GPU buffer")?;
     let requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
     let memoryType = find_memory_type(
         memoryProperties,
@@ -4034,7 +4113,11 @@ fn create_host_buffer(
         std::ptr::copy_nonoverlapping(bytes.as_ptr(), mapped.as_ptr(), bytes.len());
         device.unmap_memory(memory);
     }
-    Ok(GpuBuffer { buffer, memory, size })
+    Ok(GpuBuffer {
+        buffer,
+        memory,
+        size,
+    })
 }
 
 fn create_device_local_buffer(
@@ -4069,7 +4152,9 @@ fn create_device_local_buffer(
         Ok(memory) => memory,
         Err(error) => {
             unsafe { device.destroy_buffer(buffer, None) };
-            return Err(anyhow!("failed allocating device-local world buffer: {error:?}"));
+            return Err(anyhow!(
+                "failed allocating device-local world buffer: {error:?}"
+            ));
         }
     };
     if let Err(error) = unsafe { device.bind_buffer_memory(buffer, memory, 0) } {
@@ -4077,9 +4162,15 @@ fn create_device_local_buffer(
             device.free_memory(memory, None);
             device.destroy_buffer(buffer, None);
         }
-        return Err(anyhow!("failed binding device-local world buffer: {error:?}"));
+        return Err(anyhow!(
+            "failed binding device-local world buffer: {error:?}"
+        ));
     }
-    Ok(GpuBuffer { buffer, memory, size })
+    Ok(GpuBuffer {
+        buffer,
+        memory,
+        size,
+    })
 }
 
 fn ensure_staging_capacity(
@@ -4180,28 +4271,32 @@ fn create_mapped_frame_buffer(
         }
         return Err(anyhow!("failed binding {label} memory: {error:?}"));
     }
-    let mapped = match unsafe {
-        device.map_memory(memory, 0, capacity, vk::MemoryMapFlags::empty())
-    } {
-        Ok(pointer) => match NonNull::new(pointer.cast::<u8>()) {
-            Some(pointer) => pointer,
-            None => {
+    let mapped =
+        match unsafe { device.map_memory(memory, 0, capacity, vk::MemoryMapFlags::empty()) } {
+            Ok(pointer) => match NonNull::new(pointer.cast::<u8>()) {
+                Some(pointer) => pointer,
+                None => {
+                    unsafe {
+                        device.free_memory(memory, None);
+                        device.destroy_buffer(buffer, None);
+                    }
+                    return Err(anyhow!("Vulkan returned null mapped {label} memory"));
+                }
+            },
+            Err(error) => {
                 unsafe {
                     device.free_memory(memory, None);
                     device.destroy_buffer(buffer, None);
                 }
-                return Err(anyhow!("Vulkan returned null mapped {label} memory"));
+                return Err(anyhow!("failed mapping {label} memory: {error:?}"));
             }
-        },
-        Err(error) => {
-            unsafe {
-                device.free_memory(memory, None);
-                device.destroy_buffer(buffer, None);
-            }
-            return Err(anyhow!("failed mapping {label} memory: {error:?}"));
-        }
-    };
-    Ok(FrameStagingBuffer { buffer, memory, mapped, capacity })
+        };
+    Ok(FrameStagingBuffer {
+        buffer,
+        memory,
+        mapped,
+        capacity,
+    })
 }
 
 fn destroy_staging_buffer(device: &Device, staging: Option<FrameStagingBuffer>) {
@@ -4269,10 +4364,17 @@ fn create_lightmap_texture(
                 device.destroy_image(image, None);
                 device.free_memory(memory, None);
             }
-            return Err(anyhow!("failed creating vanilla lightmap sampler: {error:?}"));
+            return Err(anyhow!(
+                "failed creating vanilla lightmap sampler: {error:?}"
+            ));
         }
     };
-    Ok(GpuTexture { image, memory, view, sampler })
+    Ok(GpuTexture {
+        image,
+        memory,
+        view,
+        sampler,
+    })
 }
 
 fn create_pending_texture_upload(
@@ -4311,7 +4413,10 @@ fn create_pending_texture_upload(
         Ok(view) => view,
         Err(error) => {
             destroy_buffer(device, Some(staging));
-            unsafe { device.destroy_image(image, None); device.free_memory(memory, None); }
+            unsafe {
+                device.destroy_image(image, None);
+                device.free_memory(memory, None);
+            }
             return Err(error);
         }
     };
@@ -4343,8 +4448,18 @@ fn create_pending_texture_upload(
         }
     };
     Ok((
-        GpuTexture { image, memory, view, sampler },
-        PendingTextureUpload { staging, image, width, height },
+        GpuTexture {
+            image,
+            memory,
+            view,
+            sampler,
+        },
+        PendingTextureUpload {
+            staging,
+            image,
+            width,
+            height,
+        },
     ))
 }
 
@@ -4359,7 +4474,11 @@ fn create_image(
     let info = vk::ImageCreateInfo::default()
         .image_type(vk::ImageType::TYPE_2D)
         .format(format)
-        .extent(vk::Extent3D { width, height, depth: 1 })
+        .extent(vk::Extent3D {
+            width,
+            height,
+            depth: 1,
+        })
         .mip_levels(1)
         .array_layers(1)
         .samples(vk::SampleCountFlags::TYPE_1)
@@ -4383,7 +4502,9 @@ fn create_image(
         Ok(memory) => memory,
         Err(error) => {
             unsafe { device.destroy_image(image, None) };
-            return Err(anyhow!("failed allocating Vulkan world image memory: {error:?}"));
+            return Err(anyhow!(
+                "failed allocating Vulkan world image memory: {error:?}"
+            ));
         }
     };
     if let Err(error) = unsafe { device.bind_image_memory(image, memory, 0) } {
@@ -4391,7 +4512,9 @@ fn create_image(
             device.free_memory(memory, None);
             device.destroy_image(image, None);
         }
-        return Err(anyhow!("failed binding Vulkan world image memory: {error:?}"));
+        return Err(anyhow!(
+            "failed binding Vulkan world image memory: {error:?}"
+        ));
     }
     Ok((image, memory))
 }
@@ -4454,7 +4577,8 @@ fn find_depth_format(
     ]
     .into_iter()
     .find(|&format| {
-        let properties = unsafe { instance.get_physical_device_format_properties(physicalDevice, format) };
+        let properties =
+            unsafe { instance.get_physical_device_format_properties(physicalDevice, format) };
         properties
             .optimal_tiling_features
             .contains(vk::FormatFeatureFlags::DEPTH_STENCIL_ATTACHMENT)
@@ -4491,7 +4615,6 @@ fn depth_aspect(format: vk::Format) -> vk::ImageAspectFlags {
         _ => vk::ImageAspectFlags::DEPTH,
     }
 }
-
 
 fn dynamic_mesh_needs_upload<T>(
     slot: &Option<GpuEntityMesh>,
@@ -4531,11 +4654,7 @@ fn append_dynamic_upload_bytes<T>(
     align_up(afterVertices, 4).saturating_add(indexBytes)
 }
 
-fn clear_empty_dynamic_mesh<T>(
-    slot: &mut Option<GpuEntityMesh>,
-    vertices: &[T],
-    indices: &[u32],
-) {
+fn clear_empty_dynamic_mesh<T>(slot: &mut Option<GpuEntityMesh>, vertices: &[T], indices: &[u32]) {
     if vertices.is_empty() || indices.is_empty() {
         clear_dynamic_mesh(slot);
     }
@@ -4568,8 +4687,8 @@ fn stage_dynamic_mesh<T>(
 
     let vertexBytes = as_bytes(vertices);
     let indexBytes = as_bytes(indices);
-    let indexCount = u32::try_from(indices.len())
-        .with_context(|| format!("{label} index count exceeds u32"))?;
+    let indexCount =
+        u32::try_from(indices.len()).with_context(|| format!("{label} index count exceeds u32"))?;
     if slot.as_ref().is_some_and(|mesh| {
         mesh.contentGeneration == Some(contentGeneration)
             && mesh.indexCount == indexCount
@@ -4665,7 +4784,7 @@ fn stage_dynamic_mesh<T>(
 
 #[cfg(test)]
 mod chunk_batch_tests {
-    use super::{ElementArenaAllocator, ChunkIndirectCommand};
+    use super::{ChunkIndirectCommand, ElementArenaAllocator};
 
     #[test]
     fn fragmented_spans_coalesce_without_reordering_live_meshes() {
@@ -4693,18 +4812,12 @@ mod chunk_batch_tests {
 
 fn as_bytes<T>(values: &[T]) -> &[u8] {
     unsafe {
-        std::slice::from_raw_parts(
-            values.as_ptr().cast::<u8>(),
-            std::mem::size_of_val(values),
-        )
+        std::slice::from_raw_parts(values.as_ptr().cast::<u8>(), std::mem::size_of_val(values))
     }
 }
 
 fn struct_as_bytes<T>(value: &T) -> &[u8] {
     unsafe {
-        std::slice::from_raw_parts(
-            (value as *const T).cast::<u8>(),
-            std::mem::size_of::<T>(),
-        )
+        std::slice::from_raw_parts((value as *const T).cast::<u8>(), std::mem::size_of::<T>())
     }
 }

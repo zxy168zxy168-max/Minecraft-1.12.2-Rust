@@ -1,13 +1,15 @@
 use crate::net::minecraft::entity::player::InventoryPlayer::InventoryPlayer;
 use crate::net::minecraft::inventory::ContainerBeacon::ContainerBeacon;
 use crate::net::minecraft::inventory::ContainerBrewingStand::ContainerBrewingStand;
-use crate::net::minecraft::inventory::ContainerDispenser::ContainerDispenser;
-use crate::net::minecraft::inventory::ContainerHopper::ContainerHopper;
-use crate::net::minecraft::inventory::ContainerMerchant::ContainerMerchant;
-use crate::net::minecraft::inventory::ContainerHorseInventory::{ContainerHorseInventory, HorseInventorySpec};
 use crate::net::minecraft::inventory::ContainerChest::ContainerChest;
+use crate::net::minecraft::inventory::ContainerDispenser::ContainerDispenser;
 use crate::net::minecraft::inventory::ContainerEnchantment::ContainerEnchantment;
 use crate::net::minecraft::inventory::ContainerFurnace::ContainerFurnace;
+use crate::net::minecraft::inventory::ContainerHopper::ContainerHopper;
+use crate::net::minecraft::inventory::ContainerHorseInventory::{
+    ContainerHorseInventory, HorseInventorySpec,
+};
+use crate::net::minecraft::inventory::ContainerMerchant::ContainerMerchant;
 use crate::net::minecraft::inventory::ContainerRepair::ContainerRepair;
 use crate::net::minecraft::inventory::ContainerShulkerBox::ContainerShulkerBox;
 use crate::net::minecraft::inventory::ContainerWindow::{ContainerWindow, ContainerWindowKind};
@@ -101,7 +103,9 @@ impl OpenContainer {
             Self::Repair(container) => container.stateMut().updateProgressBar(property, value),
             Self::Enchantment(container) => container.stateMut().updateProgressBar(property, value),
             Self::Hopper(container) => container.stateMut().updateProgressBar(property, value),
-            Self::BrewingStand(container) => container.stateMut().updateProgressBar(property, value),
+            Self::BrewingStand(container) => {
+                container.stateMut().updateProgressBar(property, value)
+            }
             Self::Dispenser(container) => container.stateMut().updateProgressBar(property, value),
             Self::Dropper(container) => container.stateMut().updateProgressBar(property, value),
             Self::Beacon(container) => container.stateMut().updateProgressBar(property, value),
@@ -257,7 +261,13 @@ impl OpenContainer {
             Self::Dispenser(container) => container.stateMut().putStackInSlot(slotId, stack),
             Self::Dropper(container) => container.stateMut().putStackInSlot(slotId, stack),
             Self::Beacon(container) => container.stateMut().putStackInSlot(slotId, stack),
-            Self::Merchant(container) => { let result=container.stateMut().putStackInSlot(slotId, stack); if matches!(slotId,0|1){container.resetRecipeAndSlots();} result },
+            Self::Merchant(container) => {
+                let result = container.stateMut().putStackInSlot(slotId, stack);
+                if matches!(slotId, 0 | 1) {
+                    container.resetRecipeAndSlots();
+                }
+                result
+            }
         }
     }
 
@@ -275,7 +285,11 @@ impl OpenContainer {
             Self::Dispenser(container) => container.stateMut().setAll(stacks),
             Self::Dropper(container) => container.stateMut().setAll(stacks),
             Self::Beacon(container) => container.stateMut().setAll(stacks),
-            Self::Merchant(container) => { let result=container.stateMut().setAll(stacks); container.resetRecipeAndSlots(); result },
+            Self::Merchant(container) => {
+                let result = container.stateMut().setAll(stacks);
+                container.resetRecipeAndSlots();
+                result
+            }
         }
     }
 
@@ -289,7 +303,9 @@ impl OpenContainer {
             Self::Repair(container) => container.stateMut().syncFromPlayerInventory(inventory),
             Self::Enchantment(container) => container.stateMut().syncFromPlayerInventory(inventory),
             Self::Hopper(container) => container.stateMut().syncFromPlayerInventory(inventory),
-            Self::BrewingStand(container) => container.stateMut().syncFromPlayerInventory(inventory),
+            Self::BrewingStand(container) => {
+                container.stateMut().syncFromPlayerInventory(inventory)
+            }
             Self::Dispenser(container) => container.stateMut().syncFromPlayerInventory(inventory),
             Self::Dropper(container) => container.stateMut().syncFromPlayerInventory(inventory),
             Self::Beacon(container) => container.stateMut().syncFromPlayerInventory(inventory),
@@ -357,16 +373,36 @@ impl OpenContainer {
             Self::Chest(container) => container.quickCraft(slotId, dragType, cursor, creative),
             Self::ShulkerBox(container) => container.quickCraft(slotId, dragType, cursor, creative),
             Self::Horse(container) => container.quickCraft(slotId, dragType, cursor, creative),
-            Self::Workbench(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::Furnace(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::Repair(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::Enchantment(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::Hopper(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::BrewingStand(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::Dispenser(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::Dropper(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::Beacon(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
-            Self::Merchant(container) => container.stateMut().quickCraft(slotId, dragType, cursor, creative),
+            Self::Workbench(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::Furnace(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::Repair(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::Enchantment(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::Hopper(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::BrewingStand(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::Dispenser(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::Dropper(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::Beacon(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
+            Self::Merchant(container) => container
+                .stateMut()
+                .quickCraft(slotId, dragType, cursor, creative),
         }
     }
 
@@ -396,9 +432,13 @@ impl OpenContainer {
             Self::Workbench(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
             Self::Furnace(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
             Self::Repair(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
-            Self::Enchantment(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
+            Self::Enchantment(container) => {
+                container.stateMut().swapWithHotbar(slotId, hotbarIndex)
+            }
             Self::Hopper(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
-            Self::BrewingStand(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
+            Self::BrewingStand(container) => {
+                container.stateMut().swapWithHotbar(slotId, hotbarIndex)
+            }
             Self::Dispenser(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
             Self::Dropper(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
             Self::Beacon(container) => container.stateMut().swapWithHotbar(slotId, hotbarIndex),
@@ -442,16 +482,33 @@ impl OpenContainer {
         }
     }
     pub fn merchantRecipes(&self) -> Option<&MerchantRecipeList> {
-        match self { Self::Merchant(container) => container.getRecipes(), _ => None }
+        match self {
+            Self::Merchant(container) => container.getRecipes(),
+            _ => None,
+        }
     }
     pub fn merchantRecipeIndex(&self) -> Option<i32> {
-        match self { Self::Merchant(container) => Some(container.getCurrentRecipeIndex()), _ => None }
+        match self {
+            Self::Merchant(container) => Some(container.getCurrentRecipeIndex()),
+            _ => None,
+        }
     }
     pub fn setMerchantRecipes(&mut self, recipes: MerchantRecipeList) -> bool {
-        match self { Self::Merchant(container) => { container.setRecipes(recipes); true }, _ => false }
+        match self {
+            Self::Merchant(container) => {
+                container.setRecipes(recipes);
+                true
+            }
+            _ => false,
+        }
     }
     pub fn setMerchantRecipeIndex(&mut self, index: i32) -> bool {
-        match self { Self::Merchant(container) => { container.setCurrentRecipeIndex(index); true }, _ => false }
+        match self {
+            Self::Merchant(container) => {
+                container.setCurrentRecipeIndex(index);
+                true
+            }
+            _ => false,
+        }
     }
-
 }

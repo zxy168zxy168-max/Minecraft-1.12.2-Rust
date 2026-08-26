@@ -1,5 +1,5 @@
-use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
@@ -24,9 +24,18 @@ pub struct ThreadedFileIOBase {
 impl std::fmt::Debug for ThreadedFileIOBase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ThreadedFileIOBase")
-            .field("writeQueuedCounter", &self.writeQueuedCounter.load(Ordering::Acquire))
-            .field("savedIOCounter", &self.savedIOCounter.load(Ordering::Acquire))
-            .field("isThreadWaiting", &self.isThreadWaiting.load(Ordering::Acquire))
+            .field(
+                "writeQueuedCounter",
+                &self.writeQueuedCounter.load(Ordering::Acquire),
+            )
+            .field(
+                "savedIOCounter",
+                &self.savedIOCounter.load(Ordering::Acquire),
+            )
+            .field(
+                "isThreadWaiting",
+                &self.isThreadWaiting.load(Ordering::Acquire),
+            )
             .finish_non_exhaustive()
     }
 }
@@ -41,7 +50,9 @@ impl ThreadedFileIOBase {
             isThreadWaiting: AtomicBool::new(false),
         });
         let worker = Arc::clone(&instance);
-        let _ = thread::Builder::new().name("File IO Thread".to_owned()).spawn(move || worker.run());
+        let _ = thread::Builder::new()
+            .name("File IO Thread".to_owned())
+            .spawn(move || worker.run());
         instance
     }
 
@@ -68,7 +79,9 @@ impl ThreadedFileIOBase {
                 let queue = self.queue.lock().unwrap_or_else(|p| p.into_inner());
                 queue.get(index).cloned()
             };
-            let Some(fileIo) = fileIo else { break; };
+            let Some(fileIo) = fileIo else {
+                break;
+            };
 
             let keepQueued = fileIo.writeNextIO();
             if !keepQueued {
@@ -77,7 +90,10 @@ impl ThreadedFileIOBase {
                 if index < queue.len() && queue[index].ioIdentity() == identity {
                     queue.remove(index);
                     self.savedIOCounter.fetch_add(1, Ordering::AcqRel);
-                } else if let Some(actual) = queue.iter().position(|queued| queued.ioIdentity() == identity) {
+                } else if let Some(actual) = queue
+                    .iter()
+                    .position(|queued| queued.ioIdentity() == identity)
+                {
                     queue.remove(actual);
                     self.savedIOCounter.fetch_add(1, Ordering::AcqRel);
                     if actual < index {
@@ -98,7 +114,11 @@ impl ThreadedFileIOBase {
             }
         }
 
-        let empty = self.queue.lock().unwrap_or_else(|p| p.into_inner()).is_empty();
+        let empty = self
+            .queue
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .is_empty();
         if empty {
             // Source sleeps 25 ms when idle. Condvar wake-up is used only as a
             // Rust runtime optimisation so newly queued work need not wait the
@@ -131,15 +151,21 @@ impl ThreadedFileIOBase {
         loop {
             let queued = self.writeQueuedCounter.load(Ordering::Acquire);
             let saved = self.savedIOCounter.load(Ordering::Acquire);
-            if queued == saved { break; }
+            if queued == saved {
+                break;
+            }
             let guard = self.queue.lock().unwrap_or_else(|p| p.into_inner());
             let _ = self.wake.wait_timeout(guard, Duration::from_millis(10));
         }
         self.isThreadWaiting.store(false, Ordering::Release);
     }
 
-    pub fn writeQueuedCounter(&self) -> u64 { self.writeQueuedCounter.load(Ordering::Acquire) }
-    pub fn savedIOCounter(&self) -> u64 { self.savedIOCounter.load(Ordering::Acquire) }
+    pub fn writeQueuedCounter(&self) -> u64 {
+        self.writeQueuedCounter.load(Ordering::Acquire)
+    }
+    pub fn savedIOCounter(&self) -> u64 {
+        self.savedIOCounter.load(Ordering::Acquire)
+    }
 }
 
 #[cfg(test)]
@@ -147,15 +173,22 @@ mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    struct MockIO { id: usize, remaining: AtomicUsize }
+    struct MockIO {
+        id: usize,
+        remaining: AtomicUsize,
+    }
     impl IThreadedFileIO for MockIO {
         fn writeNextIO(&self) -> bool {
             let current = self.remaining.load(Ordering::Acquire);
-            if current == 0 { return false; }
+            if current == 0 {
+                return false;
+            }
             self.remaining.fetch_sub(1, Ordering::AcqRel);
             true
         }
-        fn ioIdentity(&self) -> usize { self.id }
+        fn ioIdentity(&self) -> usize {
+            self.id
+        }
     }
 
     #[test]
@@ -163,10 +196,15 @@ mod tests {
         let base = ThreadedFileIOBase::getThreadedIOInstance();
         let beforeQueued = base.writeQueuedCounter();
         let beforeSaved = base.savedIOCounter();
-        let io: Arc<dyn IThreadedFileIO> = Arc::new(MockIO { id: usize::MAX - beforeQueued as usize, remaining: AtomicUsize::new(2) });
+        let io: Arc<dyn IThreadedFileIO> = Arc::new(MockIO {
+            id: usize::MAX - beforeQueued as usize,
+            remaining: AtomicUsize::new(2),
+        });
         base.queueIO(Arc::clone(&io));
         base.queueIO(io);
-        while base.savedIOCounter() < beforeSaved + 1 { thread::sleep(Duration::from_millis(2)); }
+        while base.savedIOCounter() < beforeSaved + 1 {
+            thread::sleep(Duration::from_millis(2));
+        }
         assert_eq!(base.writeQueuedCounter(), beforeQueued + 1);
         assert_eq!(base.savedIOCounter(), beforeSaved + 1);
     }

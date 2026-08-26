@@ -36,7 +36,6 @@ pub enum MainMenuAction {
     OpenCompatibilityWarning { link: String },
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct MainMenuInteraction {
     pub action: MainMenuAction,
@@ -75,13 +74,9 @@ impl MainMenuControl {
         partial_ticks: f32,
     ) {
         match self {
-            Self::Button(button) => button.drawButton(
-                draw_list,
-                font_renderer,
-                mouse_x,
-                mouse_y,
-                partial_ticks,
-            ),
+            Self::Button(button) => {
+                button.drawButton(draw_list, font_renderer, mouse_x, mouse_y, partial_ticks)
+            }
             Self::Language(button) => button.drawButton(draw_list, mouse_x, mouse_y),
         }
     }
@@ -92,7 +87,6 @@ impl MainMenuControl {
             Self::Language(button) => button.mousePressed(mouse_x, mouse_y),
         }
     }
-
 
     fn playPressSound(&self) -> GuiSoundCommand {
         match self {
@@ -161,13 +155,25 @@ impl GuiMainMenu {
         }
     }
 
-    pub const fn doesGuiPauseGame(&self) -> bool { false }
+    pub const fn doesGuiPauseGame(&self) -> bool {
+        false
+    }
     pub fn keyTyped(&mut self, _typed_char: char, _key_code: i32) {}
-    pub const fn getPanoramaTimer(&self) -> f32 { self.panoramaTimer }
-    pub fn getSplashText(&self) -> &str { &self.splashText }
-    pub fn getButtonList(&self) -> &[MainMenuControl] { &self.buttonList }
-    pub const fn width(&self) -> i32 { self.width }
-    pub const fn height(&self) -> i32 { self.height }
+    pub const fn getPanoramaTimer(&self) -> f32 {
+        self.panoramaTimer
+    }
+    pub fn getSplashText(&self) -> &str {
+        &self.splashText
+    }
+    pub fn getButtonList(&self) -> &[MainMenuControl] {
+        &self.buttonList
+    }
+    pub const fn width(&self) -> i32 {
+        self.width
+    }
+    pub const fn height(&self) -> i32 {
+        self.height
+    }
 
     /// Allows the backend capability layer to expose the same warning region
     /// used by the original OpenGL check without baking Vulkan policy into GUI.
@@ -222,33 +228,34 @@ impl GuiMainMenu {
             first_button_y + 48,
             "Accounts",
         )));
-        self.buttonList.push(MainMenuControl::Button(GuiButton::newWithSize(
-            0,
-            width / 2 - 100,
-            first_button_y + 84,
-            98,
-            20,
-            locale.translate_key("menu.options"),
-        )));
-        self.buttonList.push(MainMenuControl::Button(GuiButton::newWithSize(
-            4,
-            width / 2 + 2,
-            first_button_y + 84,
-            98,
-            20,
-            locale.translate_key("menu.quit"),
-        )));
-        self.buttonList.push(MainMenuControl::Language(GuiButtonLanguage::new(
-            5,
-            width / 2 - 124,
-            first_button_y + 84,
-        )));
+        self.buttonList
+            .push(MainMenuControl::Button(GuiButton::newWithSize(
+                0,
+                width / 2 - 100,
+                first_button_y + 84,
+                98,
+                20,
+                locale.translate_key("menu.options"),
+            )));
+        self.buttonList
+            .push(MainMenuControl::Button(GuiButton::newWithSize(
+                4,
+                width / 2 + 2,
+                first_button_y + 84,
+                98,
+                20,
+                locale.translate_key("menu.quit"),
+            )));
+        self.buttonList
+            .push(MainMenuControl::Language(GuiButtonLanguage::new(
+                5,
+                width / 2 - 124,
+                first_button_y + 84,
+            )));
 
         self.openGLWarning1Width = font_renderer.get_string_width(&self.openGLWarning1);
         self.openGLWarning2Width = font_renderer.get_string_width(&self.openGLWarning2);
-        let warning_width = self
-            .openGLWarning1Width
-            .max(self.openGLWarning2Width);
+        let warning_width = self.openGLWarning1Width.max(self.openGLWarning2Width);
         self.openGLWarningX1 = (width - warning_width) / 2;
         self.openGLWarningY1 = self.buttonList[0].y() - 24;
         self.openGLWarningX2 = self.openGLWarningX1 + warning_width;
@@ -316,9 +323,33 @@ impl GuiMainMenu {
         let title_texture = ResourceLocation::parse(MINECRAFT_TITLE_TEXTURES);
         if (self.minceraftRoll as f64) < 1.0e-4_f64 {
             draw_list.draw_textured_modal_rect(title_texture.clone(), title_x, 30, 0, 0, 99, 44);
-            draw_list.draw_textured_modal_rect(title_texture.clone(), title_x + 99, 30, 129, 0, 27, 44);
-            draw_list.draw_textured_modal_rect(title_texture.clone(), title_x + 125, 30, 126, 0, 3, 44);
-            draw_list.draw_textured_modal_rect(title_texture.clone(), title_x + 128, 30, 99, 0, 26, 44);
+            draw_list.draw_textured_modal_rect(
+                title_texture.clone(),
+                title_x + 99,
+                30,
+                129,
+                0,
+                27,
+                44,
+            );
+            draw_list.draw_textured_modal_rect(
+                title_texture.clone(),
+                title_x + 125,
+                30,
+                126,
+                0,
+                3,
+                44,
+            );
+            draw_list.draw_textured_modal_rect(
+                title_texture.clone(),
+                title_x + 128,
+                30,
+                99,
+                0,
+                26,
+                44,
+            );
             draw_list.draw_textured_modal_rect(title_texture, title_x + 155, 30, 0, 45, 155, 44);
         } else {
             draw_list.draw_textured_modal_rect(title_texture.clone(), title_x, 30, 0, 0, 155, 44);
@@ -342,8 +373,8 @@ impl GuiMainMenu {
         // MCP calls `MathHelper.sin`, not the platform libm directly. This
         // preserves both the vanilla 65,536-entry sine table and OptiFine
         // Fast Math behavior selected by GameSettings.
-        let pulse_angle = ((system_time_millis % 1000) as f32 / 1000.0)
-            * (std::f32::consts::PI * 2.0);
+        let pulse_angle =
+            ((system_time_millis % 1000) as f32 / 1000.0) * (std::f32::consts::PI * 2.0);
         let pulse = minecraft_sin(pulse_angle).abs() * 0.1;
         let mut scale = 1.8 - pulse;
         scale = scale * 100.0 / (font_renderer.get_string_width(&self.splashText) + 32) as f32;
@@ -356,7 +387,14 @@ impl GuiMainMenu {
         } else {
             format!("Minecraft 1.12.2/{version_type}")
         };
-        font_renderer.draw_string(draw_list, &version, 2.0, (self.height - 10) as f32, -1, false);
+        font_renderer.draw_string(
+            draw_list,
+            &version,
+            2.0,
+            (self.height - 10) as f32,
+            -1,
+            false,
+        );
         font_renderer.draw_string(
             draw_list,
             COPYRIGHT_TEXT,
@@ -519,7 +557,10 @@ mod tests {
     #[test]
     fn menu_action_ids_match_mcp() {
         assert_eq!(action_for_button(0), Some(MainMenuAction::OpenOptions));
-        assert_eq!(action_for_button(1), Some(MainMenuAction::OpenWorldSelection));
+        assert_eq!(
+            action_for_button(1),
+            Some(MainMenuAction::OpenWorldSelection)
+        );
         assert_eq!(action_for_button(2), Some(MainMenuAction::OpenMultiplayer));
         assert_eq!(action_for_button(4), Some(MainMenuAction::Shutdown));
         assert_eq!(action_for_button(5), Some(MainMenuAction::OpenLanguage));
@@ -534,7 +575,12 @@ mod tests {
             panoramaTimer: 0.0,
             width: 320,
             height: 240,
-            buttonList: vec![MainMenuControl::Button(GuiButton::new(2, 10, 20, "Multiplayer"))],
+            buttonList: vec![MainMenuControl::Button(GuiButton::new(
+                2,
+                10,
+                20,
+                "Multiplayer",
+            ))],
             widthCopyright: 0,
             widthCopyrightRest: 0,
             openGLWarning1Width: 0,
@@ -578,8 +624,14 @@ mod tests {
             customPanoramaProperties: None,
         };
         let (textures, blur1, blur2, blur3) = menu.getPanoramaParameters();
-        assert_eq!(textures[0].getPath(), "textures/gui/title/background/panorama_0.png");
-        assert_eq!(textures[5].getPath(), "textures/gui/title/background/panorama_5.png");
+        assert_eq!(
+            textures[0].getPath(),
+            "textures/gui/title/background/panorama_0.png"
+        );
+        assert_eq!(
+            textures[5].getPath(),
+            "textures/gui/title/background/panorama_5.png"
+        );
         assert_eq!((blur1, blur2, blur3), (64, 3, 3));
     }
 }

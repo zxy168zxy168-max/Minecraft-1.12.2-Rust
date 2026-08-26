@@ -51,19 +51,37 @@ mod tests {
     fn floor_and_north_keep_tile_rotation() {
         assert_eq!(
             TileEntitySkullRenderer::getPlacement(EnumFacing::Up, 4),
-            SkullRenderPlacement { translation: [0.5, 0.0, 0.5], yaw: 90.0 },
+            SkullRenderPlacement {
+                translation: [0.5, 0.0, 0.5],
+                yaw: 90.0
+            },
         );
         assert_eq!(
             TileEntitySkullRenderer::getPlacement(EnumFacing::North, 12),
-            SkullRenderPlacement { translation: [0.5, 0.25, 0.74], yaw: 270.0 },
+            SkullRenderPlacement {
+                translation: [0.5, 0.25, 0.74],
+                yaw: 270.0
+            },
         );
     }
 
     #[test]
     fn other_walls_override_rotation_and_default_to_east() {
-        assert_eq!(TileEntitySkullRenderer::getPlacement(EnumFacing::South, 7).yaw, 180.0);
-        assert_eq!(TileEntitySkullRenderer::getPlacement(EnumFacing::West, 7).yaw, 270.0);
-        assert_eq!(TileEntitySkullRenderer::getPlacement(EnumFacing::East, 7).yaw, 90.0);
-        assert_eq!(TileEntitySkullRenderer::getPlacement(EnumFacing::Down, 7).translation, [0.26, 0.25, 0.5]);
+        assert_eq!(
+            TileEntitySkullRenderer::getPlacement(EnumFacing::South, 7).yaw,
+            180.0
+        );
+        assert_eq!(
+            TileEntitySkullRenderer::getPlacement(EnumFacing::West, 7).yaw,
+            270.0
+        );
+        assert_eq!(
+            TileEntitySkullRenderer::getPlacement(EnumFacing::East, 7).yaw,
+            90.0
+        );
+        assert_eq!(
+            TileEntitySkullRenderer::getPlacement(EnumFacing::Down, 7).translation,
+            [0.26, 0.25, 0.5]
+        );
     }
 }

@@ -1,5 +1,7 @@
 use crate::net::minecraft::client::resources::Locale::Locale;
-use crate::net::minecraft::network::play::server::SPacketUpdateBossInfo::{Operation, SPacketUpdateBossInfo};
+use crate::net::minecraft::network::play::server::SPacketUpdateBossInfo::{
+    Operation, SPacketUpdateBossInfo,
+};
 use crate::net::minecraft::world::BossInfo::BossInfo;
 
 /// Client-side boss state with MCP 1.12.2's 100 ms percent interpolation.
@@ -11,7 +13,11 @@ pub struct BossInfoClient {
 }
 
 impl BossInfoClient {
-    pub fn new(packetIn: &SPacketUpdateBossInfo, systemTimeMillis: u64, locale: &Locale) -> Option<Self> {
+    pub fn new(
+        packetIn: &SPacketUpdateBossInfo,
+        systemTimeMillis: u64,
+        locale: &Locale,
+    ) -> Option<Self> {
         let name = packetIn.getName()?.resolveWithLocale(locale);
         let color = packetIn.getColor()?;
         let overlay = packetIn.getOverlay()?;
@@ -40,33 +46,49 @@ impl BossInfoClient {
         self.info.getPercent() + (self.rawPercent - self.info.getPercent()) * interpolation
     }
 
-    pub fn updateFromPacket(&mut self, packetIn: &SPacketUpdateBossInfo, systemTimeMillis: u64, locale: &Locale) {
+    pub fn updateFromPacket(
+        &mut self,
+        packetIn: &SPacketUpdateBossInfo,
+        systemTimeMillis: u64,
+        locale: &Locale,
+    ) {
         match packetIn.getOperation() {
             Operation::UpdateName => {
-                if let Some(name) = packetIn.getName() { self.info.setName(name.resolveWithLocale(locale)); }
+                if let Some(name) = packetIn.getName() {
+                    self.info.setName(name.resolveWithLocale(locale));
+                }
             }
             Operation::UpdatePct => self.setPercent(packetIn.getPercent(), systemTimeMillis),
             Operation::UpdateStyle => {
-                if let Some(color) = packetIn.getColor() { self.info.setColor(color); }
-                if let Some(overlay) = packetIn.getOverlay() { self.info.setOverlay(overlay); }
+                if let Some(color) = packetIn.getColor() {
+                    self.info.setColor(color);
+                }
+                if let Some(overlay) = packetIn.getOverlay() {
+                    self.info.setOverlay(overlay);
+                }
             }
             Operation::UpdateProperties => {
                 self.info.setDarkenSky(packetIn.shouldDarkenSky());
-                self.info.setPlayEndBossMusic(packetIn.shouldPlayEndBossMusic());
+                self.info
+                    .setPlayEndBossMusic(packetIn.shouldPlayEndBossMusic());
                 self.info.setCreateFog(packetIn.shouldCreateFog());
             }
             Operation::Add | Operation::Remove => {}
         }
     }
 
-    pub fn info(&self) -> &BossInfo { &self.info }
+    pub fn info(&self) -> &BossInfo {
+        &self.info
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::net::minecraft::network::Packet::RawPacket;
-    use crate::net::minecraft::network::PacketBuffer::{write_f32_be, write_string, write_uuid, write_var_i32};
+    use crate::net::minecraft::network::PacketBuffer::{
+        write_f32_be, write_string, write_uuid, write_var_i32,
+    };
     use uuid::Uuid;
 
     fn add_packet(percent: f32) -> SPacketUpdateBossInfo {

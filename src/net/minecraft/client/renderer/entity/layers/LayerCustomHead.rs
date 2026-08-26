@@ -18,7 +18,9 @@ impl LayerCustomHead {
         ItemSkull::getPlayerProfile(stack)
     }
 
-    pub const fn shouldCombineTextures() -> bool { false }
+    pub const fn shouldCombineTextures() -> bool {
+        false
+    }
 }
 
 #[cfg(test)]

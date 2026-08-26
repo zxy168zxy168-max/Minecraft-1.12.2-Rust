@@ -9,7 +9,5 @@ fn main() -> anyhow::Result<()> {
         "Minecraft 1.12.2 Rust dual-renderer client package {}",
         env!("CARGO_PKG_VERSION")
     );
-    minecraft_1_12_2_rust_vulkan::net::minecraft::client::main::Main::main(
-        std::env::args_os(),
-    )
+    minecraft_1_12_2_rust_vulkan::net::minecraft::client::main::Main::main(std::env::args_os())
 }

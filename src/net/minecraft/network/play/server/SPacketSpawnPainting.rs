@@ -4,8 +4,8 @@ use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::PacketBuffer::{
     read_i64_be, read_string, read_u8, read_uuid, read_var_i32, CodecError,
 };
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SPacketSpawnPainting {
@@ -36,12 +36,28 @@ impl SPacketSpawnPainting {
                 input.len()
             )));
         }
-        Ok(Self { entityID, uniqueId, position, facing, title })
+        Ok(Self {
+            entityID,
+            uniqueId,
+            position,
+            facing,
+            title,
+        })
     }
 
-    pub const fn getEntityID(&self) -> i32 { self.entityID }
-    pub const fn getUniqueId(&self) -> Uuid { self.uniqueId }
-    pub const fn getPosition(&self) -> BlockPos { self.position }
-    pub const fn getFacing(&self) -> EnumFacing { self.facing }
-    pub fn getTitle(&self) -> &str { &self.title }
+    pub const fn getEntityID(&self) -> i32 {
+        self.entityID
+    }
+    pub const fn getUniqueId(&self) -> Uuid {
+        self.uniqueId
+    }
+    pub const fn getPosition(&self) -> BlockPos {
+        self.position
+    }
+    pub const fn getFacing(&self) -> EnumFacing {
+        self.facing
+    }
+    pub fn getTitle(&self) -> &str {
+        &self.title
+    }
 }

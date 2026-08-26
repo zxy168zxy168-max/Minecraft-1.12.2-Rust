@@ -33,8 +33,16 @@ impl GuiEnchantment {
 
     pub fn new() -> Self {
         let mut slots = vec![
-            GuiSlot { slotNumber: 0, xPos: 15, yPos: 47 },
-            GuiSlot { slotNumber: 1, xPos: 35, yPos: 47 },
+            GuiSlot {
+                slotNumber: 0,
+                xPos: 15,
+                yPos: 47,
+            },
+            GuiSlot {
+                slotNumber: 1,
+                xPos: 35,
+                yPos: 47,
+            },
         ];
         append_player_slots(&mut slots, 2);
         Self {
@@ -55,7 +63,9 @@ impl GuiEnchantment {
         }
     }
 
-    pub fn initGui(&mut self, width: i32, height: i32) { self.container.initGui(width, height); }
+    pub fn initGui(&mut self, width: i32, height: i32) {
+        self.container.initGui(width, height);
+    }
 
     pub fn enchantingBackground() -> ResourceLocation {
         ResourceLocation::parse("textures/gui/container/enchanting_table.png")
@@ -63,7 +73,8 @@ impl GuiEnchantment {
 
     pub fn optionAt(&self, mouseX: i32, mouseY: i32) -> Option<i32> {
         (0..3).find(|option| {
-            self.container.isPointInRegion(60, 14 + 19 * option, 108, 19, mouseX, mouseY)
+            self.container
+                .isPointInRegion(60, 14 + 19 * option, 108, 19, mouseX, mouseY)
         })
     }
 
@@ -72,7 +83,8 @@ impl GuiEnchantment {
         if inputStack != &self.last {
             self.last = inputStack.clone();
             loop {
-                self.flipT += (self.random.next_i32_bound(4) - self.random.next_i32_bound(4)) as f32;
+                self.flipT +=
+                    (self.random.next_i32_bound(4) - self.random.next_i32_bound(4)) as f32;
                 if self.flip > self.flipT + 1.0 || self.flip < self.flipT - 1.0 {
                     break;
                 }
@@ -97,9 +109,8 @@ impl GuiEnchantment {
         let partial = partialTicks.clamp(0.0, 1.0);
         let open = self.oOpen + (self.open - self.oOpen) * partial;
         let flip = self.oFlip + (self.flip - self.oFlip) * partial;
-        let page = |offset: f32| {
-            (((flip + offset) - (flip + offset).floor()) * 1.6 - 0.3).clamp(0.0, 1.0)
-        };
+        let page =
+            |offset: f32| (((flip + offset) - (flip + offset).floor()) * 1.6 - 0.3).clamp(0.0, 1.0);
         EnchantmentBookRenderState {
             ticks: self.ticks as f32 + partial,
             open,
@@ -110,7 +121,9 @@ impl GuiEnchantment {
 }
 
 impl Default for GuiEnchantment {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -123,17 +136,26 @@ mod tests {
         gui.initGui(320, 240);
         assert_eq!(gui.container.inventorySlots.len(), 38);
         assert_eq!(gui.container.slotPosition(0), Some((87, 84)));
-        assert_eq!(gui.optionAt(gui.container.guiLeft + 60, gui.container.guiTop + 14), Some(0));
+        assert_eq!(
+            gui.optionAt(gui.container.guiLeft + 60, gui.container.guiTop + 14),
+            Some(0)
+        );
     }
-
 
     #[test]
     fn book_opens_and_closes_by_point_two_per_tick() {
         let mut gui = GuiEnchantment::new();
-        let stack = ItemStack { itemId: 1, count: 1, itemDamage: 0, tagCompound: None };
+        let stack = ItemStack {
+            itemId: 1,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
         gui.tickBook(&stack, &[1, 0, 0]);
         assert!((gui.open - 0.2).abs() < 1.0e-6);
-        for _ in 0..4 { gui.tickBook(&stack, &[1, 0, 0]); }
+        for _ in 0..4 {
+            gui.tickBook(&stack, &[1, 0, 0]);
+        }
         assert!((gui.open - 1.0).abs() < 1.0e-6);
         gui.tickBook(&stack, &[0, 0, 0]);
         assert!((gui.open - 0.8).abs() < 1.0e-6);

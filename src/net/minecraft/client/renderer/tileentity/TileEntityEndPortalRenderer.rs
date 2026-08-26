@@ -24,34 +24,50 @@ impl TileEntityEndPortalRenderer {
 
     /// Exact distance thresholds from `func_191286_a`.
     pub const fn layerCount(distanceSquared: f64) -> i32 {
-        if distanceSquared > 36_864.0 { 1 }
-        else if distanceSquared > 25_600.0 { 3 }
-        else if distanceSquared > 16_384.0 { 5 }
-        else if distanceSquared > 9_216.0 { 7 }
-        else if distanceSquared > 4_096.0 { 9 }
-        else if distanceSquared > 1_024.0 { 11 }
-        else if distanceSquared > 576.0 { 13 }
-        else if distanceSquared > 256.0 { 14 }
-        else { 15 }
+        if distanceSquared > 36_864.0 {
+            1
+        } else if distanceSquared > 25_600.0 {
+            3
+        } else if distanceSquared > 16_384.0 {
+            5
+        } else if distanceSquared > 9_216.0 {
+            7
+        } else if distanceSquared > 4_096.0 {
+            9
+        } else if distanceSquared > 1_024.0 {
+            11
+        } else if distanceSquared > 576.0 {
+            13
+        } else if distanceSquared > 256.0 {
+            14
+        } else {
+            15
+        }
     }
 
     /// Replays the class-level `Random(31100L)` sequence used for pass colors.
     pub fn layers(distanceSquared: f64) -> Vec<EndPortalLayer> {
         let count = Self::layerCount(distanceSquared);
         let mut random = JavaRandom::new(31_100);
-        (0..count).map(|index| {
-            let intensity = if index == 0 { 0.15 } else { 2.0 / (18 - index) as f32 };
-            EndPortalLayer {
-                index,
-                color: [
-                    (random.next_f32() * 0.5 + 0.1) * intensity,
-                    (random.next_f32() * 0.5 + 0.4) * intensity,
-                    (random.next_f32() * 0.5 + 0.5) * intensity,
-                    1.0,
-                ],
-                additive: index >= 1,
-            }
-        }).collect()
+        (0..count)
+            .map(|index| {
+                let intensity = if index == 0 {
+                    0.15
+                } else {
+                    2.0 / (18 - index) as f32
+                };
+                EndPortalLayer {
+                    index,
+                    color: [
+                        (random.next_f32() * 0.5 + 0.1) * intensity,
+                        (random.next_f32() * 0.5 + 0.4) * intensity,
+                        (random.next_f32() * 0.5 + 0.5) * intensity,
+                        1.0,
+                    ],
+                    additive: index >= 1,
+                }
+            })
+            .collect()
     }
 }
 

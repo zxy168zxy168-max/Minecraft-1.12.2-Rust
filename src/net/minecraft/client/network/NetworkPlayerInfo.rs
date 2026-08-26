@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
-use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::com::mojang::authlib::minecraft::MinecraftProfileTexture::{
     MinecraftProfileTexture, TextureType,
 };
+use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::net::minecraft::client::resources::DefaultPlayerSkin::DefaultPlayerSkin;
-use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::net::minecraft::util::text::ITextComponent::ITextComponent;
+use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::net::minecraft::world::GameType::GameType;
 
 #[derive(Debug, Default)]
@@ -63,13 +63,27 @@ impl NetworkPlayerInfo {
         }
     }
 
-    pub fn getGameProfile(&self) -> &GameProfile { &self.gameProfile }
-    pub const fn getGameType(&self) -> GameType { self.gameType }
-    pub const fn getResponseTime(&self) -> i32 { self.responseTime }
-    pub fn getDisplayName(&self) -> Option<&ITextComponent> { self.displayName.as_ref() }
-    pub fn setGameType(&mut self, value: GameType) { self.gameType = value; }
-    pub fn setResponseTime(&mut self, value: i32) { self.responseTime = value; }
-    pub fn setDisplayName(&mut self, value: Option<ITextComponent>) { self.displayName = value; }
+    pub fn getGameProfile(&self) -> &GameProfile {
+        &self.gameProfile
+    }
+    pub const fn getGameType(&self) -> GameType {
+        self.gameType
+    }
+    pub const fn getResponseTime(&self) -> i32 {
+        self.responseTime
+    }
+    pub fn getDisplayName(&self) -> Option<&ITextComponent> {
+        self.displayName.as_ref()
+    }
+    pub fn setGameType(&mut self, value: GameType) {
+        self.gameType = value;
+    }
+    pub fn setResponseTime(&mut self, value: i32) {
+        self.responseTime = value;
+    }
+    pub fn setDisplayName(&mut self, value: Option<ITextComponent>) {
+        self.displayName = value;
+    }
 
     pub fn hasLocationSkin(&self) -> bool {
         self.textureState
@@ -80,7 +94,10 @@ impl NetworkPlayerInfo {
     }
 
     pub fn getSkinType(&self) -> String {
-        let state = self.textureState.read().unwrap_or_else(|poison| poison.into_inner());
+        let state = self
+            .textureState
+            .read()
+            .unwrap_or_else(|poison| poison.into_inner());
         state.skinType.clone().unwrap_or_else(|| {
             self.gameProfile
                 .getId()
@@ -91,13 +108,20 @@ impl NetworkPlayerInfo {
     }
 
     pub fn getLocationSkin(&self) -> ResourceLocation {
-        let state = self.textureState.read().unwrap_or_else(|poison| poison.into_inner());
-        state.playerTextures.get(&TextureType::Skin).cloned().unwrap_or_else(|| {
-            self.gameProfile
-                .getId()
-                .map(DefaultPlayerSkin::getDefaultSkin)
-                .unwrap_or_else(DefaultPlayerSkin::getDefaultSkinLegacy)
-        })
+        let state = self
+            .textureState
+            .read()
+            .unwrap_or_else(|poison| poison.into_inner());
+        state
+            .playerTextures
+            .get(&TextureType::Skin)
+            .cloned()
+            .unwrap_or_else(|| {
+                self.gameProfile
+                    .getId()
+                    .map(DefaultPlayerSkin::getDefaultSkin)
+                    .unwrap_or_else(DefaultPlayerSkin::getDefaultSkinLegacy)
+            })
     }
 
     pub fn getLocationCape(&self) -> Option<ResourceLocation> {
@@ -121,7 +145,10 @@ impl NetworkPlayerInfo {
     /// Equivalent to the synchronized guard in
     /// `NetworkPlayerInfo#loadPlayerTextures`.
     pub(crate) fn beginPlayerTexturesLoad(&self) -> bool {
-        let mut state = self.textureState.write().unwrap_or_else(|poison| poison.into_inner());
+        let mut state = self
+            .textureState
+            .write()
+            .unwrap_or_else(|poison| poison.into_inner());
         if state.playerTexturesLoaded {
             false
         } else {
@@ -143,20 +170,45 @@ impl NetworkPlayerInfo {
         let mut state = state.write().unwrap_or_else(|poison| poison.into_inner());
         state.playerTextures.insert(textureType, location);
         if textureType == TextureType::Skin {
-            state.skinType = Some(profileTexture.getMetadata("model").unwrap_or("default").to_owned());
+            state.skinType = Some(
+                profileTexture
+                    .getMetadata("model")
+                    .unwrap_or("default")
+                    .to_owned(),
+            );
         }
     }
 
-    pub const fn getLastHealth(&self) -> i32 { self.lastHealth }
-    pub fn setLastHealth(&mut self, value: i32) { self.lastHealth = value; }
-    pub const fn getDisplayHealth(&self) -> i32 { self.displayHealth }
-    pub fn setDisplayHealth(&mut self, value: i32) { self.displayHealth = value; }
-    pub const fn getLastHealthTime(&self) -> i64 { self.lastHealthTime }
-    pub fn setLastHealthTime(&mut self, value: i64) { self.lastHealthTime = value; }
-    pub const fn getHealthBlinkTime(&self) -> i64 { self.healthBlinkTime }
-    pub fn setHealthBlinkTime(&mut self, value: i64) { self.healthBlinkTime = value; }
-    pub const fn getRenderVisibilityId(&self) -> i64 { self.renderVisibilityId }
-    pub fn setRenderVisibilityId(&mut self, value: i64) { self.renderVisibilityId = value; }
+    pub const fn getLastHealth(&self) -> i32 {
+        self.lastHealth
+    }
+    pub fn setLastHealth(&mut self, value: i32) {
+        self.lastHealth = value;
+    }
+    pub const fn getDisplayHealth(&self) -> i32 {
+        self.displayHealth
+    }
+    pub fn setDisplayHealth(&mut self, value: i32) {
+        self.displayHealth = value;
+    }
+    pub const fn getLastHealthTime(&self) -> i64 {
+        self.lastHealthTime
+    }
+    pub fn setLastHealthTime(&mut self, value: i64) {
+        self.lastHealthTime = value;
+    }
+    pub const fn getHealthBlinkTime(&self) -> i64 {
+        self.healthBlinkTime
+    }
+    pub fn setHealthBlinkTime(&mut self, value: i64) {
+        self.healthBlinkTime = value;
+    }
+    pub const fn getRenderVisibilityId(&self) -> i64 {
+        self.renderVisibilityId
+    }
+    pub fn setRenderVisibilityId(&mut self, value: i64) {
+        self.renderVisibilityId = value;
+    }
 }
 
 #[cfg(test)]
@@ -168,7 +220,12 @@ mod tests {
     #[test]
     fn cloned_player_info_shares_async_texture_callback_state() {
         let id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-        let info = NetworkPlayerInfo::new(GameProfile::new(Some(id), "Alex"), GameType::Survival, 0, None);
+        let info = NetworkPlayerInfo::new(
+            GameProfile::new(Some(id), "Alex"),
+            GameType::Survival,
+            0,
+            None,
+        );
         let clone = info.clone();
         let texture = MinecraftProfileTexture::new(
             "https://textures.minecraft.net/texture/abc",

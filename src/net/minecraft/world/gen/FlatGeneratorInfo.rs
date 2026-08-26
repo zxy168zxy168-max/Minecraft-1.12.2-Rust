@@ -13,15 +13,31 @@ pub struct FlatGeneratorInfo {
 
 impl FlatGeneratorInfo {
     pub fn new() -> Self {
-        Self { flatLayers: Vec::new(), worldFeatures: HashMap::new(), biomeToUse: 0 }
+        Self {
+            flatLayers: Vec::new(),
+            worldFeatures: HashMap::new(),
+            biomeToUse: 0,
+        }
     }
 
-    pub const fn getBiome(&self) -> i32 { self.biomeToUse }
-    pub fn setBiome(&mut self, biome: i32) { self.biomeToUse = biome; }
-    pub fn getWorldFeatures(&self) -> &HashMap<String, HashMap<String, String>> { &self.worldFeatures }
-    pub fn getWorldFeaturesMut(&mut self) -> &mut HashMap<String, HashMap<String, String>> { &mut self.worldFeatures }
-    pub fn getFlatLayers(&self) -> &[FlatLayerInfo] { &self.flatLayers }
-    pub fn getFlatLayersMut(&mut self) -> &mut Vec<FlatLayerInfo> { &mut self.flatLayers }
+    pub const fn getBiome(&self) -> i32 {
+        self.biomeToUse
+    }
+    pub fn setBiome(&mut self, biome: i32) {
+        self.biomeToUse = biome;
+    }
+    pub fn getWorldFeatures(&self) -> &HashMap<String, HashMap<String, String>> {
+        &self.worldFeatures
+    }
+    pub fn getWorldFeaturesMut(&mut self) -> &mut HashMap<String, HashMap<String, String>> {
+        &mut self.worldFeatures
+    }
+    pub fn getFlatLayers(&self) -> &[FlatLayerInfo] {
+        &self.flatLayers
+    }
+    pub fn getFlatLayersMut(&mut self) -> &mut Vec<FlatLayerInfo> {
+        &mut self.flatLayers
+    }
 
     pub fn updateLayers(&mut self) {
         let mut y = 0;
@@ -38,18 +54,27 @@ impl FlatGeneratorInfo {
         let second = split.next();
         let (mut count, blockText) = if let Some(blockText) = second {
             let mut count = first.parse::<i32>().ok()?;
-            if minY.wrapping_add(count) >= 256 { count = 256 - minY; }
-            if count < 0 { count = 0; }
+            if minY.wrapping_add(count) >= 256 {
+                count = 256 - minY;
+            }
+            if count < 0 {
+                count = 0;
+            }
             (count, blockText)
         } else {
             (1, first)
         };
-        if minY >= 256 { count = 0; }
+        if minY >= 256 {
+            count = 0;
+        }
 
         let (block, mut metadata) = if version < 3 {
             let mut parts = blockText.splitn(2, ':');
             let id = parts.next()?.parse::<i32>().ok()?;
-            let metadata = parts.next().and_then(|value| value.parse::<i32>().ok()).unwrap_or(0);
+            let metadata = parts
+                .next()
+                .and_then(|value| value.parse::<i32>().ok())
+                .unwrap_or(0);
             (Some(Block::getBlockById(id)), metadata)
         } else {
             let parts = blockText.split(':').collect::<Vec<_>>();
@@ -70,15 +95,21 @@ impl FlatGeneratorInfo {
             (block, metadata)
         };
         let block = block?;
-        if block.isAir() { metadata = 0; }
-        if !(0..=15).contains(&metadata) { metadata = 0; }
+        if block.isAir() {
+            metadata = 0;
+        }
+        if !(0..=15).contains(&metadata) {
+            metadata = 0;
+        }
         let mut layer = FlatLayerInfo::newVersioned(version, count, block, metadata);
         layer.setMinY(minY);
         Some(layer)
     }
 
     fn getLayersFromString(version: i32, text: &str) -> Option<Vec<FlatLayerInfo>> {
-        if text.is_empty() { return None; }
+        if text.is_empty() {
+            return None;
+        }
         let mut layers = Vec::new();
         let mut y = 0;
         for element in text.split(',') {
@@ -91,13 +122,25 @@ impl FlatGeneratorInfo {
 
     pub fn createFlatGeneratorFromString(settings: &str) -> Self {
         let fields = settings.split(';').collect::<Vec<_>>();
-        let version = if fields.len() == 1 { 0 } else { fields[0].parse::<i32>().unwrap_or(0) };
-        if !(0..=3).contains(&version) { return Self::getDefaultFlatGenerator(); }
+        let version = if fields.len() == 1 {
+            0
+        } else {
+            fields[0].parse::<i32>().unwrap_or(0)
+        };
+        if !(0..=3).contains(&version) {
+            return Self::getDefaultFlatGenerator();
+        }
         let mut field = if fields.len() == 1 { 0 } else { 1 };
-        let Some(layerText) = fields.get(field) else { return Self::getDefaultFlatGenerator(); };
+        let Some(layerText) = fields.get(field) else {
+            return Self::getDefaultFlatGenerator();
+        };
         field += 1;
-        let Some(layers) = Self::getLayersFromString(version, layerText) else { return Self::getDefaultFlatGenerator(); };
-        if layers.is_empty() { return Self::getDefaultFlatGenerator(); }
+        let Some(layers) = Self::getLayersFromString(version, layerText) else {
+            return Self::getDefaultFlatGenerator();
+        };
+        if layers.is_empty() {
+            return Self::getDefaultFlatGenerator();
+        }
 
         let mut result = Self::new();
         result.flatLayers.extend(layers);
@@ -116,7 +159,9 @@ impl FlatGeneratorInfo {
             for feature in features.split(',') {
                 let mut split = feature.splitn(2, '(');
                 let name = split.next().unwrap_or_default();
-                if name.is_empty() { continue; }
+                if name.is_empty() {
+                    continue;
+                }
                 let mut options = HashMap::new();
                 if let Some(rest) = split.next() {
                     if rest.ends_with(')') && rest.len() > 1 {
@@ -131,7 +176,9 @@ impl FlatGeneratorInfo {
                 result.worldFeatures.insert(name.to_owned(), options);
             }
         } else {
-            result.worldFeatures.insert("village".to_owned(), HashMap::new());
+            result
+                .worldFeatures
+                .insert("village".to_owned(), HashMap::new());
         }
         result
     }
@@ -139,29 +186,54 @@ impl FlatGeneratorInfo {
     pub fn getDefaultFlatGenerator() -> Self {
         let mut result = Self::new();
         result.setBiome(1);
-        result.flatLayers.push(FlatLayerInfo::new(1, Block::getBlockById(7))); // bedrock
-        result.flatLayers.push(FlatLayerInfo::new(2, Block::getBlockById(3))); // dirt
-        result.flatLayers.push(FlatLayerInfo::new(1, Block::getBlockById(2))); // grass
+        result
+            .flatLayers
+            .push(FlatLayerInfo::new(1, Block::getBlockById(7))); // bedrock
+        result
+            .flatLayers
+            .push(FlatLayerInfo::new(2, Block::getBlockById(3))); // dirt
+        result
+            .flatLayers
+            .push(FlatLayerInfo::new(1, Block::getBlockById(2))); // grass
         result.updateLayers();
-        result.worldFeatures.insert("village".to_owned(), HashMap::new());
+        result
+            .worldFeatures
+            .insert("village".to_owned(), HashMap::new());
         result
     }
 
     pub fn toGeneratorString(&self) -> String {
-        let layers = self.flatLayers.iter().map(FlatLayerInfo::toGeneratorString).collect::<Vec<_>>().join(",");
-        let mut features = self.worldFeatures.iter().map(|(name, values)| {
-            if values.is_empty() { name.to_lowercase() } else {
-                let args = values.iter().map(|(k, v)| format!("{k}={v}")).collect::<Vec<_>>().join(" ");
-                format!("{}({})", name.to_lowercase(), args)
-            }
-        }).collect::<Vec<_>>();
+        let layers = self
+            .flatLayers
+            .iter()
+            .map(FlatLayerInfo::toGeneratorString)
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut features = self
+            .worldFeatures
+            .iter()
+            .map(|(name, values)| {
+                if values.is_empty() {
+                    name.to_lowercase()
+                } else {
+                    let args = values
+                        .iter()
+                        .map(|(k, v)| format!("{k}={v}"))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    format!("{}({})", name.to_lowercase(), args)
+                }
+            })
+            .collect::<Vec<_>>();
         features.sort();
         format!("3;{};{};{}", layers, self.biomeToUse, features.join(","))
     }
 }
 
 impl Default for FlatGeneratorInfo {
-    fn default() -> Self { Self::getDefaultFlatGenerator() }
+    fn default() -> Self {
+        Self::getDefaultFlatGenerator()
+    }
 }
 
 #[cfg(test)]

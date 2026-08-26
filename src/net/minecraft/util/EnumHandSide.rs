@@ -15,7 +15,11 @@ impl EnumHandSide {
     }
 
     pub const fn byId(id: i32) -> Self {
-        if id == 0 { Self::Left } else { Self::Right }
+        if id == 0 {
+            Self::Left
+        } else {
+            Self::Right
+        }
     }
 
     pub const fn opposite(self) -> Self {

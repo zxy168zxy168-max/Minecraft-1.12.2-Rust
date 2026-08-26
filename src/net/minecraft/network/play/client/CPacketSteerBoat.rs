@@ -9,7 +9,9 @@ pub struct CPacketSteerBoat {
 }
 
 impl CPacketSteerBoat {
-    pub const fn new(left: bool, right: bool) -> Self { Self { left, right } }
+    pub const fn new(left: bool, right: bool) -> Self {
+        Self { left, right }
+    }
 
     pub fn writePacketData(&self) -> RawPacket {
         let mut payload = Vec::with_capacity(2);

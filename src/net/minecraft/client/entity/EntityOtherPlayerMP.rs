@@ -1,15 +1,15 @@
 use uuid::Uuid;
 
-use crate::net::minecraft::block::BlockBed::BlockBed;
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
+use crate::net::minecraft::block::BlockBed::BlockBed;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 
 use crate::com::mojang::authlib::GameProfile::GameProfile;
 use crate::net::minecraft::client::entity::AbstractClientPlayer::AbstractClientPlayer;
 use crate::net::minecraft::client::network::NetworkPlayerInfo::NetworkPlayerInfo;
-use crate::net::minecraft::entity::Entity::Entity;
 use crate::net::minecraft::entity::ai::attributes::AbstractAttributeMap::AbstractAttributeMap;
+use crate::net::minecraft::entity::Entity::Entity;
 use crate::net::minecraft::inventory::EntityEquipment::EntityEquipment;
 use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
 use crate::net::minecraft::item::ItemStack::ItemStack;
@@ -272,7 +272,11 @@ impl EntityOtherPlayerMP {
     pub fn wakeUpPlayerClient(&mut self, safeExit: Option<BlockPos>, immediately: bool) {
         self.entity.setSize(0.6, 1.8);
         if let Some(exit) = safeExit.or_else(|| self.bedLocation.map(|bed| bed.up(1))) {
-            self.entity.setPosition(exit.x as f64 + 0.5, exit.y as f64 + 0.1, exit.z as f64 + 0.5);
+            self.entity.setPosition(
+                exit.x as f64 + 0.5,
+                exit.y as f64 + 0.1,
+                exit.z as f64 + 0.5,
+            );
         }
         self.sleeping = false;
         self.sleepTimer = if immediately { 0 } else { 100 };
@@ -281,7 +285,9 @@ impl EntityOtherPlayerMP {
         self.renderOffsetZ = 0.0;
     }
 
-    pub fn isPlayerSleeping(&self) -> bool { self.sleeping }
+    pub fn isPlayerSleeping(&self) -> bool {
+        self.sleeping
+    }
 
     pub fn getBedOrientationInDegrees(&self, world: &WorldClient) -> f32 {
         self.bedLocation
@@ -315,13 +321,21 @@ impl EntityOtherPlayerMP {
             self.entity.motionZ = 0.0;
         } else if self.sleepTimer > 0 {
             self.sleepTimer += 1;
-            if self.sleepTimer >= 110 { self.sleepTimer = 0; }
+            if self.sleepTimer >= 110 {
+                self.sleepTimer = 0;
+            }
         }
-        if self.hurtTime > 0 { self.hurtTime -= 1; }
-        if self.hurtResistantTime > 0 { self.hurtResistantTime -= 1; }
+        if self.hurtTime > 0 {
+            self.hurtTime -= 1;
+        }
+        if self.hurtResistantTime > 0 {
+            self.hurtResistantTime -= 1;
+        }
         if self.health <= 0.0 {
             self.deathTime = self.deathTime.saturating_add(1);
-            if self.deathTime >= 20 { self.entity.isDead = true; }
+            if self.deathTime >= 20 {
+                self.entity.isDead = true;
+            }
         } else {
             self.deathTime = 0;
         }
@@ -365,15 +379,17 @@ impl EntityOtherPlayerMP {
             onGroundSpeedTarget = 0.0;
         }
 
-        self.onGroundSpeedFactor +=
-            (onGroundSpeedTarget - self.onGroundSpeedFactor) * 0.3;
+        self.onGroundSpeedFactor += (onGroundSpeedTarget - self.onGroundSpeedFactor) * 0.3;
         movedDistance = self.updateDistance(desiredBodyYaw, movedDistance);
         self.prevMovedDistance = self.movedDistance;
         self.movedDistance += movedDistance;
 
         normalize_previous_angle(self.entity.rotationYaw, &mut self.entity.prevRotationYaw);
         normalize_previous_angle(self.renderYawOffset, &mut self.prevRenderYawOffset);
-        normalize_previous_angle(self.entity.rotationPitch, &mut self.entity.prevRotationPitch);
+        normalize_previous_angle(
+            self.entity.rotationPitch,
+            &mut self.entity.prevRotationPitch,
+        );
         normalize_previous_angle(self.rotationYawHead, &mut self.prevRotationYawHead);
         // Inherited EntityLivingBase#onUpdate advances this after body-yaw
         // normalization and follows synchronized flag 7 directly on clients.
@@ -408,9 +424,8 @@ impl EntityOtherPlayerMP {
             let x = self.entity.posX + (self.otherPlayerMPX - self.entity.posX) / increments;
             let y = self.entity.posY + (self.otherPlayerMPY - self.entity.posY) / increments;
             let z = self.entity.posZ + (self.otherPlayerMPZ - self.entity.posZ) / increments;
-            let yawDifference = wrap_degrees_f64(
-                self.otherPlayerMPYaw - self.entity.rotationYaw as f64,
-            );
+            let yawDifference =
+                wrap_degrees_f64(self.otherPlayerMPYaw - self.entity.rotationYaw as f64);
             self.entity.rotationYaw =
                 (self.entity.rotationYaw as f64 + yawDifference / increments) as f32;
             self.entity.rotationPitch = (self.entity.rotationPitch as f64
@@ -434,9 +449,9 @@ impl EntityOtherPlayerMP {
             self.swingProgress = 0.0;
         }
 
-        let mut horizontalMotion =
-            (self.entity.motionX * self.entity.motionX + self.entity.motionZ * self.entity.motionZ)
-                .sqrt() as f32;
+        let mut horizontalMotion = (self.entity.motionX * self.entity.motionX
+            + self.entity.motionZ * self.entity.motionZ)
+            .sqrt() as f32;
         let mut verticalCamera =
             (-self.entity.motionY * 0.20000000298023224_f64).atan() as f32 * 15.0;
         if horizontalMotion > 0.1 {
@@ -512,11 +527,13 @@ impl EntityOtherPlayerMP {
     }
 
     pub fn getHeldItemMainhand(&self) -> &ItemStack {
-        self.equipment.getItemStackFromSlot(EntityEquipmentSlot::Mainhand)
+        self.equipment
+            .getItemStackFromSlot(EntityEquipmentSlot::Mainhand)
     }
 
     pub fn getHeldItemOffhand(&self) -> &ItemStack {
-        self.equipment.getItemStackFromSlot(EntityEquipmentSlot::Offhand)
+        self.equipment
+            .getItemStackFromSlot(EntityEquipmentSlot::Offhand)
     }
 
     pub fn getHeldItem(&self, hand: EnumHand) -> &ItemStack {
@@ -526,7 +543,9 @@ impl EntityOtherPlayerMP {
         }
     }
 
-    pub const fn getPrimaryHand(&self) -> EnumHandSide { self.primaryHand }
+    pub const fn getPrimaryHand(&self) -> EnumHandSide {
+        self.primaryHand
+    }
 
     pub fn isHandActive(&self) -> bool {
         (self.dataManager.byte(6, 0) & 1) != 0
@@ -540,7 +559,9 @@ impl EntityOtherPlayerMP {
         }
     }
 
-    pub const fn getItemInUseCount(&self) -> i32 { self.activeItemStackUseCount }
+    pub const fn getItemInUseCount(&self) -> i32 {
+        self.activeItemStackUseCount
+    }
 
     fn equipmentRevision(&self, hand: EnumHand) -> u64 {
         match hand {
@@ -645,13 +666,13 @@ fn normalize_previous_angle(current: f32, previous: &mut f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
     use crate::com::mojang::authlib::minecraft::MinecraftProfileTexture::{
         MinecraftProfileTexture, TextureType,
     };
     use crate::net::minecraft::client::network::NetworkPlayerInfo::NetworkPlayerInfo;
     use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
     use crate::net::minecraft::world::GameType::GameType;
+    use std::collections::BTreeMap;
 
     fn player() -> EntityOtherPlayerMP {
         let id = Uuid::nil();
@@ -661,7 +682,9 @@ mod tests {
     #[test]
     fn direct_position_rotation_reaches_target_in_three_ticks() {
         let mut entity = player();
-        entity.entity.setPositionAndRotation(0.0, 64.0, 0.0, 0.0, 0.0);
+        entity
+            .entity
+            .setPositionAndRotation(0.0, 64.0, 0.0, 0.0, 0.0);
         entity.setPositionAndRotationDirect(3.0, 67.0, -6.0, 90.0, 30.0, 3, false);
         entity.entity.onGround = true;
         for _ in 0..3 {
@@ -698,12 +721,14 @@ mod tests {
     #[test]
     fn hand_state_metadata_tracks_active_stack_and_primary_hand() {
         let mut entity = player();
-        let bow = ItemStack { itemId: 261, count: 1, itemDamage: 0, tagCompound: None };
+        let bow = ItemStack {
+            itemId: 261,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
         entity.setItemStackToSlot(EntityEquipmentSlot::Mainhand, bow.clone());
-        entity.applyMetadata([
-            (6, DataValue::Byte(1)),
-            (14, DataValue::Byte(0)),
-        ]);
+        entity.applyMetadata([(6, DataValue::Byte(1)), (14, DataValue::Byte(0))]);
 
         assert!(entity.isHandActive());
         assert_eq!(entity.getActiveHand(), EnumHand::MainHand);
@@ -735,11 +760,7 @@ mod tests {
             0,
             None,
         );
-        let mut entity = EntityOtherPlayerMP::new(
-            81,
-            id,
-            info.getGameProfile().clone(),
-        );
+        let mut entity = EntityOtherPlayerMP::new(81, id, info.getGameProfile().clone());
         entity.setPlayerInfo(Some(info.clone()));
 
         // Removing the tab-map owner drops this clone only. The entity cache

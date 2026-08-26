@@ -18,11 +18,7 @@ pub struct LightmapParameters {
 pub struct EntityRenderer;
 
 impl EntityRenderer {
-    pub fn getSunBrightness(
-        provider: &WorldProvider,
-        worldTime: i64,
-        partialTicks: f32,
-    ) -> f32 {
+    pub fn getSunBrightness(provider: &WorldProvider, worldTime: i64, partialTicks: f32) -> f32 {
         let angle = provider.calculateCelestialAngle(worldTime, partialTicks);
         let mut brightness = 1.0 - ((angle * std::f32::consts::TAU).cos() * 2.0 + 0.2);
         brightness = brightness.clamp(0.0, 1.0);
@@ -57,8 +53,7 @@ impl EntityRenderer {
         let sun = parameters.sunBrightness;
         let sunScale = sun * 0.95 + 0.05;
         let sky = table[skyLight.min(15) as usize] * sunScale;
-        let block = table[blockLight.min(15) as usize]
-            * (parameters.torchFlickerX * 0.1 + 1.5);
+        let block = table[blockLight.min(15) as usize] * (parameters.torchFlickerX * 0.1 + 1.5);
 
         let skyRedGreen = sky * (sun * 0.65 + 0.35);
         let blockGreen = block * ((block * 0.6 + 0.4) * 0.6 + 0.4);
@@ -152,8 +147,7 @@ mod tests {
     #[test]
     fn full_sky_and_block_light_reach_white_range() {
         let provider = WorldProvider::new(0);
-        let parameters =
-            EntityRenderer::lightmapParameters(&provider, 6_000, 0.0, 0.0, 0.0);
+        let parameters = EntityRenderer::lightmapParameters(&provider, 6_000, 0.0, 0.0, 0.0);
         let color = EntityRenderer::lightmapColor(&provider, 15, 15, parameters);
         assert!(color
             .iter()

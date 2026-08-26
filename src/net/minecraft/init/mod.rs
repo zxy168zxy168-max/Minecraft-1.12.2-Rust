@@ -1,1 +1,2 @@
-#[path = "Blocks.rs"] pub mod Blocks;
+#[path = "Blocks.rs"]
+pub mod Blocks;

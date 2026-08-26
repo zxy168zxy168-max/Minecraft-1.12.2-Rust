@@ -1,1 +1,2 @@
-#[path = "DesktopRenderer.rs"] pub mod DesktopRenderer;
+#[path = "DesktopRenderer.rs"]
+pub mod DesktopRenderer;

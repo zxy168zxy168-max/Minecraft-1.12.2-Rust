@@ -12,8 +12,15 @@ pub struct SPacketServerDifficulty {
 }
 
 impl SPacketServerDifficulty {
-    pub const fn new(difficulty: EnumDifficulty, difficultyLocked: bool) -> Self { Self { difficulty, difficultyLocked } }
-    pub fn writePacketData(&self) -> RawPacket { RawPacket::new(0x0D, vec![self.difficulty.getDifficultyId()]) }
+    pub const fn new(difficulty: EnumDifficulty, difficultyLocked: bool) -> Self {
+        Self {
+            difficulty,
+            difficultyLocked,
+        }
+    }
+    pub fn writePacketData(&self) -> RawPacket {
+        RawPacket::new(0x0D, vec![self.difficulty.getDifficultyId()])
+    }
     pub fn readPacketData(packet: &RawPacket) -> Result<Self, CodecError> {
         let mut input = packet.payload.as_slice();
         let difficulty = EnumDifficulty::getDifficultyEnum(read_u8(&mut input)?);
@@ -23,11 +30,18 @@ impl SPacketServerDifficulty {
                 input.len()
             )));
         }
-        Ok(Self { difficulty, difficultyLocked: false })
+        Ok(Self {
+            difficulty,
+            difficultyLocked: false,
+        })
     }
 
-    pub const fn getDifficulty(&self) -> EnumDifficulty { self.difficulty }
-    pub const fn isDifficultyLocked(&self) -> bool { self.difficultyLocked }
+    pub const fn getDifficulty(&self) -> EnumDifficulty {
+        self.difficulty
+    }
+    pub const fn isDifficultyLocked(&self) -> bool {
+        self.difficultyLocked
+    }
 }
 
 #[cfg(test)]
@@ -36,9 +50,12 @@ mod tests {
 
     #[test]
     fn difficulty_decodes_from_single_byte() {
-        let packet = SPacketServerDifficulty::readPacketData(&RawPacket::new(0x0D, vec![2])).unwrap();
+        let packet =
+            SPacketServerDifficulty::readPacketData(&RawPacket::new(0x0D, vec![2])).unwrap();
         assert_eq!(packet.getDifficulty(), EnumDifficulty::Normal);
         assert!(!packet.isDifficultyLocked());
-        assert!(SPacketServerDifficulty::readPacketData(&RawPacket::new(0x0D, vec![2, 1])).is_err());
+        assert!(
+            SPacketServerDifficulty::readPacketData(&RawPacket::new(0x0D, vec![2, 1])).is_err()
+        );
     }
 }

@@ -31,9 +31,15 @@ impl NextTickListEntry {
         self.scheduledTime = scheduledTimeIn;
         self
     }
-    pub fn setPriority(&mut self, priorityIn: i32) { self.priority = priorityIn; }
-    pub const fn getBlock(&self) -> Block { self.block }
-    pub const fn getTickEntryID(&self) -> i64 { self.tickEntryID }
+    pub fn setPriority(&mut self, priorityIn: i32) {
+        self.priority = priorityIn;
+    }
+    pub const fn getBlock(&self) -> Block {
+        self.block
+    }
+    pub const fn getTickEntryID(&self) -> i64 {
+        self.tickEntryID
+    }
 
     /// MCP `compareTo`: scheduled time, then priority, then insertion id.
     pub fn compareTo(&self, other: &Self) -> Ordering {
@@ -48,7 +54,9 @@ impl NextTickListEntry {
 /// differs from `compareTo`, exactly as the Java class does (WorldServer uses
 /// a HashSet for identity and a TreeSet for scheduling order).
 impl PartialEq for NextTickListEntry {
-    fn eq(&self, other: &Self) -> bool { self.position == other.position && self.block == other.block }
+    fn eq(&self, other: &Self) -> bool {
+        self.position == other.position && self.block == other.block
+    }
 }
 impl Eq for NextTickListEntry {}
 
@@ -61,12 +69,28 @@ impl std::hash::Hash for NextTickListEntry {
     }
 }
 
-impl Ord for NextTickListEntry { fn cmp(&self, other: &Self) -> Ordering { self.compareTo(other) } }
-impl PartialOrd for NextTickListEntry { fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.compareTo(other)) } }
+impl Ord for NextTickListEntry {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.compareTo(other)
+    }
+}
+impl PartialOrd for NextTickListEntry {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.compareTo(other))
+    }
+}
 
 impl std::fmt::Display for NextTickListEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {:?}, {}, {}, {}", Block::getIdFromBlock(self.block), self.position, self.scheduledTime, self.priority, self.tickEntryID)
+        write!(
+            f,
+            "{}: {:?}, {}, {}, {}",
+            Block::getIdFromBlock(self.block),
+            self.position,
+            self.scheduledTime,
+            self.priority,
+            self.tickEntryID
+        )
     }
 }
 

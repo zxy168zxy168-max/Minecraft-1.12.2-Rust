@@ -22,8 +22,10 @@ const XSTS_URL: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
 const MINECRAFT_AUTH_URL: &str = "https://api.minecraftservices.com/authentication/login_with_xbox";
 const MINECRAFT_PROFILE_URL: &str = "https://api.minecraftservices.com/minecraft/profile";
 const MINECRAFT_ENTITLEMENTS_URL: &str = "https://api.minecraftservices.com/entitlements/mcstore";
-const MINECRAFT_PROFILE_NAME_URL: &str = "https://api.minecraftservices.com/minecraft/profile/name/";
-const LEGACY_AUTHORIZE_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
+const MINECRAFT_PROFILE_NAME_URL: &str =
+    "https://api.minecraftservices.com/minecraft/profile/name/";
+const LEGACY_AUTHORIZE_URL: &str =
+    "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
 const LEGACY_CLIENT_ID: &str = "000000004C12AE6F";
 const LEGACY_REDIRECT_URI: &str = "https://login.live.com/oauth20_desktop.srf";
 const LEGACY_SCOPE: &str = "service::user.auth.xboxlive.com::MBI_SSL";
@@ -80,8 +82,12 @@ pub fn login_with_credentials(
     password: &str,
     status: Option<&Sender<String>>,
 ) -> Result<MicrosoftLogin, MicrosoftAuthError> {
-    if username.trim().is_empty() { return Err(MicrosoftAuthError::Missing("Microsoft account name")); }
-    if password.is_empty() { return Err(MicrosoftAuthError::Missing("Microsoft account password")); }
+    if username.trim().is_empty() {
+        return Err(MicrosoftAuthError::Missing("Microsoft account name"));
+    }
+    if password.is_empty() {
+        return Err(MicrosoftAuthError::Missing("Microsoft account password"));
+    }
     send_status(status, "§eLogging in...§r");
 
     let agent = ureq::AgentBuilder::new()
@@ -91,7 +97,8 @@ pub fn login_with_credentials(
         .redirects(10)
         .build();
     let loginPage = request_text(
-        agent.get(LEGACY_AUTHORIZE_URL)
+        agent
+            .get(LEGACY_AUTHORIZE_URL)
             .query("client_id", LEGACY_CLIENT_ID)
             .query("redirect_uri", LEGACY_REDIRECT_URI)
             .query("scope", LEGACY_SCOPE)
@@ -108,7 +115,8 @@ pub fn login_with_credentials(
         .ok_or(MicrosoftAuthError::Missing("Microsoft credential form URL"))?
         .replace("&amp;", "&");
 
-    let response = agent.post(&urlPost)
+    let response = agent
+        .post(&urlPost)
         .set("Content-Type", "application/x-www-form-urlencoded")
         .send_form(&[
             ("login", username),
@@ -125,10 +133,18 @@ pub fn login_with_credentials(
         Err(ureq::Error::Status(statusCode, response)) => {
             let finalUrl = response.get_url().to_owned();
             let body = response.into_string().unwrap_or_default();
-            if finalUrl.contains("access_token=") { (finalUrl, body) }
-            else { return Err(MicrosoftAuthError::Http(format!("HTTP {statusCode}: {}", body.trim()))); }
+            if finalUrl.contains("access_token=") {
+                (finalUrl, body)
+            } else {
+                return Err(MicrosoftAuthError::Http(format!(
+                    "HTTP {statusCode}: {}",
+                    body.trim()
+                )));
+            }
         }
-        Err(ureq::Error::Transport(error)) => return Err(MicrosoftAuthError::Http(error.to_string())),
+        Err(ureq::Error::Transport(error)) => {
+            return Err(MicrosoftAuthError::Http(error.to_string()))
+        }
     };
     if body.contains("identity/confirm") {
         return Err(MicrosoftAuthError::Http(
@@ -157,10 +173,17 @@ pub fn login_with_credentials(
         minecraftAccessToken.clone(),
         "microsoft",
     );
-    Ok(MicrosoftLogin { session, refreshToken, accessToken: minecraftAccessToken })
+    Ok(MicrosoftLogin {
+        session,
+        refreshToken,
+        accessToken: minecraftAccessToken,
+    })
 }
 
-pub fn refresh_login(refreshToken: &str, status: Option<&Sender<String>>) -> Result<MicrosoftLogin, MicrosoftAuthError> {
+pub fn refresh_login(
+    refreshToken: &str,
+    status: Option<&Sender<String>>,
+) -> Result<MicrosoftLogin, MicrosoftAuthError> {
     refresh_login_cancelable(refreshToken, status, None)
 }
 
@@ -203,18 +226,27 @@ pub fn login_saved_account_cancelable(
     }
     ensure_not_cancelled(cancelled)?;
     if refreshToken.trim().is_empty() {
-        return Err(MicrosoftAuthError::Http("access token is invalid or expired and no refresh token is available".to_owned()));
+        return Err(MicrosoftAuthError::Http(
+            "access token is invalid or expired and no refresh token is available".to_owned(),
+        ));
     }
     refresh_login_cancelable(refreshToken, status, cancelled)
 }
 
-pub fn token_login(token: &str, status: Option<&Sender<String>>) -> Result<MicrosoftLogin, MicrosoftAuthError> {
+pub fn token_login(
+    token: &str,
+    status: Option<&Sender<String>>,
+) -> Result<MicrosoftLogin, MicrosoftAuthError> {
     if token.starts_with("M.C") {
         refresh_token_login(token, status)
     } else {
         send_status(status, "§fFetching your Minecraft profile§r");
         let session = login_with_minecraft_access_token(token)?;
-        Ok(MicrosoftLogin { session, refreshToken: String::new(), accessToken: token.to_owned() })
+        Ok(MicrosoftLogin {
+            session,
+            refreshToken: String::new(),
+            accessToken: token.to_owned(),
+        })
     }
 }
 
@@ -245,15 +277,14 @@ fn refresh_token_login(
     send_status(status, "§fAcquiring Minecraft access token§r");
     let minecraftAccessToken = acquire_minecraft_access_token(&xstsToken, &userHash)?;
     send_status(status, "§fFetching your Minecraft profile§r");
-    let (session, minecraftAccessToken) = login_or_create_token_profile(
-        minecraftAccessToken,
-        &xstsToken,
-        &userHash,
-        status,
-    )?;
-    Ok(MicrosoftLogin { session, refreshToken, accessToken: minecraftAccessToken })
+    let (session, minecraftAccessToken) =
+        login_or_create_token_profile(minecraftAccessToken, &xstsToken, &userHash, status)?;
+    Ok(MicrosoftLogin {
+        session,
+        refreshToken,
+        accessToken: minecraftAccessToken,
+    })
 }
-
 
 fn login_or_create_token_profile(
     minecraftAccessToken: String,
@@ -327,10 +358,7 @@ fn ensure_minecraft_entitlement(token: &str) -> Result<(), MicrosoftAuthError> {
     Ok(())
 }
 
-fn create_minecraft_profile_name(
-    token: &str,
-    name: &str,
-) -> Result<(), MicrosoftAuthError> {
+fn create_minecraft_profile_name(token: &str, name: &str) -> Result<(), MicrosoftAuthError> {
     let url = minecraft_profile_name_url(name)?;
     let result = ureq::put(url.as_str())
         .set("Accept", "*/*")
@@ -351,7 +379,9 @@ fn minecraft_profile_name_url(name: &str) -> Result<Url, MicrosoftAuthError> {
     let mut url = Url::parse(MINECRAFT_PROFILE_NAME_URL)
         .map_err(|error| MicrosoftAuthError::Malformed(error.to_string()))?;
     url.path_segments_mut()
-        .map_err(|_| MicrosoftAuthError::Malformed("invalid Minecraft profile name URL".to_owned()))?
+        .map_err(|_| {
+            MicrosoftAuthError::Malformed("invalid Minecraft profile name URL".to_owned())
+        })?
         .push(name);
     Ok(url)
 }
@@ -408,16 +438,24 @@ if ($result -ne [System.Windows.Forms.DialogResult]::OK) { exit 2 }
         let output = Command::new("powershell")
             .args(["-NoProfile", "-Command", script])
             .output()
-            .map_err(|error| MicrosoftAuthError::Http(format!("Failed opening profile name dialog: {error}")))?;
+            .map_err(|error| {
+                MicrosoftAuthError::Http(format!("Failed opening profile name dialog: {error}"))
+            })?;
         if output.status.code() == Some(2) {
-            return Err(MicrosoftAuthError::Http("Minecraft name is null".to_owned()));
+            return Err(MicrosoftAuthError::Http(
+                "Minecraft name is null".to_owned(),
+            ));
         }
         if !output.status.success() {
-            return Err(MicrosoftAuthError::Http("Failed to change name.".to_owned()));
+            return Err(MicrosoftAuthError::Http(
+                "Failed to change name.".to_owned(),
+            ));
         }
         let name = String::from_utf8_lossy(&output.stdout).trim().to_owned();
         if name.is_empty() {
-            return Err(MicrosoftAuthError::Http("Minecraft name is null".to_owned()));
+            return Err(MicrosoftAuthError::Http(
+                "Minecraft name is null".to_owned(),
+            ));
         }
         Ok(name)
     }
@@ -430,7 +468,9 @@ if ($result -ne [System.Windows.Forms.DialogResult]::OK) { exit 2 }
 }
 
 pub fn login_with_minecraft_access_token(token: &str) -> Result<Session, MicrosoftAuthError> {
-    if token.trim().is_empty() { return Err(MicrosoftAuthError::Missing("Minecraft access token")); }
+    if token.trim().is_empty() {
+        return Err(MicrosoftAuthError::Missing("Minecraft access token"));
+    }
     let value = request_json(
         ureq::get(MINECRAFT_PROFILE_URL)
             .set("Authorization", &format!("Bearer {token}"))
@@ -461,13 +501,18 @@ fn complete_microsoft_login(
     send_status(status, "§fFetching your Minecraft profile§r");
     let session = login_with_minecraft_access_token(&minecraftAccessToken)?;
     ensure_not_cancelled(cancelled)?;
-    Ok(MicrosoftLogin { session, refreshToken, accessToken: minecraftAccessToken })
+    Ok(MicrosoftLogin {
+        session,
+        refreshToken,
+        accessToken: minecraftAccessToken,
+    })
 }
 
 fn build_authorization_url(state: &str) -> Url {
     let redirectUri = format!("http://localhost:{CALLBACK_PORT}/callback");
     let mut authorize = Url::parse(AUTHORIZE_URL).expect("fixed Microsoft authorize URL");
-    authorize.query_pairs_mut()
+    authorize
+        .query_pairs_mut()
         .append_pair("client_id", CLIENT_ID)
         .append_pair("response_type", "code")
         .append_pair("redirect_uri", &redirectUri)
@@ -547,7 +592,9 @@ fn acquire_authorization_code(
     // secondary state error when the request itself was rejected.
     if let Some(code) = code {
         if !stateMatches {
-            return Err(MicrosoftAuthError::Callback("OAuth state mismatch".to_owned()));
+            return Err(MicrosoftAuthError::Callback(
+                "OAuth state mismatch".to_owned(),
+            ));
         }
         return Ok(code);
     }
@@ -555,11 +602,14 @@ fn acquire_authorization_code(
         return Err(MicrosoftAuthError::Callback(error));
     }
     if !stateMatches {
-        return Err(MicrosoftAuthError::Callback("OAuth state mismatch".to_owned()));
+        return Err(MicrosoftAuthError::Callback(
+            "OAuth state mismatch".to_owned(),
+        ));
     }
-    Err(MicrosoftAuthError::Callback("no authorization code was returned".to_owned()))
+    Err(MicrosoftAuthError::Callback(
+        "no authorization code was returned".to_owned(),
+    ))
 }
-
 
 fn ensure_not_cancelled(cancelled: Option<&AtomicBool>) -> Result<(), MicrosoftAuthError> {
     if cancelled.is_some_and(|flag| flag.load(Ordering::Acquire)) {
@@ -582,7 +632,10 @@ fn exchange_authorization_code(code: &str) -> Result<(String, String), Microsoft
                 ("redirect_uri", redirectUri.as_str()),
             ]),
     )?;
-    Ok((json_string(&value, "access_token")?, json_string(&value, "refresh_token")?))
+    Ok((
+        json_string(&value, "access_token")?,
+        json_string(&value, "refresh_token")?,
+    ))
 }
 
 fn refresh_microsoft_tokens(refreshToken: &str) -> Result<(String, String), MicrosoftAuthError> {
@@ -598,7 +651,10 @@ fn refresh_microsoft_tokens(refreshToken: &str) -> Result<(String, String), Micr
                 ("redirect_uri", redirectUri.as_str()),
             ]),
     )?;
-    Ok((json_string(&value, "access_token")?, json_string(&value, "refresh_token")?))
+    Ok((
+        json_string(&value, "access_token")?,
+        json_string(&value, "refresh_token")?,
+    ))
 }
 
 fn acquire_xbox_access_token(microsoftAccessToken: &str) -> Result<String, MicrosoftAuthError> {
@@ -609,7 +665,11 @@ fn acquire_xbox_access_token_internal(
     microsoftAccessToken: &str,
     prefixWithD: bool,
 ) -> Result<String, MicrosoftAuthError> {
-    let rpsTicket = if prefixWithD { format!("d={microsoftAccessToken}") } else { microsoftAccessToken.to_owned() };
+    let rpsTicket = if prefixWithD {
+        format!("d={microsoftAccessToken}")
+    } else {
+        microsoftAccessToken.to_owned()
+    };
     let value = request_json(
         ureq::post(XBOX_AUTH_URL)
             .set("Content-Type", "application/json")
@@ -652,7 +712,10 @@ fn acquire_xsts_token(xboxToken: &str) -> Result<(String, String), MicrosoftAuth
     Ok((token, userHash))
 }
 
-fn acquire_minecraft_access_token(xstsToken: &str, userHash: &str) -> Result<String, MicrosoftAuthError> {
+fn acquire_minecraft_access_token(
+    xstsToken: &str,
+    userHash: &str,
+) -> Result<String, MicrosoftAuthError> {
     let value = request_json(
         ureq::post(MINECRAFT_AUTH_URL)
             .set("Content-Type", "application/json")
@@ -662,13 +725,18 @@ fn acquire_minecraft_access_token(xstsToken: &str, userHash: &str) -> Result<Str
     json_string(&value, "access_token")
 }
 
-
 fn request_text(result: Result<ureq::Response, ureq::Error>) -> Result<String, MicrosoftAuthError> {
     match result {
-        Ok(response) => response.into_string().map_err(|error| MicrosoftAuthError::Malformed(error.to_string())),
+        Ok(response) => response
+            .into_string()
+            .map_err(|error| MicrosoftAuthError::Malformed(error.to_string())),
         Err(ureq::Error::Status(status, response)) => {
             let body = response.into_string().unwrap_or_default();
-            Err(MicrosoftAuthError::Http(if body.trim().is_empty() { format!("HTTP {status}") } else { format!("HTTP {status}: {}", body.trim()) }))
+            Err(MicrosoftAuthError::Http(if body.trim().is_empty() {
+                format!("HTTP {status}")
+            } else {
+                format!("HTTP {status}: {}", body.trim())
+            }))
         }
         Err(ureq::Error::Transport(error)) => Err(MicrosoftAuthError::Http(error.to_string())),
     }
@@ -685,19 +753,31 @@ fn extract_js_string(source: &str, key: &str) -> Option<String> {
     let start = source.find(key)? + key.len();
     let remainder = source[start..].trim_start();
     let quote = remainder.chars().next()?;
-    if quote != '\'' && quote != '"' { return None; }
+    if quote != '\'' && quote != '"' {
+        return None;
+    }
     let value = &remainder[quote.len_utf8()..];
     let mut escaped = false;
     for (index, character) in value.char_indices() {
-        if escaped { escaped = false; continue; }
-        if character == '\\' { escaped = true; continue; }
-        if character == quote { return Some(value[..index].replace("\\/", "/")); }
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if character == '\\' {
+            escaped = true;
+            continue;
+        }
+        if character == quote {
+            return Some(value[..index].replace("\\/", "/"));
+        }
     }
     None
 }
 
 fn extract_url_value(url: &str, key: &str) -> Option<String> {
-    let parameters = url.split_once('#').map(|(_, fragment)| fragment)
+    let parameters = url
+        .split_once('#')
+        .map(|(_, fragment)| fragment)
         .or_else(|| url.split_once('?').map(|(_, query)| query))?;
     url::form_urlencoded::parse(parameters.as_bytes())
         .find_map(|(name, value)| (name == key).then(|| value.into_owned()))
@@ -716,17 +796,27 @@ fn request_json(result: Result<ureq::Response, ureq::Error>) -> Result<Value, Mi
                 .and_then(|value| {
                     ["error_description", "errorMessage", "Message", "error"]
                         .into_iter()
-                        .find_map(|key| value.get(key).and_then(Value::as_str).map(ToOwned::to_owned))
+                        .find_map(|key| {
+                            value
+                                .get(key)
+                                .and_then(Value::as_str)
+                                .map(ToOwned::to_owned)
+                        })
                 })
                 .unwrap_or_else(|| body.trim().to_owned());
-            Err(MicrosoftAuthError::Http(if message.is_empty() { format!("HTTP {status}") } else { format!("HTTP {status}: {message}") }))
+            Err(MicrosoftAuthError::Http(if message.is_empty() {
+                format!("HTTP {status}")
+            } else {
+                format!("HTTP {status}: {message}")
+            }))
         }
         Err(ureq::Error::Transport(error)) => Err(MicrosoftAuthError::Http(error.to_string())),
     }
 }
 
 fn json_string(value: &Value, key: &'static str) -> Result<String, MicrosoftAuthError> {
-    value.get(key)
+    value
+        .get(key)
         .and_then(Value::as_str)
         .filter(|value| !value.trim().is_empty())
         .map(ToOwned::to_owned)
@@ -734,20 +824,30 @@ fn json_string(value: &Value, key: &'static str) -> Result<String, MicrosoftAuth
 }
 
 fn send_status(status: Option<&Sender<String>>, value: &str) {
-    if let Some(status) = status { let _ = status.send(value.to_owned()); }
+    if let Some(status) = status {
+        let _ = status.send(value.to_owned());
+    }
 }
 
 fn read_request_target(stream: &mut TcpStream) -> Result<String, MicrosoftAuthError> {
     let mut bytes = Vec::with_capacity(2048);
     let mut buffer = [0u8; 512];
     loop {
-        let count = stream.read(&mut buffer).map_err(MicrosoftAuthError::CallbackServer)?;
-        if count == 0 { break; }
+        let count = stream
+            .read(&mut buffer)
+            .map_err(MicrosoftAuthError::CallbackServer)?;
+        if count == 0 {
+            break;
+        }
         bytes.extend_from_slice(&buffer[..count]);
-        if bytes.windows(4).any(|window| window == b"\r\n\r\n") || bytes.len() > 16 * 1024 { break; }
+        if bytes.windows(4).any(|window| window == b"\r\n\r\n") || bytes.len() > 16 * 1024 {
+            break;
+        }
     }
     let request = String::from_utf8_lossy(&bytes);
-    request.lines().next()
+    request
+        .lines()
+        .next()
         .and_then(|line| line.split_whitespace().nth(1))
         .map(ToOwned::to_owned)
         .ok_or_else(|| MicrosoftAuthError::Callback("invalid HTTP callback request".to_owned()))
@@ -778,7 +878,11 @@ fn open_browser(url: &str) -> Result<(), MicrosoftAuthError> {
     let status = Command::new("open").arg(url).status();
     #[cfg(all(unix, not(target_os = "macos")))]
     let status = Command::new("xdg-open").arg(url).status();
-    status.ok().filter(|status| status.success()).map(|_| ()).ok_or(MicrosoftAuthError::Browser)
+    status
+        .ok()
+        .filter(|status| status.success())
+        .map(|_| ())
+        .ok_or(MicrosoftAuthError::Browser)
 }
 
 #[cfg(test)]
@@ -807,7 +911,10 @@ mod tests {
             Some("XboxLive.signin XboxLive.offline_access")
         );
         assert_eq!(query.get("state").map(String::as_str), Some("nonce-value"));
-        assert_eq!(query.get("prompt").map(String::as_str), Some("select_account"));
+        assert_eq!(
+            query.get("prompt").map(String::as_str),
+            Some("select_account")
+        );
     }
 
     #[test]
@@ -825,8 +932,8 @@ mod tests {
     #[test]
     fn legacy_form_fields_match_openauth_page_shape() {
         let html = r#"<script>var cfg={urlPost:'https://login.live.com/ppsecure/post.srf?x=1&amp;y=2',sFTTag:'<input type="hidden" name="PPFT" value="token-value"/>'};</script>"#;
-        let ppft = extract_between(html, "sFTTag:'", "value=\"")
-            .and_then(|tail| tail.split('\"').next());
+        let ppft =
+            extract_between(html, "sFTTag:'", "value=\"").and_then(|tail| tail.split('\"').next());
         assert_eq!(ppft, Some("token-value"));
         assert_eq!(
             extract_js_string(html, "urlPost:").as_deref(),
@@ -836,15 +943,25 @@ mod tests {
 
     #[test]
     fn implicit_flow_tokens_are_read_from_fragment() {
-        let url = "https://login.live.com/oauth20_desktop.srf#access_token=a%2Bb&refresh_token=M.C.test";
-        assert_eq!(extract_url_value(url, "access_token").as_deref(), Some("a+b"));
-        assert_eq!(extract_url_value(url, "refresh_token").as_deref(), Some("M.C.test"));
+        let url =
+            "https://login.live.com/oauth20_desktop.srf#access_token=a%2Bb&refresh_token=M.C.test";
+        assert_eq!(
+            extract_url_value(url, "access_token").as_deref(),
+            Some("a+b")
+        );
+        assert_eq!(
+            extract_url_value(url, "refresh_token").as_deref(),
+            Some("M.C.test")
+        );
     }
 
     #[test]
     fn profile_name_is_encoded_as_one_path_segment() {
         let url = minecraft_profile_name_url("Name With Space").unwrap();
-        assert_eq!(url.as_str(), "https://api.minecraftservices.com/minecraft/profile/name/Name%20With%20Space");
+        assert_eq!(
+            url.as_str(),
+            "https://api.minecraftservices.com/minecraft/profile/name/Name%20With%20Space"
+        );
     }
 
     #[test]
@@ -856,7 +973,12 @@ mod tests {
                 .and_then(Value::as_array)
                 .unwrap()
                 .iter()
-                .any(|item| matches!(item.get("name").and_then(Value::as_str), Some("product_minecraft" | "game_minecraft")));
+                .any(|item| {
+                    matches!(
+                        item.get("name").and_then(Value::as_str),
+                        Some("product_minecraft" | "game_minecraft")
+                    )
+                });
             assert!(has_minecraft);
         }
     }
@@ -864,6 +986,9 @@ mod tests {
     #[test]
     fn cancellation_flag_is_observed() {
         let cancelled = AtomicBool::new(true);
-        assert!(matches!(ensure_not_cancelled(Some(&cancelled)), Err(MicrosoftAuthError::Cancelled)));
+        assert!(matches!(
+            ensure_not_cancelled(Some(&cancelled)),
+            Err(MicrosoftAuthError::Cancelled)
+        ));
     }
 }

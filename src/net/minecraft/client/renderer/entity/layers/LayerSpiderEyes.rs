@@ -7,5 +7,7 @@ impl LayerSpiderEyes {
     pub fn texture() -> ResourceLocation {
         ResourceLocation::new("minecraft", "textures/entity/spider_eyes.png")
     }
-    pub const fn packedFullBright() -> u32 { (15 << 20) | (15 << 4) }
+    pub const fn packedFullBright() -> u32 {
+        (15 << 20) | (15 << 4)
+    }
 }

@@ -27,7 +27,9 @@ impl LayerArmorBase {
     }
 
     pub fn tintPasses(stack: &ItemStack) -> Vec<ArmorTintPass> {
-        let Some(definition) = ItemArmor::definition(stack.itemId) else { return Vec::new(); };
+        let Some(definition) = ItemArmor::definition(stack.itemId) else {
+            return Vec::new();
+        };
         if definition.material == ArmorMaterial::Leather {
             let color = ItemArmor::getColor(stack);
             vec![
@@ -40,10 +42,16 @@ impl LayerArmorBase {
                     ],
                     overlay: false,
                 },
-                ArmorTintPass { color: [1.0; 4], overlay: true },
+                ArmorTintPass {
+                    color: [1.0; 4],
+                    overlay: true,
+                },
             ]
         } else {
-            vec![ArmorTintPass { color: [1.0; 4], overlay: false }]
+            vec![ArmorTintPass {
+                color: [1.0; 4],
+                overlay: false,
+            }]
         }
     }
 
@@ -75,7 +83,9 @@ impl LayerArmorBase {
         ResourceLocation::new("minecraft", ENCHANTED_ITEM_GLINT_RES)
     }
 
-    pub const fn shouldCombineTextures() -> bool { false }
+    pub const fn shouldCombineTextures() -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -84,7 +94,12 @@ mod tests {
 
     #[test]
     fn leather_uses_dyed_base_and_white_overlay() {
-        let stack = ItemStack { itemId: 299, count: 1, itemDamage: 0, tagCompound: None };
+        let stack = ItemStack {
+            itemId: 299,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
         let passes = LayerArmorBase::tintPasses(&stack);
         assert_eq!(passes.len(), 2);
         assert!(!passes[0].overlay);

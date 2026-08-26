@@ -11,6 +11,12 @@ pub enum EnumAction {
 
 impl EnumAction {
     pub const fn ordinal(self) -> i32 {
-        match self { Self::None => 0, Self::Eat => 1, Self::Drink => 2, Self::Block => 3, Self::Bow => 4 }
+        match self {
+            Self::None => 0,
+            Self::Eat => 1,
+            Self::Drink => 2,
+            Self::Block => 3,
+            Self::Bow => 4,
+        }
     }
 }

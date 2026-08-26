@@ -38,12 +38,7 @@ pub struct Particle {
 }
 
 impl Particle {
-    pub fn new_position(
-        x: f64,
-        y: f64,
-        z: f64,
-        random: &mut impl Rng,
-    ) -> Self {
+    pub fn new_position(x: f64, y: f64, z: f64, random: &mut impl Rng) -> Self {
         let mut particle = Self {
             prevPosX: x,
             prevPosY: y,
@@ -95,11 +90,12 @@ impl Particle {
         particle.motionZ = zSpeed + (random.gen::<f64>() * 2.0 - 1.0) * 0.4000000059604645;
         let speed = (particle.motionX * particle.motionX
             + particle.motionY * particle.motionY
-            + particle.motionZ * particle.motionZ).sqrt();
+            + particle.motionZ * particle.motionZ)
+            .sqrt();
         let magnitude = (random.gen::<f64>() + random.gen::<f64>() + 1.0) * 0.15;
         particle.motionX = particle.motionX / speed * magnitude * 0.4000000059604645;
-        particle.motionY = particle.motionY / speed * magnitude * 0.4000000059604645
-            + 0.10000000149011612;
+        particle.motionY =
+            particle.motionY / speed * magnitude * 0.4000000059604645 + 0.10000000149011612;
         particle.motionZ = particle.motionZ / speed * magnitude * 0.4000000059604645;
         particle
     }
@@ -115,7 +111,9 @@ impl Particle {
         self.particleBlue = blue;
     }
 
-    pub fn setAlphaF(&mut self, alpha: f32) { self.particleAlpha = alpha; }
+    pub fn setAlphaF(&mut self, alpha: f32) {
+        self.particleAlpha = alpha;
+    }
 
     pub fn multiplyVelocity(&mut self, multiplier: f32) {
         let multiplier = multiplier as f64;

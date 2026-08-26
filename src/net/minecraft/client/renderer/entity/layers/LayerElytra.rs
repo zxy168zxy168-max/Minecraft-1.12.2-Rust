@@ -39,7 +39,9 @@ impl LayerElytra {
         Some(Self::defaultTexture())
     }
 
-    pub const fn shouldCombineTextures() -> bool { false }
+    pub const fn shouldCombineTextures() -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -53,7 +55,15 @@ mod tests {
 
     #[test]
     fn equipped_elytra_falls_back_to_vanilla_texture() {
-        let stack = ItemStack { itemId: 443, count: 1, itemDamage: 0, tagCompound: None };
-        assert_eq!(LayerElytra::texture(&stack, None, 0xff).unwrap().getPath(), "textures/entity/elytra.png");
+        let stack = ItemStack {
+            itemId: 443,
+            count: 1,
+            itemDamage: 0,
+            tagCompound: None,
+        };
+        assert_eq!(
+            LayerElytra::texture(&stack, None, 0xff).unwrap().getPath(),
+            "textures/entity/elytra.png"
+        );
     }
 }

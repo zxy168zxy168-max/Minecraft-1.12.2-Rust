@@ -22,7 +22,14 @@ pub enum EnumFacing {
 }
 
 impl EnumFacing {
-    pub const VALUES: [Self; 6] = [Self::Down, Self::Up, Self::North, Self::South, Self::West, Self::East];
+    pub const VALUES: [Self; 6] = [
+        Self::Down,
+        Self::Up,
+        Self::North,
+        Self::South,
+        Self::West,
+        Self::East,
+    ];
 
     pub const fn index(self) -> i32 {
         match self {
@@ -130,7 +137,6 @@ impl EnumFacing {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,5 +165,4 @@ mod tests {
         assert_eq!(EnumFacing::getFront(5), EnumFacing::East);
         assert_eq!(EnumFacing::getFront(-1), EnumFacing::East);
     }
-
 }

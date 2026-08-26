@@ -20,7 +20,9 @@ impl SPacketCloseWindow {
         Ok(Self { windowId })
     }
 
-    pub const fn getWindowId(&self) -> u8 { self.windowId }
+    pub const fn getWindowId(&self) -> u8 {
+        self.windowId
+    }
 }
 
 #[cfg(test)]

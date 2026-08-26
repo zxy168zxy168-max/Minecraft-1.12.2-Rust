@@ -23,16 +23,20 @@ pub struct MovementInputFromOptions {
 }
 
 impl MovementInputFromOptions {
-    pub const fn new() -> Self { Self { movementInput: MovementInput {
-        moveStrafe: 0.0,
-        field_192832_b: 0.0,
-        forwardKeyDown: false,
-        backKeyDown: false,
-        leftKeyDown: false,
-        rightKeyDown: false,
-        jump: false,
-        sneak: false,
-    } } }
+    pub const fn new() -> Self {
+        Self {
+            movementInput: MovementInput {
+                moveStrafe: 0.0,
+                field_192832_b: 0.0,
+                forwardKeyDown: false,
+                backKeyDown: false,
+                leftKeyDown: false,
+                rightKeyDown: false,
+                jump: false,
+                sneak: false,
+            },
+        }
+    }
 
     pub fn updatePlayerMoveState(&mut self, keys: MovementKeyState) {
         let input = &mut self.movementInput;

@@ -1,31 +1,57 @@
-use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
-use crate::net::minecraft::block::Block::Block;
-use crate::net::minecraft::block::{BlockFence, BlockFenceGate, BlockPane, BlockSlab, BlockStairs, BlockWall};
 use crate::net::minecraft::block::state::BlockFaceShape::BlockFaceShape;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
-use crate::net::minecraft::util::math::BlockPos::BlockPos;
-use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
+use crate::net::minecraft::block::Block::Block;
+use crate::net::minecraft::block::{
+    BlockFence, BlockFenceGate, BlockPane, BlockSlab, BlockStairs, BlockWall,
+};
+use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
+use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
+use crate::net::minecraft::world::IBlockAccess::IBlockAccess;
 
 /// Compact protocol identity for an MCP `IBlockState`. Concrete property
 /// containers are ported incrementally; the protocol-global ID remains exact.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct IBlockState { globalStateId: i32 }
+pub struct IBlockState {
+    globalStateId: i32,
+}
 impl IBlockState {
-    pub const fn fromGlobalStateId(globalStateId: i32) -> Self { Self { globalStateId: if globalStateId < 0 { 0 } else { globalStateId } } }
-    pub const fn getGlobalStateId(self) -> i32 { self.globalStateId }
-    pub const fn getBlockId(self) -> i32 { self.globalStateId >> 4 }
-    pub const fn getMetadata(self) -> i32 { self.globalStateId & 15 }
-    pub fn getBlock(self) -> Block { Block::getBlockById(self.getBlockId()) }
-    pub const fn isAir(self) -> bool { self.globalStateId == 0 }
-    pub fn getLightOpacity(self) -> i32 { self.getBlock().getLightOpacity() }
+    pub const fn fromGlobalStateId(globalStateId: i32) -> Self {
+        Self {
+            globalStateId: if globalStateId < 0 { 0 } else { globalStateId },
+        }
+    }
+    pub const fn getGlobalStateId(self) -> i32 {
+        self.globalStateId
+    }
+    pub const fn getBlockId(self) -> i32 {
+        self.globalStateId >> 4
+    }
+    pub const fn getMetadata(self) -> i32 {
+        self.globalStateId & 15
+    }
+    pub fn getBlock(self) -> Block {
+        Block::getBlockById(self.getBlockId())
+    }
+    pub const fn isAir(self) -> bool {
+        self.globalStateId == 0
+    }
+    pub fn getLightOpacity(self) -> i32 {
+        self.getBlock().getLightOpacity()
+    }
 
     /// Direct MCP `IBlockState#isTopSolid` delegation.
-    pub fn isTopSolid(self) -> bool { self.getBlock().isFullyOpaque(self) }
+    pub fn isTopSolid(self) -> bool {
+        self.getBlock().isFullyOpaque(self)
+    }
 
     /// MCP `IBlockState.getPlayerRelativeBlockHardness`, delegating the
     /// player's exact dig-speed and harvest checks through `Block`.
-    pub fn getPlayerRelativeBlockHardness(self, world: &WorldClient, player: &EntityPlayerSP) -> f32 {
+    pub fn getPlayerRelativeBlockHardness(
+        self,
+        world: &WorldClient,
+        player: &EntityPlayerSP,
+    ) -> f32 {
         let hardness = self.getBlock().getBlockHardness();
         if hardness < 0.0 {
             0.0

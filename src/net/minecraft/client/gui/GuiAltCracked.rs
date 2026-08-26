@@ -293,7 +293,6 @@ impl GuiAltCracked {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -302,9 +301,17 @@ mod tests {
     fn empty_username_remains_loginable_like_exhibition() {
         let mut screen = GuiAltCracked::new();
         screen.initGui(854, 480);
-        let login = screen.GuiScreen.buttonList.iter().find(|button| button.id == 0).unwrap();
+        let login = screen
+            .GuiScreen
+            .buttonList
+            .iter()
+            .find(|button| button.id == 0)
+            .unwrap();
         assert!(login.enabled);
-        assert_eq!(screen.enterPressed(), GuiAltCrackedAction::Authenticated(Session::new("", "", "", "mojang")));
+        assert_eq!(
+            screen.enterPressed(),
+            GuiAltCrackedAction::Authenticated(Session::new("", "", "", "mojang"))
+        );
     }
 
     #[test]

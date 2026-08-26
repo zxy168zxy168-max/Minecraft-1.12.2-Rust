@@ -107,13 +107,7 @@ impl BiomeProviderSingle {
     }
 
     /// MCP `areBiomesViable`.
-    pub fn areBiomesViable(
-        &self,
-        _x: i32,
-        _z: i32,
-        _radius: i32,
-        allowed: &[Biome],
-    ) -> bool {
+    pub fn areBiomesViable(&self, _x: i32, _z: i32, _radius: i32, allowed: &[Biome]) -> bool {
         allowed.contains(&self.biome)
     }
 

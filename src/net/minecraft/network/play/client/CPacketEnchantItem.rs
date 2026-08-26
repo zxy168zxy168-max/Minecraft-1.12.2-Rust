@@ -10,7 +10,10 @@ pub struct CPacketEnchantItem {
 
 impl CPacketEnchantItem {
     pub const fn new(windowIdIn: i32, buttonIn: i32) -> Self {
-        Self { windowId: windowIdIn as i8, button: buttonIn as i8 }
+        Self {
+            windowId: windowIdIn as i8,
+            button: buttonIn as i8,
+        }
     }
 
     pub fn writePacketData(self) -> RawPacket {

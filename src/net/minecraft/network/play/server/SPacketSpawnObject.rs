@@ -2,8 +2,7 @@ use uuid::Uuid;
 
 use crate::net::minecraft::network::Packet::RawPacket;
 use crate::net::minecraft::network::PacketBuffer::{
-    read_f64_be, read_i16_be, read_i32_be, read_i8, read_u8, read_uuid, read_var_i32,
-    CodecError,
+    read_f64_be, read_i16_be, read_i32_be, read_i8, read_u8, read_uuid, read_var_i32, CodecError,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -48,16 +47,40 @@ impl SPacketSpawnObject {
         Ok(result)
     }
 
-    pub const fn getEntityID(&self) -> i32 { self.entityId }
-    pub const fn getUniqueId(&self) -> Uuid { self.uniqueId }
-    pub const fn getType(&self) -> i32 { self.typeId as i32 }
-    pub const fn getX(&self) -> f64 { self.x }
-    pub const fn getY(&self) -> f64 { self.y }
-    pub const fn getZ(&self) -> f64 { self.z }
-    pub const fn getPitch(&self) -> i8 { self.pitch }
-    pub const fn getYaw(&self) -> i8 { self.yaw }
-    pub const fn getData(&self) -> i32 { self.data }
-    pub const fn getSpeedX(&self) -> i16 { self.speedX }
-    pub const fn getSpeedY(&self) -> i16 { self.speedY }
-    pub const fn getSpeedZ(&self) -> i16 { self.speedZ }
+    pub const fn getEntityID(&self) -> i32 {
+        self.entityId
+    }
+    pub const fn getUniqueId(&self) -> Uuid {
+        self.uniqueId
+    }
+    pub const fn getType(&self) -> i32 {
+        self.typeId as i32
+    }
+    pub const fn getX(&self) -> f64 {
+        self.x
+    }
+    pub const fn getY(&self) -> f64 {
+        self.y
+    }
+    pub const fn getZ(&self) -> f64 {
+        self.z
+    }
+    pub const fn getPitch(&self) -> i8 {
+        self.pitch
+    }
+    pub const fn getYaw(&self) -> i8 {
+        self.yaw
+    }
+    pub const fn getData(&self) -> i32 {
+        self.data
+    }
+    pub const fn getSpeedX(&self) -> i16 {
+        self.speedX
+    }
+    pub const fn getSpeedY(&self) -> i16 {
+        self.speedY
+    }
+    pub const fn getSpeedZ(&self) -> i16 {
+        self.speedZ
+    }
 }

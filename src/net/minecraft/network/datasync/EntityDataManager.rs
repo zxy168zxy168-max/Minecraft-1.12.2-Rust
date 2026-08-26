@@ -14,7 +14,9 @@ impl EntityDataManager {
         let mut result = Vec::new();
         loop {
             let id = read_u8(input)?;
-            if id == 0xFF { break; }
+            if id == 0xFF {
+                break;
+            }
             let serializer = read_var_i32(input)?;
             result.push((id, readValue(serializer, input)?));
         }
@@ -22,10 +24,14 @@ impl EntityDataManager {
     }
 
     pub fn setEntryValues(&mut self, values: impl IntoIterator<Item = (u8, DataValue)>) {
-        for (id, value) in values { self.entries.insert(id, value); }
+        for (id, value) in values {
+            self.entries.insert(id, value);
+        }
     }
 
-    pub fn get(&self, id: u8) -> Option<&DataValue> { self.entries.get(&id) }
+    pub fn get(&self, id: u8) -> Option<&DataValue> {
+        self.entries.get(&id)
+    }
 
     pub fn setByte(&mut self, id: u8, value: i8) {
         self.entries.insert(id, DataValue::Byte(value));
@@ -44,34 +50,58 @@ impl EntityDataManager {
     }
 
     pub fn byte(&self, id: u8, fallback: i8) -> i8 {
-        match self.entries.get(&id) { Some(DataValue::Byte(value)) => *value, _ => fallback }
+        match self.entries.get(&id) {
+            Some(DataValue::Byte(value)) => *value,
+            _ => fallback,
+        }
     }
 
     pub fn varInt(&self, id: u8, fallback: i32) -> i32 {
-        match self.entries.get(&id) { Some(DataValue::VarInt(value)) => *value, _ => fallback }
+        match self.entries.get(&id) {
+            Some(DataValue::VarInt(value)) => *value,
+            _ => fallback,
+        }
     }
 
     pub fn float(&self, id: u8, fallback: f32) -> f32 {
-        match self.entries.get(&id) { Some(DataValue::Float(value)) => *value, _ => fallback }
+        match self.entries.get(&id) {
+            Some(DataValue::Float(value)) => *value,
+            _ => fallback,
+        }
     }
 
     pub fn boolean(&self, id: u8, fallback: bool) -> bool {
-        match self.entries.get(&id) { Some(DataValue::Boolean(value)) => *value, _ => fallback }
+        match self.entries.get(&id) {
+            Some(DataValue::Boolean(value)) => *value,
+            _ => fallback,
+        }
     }
 
     pub fn string(&self, id: u8) -> Option<&str> {
-        match self.entries.get(&id) { Some(DataValue::String(value)) => Some(value.as_str()), _ => None }
+        match self.entries.get(&id) {
+            Some(DataValue::String(value)) => Some(value.as_str()),
+            _ => None,
+        }
     }
 
     pub fn rotations(&self, id: u8, fallback: [f32; 3]) -> [f32; 3] {
-        match self.entries.get(&id) { Some(DataValue::Rotations(value)) => *value, _ => fallback }
+        match self.entries.get(&id) {
+            Some(DataValue::Rotations(value)) => *value,
+            _ => fallback,
+        }
     }
 
     pub fn facing(&self, id: u8, fallback: i32) -> i32 {
-        match self.entries.get(&id) { Some(DataValue::Facing(value)) => *value, _ => fallback }
+        match self.entries.get(&id) {
+            Some(DataValue::Facing(value)) => *value,
+            _ => fallback,
+        }
     }
 
-    pub fn optionalBlockPos(&self, id: u8) -> Option<crate::net::minecraft::util::math::BlockPos::BlockPos> {
+    pub fn optionalBlockPos(
+        &self,
+        id: u8,
+    ) -> Option<crate::net::minecraft::util::math::BlockPos::BlockPos> {
         match self.entries.get(&id) {
             Some(DataValue::OptionalBlockPos(value)) => *value,
             _ => None,
@@ -86,6 +116,9 @@ impl EntityDataManager {
     }
 
     pub fn itemStack(&self, id: u8) -> Option<&ItemStack> {
-        match self.entries.get(&id) { Some(DataValue::ItemStack(value)) => Some(value), _ => None }
+        match self.entries.get(&id) {
+            Some(DataValue::ItemStack(value)) => Some(value),
+            _ => None,
+        }
     }
 }

@@ -13,9 +13,15 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
-    pub fn getName(&self) -> &str { &self.name }
-    pub const fn getBaseValue(&self) -> f64 { self.baseValue }
-    pub fn getModifiers(&self) -> &[AttributeModifier] { &self.modifiers }
+    pub fn getName(&self) -> &str {
+        &self.name
+    }
+    pub const fn getBaseValue(&self) -> f64 {
+        self.baseValue
+    }
+    pub fn getModifiers(&self) -> &[AttributeModifier] {
+        &self.modifiers
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -66,7 +72,11 @@ impl SPacketEntityProperties {
                 }
                 modifiers.push(AttributeModifier::new(id, amount, operation));
             }
-            snapshots.push(Snapshot { name, baseValue, modifiers });
+            snapshots.push(Snapshot {
+                name,
+                baseValue,
+                modifiers,
+            });
         }
 
         if !input.is_empty() {
@@ -75,11 +85,18 @@ impl SPacketEntityProperties {
                 input.len()
             )));
         }
-        Ok(Self { entityId, snapshots })
+        Ok(Self {
+            entityId,
+            snapshots,
+        })
     }
 
-    pub const fn getEntityId(&self) -> i32 { self.entityId }
-    pub fn getSnapshots(&self) -> &[Snapshot] { &self.snapshots }
+    pub const fn getEntityId(&self) -> i32 {
+        self.entityId
+    }
+    pub fn getSnapshots(&self) -> &[Snapshot] {
+        &self.snapshots
+    }
 }
 
 #[cfg(test)]
@@ -102,7 +119,8 @@ mod tests {
         write_uuid(id, &mut payload);
         write_f64_be(0.1, &mut payload);
         payload.push(2);
-        let packet = SPacketEntityProperties::readPacketData(&RawPacket::new(0x4E, payload)).unwrap();
+        let packet =
+            SPacketEntityProperties::readPacketData(&RawPacket::new(0x4E, payload)).unwrap();
         assert_eq!(packet.getEntityId(), 7);
         assert_eq!(packet.getSnapshots()[0].getName(), "horse.jumpStrength");
         assert_eq!(packet.getSnapshots()[0].getModifiers()[0].getID(), id);

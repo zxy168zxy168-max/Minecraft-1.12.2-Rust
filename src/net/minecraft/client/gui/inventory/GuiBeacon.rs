@@ -24,7 +24,11 @@ impl GuiBeacon {
 
     pub fn new() -> Self {
         let mut slots = Vec::with_capacity(37);
-        slots.push(GuiSlot { slotNumber: 0, xPos: 136, yPos: 110 });
+        slots.push(GuiSlot {
+            slotNumber: 0,
+            xPos: 136,
+            yPos: 110,
+        });
         for row in 0..3 {
             for column in 0..9 {
                 slots.push(GuiSlot {
@@ -41,10 +45,14 @@ impl GuiBeacon {
                 yPos: 195,
             });
         }
-        Self { container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots) }
+        Self {
+            container: GuiContainer::new(Self::X_SIZE, Self::Y_SIZE, slots),
+        }
     }
 
-    pub fn initGui(&mut self, width: i32, height: i32) { self.container.initGui(width, height); }
+    pub fn initGui(&mut self, width: i32, height: i32) {
+        self.container.initGui(width, height);
+    }
 
     pub fn beaconBackground() -> ResourceLocation {
         ResourceLocation::parse("textures/gui/container/beacon.png")
@@ -95,34 +103,45 @@ impl GuiBeacon {
         primaryEffect: i32,
     ) -> Option<BeaconPowerButton> {
         self.powerButtons(primaryEffect).into_iter().find(|button| {
-            mouseX >= button.x && mouseX < button.x + 22
-                && mouseY >= button.y && mouseY < button.y + 22
+            mouseX >= button.x
+                && mouseX < button.x + 22
+                && mouseY >= button.y
+                && mouseY < button.y + 22
                 && button.tier < levels
         })
     }
-
 
     /// MCP `Potion#getStatusIconIndex` for the six effects available to a
     /// 1.12.2 beacon. The atlas coordinates are consumed by `GuiBeacon.Button`.
     pub const fn effectIconIndex(effectId: i32) -> Option<i32> {
         match effectId {
-            1 => Some(0),  // speed: (0, 0)
-            3 => Some(2),  // haste: (2, 0)
-            5 => Some(4),  // strength: (4, 0)
-            8 => Some(10), // jump boost: (2, 1)
-            10 => Some(7), // regeneration: (7, 0)
-            11 => Some(14),// resistance: (6, 1)
+            1 => Some(0),   // speed: (0, 0)
+            3 => Some(2),   // haste: (2, 0)
+            5 => Some(4),   // strength: (4, 0)
+            8 => Some(10),  // jump boost: (2, 1)
+            10 => Some(7),  // regeneration: (7, 0)
+            11 => Some(14), // resistance: (6, 1)
             _ => None,
         }
     }
 
-
     /// Source X in `beacon.png` for MCP `GuiBeacon.Button#drawButton`.
     pub const fn buttonSourceX(enabled: bool, selected: bool, hovered: bool) -> i32 {
-        if !enabled { 44 } else if selected { 22 } else if hovered { 66 } else { 0 }
+        if !enabled {
+            44
+        } else if selected {
+            22
+        } else if hovered {
+            66
+        } else {
+            0
+        }
     }
 
-    pub fn confirmEnabled(payment: Option<&crate::net::minecraft::item::ItemStack::ItemStack>, primaryEffect: i32) -> bool {
+    pub fn confirmEnabled(
+        payment: Option<&crate::net::minecraft::item::ItemStack::ItemStack>,
+        primaryEffect: i32,
+    ) -> bool {
         payment.is_some_and(|stack| !stack.isEmpty()) && primaryEffect > 0
     }
 
@@ -139,16 +158,20 @@ impl GuiBeacon {
     }
 
     pub fn confirmAt(&self, mouseX: i32, mouseY: i32) -> bool {
-        self.container.isPointInRegion(Self::CONFIRM_X, Self::ACTION_Y, 22, 22, mouseX, mouseY)
+        self.container
+            .isPointInRegion(Self::CONFIRM_X, Self::ACTION_Y, 22, 22, mouseX, mouseY)
     }
 
     pub fn cancelAt(&self, mouseX: i32, mouseY: i32) -> bool {
-        self.container.isPointInRegion(Self::CANCEL_X, Self::ACTION_Y, 22, 22, mouseX, mouseY)
+        self.container
+            .isPointInRegion(Self::CANCEL_X, Self::ACTION_Y, 22, 22, mouseX, mouseY)
     }
 }
 
 impl Default for GuiBeacon {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -163,7 +186,10 @@ mod tests {
         assert_eq!(gui.container.slotPosition(0), Some((221, 150)));
         assert_eq!(gui.container.slotPosition(1), Some((121, 177)));
         assert_eq!(gui.container.slotPosition(28), Some((121, 235)));
-        assert!(gui.powerButtons(1).iter().any(|button| button.effectId == 10));
+        assert!(gui
+            .powerButtons(1)
+            .iter()
+            .any(|button| button.effectId == 10));
     }
 
     #[test]

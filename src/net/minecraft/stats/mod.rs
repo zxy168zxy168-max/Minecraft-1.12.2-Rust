@@ -1,1 +1,2 @@
-#[path = "RecipeBook.rs"] pub mod RecipeBook;
+#[path = "RecipeBook.rs"]
+pub mod RecipeBook;

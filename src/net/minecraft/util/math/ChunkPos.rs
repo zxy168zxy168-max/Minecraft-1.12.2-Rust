@@ -8,8 +8,15 @@ pub struct ChunkPos {
 }
 
 impl ChunkPos {
-    pub const fn new(x: i32, z: i32) -> Self { Self { chunkXPos: x, chunkZPos: z } }
-    pub const fn fromBlockPos(pos: BlockPos) -> Self { Self::new(pos.x >> 4, pos.z >> 4) }
+    pub const fn new(x: i32, z: i32) -> Self {
+        Self {
+            chunkXPos: x,
+            chunkZPos: z,
+        }
+    }
+    pub const fn fromBlockPos(pos: BlockPos) -> Self {
+        Self::new(pos.x >> 4, pos.z >> 4)
+    }
 
     /// MCP `ChunkPos#asLong`: unsigned low 32 bits X, high 32 bits Z.
     pub const fn asLong(x: i32, z: i32) -> i64 {
@@ -20,17 +27,27 @@ impl ChunkPos {
     /// `Hash` trait remains structural; callers that require Java identity use
     /// this method explicitly.
     pub const fn javaHashCode(&self) -> i32 {
-        let i = 1_664_525_i32.wrapping_mul(self.chunkXPos).wrapping_add(1_013_904_223);
+        let i = 1_664_525_i32
+            .wrapping_mul(self.chunkXPos)
+            .wrapping_add(1_013_904_223);
         let j = 1_664_525_i32
             .wrapping_mul(self.chunkZPos ^ -559_038_737_i32)
             .wrapping_add(1_013_904_223);
         i ^ j
     }
 
-    pub const fn getXStart(&self) -> i32 { self.chunkXPos << 4 }
-    pub const fn getZStart(&self) -> i32 { self.chunkZPos << 4 }
-    pub const fn getXEnd(&self) -> i32 { (self.chunkXPos << 4) + 15 }
-    pub const fn getZEnd(&self) -> i32 { (self.chunkZPos << 4) + 15 }
+    pub const fn getXStart(&self) -> i32 {
+        self.chunkXPos << 4
+    }
+    pub const fn getZStart(&self) -> i32 {
+        self.chunkZPos << 4
+    }
+    pub const fn getXEnd(&self) -> i32 {
+        (self.chunkXPos << 4) + 15
+    }
+    pub const fn getZEnd(&self) -> i32 {
+        (self.chunkZPos << 4) + 15
+    }
     pub const fn getBlock(&self, x: i32, y: i32, z: i32) -> BlockPos {
         BlockPos::new((self.chunkXPos << 4) + x, y, (self.chunkZPos << 4) + z)
     }

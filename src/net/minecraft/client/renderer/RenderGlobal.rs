@@ -1,14 +1,13 @@
-use std::collections::{HashMap, VecDeque};
 use rustc_hash::FxHashSet;
+use std::collections::{HashMap, VecDeque};
 
+use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::client::renderer::chunk::CompiledChunk::CompiledChunk;
 use crate::net::minecraft::client::renderer::chunk::RenderChunk::RenderChunkKey;
 use crate::net::minecraft::client::renderer::ViewFrustum::containsRenderChunk;
-use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::RayTraceResult::{RayTraceResult, Type as RayTraceType};
-
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SelectionBoxRenderState {
@@ -52,11 +51,7 @@ struct ContainerLocalRenderInformation {
 }
 
 impl ContainerLocalRenderInformation {
-    const fn new(
-        renderChunk: RenderChunkKey,
-        facing: Option<EnumFacing>,
-        setFacing: u8,
-    ) -> Self {
+    const fn new(renderChunk: RenderChunkKey, facing: Option<EnumFacing>, setFacing: u8) -> Self {
         Self {
             renderChunk,
             facing,
@@ -202,11 +197,13 @@ pub fn setupTerrainWithLookupScratch<G, F>(
             }
 
             scratch.visited.insert(neighbour);
-            scratch.queue.push_back(ContainerLocalRenderInformation::new(
-                neighbour,
-                Some(facing),
-                info.setFacing | (1_u8 << facing.index()),
-            ));
+            scratch
+                .queue
+                .push_back(ContainerLocalRenderInformation::new(
+                    neighbour,
+                    Some(facing),
+                    info.setFacing | (1_u8 << facing.index()),
+                ));
         }
     }
 }
@@ -246,12 +243,7 @@ mod tests {
         }
         let start = RenderChunkKey::new(0, 4, 0);
         let wrapped = setupTerrain(start, 4, &chunks, |_| true);
-        let direct = setupTerrainWithLookup(
-            start,
-            4,
-            |key| chunks.get(&key).copied(),
-            |_| true,
-        );
+        let direct = setupTerrainWithLookup(start, 4, |key| chunks.get(&key).copied(), |_| true);
         assert_eq!(direct, wrapped);
     }
 
@@ -266,6 +258,9 @@ mod tests {
         chunks.insert(RenderChunkKey::new(1, 4, 0), middle);
         chunks.insert(RenderChunkKey::new(2, 4, 0), CompiledChunk::emptyVisible());
         let visible = setupTerrain(RenderChunkKey::new(0, 4, 0), 4, &chunks, |_| true);
-        assert_eq!(visible, vec![RenderChunkKey::new(0, 4, 0), RenderChunkKey::new(1, 4, 0)]);
+        assert_eq!(
+            visible,
+            vec![RenderChunkKey::new(0, 4, 0), RenderChunkKey::new(1, 4, 0)]
+        );
     }
 }

@@ -3,46 +3,46 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use uuid::Uuid;
 
-use crate::net::minecraft::entity::Entity::Entity;
-use crate::net::minecraft::entity::EntityHanging::EntityHanging;
-use crate::net::minecraft::entity::EntityLeashKnot::EntityLeashKnot;
-use crate::net::minecraft::entity::item::EntityItemFrame::EntityItemFrame;
-use crate::net::minecraft::entity::item::EntityPainting::{EntityPainting, PaintingArt};
-use crate::net::minecraft::entity::EntityLivingBase;
-use crate::net::minecraft::entity::ai::attributes::AbstractAttributeMap::AbstractAttributeMap;
-use crate::net::minecraft::entity::IJumpingMount::IJumpingMount;
-use crate::net::minecraft::entity::passive::AbstractHorse::AbstractHorse;
-use crate::net::minecraft::entity::projectile::EntityShulkerBullet::EntityShulkerBullet;
-use crate::net::minecraft::entity::projectile::EntityFishHook::{EntityFishHook, FishHookState};
-use crate::net::minecraft::entity::EntityAreaEffectCloud::EntityAreaEffectCloud;
-use crate::net::minecraft::util::EnumParticleTypes::EnumParticleTypes;
-use crate::net::minecraft::entity::projectile::EntityFireball::EntityFireball;
-use crate::net::minecraft::entity::projectile::EntityLargeFireball::EntityLargeFireball;
-use crate::net::minecraft::entity::projectile::EntitySmallFireball::EntitySmallFireball;
-use crate::net::minecraft::entity::projectile::EntityDragonFireball::EntityDragonFireball;
-use crate::net::minecraft::entity::projectile::EntityWitherSkull::EntityWitherSkull;
-use crate::net::minecraft::entity::projectile::ProjectileHelper::ProjectileHelper;
-use crate::net::minecraft::entity::item::EntityBoat::{BoatStatus, BoatType, EntityBoat};
-use crate::net::minecraft::entity::item::EntityMinecart::{EntityMinecart, MinecartType};
-use crate::net::minecraft::entity::item::EntityEnderCrystal::EntityEnderCrystal;
 use crate::compat::Java::JavaRandom;
 use crate::net::minecraft::block::BlockLiquid;
 use crate::net::minecraft::block::BlockLiquid::LiquidMaterial;
-use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
-use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
 use crate::net::minecraft::client::audio::LocalSoundEvent::LocalSoundEvent;
-use crate::net::minecraft::util::SoundCategory::SoundCategory;
+use crate::net::minecraft::client::entity::EntityPlayerSP::EntityPlayerSP;
+use crate::net::minecraft::client::multiplayer::WorldClient::WorldClient;
 use crate::net::minecraft::client::particle::ParticleSpawnRequest::ParticleSpawnRequest;
+use crate::net::minecraft::entity::ai::attributes::AbstractAttributeMap::AbstractAttributeMap;
+use crate::net::minecraft::entity::item::EntityBoat::{BoatStatus, BoatType, EntityBoat};
+use crate::net::minecraft::entity::item::EntityEnderCrystal::EntityEnderCrystal;
+use crate::net::minecraft::entity::item::EntityItemFrame::EntityItemFrame;
+use crate::net::minecraft::entity::item::EntityMinecart::{EntityMinecart, MinecartType};
+use crate::net::minecraft::entity::item::EntityPainting::{EntityPainting, PaintingArt};
+use crate::net::minecraft::entity::passive::AbstractHorse::AbstractHorse;
+use crate::net::minecraft::entity::projectile::EntityDragonFireball::EntityDragonFireball;
+use crate::net::minecraft::entity::projectile::EntityFireball::EntityFireball;
+use crate::net::minecraft::entity::projectile::EntityFishHook::{EntityFishHook, FishHookState};
+use crate::net::minecraft::entity::projectile::EntityLargeFireball::EntityLargeFireball;
+use crate::net::minecraft::entity::projectile::EntityShulkerBullet::EntityShulkerBullet;
+use crate::net::minecraft::entity::projectile::EntitySmallFireball::EntitySmallFireball;
+use crate::net::minecraft::entity::projectile::EntityWitherSkull::EntityWitherSkull;
+use crate::net::minecraft::entity::projectile::ProjectileHelper::ProjectileHelper;
+use crate::net::minecraft::entity::Entity::Entity;
+use crate::net::minecraft::entity::EntityAreaEffectCloud::EntityAreaEffectCloud;
+use crate::net::minecraft::entity::EntityHanging::EntityHanging;
+use crate::net::minecraft::entity::EntityLeashKnot::EntityLeashKnot;
+use crate::net::minecraft::entity::EntityLivingBase;
+use crate::net::minecraft::entity::IJumpingMount::IJumpingMount;
 use crate::net::minecraft::inventory::EntityEquipment::EntityEquipment;
 use crate::net::minecraft::inventory::EntityEquipmentSlot::EntityEquipmentSlot;
 use crate::net::minecraft::item::ItemStack::ItemStack;
 use crate::net::minecraft::network::datasync::DataSerializers::DataValue;
 use crate::net::minecraft::network::datasync::EntityDataManager::EntityDataManager;
-use crate::net::minecraft::util::EnumFacing::EnumFacing;
-use crate::net::minecraft::util::EnumHand::EnumHand;
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::util::math::Vec3d::Vec3d;
+use crate::net::minecraft::util::EnumFacing::EnumFacing;
+use crate::net::minecraft::util::EnumHand::EnumHand;
+use crate::net::minecraft::util::EnumParticleTypes::EnumParticleTypes;
+use crate::net::minecraft::util::SoundCategory::SoundCategory;
 
 /// Exact object discriminator values consumed by MCP
 /// `NetHandlerPlayClient.handleSpawnObject` in protocol 340.
@@ -152,7 +152,9 @@ impl ObjectSpawnType {
         }
     }
 
-    pub const fn isLivingBase(self) -> bool { matches!(self, Self::ArmorStand) }
+    pub const fn isLivingBase(self) -> bool {
+        matches!(self, Self::ArmorStand)
+    }
 }
 
 /// Entry resolved through the numeric `EntityList` registry used by
@@ -229,8 +231,12 @@ pub enum ClientEntityKind {
         /// Raw protocol velocity/acceleration vector divided by 8000.
         spawnVelocity: [f64; 3],
     },
-    Mob { entityType: MobEntityType },
-    ExperienceOrb { xpValue: i16 },
+    Mob {
+        entityType: MobEntityType,
+    },
+    ExperienceOrb {
+        xpValue: i16,
+    },
     Painting {
         title: String,
         hangingPosition: BlockPos,
@@ -450,7 +456,11 @@ impl EntityOtherClient {
         let mut hangingFacing = None;
         let mut paintingArt = None;
         match &kind {
-            ClientEntityKind::Painting { title, hangingPosition: position, facing } => {
+            ClientEntityKind::Painting {
+                title,
+                hangingPosition: position,
+                facing,
+            } => {
                 let art = EntityPainting::art(title);
                 let dimensions = art.data();
                 EntityHanging::updateFacingWithBoundingBox(
@@ -464,7 +474,11 @@ impl EntityOtherClient {
                 hangingFacing = Some(*facing);
                 paintingArt = Some(art);
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::ItemFrame, data, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ItemFrame,
+                data,
+                ..
+            } => {
                 let position = BlockPos::new(x.floor() as i32, y.floor() as i32, z.floor() as i32);
                 let facing = EnumFacing::getHorizontal(*data);
                 EntityHanging::updateFacingWithBoundingBox(
@@ -477,7 +491,10 @@ impl EntityOtherClient {
                 hangingPosition = Some(position);
                 hangingFacing = Some(facing);
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::LeashKnot, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::LeashKnot,
+                ..
+            } => {
                 let position = BlockPos::new(x.floor() as i32, y.floor() as i32, z.floor() as i32);
                 EntityLeashKnot::setHangingPosition(&mut entity, position);
                 hangingPosition = Some(position);
@@ -492,24 +509,32 @@ impl EntityOtherClient {
             entity.prevRotationYaw = 180.0;
             entity.rotationYaw = 180.0;
         }
-        if matches!(&kind, ClientEntityKind::Object { objectType: ObjectSpawnType::ShulkerBullet | ObjectSpawnType::AreaEffectCloud, .. })
-            || matches!(&kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "ender_dragon")
+        if matches!(
+            &kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ShulkerBullet | ObjectSpawnType::AreaEffectCloud,
+                ..
+            }
+        ) || matches!(&kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "ender_dragon")
         {
             // EntityDragon constructor sets noClip=true; ShulkerBullet and
             // AreaEffectCloud likewise own no-clip movement in vanilla.
             entity.noClip = true;
         }
         let fireballAcceleration = match &kind {
-            ClientEntityKind::Object { objectType, spawnVelocity, .. }
-                if objectType.isFireball() =>
-            {
-                EntityFireball::normalizedAcceleration(*spawnVelocity)
-            }
+            ClientEntityKind::Object {
+                objectType,
+                spawnVelocity,
+                ..
+            } if objectType.isFireball() => EntityFireball::normalizedAcceleration(*spawnVelocity),
             _ => [0.0; 3],
         };
         let mut dataManager = EntityDataManager::default();
         match &kind {
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Boat,
+                ..
+            } => {
                 // EntityBoat#entityInit metadata keys 6..11.
                 dataManager.setVarInt(6, 0);
                 dataManager.setVarInt(7, 1);
@@ -518,12 +543,22 @@ impl EntityOtherClient {
                 dataManager.setBoolean(10, false);
                 dataManager.setBoolean(11, false);
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::ItemFrame, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ItemFrame,
+                ..
+            } => {
                 // EntityItemFrame#entityInit: ITEM key 6 and ROTATION key 7.
-                dataManager.setEntryValues([(EntityItemFrame::ITEM_DATA_INDEX, DataValue::ItemStack(ItemStack::EMPTY))]);
+                dataManager.setEntryValues([(
+                    EntityItemFrame::ITEM_DATA_INDEX,
+                    DataValue::ItemStack(ItemStack::EMPTY),
+                )]);
                 dataManager.setVarInt(EntityItemFrame::ROTATION_DATA_INDEX, 0);
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, data, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Minecart,
+                data,
+                ..
+            } => {
                 // EntityMinecart#entityInit metadata keys 6..11; furnace POWERED is key 12.
                 dataManager.setVarInt(6, 0);
                 dataManager.setVarInt(7, 1);
@@ -535,21 +570,42 @@ impl EntityOtherClient {
                     dataManager.setBoolean(12, false);
                 }
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::FishHook, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FishHook,
+                ..
+            } => {
                 dataManager.setVarInt(EntityFishHook::DATA_HOOKED_ENTITY_INDEX, 0);
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::AreaEffectCloud, .. } => {
-                dataManager.setVarInt(EntityAreaEffectCloud::COLOR_INDEX, EntityAreaEffectCloud::DEFAULT_COLOR);
-                dataManager.setFloat(EntityAreaEffectCloud::RADIUS_INDEX, EntityAreaEffectCloud::DEFAULT_SYNC_RADIUS);
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::AreaEffectCloud,
+                ..
+            } => {
+                dataManager.setVarInt(
+                    EntityAreaEffectCloud::COLOR_INDEX,
+                    EntityAreaEffectCloud::DEFAULT_COLOR,
+                );
+                dataManager.setFloat(
+                    EntityAreaEffectCloud::RADIUS_INDEX,
+                    EntityAreaEffectCloud::DEFAULT_SYNC_RADIUS,
+                );
                 dataManager.setBoolean(EntityAreaEffectCloud::IGNORE_RADIUS_INDEX, false);
-                dataManager.setVarInt(EntityAreaEffectCloud::PARTICLE_INDEX, EntityAreaEffectCloud::DEFAULT_PARTICLE.particleId());
+                dataManager.setVarInt(
+                    EntityAreaEffectCloud::PARTICLE_INDEX,
+                    EntityAreaEffectCloud::DEFAULT_PARTICLE.particleId(),
+                );
                 dataManager.setVarInt(EntityAreaEffectCloud::PARTICLE_PARAM_1_INDEX, 0);
                 dataManager.setVarInt(EntityAreaEffectCloud::PARTICLE_PARAM_2_INDEX, 0);
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::WitherSkull, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::WitherSkull,
+                ..
+            } => {
                 dataManager.setBoolean(EntityWitherSkull::INVULNERABLE_DATA_INDEX, false);
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::EnderCrystal, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::EnderCrystal,
+                ..
+            } => {
                 // EntityEnderCrystal#entityInit: optional beam target is absent
                 // until metadata arrives; SHOW_BOTTOM defaults to true.
                 dataManager.setBoolean(EntityEnderCrystal::SHOW_BOTTOM_DATA_INDEX, true);
@@ -580,27 +636,40 @@ impl EntityOtherClient {
             ClientEntityKind::ExperienceOrb { .. } => {
                 let mut random = fresh_random(entityId);
                 entity.rotationYaw = random.next_f32() * 360.0;
-                entity.motionX = (random.next_f32() as f64 * 0.20000000298023224 - 0.10000000149011612) * 2.0;
+                entity.motionX =
+                    (random.next_f32() as f64 * 0.20000000298023224 - 0.10000000149011612) * 2.0;
                 entity.motionY = random.next_f32() as f64 * 0.2 * 2.0;
-                entity.motionZ = (random.next_f32() as f64 * 0.20000000298023224 - 0.10000000149011612) * 2.0;
+                entity.motionZ =
+                    (random.next_f32() as f64 * 0.20000000298023224 - 0.10000000149011612) * 2.0;
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Item, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Item,
+                ..
+            } => {
                 // EntityItem's constructor seeds motion before the spawn packet's
                 // data>0 velocity assignment overwrites it for tracked drops.
                 let mut random = fresh_random(entityId);
                 entity.rotationYaw = random.next_f32() * 360.0;
-                entity.motionX = random.next_f32() as f64 * 0.20000000298023224 - 0.10000000149011612;
+                entity.motionX =
+                    random.next_f32() as f64 * 0.20000000298023224 - 0.10000000149011612;
                 entity.motionY = 0.20000000298023224;
-                entity.motionZ = random.next_f32() as f64 * 0.20000000298023224 - 0.10000000149011612;
+                entity.motionZ =
+                    random.next_f32() as f64 * 0.20000000298023224 - 0.10000000149011612;
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::PrimedTnt, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::PrimedTnt,
+                ..
+            } => {
                 let mut random = fresh_random(entityId);
                 let angle = random.next_f32() * std::f32::consts::TAU;
                 entity.motionX = -(angle.sin() as f64) * 0.02;
                 entity.motionY = 0.20000000298023224;
                 entity.motionZ = -(angle.cos() as f64) * 0.02;
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::FireworkRocket, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FireworkRocket,
+                ..
+            } => {
                 let mut random = fresh_random(entityId);
                 let (gaussianX, gaussianZ) = next_gaussian_pair(&mut random);
                 entity.motionX = gaussianX * 0.001;
@@ -618,16 +687,27 @@ impl EntityOtherClient {
             // AbstractHorse#applyEntityAttributes. Per-entity randomized values
             // arrive later through SPacketEntityProperties.
             attributeMap.registerAttribute("generic.maxHealth", AbstractHorse::DEFAULT_MAX_HEALTH);
-            attributeMap.registerAttribute("generic.movementSpeed", AbstractHorse::DEFAULT_MOVEMENT_SPEED);
-            attributeMap.registerAttribute("horse.jumpStrength", AbstractHorse::DEFAULT_JUMP_STRENGTH);
+            attributeMap.registerAttribute(
+                "generic.movementSpeed",
+                AbstractHorse::DEFAULT_MOVEMENT_SPEED,
+            );
+            attributeMap
+                .registerAttribute("horse.jumpStrength", AbstractHorse::DEFAULT_JUMP_STRENGTH);
         }
         let fishHookAnglerId = match &kind {
-            ClientEntityKind::Object { objectType: ObjectSpawnType::FishHook, data, .. } => Some(*data),
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FishHook,
+                data,
+                ..
+            } => Some(*data),
             _ => None,
         };
         let enderCrystalInnerRotation = if matches!(
             &kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::EnderCrystal, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::EnderCrystal,
+                ..
+            }
         ) {
             fresh_random(entityId ^ 0x454e_4443).next_i32_bound(100_000)
         } else {
@@ -642,11 +722,15 @@ impl EntityOtherClient {
         ) {
             let mut random = fresh_random(entityId ^ 0x5351_5549);
             1.0 / (random.next_f32() + 1.0) * 0.2
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         let initialHealth = match &kind {
             ClientEntityKind::Mob { entityType } if entityType.registryName == "enderman" => 40.0,
             ClientEntityKind::Mob { entityType } if entityType.registryName == "squid" => 10.0,
-            ClientEntityKind::Mob { entityType } if entityType.registryName == "ender_dragon" => 200.0,
+            ClientEntityKind::Mob { entityType } if entityType.registryName == "ender_dragon" => {
+                200.0
+            }
             _ => 20.0,
         };
         Self {
@@ -816,16 +900,26 @@ impl EntityOtherClient {
     /// boxes. Living entities inherit EntityLivingBase except for the source
     /// overrides represented here.
     pub fn canBePushed(&self) -> bool {
-        if self.entity.isDead { return false; }
+        if self.entity.isDead {
+            return false;
+        }
         match &self.kind {
             ClientEntityKind::Mob { entityType } => {
-                if matches!(entityType.registryName, "bat" | "parrot") { return false; }
-                if matches!(entityType.registryName, "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse" | "llama") {
+                if matches!(entityType.registryName, "bat" | "parrot") {
+                    return false;
+                }
+                if matches!(
+                    entityType.registryName,
+                    "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse" | "llama"
+                ) {
                     return self.entity.passengerIds.is_empty();
                 }
                 true
             }
-            ClientEntityKind::Object { objectType, .. } => matches!(objectType, ObjectSpawnType::Boat | ObjectSpawnType::Minecart),
+            ClientEntityKind::Object { objectType, .. } => matches!(
+                objectType,
+                ObjectSpawnType::Boat | ObjectSpawnType::Minecart
+            ),
             ClientEntityKind::ExperienceOrb { .. } | ClientEntityKind::Painting { .. } => false,
         }
     }
@@ -836,7 +930,9 @@ impl EntityOtherClient {
     /// object classes below opt in. This is used by EntityRenderer.getMouseOver
     /// and must not make dropped items/projectiles attackable by accident.
     pub fn canBeCollidedWith(&self) -> bool {
-        if self.entity.isDead { return false; }
+        if self.entity.isDead {
+            return false;
+        }
         match &self.kind {
             ClientEntityKind::Mob { .. } => true,
             ClientEntityKind::Painting { .. } => true,
@@ -859,13 +955,17 @@ impl EntityOtherClient {
     /// base zero border among the currently represented targetable entities.
     pub fn collisionBorderSize(&self) -> f64 {
         match &self.kind {
-            ClientEntityKind::Object { objectType, .. } if matches!(
-                objectType,
-                ObjectSpawnType::LargeFireball
-                    | ObjectSpawnType::SmallFireball
-                    | ObjectSpawnType::WitherSkull
-                    | ObjectSpawnType::DragonFireball
-            ) => 1.0,
+            ClientEntityKind::Object { objectType, .. }
+                if matches!(
+                    objectType,
+                    ObjectSpawnType::LargeFireball
+                        | ObjectSpawnType::SmallFireball
+                        | ObjectSpawnType::WitherSkull
+                        | ObjectSpawnType::DragonFireball
+                ) =>
+            {
+                1.0
+            }
             _ => 0.0,
         }
     }
@@ -873,7 +973,10 @@ impl EntityOtherClient {
     pub fn enderCrystalBeamTarget(&self) -> Option<BlockPos> {
         if matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::EnderCrystal, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::EnderCrystal,
+                ..
+            }
         ) {
             EntityEnderCrystal::beamTarget(&self.dataManager)
         } else {
@@ -884,33 +987,66 @@ impl EntityOtherClient {
     pub fn enderCrystalShouldShowBottom(&self) -> bool {
         matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::EnderCrystal, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::EnderCrystal,
+                ..
+            }
         ) && EntityEnderCrystal::shouldShowBottom(&self.dataManager)
     }
 
     pub fn isChild(&self) -> bool {
         match &self.kind {
-            ClientEntityKind::Mob { entityType } if matches!(entityType.registryName, "zombie" | "husk" | "zombie_villager" | "zombie_pigman") => {
+            ClientEntityKind::Mob { entityType }
+                if matches!(
+                    entityType.registryName,
+                    "zombie" | "husk" | "zombie_villager" | "zombie_pigman"
+                ) =>
+            {
                 self.dataManager.boolean(12, false)
             }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::ArmorStand, .. } => {
-                (self.dataManager.byte(11, 0) & 0x01) != 0
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ArmorStand,
+                ..
+            } => (self.dataManager.byte(11, 0) & 0x01) != 0,
+            ClientEntityKind::Mob { entityType }
+                if matches!(
+                    entityType.registryName,
+                    "pig"
+                        | "sheep"
+                        | "cow"
+                        | "chicken"
+                        | "mooshroom"
+                        | "wolf"
+                        | "ocelot"
+                        | "rabbit"
+                        | "polar_bear"
+                        | "horse"
+                        | "donkey"
+                        | "mule"
+                        | "skeleton_horse"
+                        | "zombie_horse"
+                        | "llama"
+                        | "villager"
+                ) =>
+            {
+                self.dataManager.boolean(12, false)
             }
-            ClientEntityKind::Mob { entityType } if matches!(
-                entityType.registryName,
-                "pig" | "sheep" | "cow" | "chicken" | "mooshroom"
-                    | "wolf" | "ocelot" | "rabbit" | "polar_bear"
-                    | "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse" | "llama"
-                    | "villager"
-            ) => self.dataManager.boolean(12, false),
             _ => false,
         }
     }
 
-    pub fn boatTimeSinceHit(&self) -> i32 { self.dataManager.varInt(6, 0) }
-    pub fn boatForwardDirection(&self) -> i32 { self.dataManager.varInt(7, 1) }
-    pub fn boatDamageTaken(&self) -> f32 { self.dataManager.float(8, 0.0) }
-    pub fn boatType(&self) -> BoatType { BoatType::byId(self.dataManager.varInt(9, 0)) }
+    pub fn boatTimeSinceHit(&self) -> i32 {
+        self.dataManager.varInt(6, 0)
+    }
+    pub fn boatForwardDirection(&self) -> i32 {
+        self.dataManager.varInt(7, 1)
+    }
+    pub fn boatDamageTaken(&self) -> f32 {
+        self.dataManager.float(8, 0.0)
+    }
+    pub fn boatType(&self) -> BoatType {
+        BoatType::byId(self.dataManager.varInt(9, 0))
+    }
     pub fn updateBoatInputs(&mut self, left: bool, right: bool, forward: bool, back: bool) {
         self.boatLeftInputDown = left;
         self.boatRightInputDown = right;
@@ -918,10 +1054,14 @@ impl EntityOtherClient {
         self.boatBackInputDown = back;
     }
     pub fn boatPaddleState(&self, paddle: usize) -> bool {
-        paddle < 2 && self.dataManager.boolean(10 + paddle as u8, false) && !self.entity.passengerIds.is_empty()
+        paddle < 2
+            && self.dataManager.boolean(10 + paddle as u8, false)
+            && !self.entity.passengerIds.is_empty()
     }
     pub fn boatRowingTime(&self, paddle: usize, partialTicks: f32) -> f32 {
-        if paddle >= 2 { return 0.0; }
+        if paddle >= 2 {
+            return 0.0;
+        }
         let current = self.boatPaddlePositions[paddle];
         EntityBoat::rowingTime(
             self.boatPaddleState(paddle),
@@ -933,14 +1073,26 @@ impl EntityOtherClient {
 
     pub fn minecartType(&self) -> MinecartType {
         match &self.kind {
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, data, .. } => MinecartType::byId(*data),
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Minecart,
+                data,
+                ..
+            } => MinecartType::byId(*data),
             _ => MinecartType::Rideable,
         }
     }
-    pub fn minecartRollingAmplitude(&self) -> i32 { self.dataManager.varInt(6, 0) }
-    pub fn minecartRollingDirection(&self) -> i32 { self.dataManager.varInt(7, 1) }
-    pub fn minecartDamage(&self) -> f32 { self.dataManager.float(8, 0.0) }
-    pub fn minecartHasDisplayTile(&self) -> bool { self.dataManager.boolean(11, false) }
+    pub fn minecartRollingAmplitude(&self) -> i32 {
+        self.dataManager.varInt(6, 0)
+    }
+    pub fn minecartRollingDirection(&self) -> i32 {
+        self.dataManager.varInt(7, 1)
+    }
+    pub fn minecartDamage(&self) -> f32 {
+        self.dataManager.float(8, 0.0)
+    }
+    pub fn minecartHasDisplayTile(&self) -> bool {
+        self.dataManager.boolean(11, false)
+    }
     pub fn minecartDisplayStateId(&self) -> i32 {
         if self.minecartHasDisplayTile() {
             // EntityMinecart DISPLAY_TILE is a VARINT produced by
@@ -949,7 +1101,8 @@ impl EntityOtherClient {
             // registry.
             EntityMinecart::fromMcpBlockStateId(self.dataManager.varInt(9, 0))
         } else {
-            self.minecartType().defaultDisplayStateId(self.dataManager.boolean(12, false))
+            self.minecartType()
+                .defaultDisplayStateId(self.dataManager.boolean(12, false))
         }
     }
     pub fn minecartDisplayOffset(&self) -> i32 {
@@ -959,9 +1112,13 @@ impl EntityOtherClient {
             self.minecartType().defaultDisplayOffset()
         }
     }
-    pub fn minecartTntFuse(&self) -> i32 { self.minecartTntFuse }
+    pub fn minecartTntFuse(&self) -> i32 {
+        self.minecartTntFuse
+    }
 
-    pub fn armorStandStatus(&self) -> i8 { self.dataManager.byte(11, 0) }
+    pub fn armorStandStatus(&self) -> i8 {
+        self.dataManager.byte(11, 0)
+    }
 
     /// Exact non-normal `Entity#getPushReaction` cases present in the 1.12.2
     /// client entity set. Area-effect clouds always ignore piston/shulker
@@ -969,31 +1126,51 @@ impl EntityOtherClient {
     pub fn ignoresShulkerBoxPush(&self) -> bool {
         matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::AreaEffectCloud, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::AreaEffectCloud,
+                ..
+            }
         ) || matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::ArmorStand, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ArmorStand,
+                ..
+            }
         ) && (self.armorStandStatus() & 0x10) != 0
     }
     pub fn armorStandRotation(&self, index: u8, fallback: [f32; 3]) -> [f32; 3] {
         self.dataManager.rotations(index, fallback)
     }
 
-    pub fn pigSaddled(&self) -> bool { self.dataManager.boolean(13, false) }
+    pub fn pigSaddled(&self) -> bool {
+        self.dataManager.boolean(13, false)
+    }
 
-    pub fn creeperState(&self) -> i32 { self.dataManager.varInt(12, -1) }
-    pub fn creeperPowered(&self) -> bool { self.dataManager.boolean(13, false) }
-    pub fn creeperIgnited(&self) -> bool { self.dataManager.boolean(14, false) }
-    pub fn slimeSize(&self) -> i32 { self.dataManager.varInt(12, 1).max(1) }
+    pub fn creeperState(&self) -> i32 {
+        self.dataManager.varInt(12, -1)
+    }
+    pub fn creeperPowered(&self) -> bool {
+        self.dataManager.boolean(13, false)
+    }
+    pub fn creeperIgnited(&self) -> bool {
+        self.dataManager.boolean(14, false)
+    }
+    pub fn slimeSize(&self) -> i32 {
+        self.dataManager.varInt(12, 1).max(1)
+    }
 
     /// EntityEnderman metadata keys created after EntityLiving.AI_FLAGS.
     pub fn endermanHeldBlockStateId(&self) -> Option<i32> {
         self.dataManager.optionalBlockState(12)
     }
-    pub fn endermanScreaming(&self) -> bool { self.dataManager.boolean(13, false) }
+    pub fn endermanScreaming(&self) -> bool {
+        self.dataManager.boolean(13, false)
+    }
 
     /// EntityDragon PHASE metadata (PhaseList id).
-    pub fn dragonPhaseId(&self) -> i32 { self.dataManager.varInt(12, 10) }
+    pub fn dragonPhaseId(&self) -> i32 {
+        self.dataManager.varInt(12, 10)
+    }
     pub fn dragonPhaseStationary(&self) -> bool {
         matches!(self.dragonPhaseId(), 5 | 6 | 7 | 10)
     }
@@ -1003,7 +1180,11 @@ impl EntityOtherClient {
         if self.dragonRingBufferIndex < 0 {
             return [self.entity.rotationYaw as f64, self.entity.posY, 0.0];
         }
-        let mut partial = if self.health <= 0.0 { 0.0 } else { partialTicks.clamp(0.0, 1.0) };
+        let mut partial = if self.health <= 0.0 {
+            0.0
+        } else {
+            partialTicks.clamp(0.0, 1.0)
+        };
         partial = 1.0 - partial;
         let i = ((self.dragonRingBufferIndex - offset) & 63) as usize;
         let j = ((self.dragonRingBufferIndex - offset - 1) & 63) as usize;
@@ -1019,16 +1200,24 @@ impl EntityOtherClient {
     }
 
     /// MCP `EntityGuardian` metadata indices inherited after `EntityLivingBase`.
-    pub fn guardianMoving(&self) -> bool { self.dataManager.boolean(12, false) }
-    pub fn guardianTargetEntityId(&self) -> i32 { self.dataManager.varInt(13, 0) }
-    pub fn guardianHasTarget(&self) -> bool { self.guardianTargetEntityId() != 0 }
+    pub fn guardianMoving(&self) -> bool {
+        self.dataManager.boolean(12, false)
+    }
+    pub fn guardianTargetEntityId(&self) -> i32 {
+        self.dataManager.varInt(13, 0)
+    }
+    pub fn guardianHasTarget(&self) -> bool {
+        self.guardianTargetEntityId() != 0
+    }
     pub fn guardianTailAnimationAt(&self, partialTicks: f32) -> f32 {
         self.guardianTailAnimationO
-            + (self.guardianTailAnimation - self.guardianTailAnimationO) * partialTicks.clamp(0.0, 1.0)
+            + (self.guardianTailAnimation - self.guardianTailAnimationO)
+                * partialTicks.clamp(0.0, 1.0)
     }
     pub fn guardianSpikesAnimationAt(&self, partialTicks: f32) -> f32 {
         self.guardianSpikesAnimationO
-            + (self.guardianSpikesAnimation - self.guardianSpikesAnimationO) * partialTicks.clamp(0.0, 1.0)
+            + (self.guardianSpikesAnimation - self.guardianSpikesAnimationO)
+                * partialTicks.clamp(0.0, 1.0)
     }
 
     /// MCP `EntityShulker` metadata indices 12-15.
@@ -1043,11 +1232,19 @@ impl EntityOtherClient {
             _ => EnumFacing::Down,
         }
     }
-    pub fn shulkerAttachmentPos(&self) -> Option<BlockPos> { self.dataManager.optionalBlockPos(13) }
-    pub fn shulkerPeekTick(&self) -> i32 { self.dataManager.byte(14, 0) as i32 }
+    pub fn shulkerAttachmentPos(&self) -> Option<BlockPos> {
+        self.dataManager.optionalBlockPos(13)
+    }
+    pub fn shulkerPeekTick(&self) -> i32 {
+        self.dataManager.byte(14, 0) as i32
+    }
     pub fn shulkerColorMetadata(&self) -> u8 {
         let value = self.dataManager.byte(15, 10) as i32;
-        if (0..16).contains(&value) { value as u8 } else { 0 }
+        if (0..16).contains(&value) {
+            value as u8
+        } else {
+            0
+        }
     }
     pub fn shulkerClientPeekAmount(&self, partialTicks: f32) -> f32 {
         self.shulkerPrevPeekAmount
@@ -1070,20 +1267,41 @@ impl EntityOtherClient {
             // because it feeds ray/perspective-dependent client behavior.
             ClientEntityKind::Mob { entityType } if entityType.registryName == "enderman" => 2.55,
             ClientEntityKind::Mob { entityType }
-                if matches!(entityType.registryName, "guardian" | "elder_guardian" | "squid") => self.entity.height * 0.5,
+                if matches!(
+                    entityType.registryName,
+                    "guardian" | "elder_guardian" | "squid"
+                ) =>
+            {
+                self.entity.height * 0.5
+            }
             ClientEntityKind::Mob { entityType } if entityType.registryName == "shulker" => 0.5,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::LeashKnot, .. } => EntityLeashKnot::EYE_HEIGHT,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::LeashKnot,
+                ..
+            } => EntityLeashKnot::EYE_HEIGHT,
             _ => self.entity.height * 0.85,
         }
     }
 
     /// `EntityTameable.TAMED`: sitting bit 0, angry bit 1 (wolf), tamed bit 2.
-    pub fn tameableFlags(&self) -> u8 { self.dataManager.byte(13, 0) as u8 }
-    pub fn tameableSitting(&self) -> bool { (self.tameableFlags() & 0x01) != 0 }
-    pub fn wolfAngry(&self) -> bool { (self.tameableFlags() & 0x02) != 0 }
-    pub fn tameableTamed(&self) -> bool { (self.tameableFlags() & 0x04) != 0 }
-    pub fn wolfBegging(&self) -> bool { self.dataManager.boolean(16, false) }
-    pub fn wolfCollarColor(&self) -> u8 { (self.dataManager.varInt(17, 14) & 15) as u8 }
+    pub fn tameableFlags(&self) -> u8 {
+        self.dataManager.byte(13, 0) as u8
+    }
+    pub fn tameableSitting(&self) -> bool {
+        (self.tameableFlags() & 0x01) != 0
+    }
+    pub fn wolfAngry(&self) -> bool {
+        (self.tameableFlags() & 0x02) != 0
+    }
+    pub fn tameableTamed(&self) -> bool {
+        (self.tameableFlags() & 0x04) != 0
+    }
+    pub fn wolfBegging(&self) -> bool {
+        self.dataManager.boolean(16, false)
+    }
+    pub fn wolfCollarColor(&self) -> u8 {
+        (self.dataManager.varInt(17, 14) & 15) as u8
+    }
     pub fn wolfTailRotation(&self) -> f32 {
         if self.wolfAngry() {
             1.5393804
@@ -1096,28 +1314,41 @@ impl EntityOtherClient {
     }
     pub fn wolfInterestedAngle(&self, partialTicks: f32) -> f32 {
         (self.wolfHeadRotationCourseOld
-            + (self.wolfHeadRotationCourse - self.wolfHeadRotationCourseOld) * partialTicks.clamp(0.0, 1.0))
+            + (self.wolfHeadRotationCourse - self.wolfHeadRotationCourseOld)
+                * partialTicks.clamp(0.0, 1.0))
             * 0.15
             * std::f32::consts::PI
     }
     pub fn wolfShakeAngle(&self, partialTicks: f32, offset: f32) -> f32 {
         let progress = ((self.prevTimeWolfIsShaking
-            + (self.timeWolfIsShaking - self.prevTimeWolfIsShaking) * partialTicks.clamp(0.0, 1.0)
-            + offset) / 1.8).clamp(0.0, 1.0);
+            + (self.timeWolfIsShaking - self.prevTimeWolfIsShaking)
+                * partialTicks.clamp(0.0, 1.0)
+            + offset)
+            / 1.8)
+            .clamp(0.0, 1.0);
         (progress * std::f32::consts::PI).sin()
             * (progress * std::f32::consts::PI * 11.0).sin()
             * 0.15
             * std::f32::consts::PI
     }
-    pub fn wolfIsWet(&self) -> bool { self.wolfIsWet }
+    pub fn wolfIsWet(&self) -> bool {
+        self.wolfIsWet
+    }
     pub fn wolfShadingWhileWet(&self, partialTicks: f32) -> f32 {
         0.75 + (self.prevTimeWolfIsShaking
             + (self.timeWolfIsShaking - self.prevTimeWolfIsShaking) * partialTicks.clamp(0.0, 1.0))
-            / 2.0 * 0.25
+            / 2.0
+            * 0.25
     }
-    pub fn entitySprinting(&self) -> bool { ((self.dataManager.byte(0, 0) as u8) & 0x08) != 0 }
-    pub fn ocelotVariant(&self) -> i32 { self.dataManager.varInt(15, 0) }
-    pub fn rabbitType(&self) -> i32 { self.dataManager.varInt(13, 0) }
+    pub fn entitySprinting(&self) -> bool {
+        ((self.dataManager.byte(0, 0) as u8) & 0x08) != 0
+    }
+    pub fn ocelotVariant(&self) -> i32 {
+        self.dataManager.varInt(15, 0)
+    }
+    pub fn rabbitType(&self) -> i32 {
+        self.dataManager.varInt(13, 0)
+    }
     pub fn rabbitJumpCompletion(&self, partialTicks: f32) -> f32 {
         if self.rabbitJumpDuration == 0 {
             0.0
@@ -1126,7 +1357,9 @@ impl EntityOtherClient {
                 / self.rabbitJumpDuration as f32
         }
     }
-    pub fn polarBearStanding(&self) -> bool { self.dataManager.boolean(13, false) }
+    pub fn polarBearStanding(&self) -> bool {
+        self.dataManager.boolean(13, false)
+    }
     pub fn polarBearStandingScale(&self, partialTicks: f32) -> f32 {
         (self.polarStandAnimation0
             + (self.polarStandAnimation - self.polarStandAnimation0) * partialTicks.clamp(0.0, 1.0))
@@ -1147,7 +1380,9 @@ impl EntityOtherClient {
         ) && !self.entity.passengerIds.is_empty()
     }
 
-    pub fn horseCanJump(&self) -> bool { IJumpingMount::canJump(self) }
+    pub fn horseCanJump(&self) -> bool {
+        IJumpingMount::canJump(self)
+    }
 
     pub fn horseMovementSpeed(&self) -> f64 {
         self.attributeMap.getAttributeValue(
@@ -1157,20 +1392,24 @@ impl EntityOtherClient {
     }
 
     pub fn horseJumpStrength(&self) -> f64 {
-        self.attributeMap.getAttributeValue(
-            "horse.jumpStrength",
-            AbstractHorse::DEFAULT_JUMP_STRENGTH,
-        )
+        self.attributeMap
+            .getAttributeValue("horse.jumpStrength", AbstractHorse::DEFAULT_JUMP_STRENGTH)
     }
 
     fn setHorseStatusFlag(&mut self, flag: u8, enabled: bool) {
         let mut status = self.horseStatus();
-        if enabled { status |= flag; } else { status &= !flag; }
+        if enabled {
+            status |= flag;
+        } else {
+            status &= !flag;
+        }
         self.dataManager.setByte(13, status as i8);
     }
 
     fn setHorseRearing(&mut self, rearing: bool) {
-        if rearing { self.setHorseStatusFlag(AbstractHorse::STATUS_EATING_HAYSTACK, false); }
+        if rearing {
+            self.setHorseStatusFlag(AbstractHorse::STATUS_EATING_HAYSTACK, false);
+        }
         self.setHorseStatusFlag(AbstractHorse::STATUS_REARING, rearing);
     }
 
@@ -1210,37 +1449,71 @@ impl EntityOtherClient {
         self.horseMoveForward = moveForward;
     }
 
-    pub fn horseStatus(&self) -> u8 { self.dataManager.byte(13, 0) as u8 }
-    pub fn horseTame(&self) -> bool { self.horseStatus() & AbstractHorse::STATUS_TAME != 0 }
-    pub fn horseSaddled(&self) -> bool { self.horseStatus() & AbstractHorse::STATUS_SADDLED != 0 }
-    pub fn horseEatingHaystack(&self) -> bool { self.horseStatus() & AbstractHorse::STATUS_EATING_HAYSTACK != 0 }
-    pub fn horseRearing(&self) -> bool { self.horseStatus() & AbstractHorse::STATUS_REARING != 0 }
-    pub fn horseMouthOpen(&self) -> bool { self.horseStatus() & AbstractHorse::STATUS_MOUTH_OPEN != 0 }
-    pub fn horseChested(&self) -> bool { self.dataManager.boolean(15, false) }
-    pub fn horseBeingRidden(&self) -> bool { !self.entity.passengerIds.is_empty() }
-    pub fn horseVariant(&self) -> i32 { self.dataManager.varInt(15, 0) }
-    pub fn horseArmorOrdinal(&self) -> i32 { self.dataManager.varInt(16, 0).clamp(0, 3) }
-    pub fn llamaStrength(&self) -> i32 { self.dataManager.varInt(16, 1).clamp(1, 5) }
+    pub fn horseStatus(&self) -> u8 {
+        self.dataManager.byte(13, 0) as u8
+    }
+    pub fn horseTame(&self) -> bool {
+        self.horseStatus() & AbstractHorse::STATUS_TAME != 0
+    }
+    pub fn horseSaddled(&self) -> bool {
+        self.horseStatus() & AbstractHorse::STATUS_SADDLED != 0
+    }
+    pub fn horseEatingHaystack(&self) -> bool {
+        self.horseStatus() & AbstractHorse::STATUS_EATING_HAYSTACK != 0
+    }
+    pub fn horseRearing(&self) -> bool {
+        self.horseStatus() & AbstractHorse::STATUS_REARING != 0
+    }
+    pub fn horseMouthOpen(&self) -> bool {
+        self.horseStatus() & AbstractHorse::STATUS_MOUTH_OPEN != 0
+    }
+    pub fn horseChested(&self) -> bool {
+        self.dataManager.boolean(15, false)
+    }
+    pub fn horseBeingRidden(&self) -> bool {
+        !self.entity.passengerIds.is_empty()
+    }
+    pub fn horseVariant(&self) -> i32 {
+        self.dataManager.varInt(15, 0)
+    }
+    pub fn horseArmorOrdinal(&self) -> i32 {
+        self.dataManager.varInt(16, 0).clamp(0, 3)
+    }
+    pub fn llamaStrength(&self) -> i32 {
+        self.dataManager.varInt(16, 1).clamp(1, 5)
+    }
     pub fn llamaDecorColor(&self) -> Option<u8> {
         let value = self.dataManager.varInt(17, -1);
         (0..16).contains(&value).then_some(value as u8)
     }
-    pub fn llamaVariant(&self) -> i32 { self.dataManager.varInt(18, 0).clamp(0, 3) }
+    pub fn llamaVariant(&self) -> i32 {
+        self.dataManager.varInt(18, 0).clamp(0, 3)
+    }
     pub fn horseGrassEatingAmount(&self, partialTicks: f32) -> f32 {
-        self.horsePrevHeadLean + (self.horseHeadLean - self.horsePrevHeadLean) * partialTicks.clamp(0.0, 1.0)
+        self.horsePrevHeadLean
+            + (self.horseHeadLean - self.horsePrevHeadLean) * partialTicks.clamp(0.0, 1.0)
     }
     pub fn horseRearingAmount(&self, partialTicks: f32) -> f32 {
-        self.horsePrevRearingAmount + (self.horseRearingAmount - self.horsePrevRearingAmount) * partialTicks.clamp(0.0, 1.0)
+        self.horsePrevRearingAmount
+            + (self.horseRearingAmount - self.horsePrevRearingAmount) * partialTicks.clamp(0.0, 1.0)
     }
     pub fn horseMouthOpennessAngle(&self, partialTicks: f32) -> f32 {
-        self.horsePrevMouthOpenness + (self.horseMouthOpenness - self.horsePrevMouthOpenness) * partialTicks.clamp(0.0, 1.0)
+        self.horsePrevMouthOpenness
+            + (self.horseMouthOpenness - self.horsePrevMouthOpenness) * partialTicks.clamp(0.0, 1.0)
     }
 
-
-    pub fn villagerProfession(&self) -> i32 { self.dataManager.varInt(13, 0).rem_euclid(6) }
-    pub fn zombieVillagerConverting(&self) -> bool { self.dataManager.boolean(15, false) }
-    pub fn zombieVillagerProfession(&self) -> i32 { self.dataManager.varInt(16, 0).rem_euclid(6) }
-    pub fn witchDrinkingPotion(&self) -> bool { self.dataManager.boolean(12, false) }
+    pub fn villagerProfession(&self) -> i32 {
+        self.dataManager.varInt(13, 0).rem_euclid(6)
+    }
+    pub fn zombieVillagerConverting(&self) -> bool {
+        self.dataManager.boolean(15, false)
+    }
+    pub fn zombieVillagerProfession(&self) -> i32 {
+        self.dataManager.varInt(16, 0).rem_euclid(6)
+    }
+    pub fn witchDrinkingPotion(&self) -> bool {
+        self.dataManager.boolean(12, false)
+    }
     pub fn primaryHandSide(&self) -> crate::net::minecraft::util::EnumHandSide::EnumHandSide {
         if (self.dataManager.byte(11, 0) & 2) != 0 {
             crate::net::minecraft::util::EnumHandSide::EnumHandSide::Left
@@ -1248,14 +1521,28 @@ impl EntityOtherClient {
             crate::net::minecraft::util::EnumHandSide::EnumHandSide::Right
         }
     }
-    pub fn illagerFlags(&self) -> u8 { self.dataManager.byte(12, 0) as u8 }
-    pub fn illagerAttacking(&self) -> bool { self.illagerFlags() & 1 != 0 }
-    pub fn illagerSpellType(&self) -> u8 { self.dataManager.byte(13, 0).max(0) as u8 }
-    pub fn illagerSpellcasting(&self) -> bool { self.illagerSpellType() > 0 }
-    pub fn isInvisibleFlag(&self) -> bool { (self.dataManager.byte(0, 0) as u8 & 0x20) != 0 }
+    pub fn illagerFlags(&self) -> u8 {
+        self.dataManager.byte(12, 0) as u8
+    }
+    pub fn illagerAttacking(&self) -> bool {
+        self.illagerFlags() & 1 != 0
+    }
+    pub fn illagerSpellType(&self) -> u8 {
+        self.dataManager.byte(13, 0).max(0) as u8
+    }
+    pub fn illagerSpellcasting(&self) -> bool {
+        self.illagerSpellType() > 0
+    }
+    pub fn isInvisibleFlag(&self) -> bool {
+        (self.dataManager.byte(0, 0) as u8 & 0x20) != 0
+    }
     pub fn illusionOffsets(&self, partialTicks: f32) -> [[f64; 3]; 4] {
-        if self.illusionTransitionTicks <= 0 { return self.illusionOffsetsNew; }
-        let blend = (((self.illusionTransitionTicks as f32 - partialTicks.clamp(0.0, 1.0)) / 3.0) as f64).powf(0.25);
+        if self.illusionTransitionTicks <= 0 {
+            return self.illusionOffsetsNew;
+        }
+        let blend = (((self.illusionTransitionTicks as f32 - partialTicks.clamp(0.0, 1.0)) / 3.0)
+            as f64)
+            .powf(0.25);
         let mut result = [[0.0; 3]; 4];
         for i in 0..4 {
             for axis in 0..3 {
@@ -1266,11 +1553,17 @@ impl EntityOtherClient {
         result
     }
 
-    pub fn sheepFleeceColor(&self) -> u8 { (self.dataManager.byte(13, 0) as u8) & 15 }
+    pub fn sheepFleeceColor(&self) -> u8 {
+        (self.dataManager.byte(13, 0) as u8) & 15
+    }
 
-    pub fn sheepSheared(&self) -> bool { ((self.dataManager.byte(13, 0) as u8) & 16) != 0 }
+    pub fn sheepSheared(&self) -> bool {
+        ((self.dataManager.byte(13, 0) as u8) & 16) != 0
+    }
 
-    pub fn customName(&self) -> Option<&str> { self.dataManager.string(2).filter(|value| !value.is_empty()) }
+    pub fn customName(&self) -> Option<&str> {
+        self.dataManager.string(2).filter(|value| !value.is_empty())
+    }
 
     pub fn sheepHeadRotationPointY(&self, partialTicks: f32) -> f32 {
         if self.sheepTimer <= 0 {
@@ -1312,7 +1605,9 @@ impl EntityOtherClient {
 
     pub fn getSwingProgress(&self, partialTicks: f32) -> f32 {
         let mut difference = self.swingProgress - self.prevSwingProgress;
-        if difference < 0.0 { difference += 1.0; }
+        if difference < 0.0 {
+            difference += 1.0;
+        }
         self.prevSwingProgress + difference * partialTicks.clamp(0.0, 1.0)
     }
 
@@ -1332,7 +1627,13 @@ impl EntityOtherClient {
         increments: i32,
         _teleport: bool,
     ) {
-        if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. }) {
+        if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Boat,
+                ..
+            }
+        ) {
             self.interpTargetX = x;
             self.interpTargetY = y;
             self.interpTargetZ = z;
@@ -1340,7 +1641,13 @@ impl EntityOtherClient {
             self.interpTargetPitch = pitch as f64;
             // EntityBoat ignores the packet increment and always uses ten steps.
             self.newPosRotationIncrements = EntityBoat::LERP_STEPS;
-        } else if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, .. }) {
+        } else if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Minecart,
+                ..
+            }
+        ) {
             self.interpTargetX = x;
             self.interpTargetY = y;
             self.interpTargetZ = z;
@@ -1350,11 +1657,18 @@ impl EntityOtherClient {
             self.entity.motionX = self.minecartVelocityX;
             self.entity.motionY = self.minecartVelocityY;
             self.entity.motionZ = self.minecartVelocityZ;
-        } else if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "shulker") {
+        } else if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "shulker")
+        {
             // MCP `EntityShulker#setPositionAndRotationDirect` ignores ordinary
             // interpolation packets; attachment metadata owns its position.
             self.newPosRotationIncrements = 0;
-        } else if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::FishHook, .. }) {
+        } else if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FishHook,
+                ..
+            }
+        ) {
             // MCP `EntityFishHook#setPositionAndRotationDirect` is deliberately empty.
             // The hook owns its client trajectory and only server metadata changes
             // its caught-entity state.
@@ -1376,7 +1690,13 @@ impl EntityOtherClient {
 
     pub fn setVelocity(&mut self, x: f64, y: f64, z: f64) {
         self.entity.setVelocity(x, y, z);
-        if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, .. }) {
+        if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Minecart,
+                ..
+            }
+        ) {
             self.minecartVelocityX = x;
             self.minecartVelocityY = y;
             self.minecartVelocityZ = z;
@@ -1400,23 +1720,38 @@ impl EntityOtherClient {
             ClientEntityKind::Mob { entityType } if entityType.registryName == "shulker"
         );
         let oldShulkerAttachment = isShulker.then(|| self.shulkerAttachmentPos());
-        let isFishHook = matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::FishHook, .. });
+        let isFishHook = matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FishHook,
+                ..
+            }
+        );
         let areaEffectCloudRadiusChanged = matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::AreaEffectCloud, .. }
-        ) && entries.iter().any(|(index, _)| *index == EntityAreaEffectCloud::RADIUS_INDEX);
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::AreaEffectCloud,
+                ..
+            }
+        ) && entries
+            .iter()
+            .any(|(index, _)| *index == EntityAreaEffectCloud::RADIUS_INDEX);
         self.dataManager.setEntryValues(entries);
         if areaEffectCloudRadiusChanged {
             let radius = self.areaEffectCloudRadius();
             let x = self.entity.posX;
             let y = self.entity.posY;
             let z = self.entity.posZ;
-            self.entity.setSize(EntityAreaEffectCloud::width(radius), EntityAreaEffectCloud::DEFAULT_HEIGHT);
+            self.entity.setSize(
+                EntityAreaEffectCloud::width(radius),
+                EntityAreaEffectCloud::DEFAULT_HEIGHT,
+            );
             self.entity.setPosition(x, y, z);
         }
         if isFishHook {
             self.fishHookCaughtEntityId = EntityFishHook::hookedEntityId(
-                self.dataManager.varInt(EntityFishHook::DATA_HOOKED_ENTITY_INDEX, 0),
+                self.dataManager
+                    .varInt(EntityFishHook::DATA_HOOKED_ENTITY_INDEX, 0),
             );
         }
         if oldGuardianTarget.is_some_and(|old| self.guardianTargetEntityId() != old) {
@@ -1451,14 +1786,23 @@ impl EntityOtherClient {
             self.health = self.dataManager.float(7, self.health);
             self.refreshLivingDimensions();
         }
-        if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::PrimedTnt, .. }) {
+        if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::PrimedTnt,
+                ..
+            }
+        ) {
             self.tntFuse = self.dataManager.varInt(6, self.tntFuse);
         }
     }
 
     fn refreshLivingDimensions(&mut self) {
         let (width, height) = match &self.kind {
-            ClientEntityKind::Object { objectType: ObjectSpawnType::ArmorStand, .. } => {
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ArmorStand,
+                ..
+            } => {
                 let status = self.armorStandStatus();
                 if status & 0x10 != 0 {
                     (0.0, 0.0)
@@ -1470,24 +1814,94 @@ impl EntityOtherClient {
             }
             ClientEntityKind::Mob { entityType } => match entityType.registryName {
                 "zombie" | "husk" | "zombie_pigman" | "zombie_villager" => {
-                    if self.isChild() { (0.3, 0.975) } else { (0.6, 1.95) }
+                    if self.isChild() {
+                        (0.3, 0.975)
+                    } else {
+                        (0.6, 1.95)
+                    }
                 }
                 "wither_skeleton" => (0.7, 2.4),
                 "skeleton" | "stray" => (0.6, 1.99),
-                "pig" => if self.isChild() { (0.45, 0.45) } else { (0.9, 0.9) },
-                "sheep" => if self.isChild() { (0.45, 0.65) } else { (0.9, 1.3) },
-                "cow" | "mooshroom" => if self.isChild() { (0.45, 0.7) } else { (0.9, 1.4) },
-                "chicken" => if self.isChild() { (0.2, 0.35) } else { (0.4, 0.7) },
-                "wolf" => if self.isChild() { (0.3, 0.425) } else { (0.6, 0.85) },
-                "ocelot" => if self.isChild() { (0.3, 0.35) } else { (0.6, 0.7) },
-                "rabbit" => if self.isChild() { (0.2, 0.25) } else { (0.4, 0.5) },
-                "polar_bear" => if self.isChild() { (0.65, 0.7) } else { (1.3, 1.4) },
-                "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse" => {
-                    if self.isChild() { (0.6982422, 0.8) } else { (1.3964844, 1.6) }
+                "pig" => {
+                    if self.isChild() {
+                        (0.45, 0.45)
+                    } else {
+                        (0.9, 0.9)
+                    }
                 }
-                "llama" => if self.isChild() { (0.45, 0.935) } else { (0.9, 1.87) },
-                "villager" => if self.isChild() { (0.3, 0.975) } else { (0.6, 1.95) },
-                "witch" | "vindication_illager" | "evocation_illager" | "illusion_illager" => (0.6, 1.95),
+                "sheep" => {
+                    if self.isChild() {
+                        (0.45, 0.65)
+                    } else {
+                        (0.9, 1.3)
+                    }
+                }
+                "cow" | "mooshroom" => {
+                    if self.isChild() {
+                        (0.45, 0.7)
+                    } else {
+                        (0.9, 1.4)
+                    }
+                }
+                "chicken" => {
+                    if self.isChild() {
+                        (0.2, 0.35)
+                    } else {
+                        (0.4, 0.7)
+                    }
+                }
+                "wolf" => {
+                    if self.isChild() {
+                        (0.3, 0.425)
+                    } else {
+                        (0.6, 0.85)
+                    }
+                }
+                "ocelot" => {
+                    if self.isChild() {
+                        (0.3, 0.35)
+                    } else {
+                        (0.6, 0.7)
+                    }
+                }
+                "rabbit" => {
+                    if self.isChild() {
+                        (0.2, 0.25)
+                    } else {
+                        (0.4, 0.5)
+                    }
+                }
+                "polar_bear" => {
+                    if self.isChild() {
+                        (0.65, 0.7)
+                    } else {
+                        (1.3, 1.4)
+                    }
+                }
+                "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse" => {
+                    if self.isChild() {
+                        (0.6982422, 0.8)
+                    } else {
+                        (1.3964844, 1.6)
+                    }
+                }
+                "llama" => {
+                    if self.isChild() {
+                        (0.45, 0.935)
+                    } else {
+                        (0.9, 1.87)
+                    }
+                }
+                "villager" => {
+                    if self.isChild() {
+                        (0.3, 0.975)
+                    } else {
+                        (0.6, 1.95)
+                    }
+                }
+                "witch" | "vindication_illager" | "evocation_illager" | "illusion_illager" => {
+                    (0.6, 1.95)
+                }
                 "spider" => (1.4, 0.9),
                 "cave_spider" => (0.7, 0.5),
                 // Exact constructor sizes from MCP 1.12.2 EntityEnderman,
@@ -1516,42 +1930,72 @@ impl EntityOtherClient {
             let (x, y, z) = (self.entity.posX, self.entity.posY, self.entity.posZ);
             self.entity.setPosition(x, y, z);
         }
-        if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::ArmorStand, .. }) {
+        if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ArmorStand,
+                ..
+            }
+        ) {
             self.entity.noClip = self.dataManager.boolean(5, false);
         }
     }
 
     pub fn entityItem(&self) -> Option<&ItemStack> {
         match &self.kind {
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Item, .. } => {
-                self.dataManager.itemStack(6).filter(|stack| !stack.isEmpty())
-            }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Item,
+                ..
+            } => self
+                .dataManager
+                .itemStack(6)
+                .filter(|stack| !stack.isEmpty()),
             _ => None,
         }
     }
 
     pub fn metadataItem(&self) -> Option<&ItemStack> {
-        self.dataManager.itemStack(6).filter(|stack| !stack.isEmpty())
+        self.dataManager
+            .itemStack(6)
+            .filter(|stack| !stack.isEmpty())
     }
 
-
     pub fn itemFrameDisplayedItem(&self) -> Option<&ItemStack> {
-        if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::ItemFrame, .. }) {
-            self.dataManager.itemStack(EntityItemFrame::ITEM_DATA_INDEX).filter(|stack| !stack.isEmpty())
+        if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ItemFrame,
+                ..
+            }
+        ) {
+            self.dataManager
+                .itemStack(EntityItemFrame::ITEM_DATA_INDEX)
+                .filter(|stack| !stack.isEmpty())
         } else {
             None
         }
     }
 
     pub fn itemFrameRotation(&self) -> i32 {
-        if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::ItemFrame, .. }) {
-            EntityItemFrame::normalizedRotation(self.dataManager.varInt(EntityItemFrame::ROTATION_DATA_INDEX, 0))
+        if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ItemFrame,
+                ..
+            }
+        ) {
+            EntityItemFrame::normalizedRotation(
+                self.dataManager
+                    .varInt(EntityItemFrame::ROTATION_DATA_INDEX, 0),
+            )
         } else {
             0
         }
     }
 
-    pub fn paintingArt(&self) -> Option<PaintingArt> { self.paintingArt }
+    pub fn paintingArt(&self) -> Option<PaintingArt> {
+        self.paintingArt
+    }
 
     pub fn setItemStackToSlot(&mut self, slot: EntityEquipmentSlot, stack: ItemStack) {
         self.equipment.setItemStackToSlot(slot, stack);
@@ -1564,33 +2008,50 @@ impl EntityOtherClient {
     pub fn handleStatusUpdate(&mut self, opcode: i8) {
         self.lastStatusOpcode = Some(opcode);
         match opcode {
-            19 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "squid") => {
+            19 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "squid") =>
+            {
                 // EntitySquid#handleStatusUpdate(19). The authoritative server
                 // resets each completed rotation cycle; the remote client clamps
                 // at 2PI while it waits for this status byte.
                 self.squidRotation = 0.0;
             }
-            8 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "wolf") => {
+            8 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "wolf") =>
+            {
                 self.wolfIsShaking = true;
                 self.timeWolfIsShaking = 0.0;
                 self.prevTimeWolfIsShaking = 0.0;
             }
-            1 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "rabbit") => {
+            1 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "rabbit") =>
+            {
                 self.rabbitJumpDuration = 10;
                 self.rabbitJumpTicks = 0;
             }
             10 if self.minecartType() == MinecartType::Tnt
-                && matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, .. }) =>
+                && matches!(
+                    &self.kind,
+                    ClientEntityKind::Object {
+                        objectType: ObjectSpawnType::Minecart,
+                        ..
+                    }
+                ) =>
             {
                 // EntityMinecartTNT#handleStatusUpdate -> ignite(). The remote
                 // side does not play the priming sound here; that sound is
                 // emitted by the authoritative server.
                 self.minecartTntFuse = 80;
             }
-            10 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "sheep") => {
+            10 if matches!(&self.kind, ClientEntityKind::Mob { entityType } if entityType.registryName == "sheep") =>
+            {
                 self.sheepTimer = 40;
             }
-            32 if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::ArmorStand, .. }) => {
+            32 if matches!(
+                &self.kind,
+                ClientEntityKind::Object {
+                    objectType: ObjectSpawnType::ArmorStand,
+                    ..
+                }
+            ) =>
+            {
                 self.armorStandPunchTick = Some(self.entity.ticksExisted);
             }
             2 | 33 | 36 | 37 => {
@@ -1634,7 +2095,10 @@ impl EntityOtherClient {
         self.entity.ticksExisted = self.entity.ticksExisted.wrapping_add(1);
         if matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::EnderCrystal, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::EnderCrystal,
+                ..
+            }
         ) {
             self.enderCrystalInnerRotation = self.enderCrystalInnerRotation.wrapping_add(1);
         }
@@ -1660,23 +2124,46 @@ impl EntityOtherClient {
 
         // EntityBoat/EntityMinecart decrement synchronized hit animation
         // fields before their client interpolation branch in onUpdate.
-        if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. }) {
+        if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Boat,
+                ..
+            }
+        ) {
             let timeSinceHit = self.boatTimeSinceHit();
-            if timeSinceHit > 0 { self.dataManager.setVarInt(6, timeSinceHit - 1); }
+            if timeSinceHit > 0 {
+                self.dataManager.setVarInt(6, timeSinceHit - 1);
+            }
             let damageTaken = self.boatDamageTaken();
-            if damageTaken > 0.0 { self.dataManager.setFloat(8, damageTaken - 1.0); }
-        } else if matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, .. }) {
+            if damageTaken > 0.0 {
+                self.dataManager.setFloat(8, damageTaken - 1.0);
+            }
+        } else if matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Minecart,
+                ..
+            }
+        ) {
             let rollingAmplitude = self.minecartRollingAmplitude();
-            if rollingAmplitude > 0 { self.dataManager.setVarInt(6, rollingAmplitude - 1); }
+            if rollingAmplitude > 0 {
+                self.dataManager.setVarInt(6, rollingAmplitude - 1);
+            }
             let damage = self.minecartDamage();
-            if damage > 0.0 { self.dataManager.setFloat(8, damage - 1.0); }
+            if damage > 0.0 {
+                self.dataManager.setFloat(8, damage - 1.0);
+            }
         }
 
         let localPlayerIsControllingPassenger = localPlayerEntityId
             .is_some_and(|playerId| self.entity.passengerIds.first() == Some(&playerId));
         let localControlsBoat = matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Boat,
+                ..
+            }
         ) && localPlayerIsControllingPassenger;
         let localCanSteerHorse = self.horseCanPassengerSteer() && localPlayerIsControllingPassenger;
         let localControlsHorse = localCanSteerHorse && self.horseSaddled();
@@ -1686,7 +2173,11 @@ impl EntityOtherClient {
         );
         // EntityDragon performs the remote interpolation inside its own
         // onLivingUpdate *after* recording the current pose into ringBuffer.
-        if self.newPosRotationIncrements > 0 && !localControlsBoat && !localCanSteerHorse && !isDragon {
+        if self.newPosRotationIncrements > 0
+            && !localControlsBoat
+            && !localCanSteerHorse
+            && !isDragon
+        {
             let increments = self.newPosRotationIncrements as f64;
             let x = self.entity.posX + (self.interpTargetX - self.entity.posX) / increments;
             let y = self.entity.posY + (self.interpTargetY - self.entity.posY) / increments;
@@ -1703,23 +2194,71 @@ impl EntityOtherClient {
 
         let updateKind = match &self.kind {
             ClientEntityKind::ExperienceOrb { .. } => 1,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Item, .. } => 2,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::FallingBlock, .. } => 3,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::PrimedTnt, .. } => 4,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::TippedArrow | ObjectSpawnType::SpectralArrow, .. } => 5,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Snowball, .. } => 6,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Egg, .. } => 6,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::EnderPearl, .. } => 6,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Potion, .. } => 7,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::ExperienceBottle, .. } => 8,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::EyeOfEnder, .. } => 9,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::FireworkRocket, .. } => 10,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::ShulkerBullet, .. } => 11,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Boat, .. } => 12,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::Minecart, .. } => 13,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Item,
+                ..
+            } => 2,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FallingBlock,
+                ..
+            } => 3,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::PrimedTnt,
+                ..
+            } => 4,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::TippedArrow | ObjectSpawnType::SpectralArrow,
+                ..
+            } => 5,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Snowball,
+                ..
+            } => 6,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Egg,
+                ..
+            } => 6,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::EnderPearl,
+                ..
+            } => 6,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Potion,
+                ..
+            } => 7,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ExperienceBottle,
+                ..
+            } => 8,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::EyeOfEnder,
+                ..
+            } => 9,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FireworkRocket,
+                ..
+            } => 10,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ShulkerBullet,
+                ..
+            } => 11,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Boat,
+                ..
+            } => 12,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Minecart,
+                ..
+            } => 13,
             ClientEntityKind::Object { objectType, .. } if objectType.isFireball() => 14,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::FishHook, .. } => 15,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::AreaEffectCloud, .. } => 16,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FishHook,
+                ..
+            } => 15,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::AreaEffectCloud,
+                ..
+            } => 16,
             _ => 0,
         };
         match updateKind {
@@ -1750,8 +2289,12 @@ impl EntityOtherClient {
             self.updateLivingAnimationState();
         }
 
-        if self.hurtTime > 0 { self.hurtTime -= 1; }
-        if self.hurtResistantTime > 0 { self.hurtResistantTime -= 1; }
+        if self.hurtTime > 0 {
+            self.hurtTime -= 1;
+        }
+        if self.hurtResistantTime > 0 {
+            self.hurtResistantTime -= 1;
+        }
         if self.health <= 0.0 && self.isLivingBase() {
             if isDragon {
                 // EntityDragon overrides EntityLivingBase#onDeathUpdate. Its
@@ -1767,7 +2310,9 @@ impl EntityOtherClient {
                 self.renderYawOffset = self.entity.rotationYaw;
             } else {
                 self.deathTime = self.deathTime.saturating_add(1);
-                if self.deathTime >= 20 { self.entity.isDead = true; }
+                if self.deathTime >= 20 {
+                    self.entity.isDead = true;
+                }
             }
         }
         self.entity.firstUpdate = false;
@@ -1786,7 +2331,9 @@ impl EntityOtherClient {
                 self.setHorseRearing(false);
             }
         }
-        if !localCanSteerHorse { return; }
+        if !localCanSteerHorse {
+            return;
+        }
 
         self.entity.handleWaterMovement(world);
         if !localControlsHorse {
@@ -1842,7 +2389,9 @@ impl EntityOtherClient {
         let deltaX = self.entity.posX - self.entity.prevPosX;
         let deltaZ = self.entity.posZ - self.entity.prevPosZ;
         let mut amount = ((deltaX * deltaX + deltaZ * deltaZ).sqrt() as f32) * 4.0;
-        if amount > 1.0 { amount = 1.0; }
+        if amount > 1.0 {
+            amount = 1.0;
+        }
         self.limbSwingAmount += (amount - self.limbSwingAmount) * 0.4;
         self.limbSwing += self.limbSwingAmount;
     }
@@ -1857,8 +2406,18 @@ impl EntityOtherClient {
         if self.entity.isInWater() {
             let startY = self.entity.posY;
             self.entity.func_191958_b(strafe, 0.0, forward, 0.02);
-            let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
-            self.entity.moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
+            let (motionX, motionY, motionZ) = (
+                self.entity.motionX,
+                self.entity.motionY,
+                self.entity.motionZ,
+            );
+            self.entity.moveEntityLivingWithContext(
+                world,
+                self.entityId,
+                motionX,
+                motionY,
+                motionZ,
+            );
             self.entity.motionX *= 0.8;
             self.entity.motionY *= 0.800000011920929;
             self.entity.motionZ *= 0.8;
@@ -1879,8 +2438,18 @@ impl EntityOtherClient {
         if self.entity.isInLava(world) {
             let startY = self.entity.posY;
             self.entity.func_191958_b(strafe, 0.0, forward, 0.02);
-            let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
-            self.entity.moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
+            let (motionX, motionY, motionZ) = (
+                self.entity.motionX,
+                self.entity.motionY,
+                self.entity.motionZ,
+            );
+            self.entity.moveEntityLivingWithContext(
+                world,
+                self.entityId,
+                motionX,
+                motionY,
+                motionZ,
+            );
             self.entity.motionX *= 0.5;
             self.entity.motionY *= 0.5;
             self.entity.motionZ *= 0.5;
@@ -1904,14 +2473,17 @@ impl EntityOtherClient {
             self.entity.posZ.floor() as i32,
         );
         let mut friction = 0.91_f32;
-        if self.entity.onGround { friction = world.getSlipperiness(below) * 0.91; }
+        if self.entity.onGround {
+            friction = world.getSlipperiness(below) * 0.91;
+        }
         let accelerationFactor = 0.16277136 / (friction * friction * friction);
         let acceleration = if self.entity.onGround {
             self.horseMovementSpeed() as f32 * accelerationFactor
         } else {
             jumpMovementFactor
         };
-        self.entity.func_191958_b(strafe, 0.0, forward, acceleration);
+        self.entity
+            .func_191958_b(strafe, 0.0, forward, acceleration);
 
         friction = 0.91;
         if self.entity.onGround {
@@ -1928,12 +2500,21 @@ impl EntityOtherClient {
             self.entity.motionX = self.entity.motionX.clamp(-LIMIT, LIMIT);
             self.entity.motionZ = self.entity.motionZ.clamp(-LIMIT, LIMIT);
             self.entity.fallDistance = 0.0;
-            if self.entity.motionY < -LIMIT { self.entity.motionY = -LIMIT; }
+            if self.entity.motionY < -LIMIT {
+                self.entity.motionY = -LIMIT;
+            }
         }
 
-        let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
-        self.entity.moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
-        if self.entity.isCollidedHorizontally && EntityLivingBase::isOnLadder(world, &self.entity, false) {
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
+        self.entity
+            .moveEntityLivingWithContext(world, self.entityId, motionX, motionY, motionZ);
+        if self.entity.isCollidedHorizontally
+            && EntityLivingBase::isOnLadder(world, &self.entity, false)
+        {
             self.entity.motionY = 0.2;
         }
         self.entity.motionY -= 0.08;
@@ -1947,7 +2528,10 @@ impl EntityOtherClient {
         let status = self.getBoatStatus(world);
         self.boatStatus = Some(status);
 
-        if matches!(status, BoatStatus::UnderWater | BoatStatus::UnderFlowingWater) {
+        if matches!(
+            status,
+            BoatStatus::UnderWater | BoatStatus::UnderFlowingWater
+        ) {
             self.boatOutOfControlTicks += 1.0;
         } else {
             self.boatOutOfControlTicks = 0.0;
@@ -1957,8 +2541,19 @@ impl EntityOtherClient {
             self.updateBoatMotion(world);
             self.controlBoat();
             self.boatLastYd = self.entity.motionY;
-            let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
-            self.entity.moveEntityWithContext(world, self.entityId, true, motionX, motionY, motionZ);
+            let (motionX, motionY, motionZ) = (
+                self.entity.motionX,
+                self.entity.motionY,
+                self.entity.motionZ,
+            );
+            self.entity.moveEntityWithContext(
+                world,
+                self.entityId,
+                true,
+                motionX,
+                motionY,
+                motionZ,
+            );
         } else {
             // MCP EntityBoat#onUpdate clears velocity when the controlling
             // passenger is not the local user; packet interpolation owns pose.
@@ -2011,7 +2606,8 @@ impl EntityOtherClient {
                     let pos = BlockPos::new(x, y, z);
                     let state = world.getBlockState(pos);
                     if LiquidMaterial::fromState(state) == Some(LiquidMaterial::Water) {
-                        let surface = y as f64 + BlockLiquid::getFilledPercentage(state, world, pos) as f64;
+                        let surface =
+                            y as f64 + BlockLiquid::getFilledPercentage(state, world, pos) as f64;
                         if top < surface {
                             if BlockLiquid::getLevel(state) != 0 {
                                 return Some(BoatStatus::UnderFlowingWater);
@@ -2041,7 +2637,8 @@ impl EntityOtherClient {
                     let pos = BlockPos::new(x, y, z);
                     let state = world.getBlockState(pos);
                     if LiquidMaterial::fromState(state) == Some(LiquidMaterial::Water) {
-                        let surface = y as f64 + BlockLiquid::getFilledPercentage(state, world, pos) as f64;
+                        let surface =
+                            y as f64 + BlockLiquid::getFilledPercentage(state, world, pos) as f64;
                         self.boatWaterLevel = self.boatWaterLevel.max(surface);
                         found |= bounds.min_y < surface;
                     }
@@ -2071,20 +2668,32 @@ impl EntityOtherClient {
         let mut count = 0_i32;
         for x in minX..maxX {
             for z in minZ..maxZ {
-                let edgeCount = (x == minX || x == maxX - 1) as i32
-                    + (z == minZ || z == maxZ - 1) as i32;
-                if edgeCount == 2 { continue; }
+                let edgeCount =
+                    (x == minX || x == maxX - 1) as i32 + (z == minZ || z == maxZ - 1) as i32;
+                if edgeCount == 2 {
+                    continue;
+                }
                 for y in minY..maxY {
-                    if edgeCount > 0 && (y == minY || y == maxY - 1) { continue; }
+                    if edgeCount > 0 && (y == minY || y == maxY - 1) {
+                        continue;
+                    }
                     let pos = BlockPos::new(x, y, z);
-                    if world.getBlockCollisionBoxesAt(pos).into_iter().any(|box_| box_.intersects(sample)) {
+                    if world
+                        .getBlockCollisionBoxesAt(pos)
+                        .into_iter()
+                        .any(|box_| box_.intersects(sample))
+                    {
                         total += world.blockSlipperiness(pos);
                         count += 1;
                     }
                 }
             }
         }
-        if count == 0 { 0.0 } else { total / count as f32 }
+        if count == 0 {
+            0.0
+        } else {
+            total / count as f32
+        }
     }
 
     fn getWaterLevelAbove(&self, world: &WorldClient) -> f32 {
@@ -2106,7 +2715,9 @@ impl EntityOtherClient {
                     }
                 }
             }
-            if filled < 1.0 { return y as f32 + filled; }
+            if filled < 1.0 {
+                return y as f32 + filled;
+            }
         }
         (maxY + 1) as f32
     }
@@ -2123,7 +2734,8 @@ impl EntityOtherClient {
         {
             self.boatWaterLevel = self.entity.boundingBox.min_y + self.entity.height as f64;
             let y = (self.getWaterLevelAbove(world) - self.entity.height) as f64 + 0.101;
-            self.entity.setPosition(self.entity.posX, y, self.entity.posZ);
+            self.entity
+                .setPosition(self.entity.posX, y, self.entity.posZ);
             self.entity.motionY = 0.0;
             self.boatLastYd = 0.0;
             self.boatStatus = Some(BoatStatus::InWater);
@@ -2132,7 +2744,8 @@ impl EntityOtherClient {
 
         match status {
             BoatStatus::InWater => {
-                buoyancy = (self.boatWaterLevel - self.entity.boundingBox.min_y) / self.entity.height as f64;
+                buoyancy = (self.boatWaterLevel - self.entity.boundingBox.min_y)
+                    / self.entity.height as f64;
                 self.boatMomentum = 0.9;
             }
             BoatStatus::UnderFlowingWater => {
@@ -2163,10 +2776,16 @@ impl EntityOtherClient {
     }
 
     fn controlBoat(&mut self) {
-        if self.entity.passengerIds.is_empty() { return; }
+        if self.entity.passengerIds.is_empty() {
+            return;
+        }
         let mut acceleration = 0.0_f32;
-        if self.boatLeftInputDown { self.boatDeltaRotation -= 1.0; }
-        if self.boatRightInputDown { self.boatDeltaRotation += 1.0; }
+        if self.boatLeftInputDown {
+            self.boatDeltaRotation -= 1.0;
+        }
+        if self.boatRightInputDown {
+            self.boatDeltaRotation += 1.0;
+        }
         if self.boatRightInputDown != self.boatLeftInputDown
             && !self.boatForwardInputDown
             && !self.boatBackInputDown
@@ -2174,8 +2793,12 @@ impl EntityOtherClient {
             acceleration += 0.005;
         }
         self.entity.rotationYaw += self.boatDeltaRotation;
-        if self.boatForwardInputDown { acceleration += 0.04; }
-        if self.boatBackInputDown { acceleration -= 0.005; }
+        if self.boatForwardInputDown {
+            acceleration += 0.04;
+        }
+        if self.boatBackInputDown {
+            acceleration -= 0.005;
+        }
         let yaw = self.entity.rotationYaw * 0.017453292;
         self.entity.motionX += (-yaw).sin() as f64 * acceleration as f64;
         self.entity.motionZ += yaw.cos() as f64 * acceleration as f64;
@@ -2223,8 +2846,8 @@ impl EntityOtherClient {
         if self.entity.inWater {
             if self.squidRotation < std::f32::consts::PI {
                 let f = self.squidRotation / std::f32::consts::PI;
-                self.squidTentacleAngle = (f * f * std::f32::consts::PI).sin()
-                    * std::f32::consts::PI * 0.25;
+                self.squidTentacleAngle =
+                    (f * f * std::f32::consts::PI).sin() * std::f32::consts::PI * 0.25;
                 if f as f64 > 0.75 {
                     self.squidRandomMotionSpeed = 1.0;
                     self.squidRotateSpeed = 1.0;
@@ -2237,17 +2860,18 @@ impl EntityOtherClient {
                 self.squidRotateSpeed *= 0.99;
             }
             let horizontal = (self.entity.motionX * self.entity.motionX
-                + self.entity.motionZ * self.entity.motionZ).sqrt() as f32;
-            self.renderYawOffset += (
-                -(self.entity.motionX.atan2(self.entity.motionZ) as f32).to_degrees()
-                    - self.renderYawOffset
-            ) * 0.1;
+                + self.entity.motionZ * self.entity.motionZ)
+                .sqrt() as f32;
+            self.renderYawOffset += (-(self.entity.motionX.atan2(self.entity.motionZ) as f32)
+                .to_degrees()
+                - self.renderYawOffset)
+                * 0.1;
             self.entity.rotationYaw = self.renderYawOffset;
             self.squidYaw += std::f32::consts::PI * self.squidRotateSpeed * 1.5;
-            self.squidPitch += (
-                -(horizontal as f64).atan2(self.entity.motionY) as f32 * (180.0 / std::f32::consts::PI)
-                    - self.squidPitch
-            ) * 0.1;
+            self.squidPitch += (-(horizontal as f64).atan2(self.entity.motionY) as f32
+                * (180.0 / std::f32::consts::PI)
+                - self.squidPitch)
+                * 0.1;
         } else {
             self.squidTentacleAngle = self.squidRotation.sin().abs() * std::f32::consts::PI * 0.25;
             self.squidPitch += (-90.0 - self.squidPitch) * 0.02;
@@ -2266,7 +2890,8 @@ impl EntityOtherClient {
             return;
         }
         let horizontal = (self.entity.motionX * self.entity.motionX
-            + self.entity.motionZ * self.entity.motionZ).sqrt() as f32;
+            + self.entity.motionZ * self.entity.motionZ)
+            .sqrt() as f32;
         let mut increment = 0.2 / (horizontal * 10.0 + 1.0);
         increment *= (2.0_f64.powf(self.entity.motionY)) as f32;
         if self.dragonPhaseStationary() {
@@ -2291,7 +2916,9 @@ impl EntityOtherClient {
             }
         }
         self.dragonRingBufferIndex += 1;
-        if self.dragonRingBufferIndex == 64 { self.dragonRingBufferIndex = 0; }
+        if self.dragonRingBufferIndex == 64 {
+            self.dragonRingBufferIndex = 0;
+        }
         let index = self.dragonRingBufferIndex as usize;
         self.dragonRingBuffer[index][0] = self.entity.rotationYaw as f64;
         self.dragonRingBuffer[index][1] = self.entity.posY;
@@ -2302,9 +2929,11 @@ impl EntityOtherClient {
             let y = self.entity.posY + (self.interpTargetY - self.entity.posY) / increments;
             let z = self.entity.posZ + (self.interpTargetZ - self.entity.posZ) / increments;
             let yawDelta = wrap_degrees_f64(self.interpTargetYaw - self.entity.rotationYaw as f64);
-            self.entity.rotationYaw = (self.entity.rotationYaw as f64 + yawDelta / increments) as f32;
+            self.entity.rotationYaw =
+                (self.entity.rotationYaw as f64 + yawDelta / increments) as f32;
             self.entity.rotationPitch = (self.entity.rotationPitch as f64
-                + (self.interpTargetPitch - self.entity.rotationPitch as f64) / increments) as f32;
+                + (self.interpTargetPitch - self.entity.rotationPitch as f64) / increments)
+                as f32;
             self.newPosRotationIncrements -= 1;
             self.entity.setPosition(x, y, z);
         }
@@ -2367,14 +2996,19 @@ impl EntityOtherClient {
                 (self.polarStandAnimation - 1.0).clamp(0.0, 6.0)
             };
         }
-        if matches!(registryName, "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse" | "llama") {
+        if matches!(
+            registryName,
+            "horse" | "donkey" | "mule" | "skeleton_horse" | "zombie_horse" | "llama"
+        ) {
             // MCP AbstractHorse.onLivingUpdate uses Entity.rand.nextInt(200)
             // on both logical sides before the server-only branch.
             if self.horseTailCounter == 0 && self.horseRandom.next_i32_bound(200) == 0 {
                 self.horseTailCounter = 1;
             } else if self.horseTailCounter > 0 {
                 self.horseTailCounter += 1;
-                if self.horseTailCounter > 8 { self.horseTailCounter = 0; }
+                if self.horseTailCounter > 8 {
+                    self.horseTailCounter = 0;
+                }
             }
             self.horsePrevHeadLean = self.horseHeadLean;
             if self.horseEatingHaystack() {
@@ -2392,7 +3026,8 @@ impl EntityOtherClient {
                 self.horseRearingAmount = self.horseRearingAmount.min(1.0);
             } else {
                 self.horseAllowStandSliding = false;
-                self.horseRearingAmount += (0.8 * self.horseRearingAmount.powi(3) - self.horseRearingAmount) * 0.6 - 0.05;
+                self.horseRearingAmount +=
+                    (0.8 * self.horseRearingAmount.powi(3) - self.horseRearingAmount) * 0.6 - 0.05;
                 self.horseRearingAmount = self.horseRearingAmount.max(0.0);
             }
             self.horsePrevMouthOpenness = self.horseMouthOpenness;
@@ -2406,7 +3041,9 @@ impl EntityOtherClient {
         }
         if registryName == "illusion_illager" && self.isInvisibleFlag() {
             self.illusionTransitionTicks -= 1;
-            if self.illusionTransitionTicks < 0 { self.illusionTransitionTicks = 0; }
+            if self.illusionTransitionTicks < 0 {
+                self.illusionTransitionTicks = 0;
+            }
             if self.hurtTime != 1 && self.entity.ticksExisted % 1200 != 0 {
                 if self.hurtTime == self.maxHurtTime - 1 {
                     self.illusionTransitionTicks = 3;
@@ -2441,7 +3078,11 @@ impl EntityOtherClient {
         }
         if registryName == "creeper" {
             self.lastActiveTime = self.timeSinceIgnited;
-            let state = if self.creeperIgnited() { 1 } else { self.creeperState() };
+            let state = if self.creeperIgnited() {
+                1
+            } else {
+                self.creeperState()
+            };
             self.timeSinceIgnited = (self.timeSinceIgnited + state).clamp(0, 30);
         }
         if matches!(registryName, "slime" | "magma_cube") {
@@ -2453,7 +3094,11 @@ impl EntityOtherClient {
                 self.squishAmount = 1.0;
             }
             self.wasOnGround = self.entity.onGround;
-            self.squishAmount *= if registryName == "magma_cube" { 0.9 } else { 0.6 };
+            self.squishAmount *= if registryName == "magma_cube" {
+                0.9
+            } else {
+                0.6
+            };
         }
     }
 
@@ -2492,35 +3137,59 @@ impl EntityOtherClient {
             self.entity.prevPosY = y;
             self.entity.prevPosZ = z;
 
-            let currentExtension = 0.5
-                - ((0.5 + self.shulkerPeekAmount) * std::f32::consts::PI).sin() as f64 * 0.5;
+            let currentExtension =
+                0.5 - ((0.5 + self.shulkerPeekAmount) * std::f32::consts::PI).sin() as f64 * 0.5;
             let previousExtension = 0.5
                 - ((0.5 + self.shulkerPrevPeekAmount) * std::f32::consts::PI).sin() as f64 * 0.5;
             let _extensionDelta = currentExtension - previousExtension;
             self.entity.boundingBox = match self.shulkerAttachmentFacing() {
                 EnumFacing::Down => AxisAlignedBB::new(
-                    x - 0.5, y, z - 0.5,
-                    x + 0.5, y + 1.0 + currentExtension, z + 0.5,
+                    x - 0.5,
+                    y,
+                    z - 0.5,
+                    x + 0.5,
+                    y + 1.0 + currentExtension,
+                    z + 0.5,
                 ),
                 EnumFacing::Up => AxisAlignedBB::new(
-                    x - 0.5, y - currentExtension, z - 0.5,
-                    x + 0.5, y + 1.0, z + 0.5,
+                    x - 0.5,
+                    y - currentExtension,
+                    z - 0.5,
+                    x + 0.5,
+                    y + 1.0,
+                    z + 0.5,
                 ),
                 EnumFacing::North => AxisAlignedBB::new(
-                    x - 0.5, y, z - 0.5,
-                    x + 0.5, y + 1.0, z + 0.5 + currentExtension,
+                    x - 0.5,
+                    y,
+                    z - 0.5,
+                    x + 0.5,
+                    y + 1.0,
+                    z + 0.5 + currentExtension,
                 ),
                 EnumFacing::South => AxisAlignedBB::new(
-                    x - 0.5, y, z - 0.5 - currentExtension,
-                    x + 0.5, y + 1.0, z + 0.5,
+                    x - 0.5,
+                    y,
+                    z - 0.5 - currentExtension,
+                    x + 0.5,
+                    y + 1.0,
+                    z + 0.5,
                 ),
                 EnumFacing::West => AxisAlignedBB::new(
-                    x - 0.5, y, z - 0.5,
-                    x + 0.5 + currentExtension, y + 1.0, z + 0.5,
+                    x - 0.5,
+                    y,
+                    z - 0.5,
+                    x + 0.5 + currentExtension,
+                    y + 1.0,
+                    z + 0.5,
                 ),
                 EnumFacing::East => AxisAlignedBB::new(
-                    x - 0.5 - currentExtension, y, z - 0.5,
-                    x + 0.5, y + 1.0, z + 0.5,
+                    x - 0.5 - currentExtension,
+                    y,
+                    z - 0.5,
+                    x + 0.5,
+                    y + 1.0,
+                    z + 0.5,
                 ),
             };
         }
@@ -2540,9 +3209,10 @@ impl EntityOtherClient {
         let inWater = self.entity.handleWaterMovement(world);
         if !inWater {
             self.guardianTailAnimationSpeed = 2.0;
-            let below = BlockPos::from_f64(self.entity.posX, self.entity.posY, self.entity.posZ).down(1);
-            self.guardianTouchedGround = self.entity.motionY < 0.0
-                && world.getBlockState(below).getBlock().isOpaqueCube();
+            let below =
+                BlockPos::from_f64(self.entity.posX, self.entity.posY, self.entity.posZ).down(1);
+            self.guardianTouchedGround =
+                self.entity.motionY < 0.0 && world.getBlockState(below).getBlock().isOpaqueCube();
         } else if self.guardianMoving() {
             if self.guardianTailAnimationSpeed < 0.5 {
                 self.guardianTailAnimationSpeed = 4.0;
@@ -2567,7 +3237,11 @@ impl EntityOtherClient {
             let duration = if matches!(
                 &self.kind,
                 ClientEntityKind::Mob { entityType } if entityType.registryName == "elder_guardian"
-            ) { 60 } else { 80 };
+            ) {
+                60
+            } else {
+                80
+            };
             if self.guardianAttackTime < duration {
                 self.guardianAttackTime += 1;
             }
@@ -2603,19 +3277,28 @@ impl EntityOtherClient {
         }
 
         let mut amount = ((dx * dx + dz * dz).sqrt() as f32) * 4.0;
-        if amount > 1.0 { amount = 1.0; }
+        if amount > 1.0 {
+            amount = 1.0;
+        }
         self.limbSwingAmount += (amount - self.limbSwingAmount) * 0.4;
         self.limbSwing += self.limbSwingAmount;
 
         normalize_previous(self.entity.rotationYaw, &mut self.entity.prevRotationYaw);
         normalize_previous(self.renderYawOffset, &mut self.prevRenderYawOffset);
-        normalize_previous(self.entity.rotationPitch, &mut self.entity.prevRotationPitch);
+        normalize_previous(
+            self.entity.rotationPitch,
+            &mut self.entity.prevRotationPitch,
+        );
         normalize_previous(self.rotationYawHead, &mut self.prevRotationYawHead);
     }
 
     fn updateEntityItem(&mut self, world: &WorldClient) {
         self.entity.motionY -= 0.03999999910593033;
-        let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
         self.entity.moveEntity(world, motionX, motionY, motionZ);
         let mut friction = 0.98_f64;
         if self.entity.onGround {
@@ -2629,7 +3312,9 @@ impl EntityOtherClient {
         self.entity.motionX *= friction;
         self.entity.motionY *= 0.9800000190734863;
         self.entity.motionZ *= friction;
-        if self.entity.onGround { self.entity.motionY *= -0.5; }
+        if self.entity.onGround {
+            self.entity.motionY *= -0.5;
+        }
         self.entity.handleWaterMovement(world);
     }
 
@@ -2648,7 +3333,11 @@ impl EntityOtherClient {
                 self.entity.motionZ += dz * strength;
             }
         }
-        let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
         self.entity.moveEntity(world, motionX, motionY, motionZ);
         let mut friction = 0.98_f64;
         if self.entity.onGround {
@@ -2662,14 +3351,20 @@ impl EntityOtherClient {
         self.entity.motionX *= friction;
         self.entity.motionY *= 0.9800000190734863;
         self.entity.motionZ *= friction;
-        if self.entity.onGround { self.entity.motionY *= -0.8999999761581421; }
+        if self.entity.onGround {
+            self.entity.motionY *= -0.8999999761581421;
+        }
         self.xpColor = self.xpColor.wrapping_add(1);
         self.xpOrbAge = self.xpOrbAge.saturating_add(1);
     }
 
     fn updateFallingBlock(&mut self, world: &WorldClient) {
         self.entity.motionY -= 0.03999999910593033;
-        let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
         self.entity.moveEntity(world, motionX, motionY, motionZ);
         self.entity.motionX *= 0.9800000190734863;
         self.entity.motionY *= 0.9800000190734863;
@@ -2678,7 +3373,11 @@ impl EntityOtherClient {
 
     fn updatePrimedTnt(&mut self, world: &WorldClient) {
         self.entity.motionY -= 0.03999999910593033;
-        let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
+        let (motionX, motionY, motionZ) = (
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
         self.entity.moveEntity(world, motionX, motionY, motionZ);
         self.entity.motionX *= 0.9800000190734863;
         self.entity.motionY *= 0.9800000190734863;
@@ -2734,7 +3433,11 @@ impl EntityOtherClient {
             self.entity.motionX *= 1.15;
             self.entity.motionZ *= 1.15;
             self.entity.motionY += 0.04;
-            let (motionX, motionY, motionZ) = (self.entity.motionX, self.entity.motionY, self.entity.motionZ);
+            let (motionX, motionY, motionZ) = (
+                self.entity.motionX,
+                self.entity.motionY,
+                self.entity.motionZ,
+            );
             self.entity.moveEntity(world, motionX, motionY, motionZ);
         }
         self.updateProjectileRotation();
@@ -2742,7 +3445,11 @@ impl EntityOtherClient {
             self.pendingSoundEvents.push(LocalSoundEvent::positioned(
                 "entity.firework.launch",
                 SoundCategory::Ambient,
-                [self.entity.posX as f32, self.entity.posY as f32, self.entity.posZ as f32],
+                [
+                    self.entity.posX as f32,
+                    self.entity.posY as f32,
+                    self.entity.posZ as f32,
+                ],
                 3.0,
                 1.0,
             ));
@@ -2755,7 +3462,10 @@ impl EntityOtherClient {
     pub fn updateAttachedFireworkForLocalPlayer(&mut self, player: &mut EntityPlayerSP) -> bool {
         if !matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::FireworkRocket, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FireworkRocket,
+                ..
+            }
         ) || self.dataManager.varInt(7, 0) != player.entityId
         {
             return false;
@@ -2766,7 +3476,8 @@ impl EntityOtherClient {
             player.entity.motionY += look.y * 0.1 + (look.y * 1.5 - player.entity.motionY) * 0.5;
             player.entity.motionZ += look.z * 0.1 + (look.z * 1.5 - player.entity.motionZ) * 0.5;
         }
-        self.entity.setPosition(player.entity.posX, player.entity.posY, player.entity.posZ);
+        self.entity
+            .setPosition(player.entity.posX, player.entity.posY, player.entity.posZ);
         self.entity.motionX = player.entity.motionX;
         self.entity.motionY = player.entity.motionY;
         self.entity.motionZ = player.entity.motionZ;
@@ -2799,14 +3510,20 @@ impl EntityOtherClient {
         self.entity.rotationPitch = pitch;
         self.pendingParticleSpawns.push(ParticleSpawnRequest::new(
             EnumParticleTypes::EndRod,
-            [self.entity.posX - self.entity.motionX, self.entity.posY - self.entity.motionY + 0.15, self.entity.posZ - self.entity.motionZ],
+            [
+                self.entity.posX - self.entity.motionX,
+                self.entity.posY - self.entity.motionY + 0.15,
+                self.entity.posZ - self.entity.motionZ,
+            ],
             [0.0, 0.0, 0.0],
             [0, 0],
         ));
     }
 
     fn updateArrow(&mut self, world: &WorldClient) {
-        if self.arrowShake > 0 { self.arrowShake -= 1; }
+        if self.arrowShake > 0 {
+            self.arrowShake -= 1;
+        }
         if self.inGround {
             self.ticksInGround = self.ticksInGround.saturating_add(1);
             return;
@@ -2864,18 +3581,22 @@ impl EntityOtherClient {
         // EntityFireball#isFireballFiery is inherited by large/small fireballs
         // and overridden to false by dragon fireballs and wither skulls.
         let fiery = match &self.kind {
-            ClientEntityKind::Object { objectType: ObjectSpawnType::LargeFireball, .. } => {
-                EntityLargeFireball::FIERY
-            }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::SmallFireball, .. } => {
-                EntitySmallFireball::FIERY
-            }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::DragonFireball, .. } => {
-                EntityDragonFireball::FIERY
-            }
-            ClientEntityKind::Object { objectType: ObjectSpawnType::WitherSkull, .. } => {
-                EntityWitherSkull::FIERY
-            }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::LargeFireball,
+                ..
+            } => EntityLargeFireball::FIERY,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::SmallFireball,
+                ..
+            } => EntitySmallFireball::FIERY,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::DragonFireball,
+                ..
+            } => EntityDragonFireball::FIERY,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::WitherSkull,
+                ..
+            } => EntityWitherSkull::FIERY,
             _ => false,
         };
         if fiery && self.entity.fire < 20 {
@@ -2914,14 +3635,21 @@ impl EntityOtherClient {
                         self.entity.posY - self.entity.motionY * 0.25,
                         self.entity.posZ - self.entity.motionZ * 0.25,
                     ],
-                    [self.entity.motionX, self.entity.motionY, self.entity.motionZ],
+                    [
+                        self.entity.motionX,
+                        self.entity.motionY,
+                        self.entity.motionZ,
+                    ],
                     [0, 0],
                 ));
             }
             motionFactor = EntityFireball::WATER_MOTION_FACTOR;
         } else if matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::WitherSkull, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::WitherSkull,
+                ..
+            }
         ) {
             motionFactor = EntityWitherSkull::motionFactor(self.isWitherSkullInvulnerable());
         }
@@ -2934,7 +3662,10 @@ impl EntityOtherClient {
         self.entity.motionZ *= motionFactor;
         let particleType = if matches!(
             &self.kind,
-            ClientEntityKind::Object { objectType: ObjectSpawnType::DragonFireball, .. }
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::DragonFireball,
+                ..
+            }
         ) {
             EnumParticleTypes::DragonBreath
         } else {
@@ -2946,12 +3677,20 @@ impl EntityOtherClient {
             [0.0, 0.0, 0.0],
             [0, 0],
         ));
-        self.entity.setPosition(self.entity.posX, self.entity.posY, self.entity.posZ);
+        self.entity
+            .setPosition(self.entity.posX, self.entity.posY, self.entity.posZ);
     }
 
     pub fn isWitherSkullInvulnerable(&self) -> bool {
-        matches!(&self.kind, ClientEntityKind::Object { objectType: ObjectSpawnType::WitherSkull, .. })
-            && self.dataManager.boolean(EntityWitherSkull::INVULNERABLE_DATA_INDEX, false)
+        matches!(
+            &self.kind,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::WitherSkull,
+                ..
+            }
+        ) && self
+            .dataManager
+            .boolean(EntityWitherSkull::INVULNERABLE_DATA_INDEX, false)
     }
 
     fn updateFishHook(
@@ -2964,8 +3703,8 @@ impl EntityOtherClient {
             self.entity.isDead = true;
             return;
         };
-        let anglerPresent = localPlayerEntityId == Some(anglerId)
-            || world.getEntityByID(anglerId).is_some();
+        let anglerPresent =
+            localPlayerEntityId == Some(anglerId) || world.getEntityByID(anglerId).is_some();
         if !anglerPresent {
             self.entity.isDead = true;
             return;
@@ -2987,7 +3726,9 @@ impl EntityOtherClient {
         let state = world.getBlockState(blockPos);
         let waterHeight = if LiquidMaterial::fromState(state) == Some(LiquidMaterial::Water) {
             BlockLiquid::getFilledPercentage(state, world, blockPos)
-        } else { 0.0 };
+        } else {
+            0.0
+        };
 
         match self.fishHookState {
             FishHookState::Flying => {
@@ -3005,7 +3746,10 @@ impl EntityOtherClient {
                     self.fishHookState = FishHookState::Bobbing;
                     return;
                 }
-                if !self.fishHookInGround && !self.entity.onGround && !self.entity.isCollidedHorizontally {
+                if !self.fishHookInGround
+                    && !self.entity.onGround
+                    && !self.entity.isCollidedHorizontally
+                {
                     self.fishHookTicksInAir += 1;
                 } else {
                     self.fishHookTicksInAir = 0;
@@ -3020,12 +3764,16 @@ impl EntityOtherClient {
                         localPlayerState.map(|(position, height)| (position, height as f64))
                     } else {
                         world.getBaseEntityByID(id).map(|entity| {
-                            ([entity.posX, entity.boundingBox.min_y, entity.posZ], entity.height as f64)
+                            (
+                                [entity.posX, entity.boundingBox.min_y, entity.posZ],
+                                entity.height as f64,
+                            )
                         })
                     }
                 });
                 if let Some((position, height)) = target {
-                    self.entity.setPosition(position[0], position[1] + height * 0.8, position[2]);
+                    self.entity
+                        .setPosition(position[0], position[1] + height * 0.8, position[2]);
                 } else {
                     self.fishHookCaughtEntityId = None;
                     self.fishHookState = FishHookState::Flying;
@@ -3035,8 +3783,8 @@ impl EntityOtherClient {
             FishHookState::Bobbing => {
                 self.entity.motionX *= EntityFishHook::BOBBING_XZ_FACTOR;
                 self.entity.motionZ *= EntityFishHook::BOBBING_XZ_FACTOR;
-                let mut delta = self.entity.posY + self.entity.motionY
-                    - blockPos.y as f64 - waterHeight as f64;
+                let mut delta =
+                    self.entity.posY + self.entity.motionY - blockPos.y as f64 - waterHeight as f64;
                 if delta.abs() < 0.01 {
                     delta += delta.signum() * 0.1;
                 }
@@ -3047,18 +3795,28 @@ impl EntityOtherClient {
         if LiquidMaterial::fromState(state) != Some(LiquidMaterial::Water) {
             self.entity.motionY -= EntityFishHook::GRAVITY;
         }
-        self.entity.moveEntity(world, self.entity.motionX, self.entity.motionY, self.entity.motionZ);
+        self.entity.moveEntity(
+            world,
+            self.entity.motionX,
+            self.entity.motionY,
+            self.entity.motionZ,
+        );
         EntityFishHook::rotateTowardsMovement(
             &mut self.entity.prevRotationYaw,
             &mut self.entity.prevRotationPitch,
             &mut self.entity.rotationYaw,
             &mut self.entity.rotationPitch,
-            [self.entity.motionX, self.entity.motionY, self.entity.motionZ],
+            [
+                self.entity.motionX,
+                self.entity.motionY,
+                self.entity.motionZ,
+            ],
         );
         self.entity.motionX *= EntityFishHook::DRAG;
         self.entity.motionY *= EntityFishHook::DRAG;
         self.entity.motionZ *= EntityFishHook::DRAG;
-        self.entity.setPosition(self.entity.posX, self.entity.posY, self.entity.posZ);
+        self.entity
+            .setPosition(self.entity.posX, self.entity.posY, self.entity.posZ);
     }
 
     fn updateAreaEffectCloud(&mut self) {
@@ -3078,17 +3836,28 @@ impl EntityOtherClient {
                     let offsetX = angle.cos() * radial;
                     let offsetZ = angle.sin() * radial;
                     let speed = if particleType == EnumParticleTypes::SpellMob {
-                        let selected = if self.areaEffectCloudRandom.next_bool() { 0x00ff_ffff } else { color };
+                        let selected = if self.areaEffectCloudRandom.next_bool() {
+                            0x00ff_ffff
+                        } else {
+                            color
+                        };
                         EntityAreaEffectCloud::colorComponents(selected)
                     } else {
                         [0.0, 0.0, 0.0]
                     };
-                    self.pendingParticleSpawns.push(ParticleSpawnRequest::new(
-                        particleType,
-                        [self.entity.posX + offsetX as f64, self.entity.posY, self.entity.posZ + offsetZ as f64],
-                        speed,
-                        parameters,
-                    ).withVisibility(false, true));
+                    self.pendingParticleSpawns.push(
+                        ParticleSpawnRequest::new(
+                            particleType,
+                            [
+                                self.entity.posX + offsetX as f64,
+                                self.entity.posY,
+                                self.entity.posZ + offsetZ as f64,
+                            ],
+                            speed,
+                            parameters,
+                        )
+                        .withVisibility(false, true),
+                    );
                 }
             }
         } else {
@@ -3107,39 +3876,56 @@ impl EntityOtherClient {
                         (0.5 - self.areaEffectCloudRandom.next_f64()) * 0.15,
                     ]
                 };
-                self.pendingParticleSpawns.push(ParticleSpawnRequest::new(
-                    particleType,
-                    [self.entity.posX + offsetX as f64, self.entity.posY, self.entity.posZ + offsetZ as f64],
-                    speed,
-                    parameters,
-                ).withVisibility(false, true));
+                self.pendingParticleSpawns.push(
+                    ParticleSpawnRequest::new(
+                        particleType,
+                        [
+                            self.entity.posX + offsetX as f64,
+                            self.entity.posY,
+                            self.entity.posZ + offsetZ as f64,
+                        ],
+                        speed,
+                        parameters,
+                    )
+                    .withVisibility(false, true),
+                );
             }
         }
     }
 
     pub fn areaEffectCloudRadius(&self) -> f32 {
-        self.dataManager.float(EntityAreaEffectCloud::RADIUS_INDEX, EntityAreaEffectCloud::DEFAULT_SYNC_RADIUS)
+        self.dataManager.float(
+            EntityAreaEffectCloud::RADIUS_INDEX,
+            EntityAreaEffectCloud::DEFAULT_SYNC_RADIUS,
+        )
     }
 
     pub fn areaEffectCloudColor(&self) -> i32 {
-        self.dataManager.varInt(EntityAreaEffectCloud::COLOR_INDEX, EntityAreaEffectCloud::DEFAULT_COLOR)
+        self.dataManager.varInt(
+            EntityAreaEffectCloud::COLOR_INDEX,
+            EntityAreaEffectCloud::DEFAULT_COLOR,
+        )
     }
 
     pub fn areaEffectCloudIgnoresRadius(&self) -> bool {
-        self.dataManager.boolean(EntityAreaEffectCloud::IGNORE_RADIUS_INDEX, false)
+        self.dataManager
+            .boolean(EntityAreaEffectCloud::IGNORE_RADIUS_INDEX, false)
     }
 
     pub fn areaEffectCloudParticle(&self) -> EnumParticleTypes {
         EnumParticleTypes::fromId(self.dataManager.varInt(
             EntityAreaEffectCloud::PARTICLE_INDEX,
             EntityAreaEffectCloud::DEFAULT_PARTICLE.particleId(),
-        )).unwrap_or(EntityAreaEffectCloud::DEFAULT_PARTICLE)
+        ))
+        .unwrap_or(EntityAreaEffectCloud::DEFAULT_PARTICLE)
     }
 
     pub fn areaEffectCloudParticleParameters(&self) -> [i32; 2] {
         [
-            self.dataManager.varInt(EntityAreaEffectCloud::PARTICLE_PARAM_1_INDEX, 0),
-            self.dataManager.varInt(EntityAreaEffectCloud::PARTICLE_PARAM_2_INDEX, 0),
+            self.dataManager
+                .varInt(EntityAreaEffectCloud::PARTICLE_PARAM_1_INDEX, 0),
+            self.dataManager
+                .varInt(EntityAreaEffectCloud::PARTICLE_PARAM_2_INDEX, 0),
         ]
     }
 
@@ -3148,13 +3934,17 @@ impl EntityOtherClient {
     }
 
     fn updateProjectileRotation(&mut self) {
-        let horizontal = (self.entity.motionX * self.entity.motionX + self.entity.motionZ * self.entity.motionZ).sqrt();
+        let horizontal = (self.entity.motionX * self.entity.motionX
+            + self.entity.motionZ * self.entity.motionZ)
+            .sqrt();
         let targetYaw = self.entity.motionX.atan2(self.entity.motionZ).to_degrees() as f32;
         let targetPitch = self.entity.motionY.atan2(horizontal).to_degrees() as f32;
         normalize_previous(targetYaw, &mut self.entity.prevRotationYaw);
         normalize_previous(targetPitch, &mut self.entity.prevRotationPitch);
-        self.entity.rotationYaw = self.entity.prevRotationYaw + (targetYaw - self.entity.prevRotationYaw) * 0.2;
-        self.entity.rotationPitch = self.entity.prevRotationPitch + (targetPitch - self.entity.prevRotationPitch) * 0.2;
+        self.entity.rotationYaw =
+            self.entity.prevRotationYaw + (targetYaw - self.entity.prevRotationYaw) * 0.2;
+        self.entity.rotationPitch =
+            self.entity.prevRotationPitch + (targetPitch - self.entity.prevRotationPitch) * 0.2;
     }
 
     pub fn isBurning(&self) -> bool {
@@ -3184,7 +3974,9 @@ fn entity_size(kind: &ClientEntityKind) -> (f32, f32) {
                 EntityAreaEffectCloud::DEFAULT_HEIGHT,
             ),
             ObjectSpawnType::Minecart => (EntityMinecart::WIDTH, EntityMinecart::HEIGHT),
-            ObjectSpawnType::EnderCrystal => (EntityEnderCrystal::WIDTH, EntityEnderCrystal::HEIGHT),
+            ObjectSpawnType::EnderCrystal => {
+                (EntityEnderCrystal::WIDTH, EntityEnderCrystal::HEIGHT)
+            }
             ObjectSpawnType::Item => (0.25, 0.25),
             ObjectSpawnType::FallingBlock | ObjectSpawnType::PrimedTnt => (0.98, 0.98),
             ObjectSpawnType::TippedArrow | ObjectSpawnType::SpectralArrow => (0.5, 0.5),
@@ -3196,20 +3988,22 @@ fn entity_size(kind: &ClientEntityKind) -> (f32, f32) {
             | ObjectSpawnType::ExperienceBottle
             | ObjectSpawnType::FireworkRocket => (0.25, 0.25),
             ObjectSpawnType::ArmorStand => (0.5, 1.975),
-            ObjectSpawnType::ItemFrame | ObjectSpawnType::LeashKnot => (EntityHanging::DEFAULT_WIDTH, EntityHanging::DEFAULT_HEIGHT),
-            ObjectSpawnType::ShulkerBullet => (EntityShulkerBullet::WIDTH, EntityShulkerBullet::HEIGHT),
+            ObjectSpawnType::ItemFrame | ObjectSpawnType::LeashKnot => {
+                (EntityHanging::DEFAULT_WIDTH, EntityHanging::DEFAULT_HEIGHT)
+            }
+            ObjectSpawnType::ShulkerBullet => {
+                (EntityShulkerBullet::WIDTH, EntityShulkerBullet::HEIGHT)
+            }
             ObjectSpawnType::LargeFireball => {
                 (EntityLargeFireball::WIDTH, EntityLargeFireball::HEIGHT)
-            },
+            }
             ObjectSpawnType::SmallFireball => {
                 (EntitySmallFireball::WIDTH, EntitySmallFireball::HEIGHT)
-            },
+            }
             ObjectSpawnType::DragonFireball => {
                 (EntityDragonFireball::WIDTH, EntityDragonFireball::HEIGHT)
-            },
-            ObjectSpawnType::WitherSkull => {
-                (EntityWitherSkull::WIDTH, EntityWitherSkull::HEIGHT)
-            },
+            }
+            ObjectSpawnType::WitherSkull => (EntityWitherSkull::WIDTH, EntityWitherSkull::HEIGHT),
             _ => (0.6, 1.8),
         },
         ClientEntityKind::ExperienceOrb { .. } => (0.5, 0.5),
@@ -3273,23 +4067,37 @@ fn hover_start(entityId: i32, _uniqueId: Option<Uuid>) -> f32 {
 }
 
 fn normalize_previous(current: f32, previous: &mut f32) {
-    while current - *previous < -180.0 { *previous -= 360.0; }
-    while current - *previous >= 180.0 { *previous += 360.0; }
+    while current - *previous < -180.0 {
+        *previous -= 360.0;
+    }
+    while current - *previous >= 180.0 {
+        *previous += 360.0;
+    }
 }
 
-fn fixed_position(value: f64) -> i64 { (value * 4096.0).floor() as i64 }
+fn fixed_position(value: f64) -> i64 {
+    (value * 4096.0).floor() as i64
+}
 
 fn wrap_degrees_f32(mut value: f32) -> f32 {
     value %= 360.0;
-    if value >= 180.0 { value -= 360.0; }
-    if value < -180.0 { value += 360.0; }
+    if value >= 180.0 {
+        value -= 360.0;
+    }
+    if value < -180.0 {
+        value += 360.0;
+    }
     value
 }
 
 fn wrap_degrees_f64(mut value: f64) -> f64 {
     value %= 360.0;
-    if value >= 180.0 { value -= 360.0; }
-    if value < -180.0 { value += 360.0; }
+    if value >= 180.0 {
+        value -= 360.0;
+    }
+    if value < -180.0 {
+        value += 360.0;
+    }
     value
 }
 
@@ -3306,18 +4114,22 @@ mod tests {
 
     #[test]
     fn object_values_match_handle_spawn_object() {
-        assert_eq!(ObjectSpawnType::fromPacketType(78), ObjectSpawnType::ArmorStand);
-        assert_eq!(ObjectSpawnType::fromPacketType(90), ObjectSpawnType::FishHook);
+        assert_eq!(
+            ObjectSpawnType::fromPacketType(78),
+            ObjectSpawnType::ArmorStand
+        );
+        assert_eq!(
+            ObjectSpawnType::fromPacketType(90),
+            ObjectSpawnType::FishHook
+        );
     }
 
     #[test]
     fn enderman_squid_and_dragon_use_exact_source_dimensions() {
-        for (id, expected) in [
-            (58, (0.6, 2.9)),
-            (94, (0.8, 0.8)),
-            (63, (16.0, 8.0)),
-        ] {
-            let kind = ClientEntityKind::Mob { entityType: MobEntityType::fromId(id).unwrap() };
+        for (id, expected) in [(58, (0.6, 2.9)), (94, (0.8, 0.8)), (63, (16.0, 8.0))] {
+            let kind = ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(id).unwrap(),
+            };
             assert_eq!(entity_size(&kind), expected);
             let entity = EntityOtherClient::new(id, None, kind, 0.0, 64.0, 0.0, 0.0, 0.0);
             assert_eq!((entity.entity.width, entity.entity.height), expected);
@@ -3332,7 +4144,9 @@ mod tests {
     #[test]
     fn dead_dragon_stops_living_ring_buffer_but_runs_source_death_motion() {
         let world = WorldClient::new(1);
-        let kind = ClientEntityKind::Mob { entityType: MobEntityType::fromId(63).unwrap() };
+        let kind = ClientEntityKind::Mob {
+            entityType: MobEntityType::fromId(63).unwrap(),
+        };
         let mut dragon = EntityOtherClient::new(63, None, kind, 4.0, 70.0, -3.0, 25.0, 0.0);
         dragon.dragonRingBufferIndex = 7;
         dragon.health = 0.0;
@@ -3394,25 +4208,52 @@ mod tests {
     }
 
     fn boat_entity() -> EntityOtherClient {
-        EntityOtherClient::new(41, None, ClientEntityKind::Object {
-            objectType: ObjectSpawnType::Boat,
-            data: 0,
-            spawnVelocity: [0.0; 3],
-        }, 0.0, 64.0, 0.0, 0.0, 0.0)
+        EntityOtherClient::new(
+            41,
+            None,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Boat,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            },
+            0.0,
+            64.0,
+            0.0,
+            0.0,
+            0.0,
+        )
     }
 
     fn minecart_entity(data: i32) -> EntityOtherClient {
-        EntityOtherClient::new(42, None, ClientEntityKind::Object {
-            objectType: ObjectSpawnType::Minecart,
-            data,
-            spawnVelocity: [0.0; 3],
-        }, 0.0, 64.0, 0.0, 0.0, 0.0)
+        EntityOtherClient::new(
+            42,
+            None,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Minecart,
+                data,
+                spawnVelocity: [0.0; 3],
+            },
+            0.0,
+            64.0,
+            0.0,
+            0.0,
+            0.0,
+        )
     }
 
     fn horse_entity() -> EntityOtherClient {
-        EntityOtherClient::new(100, None, ClientEntityKind::Mob {
-            entityType: MobEntityType::fromId(100).unwrap(),
-        }, 0.0, 64.0, 0.0, 0.0, 0.0)
+        EntityOtherClient::new(
+            100,
+            None,
+            ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(100).unwrap(),
+            },
+            0.0,
+            64.0,
+            0.0,
+            0.0,
+            0.0,
+        )
     }
 
     #[test]
@@ -3439,7 +4280,10 @@ mod tests {
     fn boat_metadata_dimensions_ten_step_lerp_and_paddles_match_mcp() {
         let world = WorldClient::new(0);
         let mut entity = boat_entity();
-        assert_eq!((entity.entity.width, entity.entity.height), (EntityBoat::WIDTH, EntityBoat::HEIGHT));
+        assert_eq!(
+            (entity.entity.width, entity.entity.height),
+            (EntityBoat::WIDTH, EntityBoat::HEIGHT)
+        );
         assert_eq!(entity.boatType(), BoatType::Oak);
         assert_eq!(entity.boatForwardDirection(), 1);
 
@@ -3471,7 +4315,10 @@ mod tests {
     #[test]
     fn minecart_subclass_defaults_explicit_state_bridge_and_packet_lerp_match_mcp() {
         let mut entity = minecart_entity(1);
-        assert_eq!((entity.entity.width, entity.entity.height), (EntityMinecart::WIDTH, EntityMinecart::HEIGHT));
+        assert_eq!(
+            (entity.entity.width, entity.entity.height),
+            (EntityMinecart::WIDTH, EntityMinecart::HEIGHT)
+        );
         assert_eq!(entity.minecartType(), MinecartType::Chest);
         assert_eq!(entity.minecartDisplayStateId(), (54 << 4) | 2);
         assert_eq!(entity.minecartDisplayOffset(), 8);
@@ -3487,7 +4334,14 @@ mod tests {
         entity.setVelocity(0.25, -0.5, 0.75);
         entity.setPositionAndRotationDirect(5.0, 66.0, 4.0, 45.0, 10.0, 3, false);
         assert_eq!(entity.newPosRotationIncrements, 5);
-        assert_eq!([entity.entity.motionX, entity.entity.motionY, entity.entity.motionZ], [0.25, -0.5, 0.75]);
+        assert_eq!(
+            [
+                entity.entity.motionX,
+                entity.entity.motionY,
+                entity.entity.motionZ
+            ],
+            [0.25, -0.5, 0.75]
+        );
     }
 
     #[test]
@@ -3495,7 +4349,9 @@ mod tests {
         let mut entity = EntityOtherClient::new(
             54,
             None,
-            ClientEntityKind::Mob { entityType: MobEntityType::fromId(54).unwrap() },
+            ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(54).unwrap(),
+            },
             0.0,
             64.0,
             0.0,
@@ -3528,9 +4384,18 @@ mod tests {
     }
 
     fn shulker_entity() -> EntityOtherClient {
-        EntityOtherClient::new(69, None, ClientEntityKind::Mob {
-            entityType: MobEntityType::fromId(69).unwrap(),
-        }, 0.0, 64.0, 0.0, 0.0, 0.0)
+        EntityOtherClient::new(
+            69,
+            None,
+            ClientEntityKind::Mob {
+                entityType: MobEntityType::fromId(69).unwrap(),
+            },
+            0.0,
+            64.0,
+            0.0,
+            0.0,
+            0.0,
+        )
     }
 
     #[test]
@@ -3539,13 +4404,22 @@ mod tests {
         let mut entity = shulker_entity();
         entity.applyMetadata([
             (12, DataValue::Facing(EnumFacing::Down.index())),
-            (13, DataValue::OptionalBlockPos(Some(BlockPos::new(3, 70, -2)))),
+            (
+                13,
+                DataValue::OptionalBlockPos(Some(BlockPos::new(3, 70, -2))),
+            ),
             (14, DataValue::Byte(100)),
             (15, DataValue::Byte(10)),
         ]);
-        assert_eq!(entity.shulkerAttachmentPos(), Some(BlockPos::new(3, 70, -2)));
+        assert_eq!(
+            entity.shulkerAttachmentPos(),
+            Some(BlockPos::new(3, 70, -2))
+        );
         assert_eq!(entity.shulkerColorMetadata(), 10);
-        assert_eq!([entity.entity.posX, entity.entity.posY, entity.entity.posZ], [3.5, 70.0, -1.5]);
+        assert_eq!(
+            [entity.entity.posX, entity.entity.posY, entity.entity.posZ],
+            [3.5, 70.0, -1.5]
+        );
         assert_eq!(entity.shulkerOldAttachPos(), Some(BlockPos::new(3, 70, -2)));
         entity.onUpdate(&world, None);
         assert!((entity.shulkerPeekAmount - 0.05).abs() < 1.0e-6);
@@ -3557,8 +4431,14 @@ mod tests {
     #[test]
     fn shulker_attachment_change_starts_exact_six_tick_client_interpolation() {
         let mut entity = shulker_entity();
-        entity.applyMetadata([(13, DataValue::OptionalBlockPos(Some(BlockPos::new(1, 2, 3))))]);
-        entity.applyMetadata([(13, DataValue::OptionalBlockPos(Some(BlockPos::new(5, 6, 7))))]);
+        entity.applyMetadata([(
+            13,
+            DataValue::OptionalBlockPos(Some(BlockPos::new(1, 2, 3))),
+        )]);
+        entity.applyMetadata([(
+            13,
+            DataValue::OptionalBlockPos(Some(BlockPos::new(5, 6, 7))),
+        )]);
         assert_eq!(entity.shulkerOldAttachPos(), Some(BlockPos::new(1, 2, 3)));
         assert_eq!(entity.shulkerAttachmentPos(), Some(BlockPos::new(5, 6, 7)));
         assert_eq!(entity.shulkerClientTeleportInterp(), 6);
@@ -3567,32 +4447,65 @@ mod tests {
     #[test]
     fn shulker_bullet_uses_source_size_no_clip_motion_and_half_rotation_lerp() {
         let world = WorldClient::new(0);
-        let mut entity = EntityOtherClient::new(67, None, ClientEntityKind::Object {
-            objectType: ObjectSpawnType::ShulkerBullet,
-            data: 0,
-            spawnVelocity: [0.0; 3],
-        }, 1.0, 2.0, 3.0, 0.0, 0.0);
-        assert_eq!((entity.entity.width, entity.entity.height), (EntityShulkerBullet::WIDTH, EntityShulkerBullet::HEIGHT));
+        let mut entity = EntityOtherClient::new(
+            67,
+            None,
+            ClientEntityKind::Object {
+                objectType: ObjectSpawnType::ShulkerBullet,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            },
+            1.0,
+            2.0,
+            3.0,
+            0.0,
+            0.0,
+        );
+        assert_eq!(
+            (entity.entity.width, entity.entity.height),
+            (EntityShulkerBullet::WIDTH, EntityShulkerBullet::HEIGHT)
+        );
         assert!(entity.entity.noClip);
         entity.setVelocity(1.0, 0.0, 0.0);
         entity.onUpdate(&world, None);
-        assert_eq!([entity.entity.posX, entity.entity.posY, entity.entity.posZ], [2.0, 2.0, 3.0]);
+        assert_eq!(
+            [entity.entity.posX, entity.entity.posY, entity.entity.posZ],
+            [2.0, 2.0, 3.0]
+        );
         assert!((entity.entity.rotationYaw - 45.0).abs() < 1.0e-5);
         assert!(entity.entity.rotationPitch.abs() < 1.0e-5);
     }
 
     #[test]
     fn first_renderer_family_uses_source_entity_dimensions() {
-        assert_eq!(entity_size(&ClientEntityKind::Object {
-            objectType: ObjectSpawnType::Item, data: 0, spawnVelocity: [0.0; 3],
-        }), (0.25, 0.25));
-        assert_eq!(entity_size(&ClientEntityKind::Object {
-            objectType: ObjectSpawnType::FallingBlock, data: 0, spawnVelocity: [0.0; 3],
-        }), (0.98, 0.98));
-        assert_eq!(entity_size(&ClientEntityKind::Object {
-            objectType: ObjectSpawnType::TippedArrow, data: 0, spawnVelocity: [0.0; 3],
-        }), (0.5, 0.5));
-        assert_eq!(entity_size(&ClientEntityKind::ExperienceOrb { xpValue: 1 }), (0.5, 0.5));
+        assert_eq!(
+            entity_size(&ClientEntityKind::Object {
+                objectType: ObjectSpawnType::Item,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            }),
+            (0.25, 0.25)
+        );
+        assert_eq!(
+            entity_size(&ClientEntityKind::Object {
+                objectType: ObjectSpawnType::FallingBlock,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            }),
+            (0.98, 0.98)
+        );
+        assert_eq!(
+            entity_size(&ClientEntityKind::Object {
+                objectType: ObjectSpawnType::TippedArrow,
+                data: 0,
+                spawnVelocity: [0.0; 3],
+            }),
+            (0.5, 0.5)
+        );
+        assert_eq!(
+            entity_size(&ClientEntityKind::ExperienceOrb { xpValue: 1 }),
+            (0.5, 0.5)
+        );
     }
     #[test]
     fn hanging_entities_use_source_anchor_facing_and_metadata_geometry() {
@@ -3604,13 +4517,20 @@ mod tests {
                 hangingPosition: BlockPos::new(10, 64, 20),
                 facing: EnumFacing::North,
             },
-            10.0, 64.0, 20.0, 0.0, 0.0,
+            10.0,
+            64.0,
+            20.0,
+            0.0,
+            0.0,
         );
         assert_eq!(painting.paintingArt(), Some(PaintingArt::Pool));
         assert_eq!(painting.hangingPosition, Some(BlockPos::new(10, 64, 20)));
         assert_eq!(painting.hangingFacing, Some(EnumFacing::North));
         assert_eq!(painting.entity.rotationYaw, 180.0);
-        assert!((painting.entity.boundingBox.max_x - painting.entity.boundingBox.min_x - 2.0).abs() < 1.0e-9);
+        assert!(
+            (painting.entity.boundingBox.max_x - painting.entity.boundingBox.min_x - 2.0).abs()
+                < 1.0e-9
+        );
 
         let frame = EntityOtherClient::new(
             201,
@@ -3620,7 +4540,11 @@ mod tests {
                 data: 3,
                 spawnVelocity: [0.0; 3],
             },
-            4.0, 70.0, -2.0, 0.0, 0.0,
+            4.0,
+            70.0,
+            -2.0,
+            0.0,
+            0.0,
         );
         assert_eq!(frame.hangingFacing, Some(EnumFacing::East));
         assert_eq!(frame.itemFrameRotation(), 0);
@@ -3635,10 +4559,16 @@ mod tests {
                 data: 0,
                 spawnVelocity: [0.0; 3],
             },
-            1.2, 65.9, -3.1, 0.0, 0.0,
+            1.2,
+            65.9,
+            -3.1,
+            0.0,
+            0.0,
         );
-        assert_eq!([knot.entity.posX, knot.entity.posY, knot.entity.posZ], [1.5, 65.5, -3.5]);
+        assert_eq!(
+            [knot.entity.posX, knot.entity.posY, knot.entity.posZ],
+            [1.5, 65.5, -3.5]
+        );
         assert_eq!(knot.eyeHeight(), EntityLeashKnot::EYE_HEIGHT);
     }
-
 }

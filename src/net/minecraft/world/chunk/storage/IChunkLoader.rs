@@ -1,7 +1,7 @@
 use std::io;
 
-use crate::net::minecraft::world::WorldServer::WorldServer;
 use crate::net::minecraft::world::chunk::Chunk::Chunk;
+use crate::net::minecraft::world::WorldServer::WorldServer;
 
 /// MCP 1.12.2 `IChunkLoader`.
 ///

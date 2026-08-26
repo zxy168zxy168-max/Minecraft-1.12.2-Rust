@@ -1,8 +1,8 @@
+use crate::net::minecraft::client::gui::inventory::GuiContainer::{GuiContainer, GuiSlot};
 use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
 use crate::net::minecraft::client::gui::GuiTextField::{
     GuiTextField, GuiTextFieldKey, GuiTextFieldModifiers, GuiTextFieldRenderState,
 };
-use crate::net::minecraft::client::gui::inventory::GuiContainer::{GuiContainer, GuiSlot};
 use crate::net::minecraft::creativetab::CreativeTabs::{
     byIndex, BUILDING_BLOCKS, HOTBAR, INVENTORY, SEARCH,
 };
@@ -41,7 +41,9 @@ pub struct GuiContainerCreative {
 }
 
 impl Default for GuiContainerCreative {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl GuiContainerCreative {
@@ -100,7 +102,9 @@ impl GuiContainerCreative {
                     xPos: 9 + column * 18,
                     yPos: 18 + row * 18,
                 });
-                kinds.push(CreativeSlotKind::Catalog { itemIndex: slotNumber as usize });
+                kinds.push(CreativeSlotKind::Catalog {
+                    itemIndex: slotNumber as usize,
+                });
             }
         }
         for column in 0..9 {
@@ -109,7 +113,9 @@ impl GuiContainerCreative {
                 xPos: 9 + column * 18,
                 yPos: 112,
             });
-            kinds.push(CreativeSlotKind::Hotbar { playerContainerSlot: 36 + column });
+            kinds.push(CreativeSlotKind::Hotbar {
+                playerContainerSlot: 36 + column,
+            });
         }
         self.container.inventorySlots = slots;
         self.slotKinds = kinds;
@@ -130,12 +136,25 @@ impl GuiContainerCreative {
                 let inventoryIndex = slotNumber - 9;
                 let column = inventoryIndex % 9;
                 let row = inventoryIndex / 9;
-                (9 + column * 18, if slotNumber >= 36 { 112 } else { 54 + row * 18 })
+                (
+                    9 + column * 18,
+                    if slotNumber >= 36 { 112 } else { 54 + row * 18 },
+                )
             };
-            slots.push(GuiSlot { slotNumber, xPos, yPos });
-            kinds.push(CreativeSlotKind::Player { playerContainerSlot: slotNumber });
+            slots.push(GuiSlot {
+                slotNumber,
+                xPos,
+                yPos,
+            });
+            kinds.push(CreativeSlotKind::Player {
+                playerContainerSlot: slotNumber,
+            });
         }
-        slots.push(GuiSlot { slotNumber: Self::DESTROY_SLOT, xPos: 173, yPos: 112 });
+        slots.push(GuiSlot {
+            slotNumber: Self::DESTROY_SLOT,
+            xPos: 173,
+            yPos: 112,
+        });
         kinds.push(CreativeSlotKind::Destroy);
         self.container.inventorySlots = slots;
         self.slotKinds = kinds;
@@ -146,7 +165,9 @@ impl GuiContainerCreative {
     /// exact compiled MCP SEARCH list. HOTBAR snapshots are intentionally left
     /// to `CreativeSettings` rather than synthesising non-persistent data.
     pub fn setCurrentCreativeTab(&mut self, tabIndex: i32) -> bool {
-        let Some(tab) = byIndex(tabIndex) else { return false; };
+        let Some(tab) = byIndex(tabIndex) else {
+            return false;
+        };
         let previous = self.selectedTabIndex;
         self.selectedTabIndex = tabIndex;
         self.container.cancelDragSplitting();
@@ -188,18 +209,25 @@ impl GuiContainerCreative {
     pub fn scrollTo(&mut self, scroll: f32) {
         self.currentScroll = scroll.clamp(0.0, 1.0);
         let rowsBeyondWindow = ((self.itemList.len() + 8) / 9).saturating_sub(5) as f32;
-        let row = (self.currentScroll * rowsBeyondWindow + 0.5).floor().max(0.0) as usize;
+        let row = (self.currentScroll * rowsBeyondWindow + 0.5)
+            .floor()
+            .max(0.0) as usize;
         self.visibleCatalog.clear();
         self.visibleCatalog.reserve(Self::CATALOG_SLOT_COUNT);
         for visible in 0..Self::CATALOG_SLOT_COUNT {
             let source = (visible % 9) + ((visible / 9) + row) * 9;
             self.visibleCatalog.push(
-                self.itemList.get(source).cloned().unwrap_or(ItemStack::EMPTY),
+                self.itemList
+                    .get(source)
+                    .cloned()
+                    .unwrap_or(ItemStack::EMPTY),
             );
         }
     }
 
-    pub fn canScroll(&self) -> bool { self.itemList.len() > Self::CATALOG_SLOT_COUNT }
+    pub fn canScroll(&self) -> bool {
+        self.itemList.len() > Self::CATALOG_SLOT_COUNT
+    }
 
     pub fn needsScrollBars(&self) -> bool {
         self.selectedTabIndex != INVENTORY.tabIndex
@@ -208,28 +236,53 @@ impl GuiContainerCreative {
     }
 
     pub fn slotKind(&self, slotNumber: i32) -> Option<CreativeSlotKind> {
-        let index = self.container.inventorySlots.iter().position(|slot| slot.slotNumber == slotNumber)?;
+        let index = self
+            .container
+            .inventorySlots
+            .iter()
+            .position(|slot| slot.slotNumber == slotNumber)?;
         self.slotKinds.get(index).copied()
     }
 
     pub fn displayStacks(&self, playerContainerSlots: &[ItemStack]) -> Vec<ItemStack> {
-        self.slotKinds.iter().map(|kind| match *kind {
-            CreativeSlotKind::Catalog { itemIndex } => self.visibleCatalog
-                .get(itemIndex).cloned().unwrap_or(ItemStack::EMPTY),
-            CreativeSlotKind::Hotbar { playerContainerSlot }
-            | CreativeSlotKind::Player { playerContainerSlot } => playerContainerSlots
-                .get(playerContainerSlot as usize).cloned().unwrap_or(ItemStack::EMPTY),
-            CreativeSlotKind::Destroy => ItemStack::EMPTY,
-        }).collect()
+        self.slotKinds
+            .iter()
+            .map(|kind| match *kind {
+                CreativeSlotKind::Catalog { itemIndex } => self
+                    .visibleCatalog
+                    .get(itemIndex)
+                    .cloned()
+                    .unwrap_or(ItemStack::EMPTY),
+                CreativeSlotKind::Hotbar {
+                    playerContainerSlot,
+                }
+                | CreativeSlotKind::Player {
+                    playerContainerSlot,
+                } => playerContainerSlots
+                    .get(playerContainerSlot as usize)
+                    .cloned()
+                    .unwrap_or(ItemStack::EMPTY),
+                CreativeSlotKind::Destroy => ItemStack::EMPTY,
+            })
+            .collect()
     }
 
     pub fn stackForSlot(&self, slotNumber: i32, playerContainerSlots: &[ItemStack]) -> ItemStack {
         match self.slotKind(slotNumber) {
-            Some(CreativeSlotKind::Catalog { itemIndex }) => self.visibleCatalog
-                .get(itemIndex).cloned().unwrap_or(ItemStack::EMPTY),
-            Some(CreativeSlotKind::Hotbar { playerContainerSlot })
-            | Some(CreativeSlotKind::Player { playerContainerSlot }) => playerContainerSlots
-                .get(playerContainerSlot as usize).cloned().unwrap_or(ItemStack::EMPTY),
+            Some(CreativeSlotKind::Catalog { itemIndex }) => self
+                .visibleCatalog
+                .get(itemIndex)
+                .cloned()
+                .unwrap_or(ItemStack::EMPTY),
+            Some(CreativeSlotKind::Hotbar {
+                playerContainerSlot,
+            })
+            | Some(CreativeSlotKind::Player {
+                playerContainerSlot,
+            }) => playerContainerSlots
+                .get(playerContainerSlot as usize)
+                .cloned()
+                .unwrap_or(ItemStack::EMPTY),
             Some(CreativeSlotKind::Destroy) | None => ItemStack::EMPTY,
         }
     }
@@ -242,7 +295,9 @@ impl GuiContainerCreative {
 
     /// Exact relative tab hit box from MCP `isMouseOverTab`.
     pub fn isMouseOverTab(&self, tabIndex: i32, mouseX: i32, mouseY: i32) -> bool {
-        let Some(tab) = byIndex(tabIndex) else { return false; };
+        let Some(tab) = byIndex(tabIndex) else {
+            return false;
+        };
         let column = tab.getTabColumn();
         let mut x = 28 * column;
         let y;
@@ -251,7 +306,11 @@ impl GuiContainerCreative {
         } else if column > 0 {
             x += column;
         }
-        if tab.isTabInFirstRow() { y = -32; } else { y = Self::Y_SIZE; }
+        if tab.isTabInFirstRow() {
+            y = -32;
+        } else {
+            y = Self::Y_SIZE;
+        }
         mouseX >= x && mouseX <= x + 28 && mouseY >= y && mouseY <= y + 32
     }
 
@@ -267,7 +326,9 @@ impl GuiContainerCreative {
         if !self.wasClicking && leftButtonDown && self.scrollbarContains(mouseX, mouseY) {
             self.isScrolling = self.needsScrollBars();
         }
-        if !leftButtonDown { self.isScrolling = false; }
+        if !leftButtonDown {
+            self.isScrolling = false;
+        }
         self.wasClicking = leftButtonDown;
         if self.isScrolling {
             let top = self.container.guiTop + 18;
@@ -280,22 +341,36 @@ impl GuiContainerCreative {
 
     /// Port of `handleMouseInput`: wheel movement is normalized to one row.
     pub fn handleMouseWheel(&mut self, wheelDelta: i32) -> bool {
-        if wheelDelta == 0 || !self.needsScrollBars() { return false; }
+        if wheelDelta == 0 || !self.needsScrollBars() {
+            return false;
+        }
         let rows = ((self.itemList.len() + 8) / 9).saturating_sub(5);
-        if rows == 0 { return false; }
+        if rows == 0 {
+            return false;
+        }
         let direction = if wheelDelta > 0 { 1.0 } else { -1.0 };
         self.scrollTo((self.currentScroll - direction / rows as f32).clamp(0.0, 1.0));
         true
     }
 
-    pub fn updateCursorCounter(&mut self) { self.searchField.updateCursorCounter(); }
+    pub fn updateCursorCounter(&mut self) {
+        self.searchField.updateCursorCounter();
+    }
 
     pub fn searchRenderState(&self, font: &FontRenderer) -> Option<GuiTextFieldRenderState> {
         (self.selectedTabIndex == SEARCH.tabIndex).then(|| self.searchField.buildRenderState(font))
     }
 
-    pub fn searchMouseClicked(&mut self, mouseX: i32, mouseY: i32, button: i32, font: &FontRenderer) -> bool {
-        if self.selectedTabIndex != SEARCH.tabIndex { return false; }
+    pub fn searchMouseClicked(
+        &mut self,
+        mouseX: i32,
+        mouseY: i32,
+        button: i32,
+        font: &FontRenderer,
+    ) -> bool {
+        if self.selectedTabIndex != SEARCH.tabIndex {
+            return false;
+        }
         self.searchField.mouseClicked(mouseX, mouseY, button, font)
     }
 
@@ -305,24 +380,32 @@ impl GuiContainerCreative {
         modifiers: GuiTextFieldModifiers,
         font: &FontRenderer,
     ) -> bool {
-        if self.selectedTabIndex != SEARCH.tabIndex { return false; }
+        if self.selectedTabIndex != SEARCH.tabIndex {
+            return false;
+        }
         if self.clearSearch {
             self.clearSearch = false;
             self.searchField.setText("");
         }
         let changed = self.searchField.keyPressed(key, modifiers, font);
-        if changed { self.updateCreativeSearch(); }
+        if changed {
+            self.updateCreativeSearch();
+        }
         changed
     }
 
     pub fn searchTypedText(&mut self, text: &str, font: &FontRenderer) -> bool {
-        if self.selectedTabIndex != SEARCH.tabIndex { return false; }
+        if self.selectedTabIndex != SEARCH.tabIndex {
+            return false;
+        }
         if self.clearSearch {
             self.clearSearch = false;
             self.searchField.setText("");
         }
         let changed = self.searchField.writeText(text, Some(font));
-        if changed { self.updateCreativeSearch(); }
+        if changed {
+            self.updateCreativeSearch();
+        }
         changed
     }
 
@@ -337,9 +420,15 @@ impl GuiContainerCreative {
         self.itemList = if query.is_empty() {
             complete
         } else {
-            complete.into_iter().filter(|stack| {
-                definition(stack.itemId).registryName.to_lowercase().contains(&query)
-            }).collect()
+            complete
+                .into_iter()
+                .filter(|stack| {
+                    definition(stack.itemId)
+                        .registryName
+                        .to_lowercase()
+                        .contains(&query)
+                })
+                .collect()
         };
         self.currentScroll = 0.0;
         self.scrollTo(0.0);
@@ -350,8 +439,8 @@ impl GuiContainerCreative {
     }
 
     pub fn backgroundTexture(&self) -> ResourceLocation {
-        let background = byIndex(self.selectedTabIndex)
-            .map_or("items.png", |tab| tab.backgroundImageName);
+        let background =
+            byIndex(self.selectedTabIndex).map_or("items.png", |tab| tab.backgroundImageName);
         ResourceLocation::parse(&format!(
             "textures/gui/container/creative_inventory/tab_{background}"
         ))
@@ -369,7 +458,10 @@ mod tests {
         assert_eq!(gui.selectedTabIndex, 0);
         assert_eq!(gui.container.inventorySlots.len(), 54);
         assert_eq!(gui.itemList.len(), 197);
-        assert_eq!(gui.container.slotPosition(45), Some((gui.container.guiLeft + 9, gui.container.guiTop + 112)));
+        assert_eq!(
+            gui.container.slotPosition(45),
+            Some((gui.container.guiLeft + 9, gui.container.guiTop + 112))
+        );
         gui.scrollTo(1.0);
         assert!(!gui.visibleCatalog[0].isEmpty());
     }
@@ -380,8 +472,15 @@ mod tests {
         assert!(gui.setCurrentCreativeTab(INVENTORY.tabIndex));
         assert_eq!(gui.container.inventorySlots.len(), 47);
         assert_eq!(gui.container.slotPosition(45), Some((35, 20)));
-        assert_eq!(gui.container.slotPosition(GuiContainerCreative::DESTROY_SLOT), Some((173, 112)));
-        assert_eq!(gui.slotKind(GuiContainerCreative::DESTROY_SLOT), Some(CreativeSlotKind::Destroy));
+        assert_eq!(
+            gui.container
+                .slotPosition(GuiContainerCreative::DESTROY_SLOT),
+            Some((173, 112))
+        );
+        assert_eq!(
+            gui.slotKind(GuiContainerCreative::DESTROY_SLOT),
+            Some(CreativeSlotKind::Destroy)
+        );
     }
 
     #[test]

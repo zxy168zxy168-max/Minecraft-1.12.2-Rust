@@ -1,5 +1,8 @@
 use std::collections::HashMap;
-use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 
 // Renderer-only content stamp. Minecraft does not expose a Chunk revision;
 // Rust uses this process-wide monotonic stamp so replacing a Chunk object on a
@@ -14,8 +17,8 @@ fn next_render_revision() -> u64 {
 }
 
 use crate::net::minecraft::block::state::IBlockState::IBlockState;
-use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 use crate::net::minecraft::nbt::NBTBase::TAG_DOUBLE;
+use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
 use crate::net::minecraft::world::chunk::storage::ExtendedBlockStorage::ExtendedBlockStorage;
 use crate::net::minecraft::world::chunk::ChunkPrimer::ChunkPrimer;
@@ -110,7 +113,11 @@ impl Chunk {
 
     pub fn setBiomeArray(&mut self, data: &[u8]) {
         if data.len() != self.blockBiomeArray.len() {
-            log::warn!("Could not set level chunk biomes, array length is {} instead of {}", data.len(), self.blockBiomeArray.len());
+            log::warn!(
+                "Could not set level chunk biomes, array length is {} instead of {}",
+                data.len(),
+                self.blockBiomeArray.len()
+            );
             return;
         }
         self.blockBiomeArray.copy_from_slice(data);
@@ -130,42 +137,102 @@ impl Chunk {
         self.xPosition == x && self.zPosition == z
     }
 
-    pub fn getHeightMap(&self) -> &[i32; 256] { &self.heightMap }
+    pub fn getHeightMap(&self) -> &[i32; 256] {
+        &self.heightMap
+    }
     pub fn setHeightMap(&mut self, values: &[i32]) {
         if values.len() != self.heightMap.len() {
-            log::warn!("Could not set level chunk heightmap, array length is {} instead of {}", values.len(), self.heightMap.len());
+            log::warn!(
+                "Could not set level chunk heightmap, array length is {} instead of {}",
+                values.len(),
+                self.heightMap.len()
+            );
             return;
         }
         self.heightMap.copy_from_slice(values);
     }
     pub const fn getHeightValue(&self, x: usize, z: usize) -> i32 {
-        if x < 16 && z < 16 { self.heightMap[(z << 4) | x] } else { 0 }
+        if x < 16 && z < 16 {
+            self.heightMap[(z << 4) | x]
+        } else {
+            0
+        }
     }
-    pub fn getPrecipitationHeightMap(&self) -> &[i32; 256] { &self.precipitationHeightMap }
-    pub fn getUpdateSkylightColumns(&self) -> &[bool; 256] { &self.updateSkylightColumns }
-    pub const fn isLoaded(&self) -> bool { self.isChunkLoaded }
-    pub fn setLoaded(&mut self, value: bool) { self.isChunkLoaded = value; }
-    pub const fn isGapLightingUpdated(&self) -> bool { self.isGapLightingUpdated }
-    pub fn setGapLightingUpdated(&mut self, value: bool) { self.isGapLightingUpdated = value; }
-    pub const fn isTerrainPopulated(&self) -> bool { self.isTerrainPopulated }
-    pub fn setTerrainPopulated(&mut self, value: bool) { self.isTerrainPopulated = value; }
-    pub const fn isLightPopulated(&self) -> bool { self.isLightPopulated }
-    pub fn setLightPopulated(&mut self, value: bool) { self.isLightPopulated = value; }
-    pub const fn isChunkTicked(&self) -> bool { self.chunkTicked }
-    pub fn setChunkTicked(&mut self, value: bool) { self.chunkTicked = value; }
-    pub const fn isModified(&self) -> bool { self.isModified }
-    pub fn setModified(&mut self, value: bool) { self.isModified = value; }
-    pub const fn hasEntities(&self) -> bool { self.hasEntities }
-    pub fn setHasEntities(&mut self, value: bool) { self.hasEntities = value; }
-    pub const fn getLastSaveTime(&self) -> i64 { self.lastSaveTime }
-    pub fn setLastSaveTime(&mut self, value: i64) { self.lastSaveTime = value; }
-    pub const fn getHeightMapMinimum(&self) -> i32 { self.heightMapMinimum }
-    pub const fn getInhabitedTime(&self) -> i64 { self.inhabitedTime }
-    pub fn setInhabitedTime(&mut self, value: i64) { self.inhabitedTime = value; }
-    pub const fn getQueuedLightChecks(&self) -> i32 { self.queuedLightChecks }
-    pub fn setQueuedLightChecks(&mut self, value: i32) { self.queuedLightChecks = value; }
-    pub fn resetRelightChecks(&mut self) { self.queuedLightChecks = 0; }
-    pub const fn getLowestHeight(&self) -> i32 { self.heightMapMinimum }
+    pub fn getPrecipitationHeightMap(&self) -> &[i32; 256] {
+        &self.precipitationHeightMap
+    }
+    pub fn getUpdateSkylightColumns(&self) -> &[bool; 256] {
+        &self.updateSkylightColumns
+    }
+    pub const fn isLoaded(&self) -> bool {
+        self.isChunkLoaded
+    }
+    pub fn setLoaded(&mut self, value: bool) {
+        self.isChunkLoaded = value;
+    }
+    pub const fn isGapLightingUpdated(&self) -> bool {
+        self.isGapLightingUpdated
+    }
+    pub fn setGapLightingUpdated(&mut self, value: bool) {
+        self.isGapLightingUpdated = value;
+    }
+    pub const fn isTerrainPopulated(&self) -> bool {
+        self.isTerrainPopulated
+    }
+    pub fn setTerrainPopulated(&mut self, value: bool) {
+        self.isTerrainPopulated = value;
+    }
+    pub const fn isLightPopulated(&self) -> bool {
+        self.isLightPopulated
+    }
+    pub fn setLightPopulated(&mut self, value: bool) {
+        self.isLightPopulated = value;
+    }
+    pub const fn isChunkTicked(&self) -> bool {
+        self.chunkTicked
+    }
+    pub fn setChunkTicked(&mut self, value: bool) {
+        self.chunkTicked = value;
+    }
+    pub const fn isModified(&self) -> bool {
+        self.isModified
+    }
+    pub fn setModified(&mut self, value: bool) {
+        self.isModified = value;
+    }
+    pub const fn hasEntities(&self) -> bool {
+        self.hasEntities
+    }
+    pub fn setHasEntities(&mut self, value: bool) {
+        self.hasEntities = value;
+    }
+    pub const fn getLastSaveTime(&self) -> i64 {
+        self.lastSaveTime
+    }
+    pub fn setLastSaveTime(&mut self, value: i64) {
+        self.lastSaveTime = value;
+    }
+    pub const fn getHeightMapMinimum(&self) -> i32 {
+        self.heightMapMinimum
+    }
+    pub const fn getInhabitedTime(&self) -> i64 {
+        self.inhabitedTime
+    }
+    pub fn setInhabitedTime(&mut self, value: i64) {
+        self.inhabitedTime = value;
+    }
+    pub const fn getQueuedLightChecks(&self) -> i32 {
+        self.queuedLightChecks
+    }
+    pub fn setQueuedLightChecks(&mut self, value: i32) {
+        self.queuedLightChecks = value;
+    }
+    pub fn resetRelightChecks(&mut self) {
+        self.queuedLightChecks = 0;
+    }
+    pub const fn getLowestHeight(&self) -> i32 {
+        self.heightMapMinimum
+    }
 
     /// MCP `Chunk#setStorageArrays`, retaining the renderer's immutable Arc
     /// snapshot ownership.  Every replacement receives a fresh global render
@@ -173,10 +240,17 @@ impl Chunk {
     /// server chunk.
     pub fn setStorageArrays(&mut self, values: Vec<Option<ExtendedBlockStorage>>) {
         if values.len() != self.storageArrays.len() {
-            log::warn!("Could not set level chunk sections, array length is {} instead of {}", values.len(), self.storageArrays.len());
+            log::warn!(
+                "Could not set level chunk sections, array length is {} instead of {}",
+                values.len(),
+                self.storageArrays.len()
+            );
             return;
         }
-        self.storageArrays = values.into_iter().map(|entry| entry.map(Arc::new)).collect();
+        self.storageArrays = values
+            .into_iter()
+            .map(|entry| entry.map(Arc::new))
+            .collect();
         let revision = next_render_revision();
         self.revision = revision;
         self.sectionRevisions = [revision; 16];
@@ -185,11 +259,19 @@ impl Chunk {
     /// Top-most present storage section, corresponding to
     /// `Chunk#getTopFilledSegment` (the y-base, not the top block coordinate).
     pub fn getTopFilledSegment(&self) -> i32 {
-        self.storageArrays.iter().rev().flatten().next().map(|storage| storage.getYLocation()).unwrap_or(0)
+        self.storageArrays
+            .iter()
+            .rev()
+            .flatten()
+            .next()
+            .map(|storage| storage.getYLocation())
+            .unwrap_or(0)
     }
 
     /// MCP `Chunk#setChunkModified`.
-    pub fn setChunkModified(&mut self) { self.isModified = true; }
+    pub fn setChunkModified(&mut self) {
+        self.isModified = true;
+    }
 
     /// MCP `Chunk#needsSaving`, with `World#getTotalWorldTime` supplied by the
     /// caller until the complete server `World` ownership is present.
@@ -208,7 +290,10 @@ impl Chunk {
     /// 32-bit int arithmetic before widening to long; the explicit wrapping
     /// operations preserve that overflow behaviour.
     pub fn getRandomWithSeed(&self, worldSeed: i64, seed: i64) -> crate::compat::Java::JavaRandom {
-        let xx = self.xPosition.wrapping_mul(self.xPosition).wrapping_mul(4_987_142) as i64;
+        let xx = self
+            .xPosition
+            .wrapping_mul(self.xPosition)
+            .wrapping_mul(4_987_142) as i64;
         let x = self.xPosition.wrapping_mul(5_947_611) as i64;
         let zz = self.zPosition.wrapping_mul(self.zPosition) as i64;
         let z = self.zPosition.wrapping_mul(389_711) as i64;
@@ -224,10 +309,14 @@ impl Chunk {
     /// Persistence-stage equivalent of MCP `Chunk#getEntityLists`. Each entry
     /// is the exact root entity NBT produced by the source save format. Root
     /// passengers remain nested under `Passengers`, matching `writeToNBTOptional`.
-    pub fn getEntityListsData(&self) -> &[Vec<NBTTagCompound>] { &self.entityLists }
+    pub fn getEntityListsData(&self) -> &[Vec<NBTTagCompound>] {
+        &self.entityLists
+    }
 
     pub fn clearEntityData(&mut self) {
-        for list in &mut self.entityLists { list.clear(); }
+        for list in &mut self.entityLists {
+            list.clear();
+        }
         self.hasEntities = false;
     }
 
@@ -242,15 +331,23 @@ impl Chunk {
     }
 
     /// MCP `Chunk#getTileEntityMap` persistence boundary.
-    pub fn getTileEntityMapData(&self) -> &HashMap<BlockPos, NBTTagCompound> { &self.tileEntities }
+    pub fn getTileEntityMapData(&self) -> &HashMap<BlockPos, NBTTagCompound> {
+        &self.tileEntities
+    }
 
-    pub fn clearTileEntityData(&mut self) { self.tileEntities.clear(); }
+    pub fn clearTileEntityData(&mut self) {
+        self.tileEntities.clear();
+    }
 
     /// TileEntity base NBT always owns x/y/z. Unknown ids are retained here
     /// rather than silently discarded; `TileEntity::create` can take over once
     /// the concrete server registry is complete.
     pub fn addTileEntityData(&mut self, compound: NBTTagCompound) {
-        let pos = BlockPos::new(compound.getInteger("x"), compound.getInteger("y"), compound.getInteger("z"));
+        let pos = BlockPos::new(
+            compound.getInteger("x"),
+            compound.getInteger("y"),
+            compound.getInteger("z"),
+        );
         self.tileEntities.insert(pos, compound);
     }
 
@@ -261,19 +358,33 @@ impl Chunk {
     /// MCP `Chunk(World, ChunkPrimer, int, int)` with the provider skylight
     /// capability supplied explicitly until the common server `World` object
     /// owns the provider reference in the same way as Java.
-    pub fn fromPrimer(primer: &ChunkPrimer, x: i32, z: i32, hasSkyLight: bool) -> Result<Self, String> {
+    pub fn fromPrimer(
+        primer: &ChunkPrimer,
+        x: i32,
+        z: i32,
+        hasSkyLight: bool,
+    ) -> Result<Self, String> {
         let mut chunk = Self::new(x, z);
         for cx in 0..16 {
             for cz in 0..16 {
                 for y in 0..256 {
                     let state = primer.getBlockState(cx, y, cz);
-                    if state.isAir() { continue; }
+                    if state.isAir() {
+                        continue;
+                    }
                     let section = y >> 4;
                     if chunk.storageArrays[section].is_none() {
-                        chunk.storageArrays[section] = Some(Arc::new(ExtendedBlockStorage::new((section << 4) as i32, hasSkyLight)));
+                        chunk.storageArrays[section] = Some(Arc::new(ExtendedBlockStorage::new(
+                            (section << 4) as i32,
+                            hasSkyLight,
+                        )));
                     }
-                    Arc::make_mut(chunk.storageArrays[section].as_mut().expect("primer section"))
-                        .set(cx, y & 15, cz, state)?;
+                    Arc::make_mut(
+                        chunk.storageArrays[section]
+                            .as_mut()
+                            .expect("primer section"),
+                    )
+                    .set(cx, y & 15, cz, state)?;
                 }
             }
         }
@@ -299,7 +410,9 @@ impl Chunk {
                 for y in (1..=top + 16).rev() {
                     if self.getBlockLightOpacity(x, (y - 1) as usize, z) != 0 {
                         self.heightMap[(z << 4) | x] = y;
-                        if y < self.heightMapMinimum { self.heightMapMinimum = y; }
+                        if y < self.heightMapMinimum {
+                            self.heightMapMinimum = y;
+                        }
                         break;
                     }
                 }
@@ -308,15 +421,24 @@ impl Chunk {
                     let mut y = top + 15;
                     loop {
                         let mut opacity = self.getBlockLightOpacity(x, y as usize, z);
-                        if opacity == 0 && light != 15 { opacity = 1; }
+                        if opacity == 0 && light != 15 {
+                            opacity = 1;
+                        }
                         light -= opacity;
                         if light > 0 {
                             if let Some(storage) = self.storageArrays[(y >> 4) as usize].as_mut() {
-                                Arc::make_mut(storage).setExtSkylightValue(x, (y & 15) as usize, z, light as u8);
+                                Arc::make_mut(storage).setExtSkylightValue(
+                                    x,
+                                    (y & 15) as usize,
+                                    z,
+                                    light as u8,
+                                );
                             }
                         }
                         y -= 1;
-                        if y <= 0 || light <= 0 { break; }
+                        if y <= 0 || light <= 0 {
+                            break;
+                        }
                     }
                 }
             }
@@ -431,7 +553,10 @@ mod tests {
         let first = Chunk::new(4, -2);
         let second = Chunk::new(4, -2);
         for section in 0..16 {
-            assert_ne!(first.sectionRevision(section), second.sectionRevision(section));
+            assert_ne!(
+                first.sectionRevision(section),
+                second.sectionRevision(section)
+            );
         }
     }
 
@@ -448,5 +573,4 @@ mod tests {
         chunk.setModified(true);
         assert!(chunk.needsSaving(false, 0));
     }
-
 }

@@ -9,9 +9,15 @@ impl LayerCreeperCharge {
     pub fn texture() -> ResourceLocation {
         ResourceLocation::new("minecraft", "textures/entity/creeper/creeper_armor.png")
     }
-    pub const fn modelDelta() -> f32 { 2.0 }
-    pub const fn packedFullBright() -> u32 { (15 << 20) | (15 << 4) }
-    pub const fn tint() -> [f32; 4] { [0.5, 0.5, 0.5, 1.0] }
+    pub const fn modelDelta() -> f32 {
+        2.0
+    }
+    pub const fn packedFullBright() -> u32 {
+        (15 << 20) | (15 << 4)
+    }
+    pub const fn tint() -> [f32; 4] {
+        [0.5, 0.5, 0.5, 1.0]
+    }
     pub fn uvOffset(ageInTicks: f32) -> [f32; 2] {
         [ageInTicks * 0.01, ageInTicks * 0.01]
     }

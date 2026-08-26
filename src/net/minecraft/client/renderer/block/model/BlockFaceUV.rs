@@ -19,12 +19,20 @@ impl BlockFaceUV {
 
     pub fn getVertexU(self, vertexIndex: usize) -> f32 {
         let index = self.getVertexRotated(vertexIndex);
-        if index == 0 || index == 1 { self.uvs[0] } else { self.uvs[2] }
+        if index == 0 || index == 1 {
+            self.uvs[0]
+        } else {
+            self.uvs[2]
+        }
     }
 
     pub fn getVertexV(self, vertexIndex: usize) -> f32 {
         let index = self.getVertexRotated(vertexIndex);
-        if index == 0 || index == 3 { self.uvs[1] } else { self.uvs[3] }
+        if index == 0 || index == 3 {
+            self.uvs[1]
+        } else {
+            self.uvs[3]
+        }
     }
 
     fn getVertexRotated(self, vertexIndex: usize) -> usize {

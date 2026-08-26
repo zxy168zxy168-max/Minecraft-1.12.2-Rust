@@ -30,6 +30,10 @@ impl ContainerWorkbench {
         .map(|state| Self { state })
     }
 
-    pub const fn state(&self) -> &ContainerWindow { &self.state }
-    pub fn stateMut(&mut self) -> &mut ContainerWindow { &mut self.state }
+    pub const fn state(&self) -> &ContainerWindow {
+        &self.state
+    }
+    pub fn stateMut(&mut self) -> &mut ContainerWindow {
+        &mut self.state
+    }
 }

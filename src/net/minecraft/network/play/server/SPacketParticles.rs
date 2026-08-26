@@ -62,17 +62,39 @@ impl SPacketParticles {
         })
     }
 
-    pub const fn getParticleType(&self) -> EnumParticleTypes { self.particleType }
-    pub const fn isLongDistance(&self) -> bool { self.longDistance }
-    pub const fn getXCoordinate(&self) -> f64 { self.xCoord as f64 }
-    pub const fn getYCoordinate(&self) -> f64 { self.yCoord as f64 }
-    pub const fn getZCoordinate(&self) -> f64 { self.zCoord as f64 }
-    pub const fn getXOffset(&self) -> f32 { self.xOffset }
-    pub const fn getYOffset(&self) -> f32 { self.yOffset }
-    pub const fn getZOffset(&self) -> f32 { self.zOffset }
-    pub const fn getParticleSpeed(&self) -> f32 { self.particleSpeed }
-    pub const fn getParticleCount(&self) -> i32 { self.particleCount }
-    pub const fn getParticleArgs(&self) -> [i32; 2] { self.particleArguments }
+    pub const fn getParticleType(&self) -> EnumParticleTypes {
+        self.particleType
+    }
+    pub const fn isLongDistance(&self) -> bool {
+        self.longDistance
+    }
+    pub const fn getXCoordinate(&self) -> f64 {
+        self.xCoord as f64
+    }
+    pub const fn getYCoordinate(&self) -> f64 {
+        self.yCoord as f64
+    }
+    pub const fn getZCoordinate(&self) -> f64 {
+        self.zCoord as f64
+    }
+    pub const fn getXOffset(&self) -> f32 {
+        self.xOffset
+    }
+    pub const fn getYOffset(&self) -> f32 {
+        self.yOffset
+    }
+    pub const fn getZOffset(&self) -> f32 {
+        self.zOffset
+    }
+    pub const fn getParticleSpeed(&self) -> f32 {
+        self.particleSpeed
+    }
+    pub const fn getParticleCount(&self) -> i32 {
+        self.particleCount
+    }
+    pub const fn getParticleArgs(&self) -> [i32; 2] {
+        self.particleArguments
+    }
 }
 
 #[cfg(test)]
@@ -102,10 +124,14 @@ mod tests {
         let mut unknown = Vec::new();
         write_i32_be(999, &mut unknown);
         write_bool(false, &mut unknown);
-        for _ in 0..7 { write_f32_be(0.0, &mut unknown); }
+        for _ in 0..7 {
+            write_f32_be(0.0, &mut unknown);
+        }
         write_i32_be(0, &mut unknown);
         assert_eq!(
-            SPacketParticles::readPacketData(&RawPacket::new(0x22, unknown)).unwrap().getParticleType(),
+            SPacketParticles::readPacketData(&RawPacket::new(0x22, unknown))
+                .unwrap()
+                .getParticleType(),
             EnumParticleTypes::Barrier,
         );
     }

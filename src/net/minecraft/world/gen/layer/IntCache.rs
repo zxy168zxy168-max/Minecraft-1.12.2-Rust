@@ -7,6 +7,8 @@
 /// allocation ownership is the language-specific equivalent.
 pub struct IntCache;
 impl IntCache {
-    pub fn getIntCache(size: usize) -> Vec<i32> { vec![0; size] }
+    pub fn getIntCache(size: usize) -> Vec<i32> {
+        vec![0; size]
+    }
     pub fn resetIntCache() {}
 }

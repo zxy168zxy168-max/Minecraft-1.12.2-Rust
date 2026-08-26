@@ -1,7 +1,7 @@
-use core::cmp::Ordering;
 use super::Vec3d::Vec3d;
 use super::Vec3i::Vec3i;
 use super::{floor_f64, EnumFacing};
+use core::cmp::Ordering;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BlockPos {
@@ -49,12 +49,20 @@ impl BlockPos {
         if x == 0 && y == 0 && z == 0 {
             self
         } else {
-            Self::new(self.x.wrapping_add(x), self.y.wrapping_add(y), self.z.wrapping_add(z))
+            Self::new(
+                self.x.wrapping_add(x),
+                self.y.wrapping_add(y),
+                self.z.wrapping_add(z),
+            )
         }
     }
 
     pub const fn subtract(self, value: Vec3i) -> Self {
-        self.add(value.x.wrapping_neg(), value.y.wrapping_neg(), value.z.wrapping_neg())
+        self.add(
+            value.x.wrapping_neg(),
+            value.y.wrapping_neg(),
+            value.z.wrapping_neg(),
+        )
     }
 
     pub const fn offset(self, facing: EnumFacing, amount: i32) -> Self {
@@ -62,21 +70,43 @@ impl BlockPos {
             return self;
         }
         let (x, y, z) = facing.offsets();
-        self.add(x.wrapping_mul(amount), y.wrapping_mul(amount), z.wrapping_mul(amount))
+        self.add(
+            x.wrapping_mul(amount),
+            y.wrapping_mul(amount),
+            z.wrapping_mul(amount),
+        )
     }
 
-    pub const fn up(self, amount: i32) -> Self { self.offset(EnumFacing::Up, amount) }
-    pub const fn down(self, amount: i32) -> Self { self.offset(EnumFacing::Down, amount) }
-    pub const fn north(self, amount: i32) -> Self { self.offset(EnumFacing::North, amount) }
-    pub const fn south(self, amount: i32) -> Self { self.offset(EnumFacing::South, amount) }
-    pub const fn west(self, amount: i32) -> Self { self.offset(EnumFacing::West, amount) }
-    pub const fn east(self, amount: i32) -> Self { self.offset(EnumFacing::East, amount) }
+    pub const fn up(self, amount: i32) -> Self {
+        self.offset(EnumFacing::Up, amount)
+    }
+    pub const fn down(self, amount: i32) -> Self {
+        self.offset(EnumFacing::Down, amount)
+    }
+    pub const fn north(self, amount: i32) -> Self {
+        self.offset(EnumFacing::North, amount)
+    }
+    pub const fn south(self, amount: i32) -> Self {
+        self.offset(EnumFacing::South, amount)
+    }
+    pub const fn west(self, amount: i32) -> Self {
+        self.offset(EnumFacing::West, amount)
+    }
+    pub const fn east(self, amount: i32) -> Self {
+        self.offset(EnumFacing::East, amount)
+    }
 
     pub const fn cross_product(self, value: Vec3i) -> Self {
         Self::new(
-            self.y.wrapping_mul(value.z).wrapping_sub(self.z.wrapping_mul(value.y)),
-            self.z.wrapping_mul(value.x).wrapping_sub(self.x.wrapping_mul(value.z)),
-            self.x.wrapping_mul(value.y).wrapping_sub(self.y.wrapping_mul(value.x)),
+            self.y
+                .wrapping_mul(value.z)
+                .wrapping_sub(self.z.wrapping_mul(value.y)),
+            self.z
+                .wrapping_mul(value.x)
+                .wrapping_sub(self.x.wrapping_mul(value.z)),
+            self.x
+                .wrapping_mul(value.y)
+                .wrapping_sub(self.y.wrapping_mul(value.x)),
         )
     }
 
@@ -87,8 +117,10 @@ impl BlockPos {
     }
 
     pub const fn from_long(serialized: i64) -> Self {
-        let x = ((serialized << (64 - Self::X_SHIFT - Self::NUM_X_BITS)) >> (64 - Self::NUM_X_BITS)) as i32;
-        let y = ((serialized << (64 - Self::Y_SHIFT - Self::NUM_Y_BITS)) >> (64 - Self::NUM_Y_BITS)) as i32;
+        let x = ((serialized << (64 - Self::X_SHIFT - Self::NUM_X_BITS)) >> (64 - Self::NUM_X_BITS))
+            as i32;
+        let y = ((serialized << (64 - Self::Y_SHIFT - Self::NUM_Y_BITS)) >> (64 - Self::NUM_Y_BITS))
+            as i32;
         let z = ((serialized << (64 - Self::NUM_Z_BITS)) >> (64 - Self::NUM_Z_BITS)) as i32;
         Self::new(x, y, z)
     }
@@ -108,7 +140,11 @@ impl BlockPosBoxIter {
     fn new(from: BlockPos, to: BlockPos) -> Self {
         let min = BlockPos::new(from.x.min(to.x), from.y.min(to.y), from.z.min(to.z));
         let max = BlockPos::new(from.x.max(to.x), from.y.max(to.y), from.z.max(to.z));
-        Self { min, max, current: None }
+        Self {
+            min,
+            max,
+            current: None,
+        }
     }
 }
 
@@ -158,19 +194,30 @@ mod tests {
 
     #[test]
     fn box_iteration_uses_x_then_y_then_z_order() {
-        let values: Vec<_> = BlockPos::all_in_box(BlockPos::ORIGIN, BlockPos::new(1, 1, 0)).collect();
-        assert_eq!(values, vec![
-            BlockPos::new(0, 0, 0),
-            BlockPos::new(1, 0, 0),
-            BlockPos::new(0, 1, 0),
-            BlockPos::new(1, 1, 0),
-        ]);
+        let values: Vec<_> =
+            BlockPos::all_in_box(BlockPos::ORIGIN, BlockPos::new(1, 1, 0)).collect();
+        assert_eq!(
+            values,
+            vec![
+                BlockPos::new(0, 0, 0),
+                BlockPos::new(1, 0, 0),
+                BlockPos::new(0, 1, 0),
+                BlockPos::new(1, 1, 0),
+            ]
+        );
     }
 }
 
 impl Ord for BlockPos {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.y.cmp(&other.y).then_with(|| self.z.cmp(&other.z)).then_with(|| self.x.cmp(&other.x))
+        self.y
+            .cmp(&other.y)
+            .then_with(|| self.z.cmp(&other.z))
+            .then_with(|| self.x.cmp(&other.x))
     }
 }
-impl PartialOrd for BlockPos { fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.cmp(other)) } }
+impl PartialOrd for BlockPos {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}

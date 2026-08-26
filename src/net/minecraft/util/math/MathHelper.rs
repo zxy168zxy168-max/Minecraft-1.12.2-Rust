@@ -28,8 +28,12 @@ static SIN_TABLE_FAST: Lazy<Box<[f32; 4_096]>> = Lazy::new(|| {
     table
 });
 
-pub fn set_fast_math(enabled: bool) { FAST_MATH.store(enabled, Ordering::Relaxed); }
-pub fn fast_math() -> bool { FAST_MATH.load(Ordering::Relaxed) }
+pub fn set_fast_math(enabled: bool) {
+    FAST_MATH.store(enabled, Ordering::Relaxed);
+}
+pub fn fast_math() -> bool {
+    FAST_MATH.load(Ordering::Relaxed)
+}
 
 #[inline]
 pub fn sin(value: f32) -> f32 {
@@ -52,63 +56,115 @@ pub fn cos(value: f32) -> f32 {
 #[inline]
 pub fn floor_f32(value: f32) -> i32 {
     let integer = value as i32;
-    if value < integer as f32 { integer - 1 } else { integer }
+    if value < integer as f32 {
+        integer - 1
+    } else {
+        integer
+    }
 }
 
 #[inline]
 pub fn floor_f64(value: f64) -> i32 {
     let integer = value as i32;
-    if value < integer as f64 { integer - 1 } else { integer }
+    if value < integer as f64 {
+        integer - 1
+    } else {
+        integer
+    }
 }
 
 #[inline]
 pub fn floor_i64(value: f64) -> i64 {
     let integer = value as i64;
-    if value < integer as f64 { integer - 1 } else { integer }
+    if value < integer as f64 {
+        integer - 1
+    } else {
+        integer
+    }
 }
 
 #[inline]
 pub fn ceil_f32(value: f32) -> i32 {
     let integer = value as i32;
-    if value > integer as f32 { integer + 1 } else { integer }
+    if value > integer as f32 {
+        integer + 1
+    } else {
+        integer
+    }
 }
 
 #[inline]
 pub fn ceil_f64(value: f64) -> i32 {
     let integer = value as i32;
-    if value > integer as f64 { integer + 1 } else { integer }
+    if value > integer as f64 {
+        integer + 1
+    } else {
+        integer
+    }
 }
 
 #[inline]
-pub fn clamp_i32(value: i32, minimum: i32, maximum: i32) -> i32 { value.clamp(minimum, maximum) }
+pub fn clamp_i32(value: i32, minimum: i32, maximum: i32) -> i32 {
+    value.clamp(minimum, maximum)
+}
 #[inline]
 pub fn clamp_f32(value: f32, minimum: f32, maximum: f32) -> f32 {
-    if value < minimum { minimum } else if value > maximum { maximum } else { value }
+    if value < minimum {
+        minimum
+    } else if value > maximum {
+        maximum
+    } else {
+        value
+    }
 }
 #[inline]
 pub fn clamp_f64(value: f64, minimum: f64, maximum: f64) -> f64 {
-    if value < minimum { minimum } else if value > maximum { maximum } else { value }
+    if value < minimum {
+        minimum
+    } else if value > maximum {
+        maximum
+    } else {
+        value
+    }
 }
 #[inline]
 pub fn clamped_lerp(lower: f64, upper: f64, slide: f64) -> f64 {
-    if slide < 0.0 { lower } else if slide > 1.0 { upper } else { lower + (upper - lower) * slide }
+    if slide < 0.0 {
+        lower
+    } else if slide > 1.0 {
+        upper
+    } else {
+        lower + (upper - lower) * slide
+    }
 }
 #[inline]
-pub fn positive_modulo_f32(numerator: f32, denominator: f32) -> f32 { (numerator % denominator + denominator) % denominator }
+pub fn positive_modulo_f32(numerator: f32, denominator: f32) -> f32 {
+    (numerator % denominator + denominator) % denominator
+}
 #[inline]
-pub fn positive_modulo_f64(numerator: f64, denominator: f64) -> f64 { (numerator % denominator + denominator) % denominator }
+pub fn positive_modulo_f64(numerator: f64, denominator: f64) -> f64 {
+    (numerator % denominator + denominator) % denominator
+}
 #[inline]
 pub fn wrap_degrees_f32(value: f32) -> f32 {
     let mut wrapped = value % 360.0;
-    if wrapped >= 180.0 { wrapped -= 360.0; }
-    if wrapped < -180.0 { wrapped += 360.0; }
+    if wrapped >= 180.0 {
+        wrapped -= 360.0;
+    }
+    if wrapped < -180.0 {
+        wrapped += 360.0;
+    }
     wrapped
 }
 #[inline]
 pub fn wrap_degrees_f64(value: f64) -> f64 {
     let mut wrapped = value % 360.0;
-    if wrapped >= 180.0 { wrapped -= 360.0; }
-    if wrapped < -180.0 { wrapped += 360.0; }
+    if wrapped >= 180.0 {
+        wrapped -= 360.0;
+    }
+    if wrapped < -180.0 {
+        wrapped += 360.0;
+    }
     wrapped
 }
 
@@ -122,15 +178,26 @@ pub const fn smallest_encompassing_power_of_two(value: i32) -> i32 {
     result + 1
 }
 
-pub const fn is_power_of_two(value: i32) -> bool { value != 0 && (value & (value - 1)) == 0 }
+pub const fn is_power_of_two(value: i32) -> bool {
+    value != 0 && (value & (value - 1)) == 0
+}
 
 pub fn log2_debruijn(value: i32) -> i32 {
-    const TABLE: [i32; 32] = [0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9];
-    let normalized = if is_power_of_two(value) { value } else { smallest_encompassing_power_of_two(value) };
+    const TABLE: [i32; 32] = [
+        0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7,
+        26, 12, 18, 6, 11, 5, 10, 9,
+    ];
+    let normalized = if is_power_of_two(value) {
+        value
+    } else {
+        smallest_encompassing_power_of_two(value)
+    };
     TABLE[((((normalized as i64) * 125_613_361_i64) >> 27) & 31) as usize]
 }
 
-pub fn log2(value: i32) -> i32 { log2_debruijn(value) - if is_power_of_two(value) { 0 } else { 1 } }
+pub fn log2(value: i32) -> i32 {
+    log2_debruijn(value) - if is_power_of_two(value) { 0 } else { 1 }
+}
 
 #[cfg(test)]
 mod tests {

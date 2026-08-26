@@ -1,5 +1,7 @@
 use crate::net::minecraft::client::renderer::block::model::BlockFaceUV::BlockFaceUV;
-use crate::net::minecraft::client::renderer::block::model::ModelBlock::{BlockPart, BlockPartRotation};
+use crate::net::minecraft::client::renderer::block::model::ModelBlock::{
+    BlockPart, BlockPartRotation,
+};
 use crate::net::minecraft::client::renderer::block::model::ModelRotation::ModelRotation;
 use crate::net::minecraft::util::EnumFacing::EnumFacing;
 
@@ -48,10 +50,8 @@ impl FaceBakery {
             // TextureAtlasSprite interpolation in FaceBakery offsets every UV
             // 0.1% toward the opposite corner to suppress atlas bleeding.
             let opposite = (vertexIndex + 2) % 4;
-            let u = faceUv.getVertexU(vertexIndex) * 0.999
-                + faceUv.getVertexU(opposite) * 0.001;
-            let v = faceUv.getVertexV(vertexIndex) * 0.999
-                + faceUv.getVertexV(opposite) * 0.001;
+            let u = faceUv.getVertexU(vertexIndex) * 0.999 + faceUv.getVertexU(opposite) * 0.001;
+            let v = faceUv.getVertexV(vertexIndex) * 0.999 + faceUv.getVertexV(opposite) * 0.001;
             uvs[storeIndex] = [u / 16.0, v / 16.0];
         }
 
@@ -60,7 +60,11 @@ impl FaceBakery {
             apply_facing(&mut positions, &mut uvs, face);
         }
 
-        BakedGeometry { positions, uvs, face }
+        BakedGeometry {
+            positions,
+            uvs,
+            face,
+        }
     }
 }
 
@@ -119,7 +123,11 @@ fn rotate_part(mut position: [f32; 3], rotation: &BlockPartRotation) -> [f32; 3]
         rotation.origin[2] / 16.0,
     ];
     position = subtract(position, origin);
-    position = rotate_axis(position, rotation.axis.as_str(), rotation.angle.to_radians());
+    position = rotate_axis(
+        position,
+        rotation.axis.as_str(),
+        rotation.angle.to_radians(),
+    );
 
     if rotation.rescale {
         let scale = if (rotation.angle.abs() - 22.5).abs() <= EPSILON {
@@ -128,20 +136,25 @@ fn rotate_part(mut position: [f32; 3], rotation: &BlockPartRotation) -> [f32; 3]
             1.0 / 45.0_f32.to_radians().cos()
         };
         match rotation.axis.as_str() {
-            "x" => { position[1] *= scale; position[2] *= scale; }
-            "y" => { position[0] *= scale; position[2] *= scale; }
-            "z" => { position[0] *= scale; position[1] *= scale; }
+            "x" => {
+                position[1] *= scale;
+                position[2] *= scale;
+            }
+            "y" => {
+                position[0] *= scale;
+                position[2] *= scale;
+            }
+            "z" => {
+                position[0] *= scale;
+                position[1] *= scale;
+            }
             _ => {}
         }
     }
     add(position, origin)
 }
 
-fn apply_facing(
-    positions: &mut [[f32; 3]; 4],
-    uvs: &mut [[f32; 2]; 4],
-    facing: EnumFacing,
-) {
+fn apply_facing(positions: &mut [[f32; 3]; 4], uvs: &mut [[f32; 2]; 4], facing: EnumFacing) {
     let oldPositions = *positions;
     let oldUvs = *uvs;
     let mut minimum = [f32::INFINITY; 3];
@@ -180,7 +193,12 @@ fn face_positions_from_bounds(
 }
 
 #[derive(Debug, Clone, Copy)]
-enum UvLockRotation { Zero, Ninety, TwoSeventy, Inverse }
+enum UvLockRotation {
+    Zero,
+    Ninety,
+    TwoSeventy,
+    Inverse,
+}
 
 fn apply_uv_lock(face: BlockFaceUV, facing: EnumFacing, rotation: ModelRotation) -> BlockFaceUV {
     let reverse0 = face.getVertexRotatedRev(0);
@@ -192,15 +210,11 @@ fn apply_uv_lock(face: BlockFaceUV, facing: EnumFacing, rotation: ModelRotation)
 
     match uv_lock_rotation(rotation.x(), rotation.y(), facing) {
         UvLockRotation::Zero => BlockFaceUV::new([u0, v0, u2, v2], 0),
-        UvLockRotation::TwoSeventy => {
-            BlockFaceUV::new([v2, 16.0 - u0, v0, 16.0 - u2], 270)
-        }
+        UvLockRotation::TwoSeventy => BlockFaceUV::new([v2, 16.0 - u0, v0, 16.0 - u2], 270),
         UvLockRotation::Inverse => {
             BlockFaceUV::new([16.0 - u0, 16.0 - v0, 16.0 - u2, 16.0 - v2], 0)
         }
-        UvLockRotation::Ninety => {
-            BlockFaceUV::new([16.0 - v0, u2, 16.0 - v2, u0], 90)
-        }
+        UvLockRotation::Ninety => BlockFaceUV::new([16.0 - v0, u2, 16.0 - v2, u0], 90),
     }
 }
 
@@ -260,9 +274,21 @@ fn facing_from_vertices(positions: [[f32; 3]; 4]) -> EnumFacing {
 fn rotate_axis(value: [f32; 3], axis: &str, radians: f32) -> [f32; 3] {
     let (sin, cos) = radians.sin_cos();
     match axis {
-        "x" => [value[0], value[1] * cos - value[2] * sin, value[1] * sin + value[2] * cos],
-        "y" => [value[0] * cos + value[2] * sin, value[1], -value[0] * sin + value[2] * cos],
-        "z" => [value[0] * cos - value[1] * sin, value[0] * sin + value[1] * cos, value[2]],
+        "x" => [
+            value[0],
+            value[1] * cos - value[2] * sin,
+            value[1] * sin + value[2] * cos,
+        ],
+        "y" => [
+            value[0] * cos + value[2] * sin,
+            value[1],
+            -value[0] * sin + value[2] * cos,
+        ],
+        "z" => [
+            value[0] * cos - value[1] * sin,
+            value[0] * sin + value[1] * cos,
+            value[2],
+        ],
         _ => value,
     }
 }
@@ -301,7 +327,11 @@ fn cross(left: [f32; 3], right: [f32; 3]) -> [f32; 3] {
 
 fn normalize(value: [f32; 3]) -> [f32; 3] {
     let length = (value[0] * value[0] + value[1] * value[1] + value[2] * value[2]).sqrt();
-    if length <= EPSILON { [0.0, 1.0, 0.0] } else { [value[0] / length, value[1] / length, value[2] / length] }
+    if length <= EPSILON {
+        [0.0, 1.0, 0.0]
+    } else {
+        [value[0] / length, value[1] / length, value[2] / length]
+    }
 }
 
 #[cfg(test)]
@@ -345,13 +375,25 @@ mod tests {
             false,
         );
         assert_eq!(baked.face, EnumFacing::East);
-        assert!(baked.uvs.iter().all(|uv| uv[0] >= 0.0 && uv[0] <= 1.0 && uv[1] >= 0.0 && uv[1] <= 1.0));
+        assert!(baked
+            .uvs
+            .iter()
+            .all(|uv| uv[0] >= 0.0 && uv[0] <= 1.0 && uv[1] >= 0.0 && uv[1] <= 1.0));
     }
 
     #[test]
     fn uvlock_table_matches_mcp_known_entries() {
-        assert!(matches!(uv_lock_rotation(0, 90, EnumFacing::Up), UvLockRotation::Ninety));
-        assert!(matches!(uv_lock_rotation(180, 180, EnumFacing::West), UvLockRotation::Inverse));
-        assert!(matches!(uv_lock_rotation(270, 0, EnumFacing::East), UvLockRotation::TwoSeventy));
+        assert!(matches!(
+            uv_lock_rotation(0, 90, EnumFacing::Up),
+            UvLockRotation::Ninety
+        ));
+        assert!(matches!(
+            uv_lock_rotation(180, 180, EnumFacing::West),
+            UvLockRotation::Inverse
+        ));
+        assert!(matches!(
+            uv_lock_rotation(270, 0, EnumFacing::East),
+            UvLockRotation::TwoSeventy
+        ));
     }
 }

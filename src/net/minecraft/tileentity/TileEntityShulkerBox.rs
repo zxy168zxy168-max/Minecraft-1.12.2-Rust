@@ -1,7 +1,7 @@
 use crate::net::minecraft::nbt::NBTTagCompound::NBTTagCompound;
-use crate::net::minecraft::util::EnumFacing::{Axis, AxisDirection, EnumFacing};
 use crate::net::minecraft::util::math::AxisAlignedBB::AxisAlignedBB;
 use crate::net::minecraft::util::math::BlockPos::BlockPos;
+use crate::net::minecraft::util::EnumFacing::{Axis, AxisDirection, EnumFacing};
 
 /// Client animation state from MCP 1.12.2 `TileEntityShulkerBox`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,7 +42,11 @@ impl TileEntityShulkerBox {
             return None;
         }
         Some(Self::new(
-            BlockPos::new(tag.getInteger("x"), tag.getInteger("y"), tag.getInteger("z")),
+            BlockPos::new(
+                tag.getInteger("x"),
+                tag.getInteger("y"),
+                tag.getInteger("z"),
+            ),
             colorMetadata,
         ))
     }
@@ -92,14 +96,16 @@ impl TileEntityShulkerBox {
             AnimationStatus::Opened => self.progress = 1.0,
         }
 
-        if matches!(self.animationStatus, AnimationStatus::Opening | AnimationStatus::Closing) {
+        if matches!(
+            self.animationStatus,
+            AnimationStatus::Opening | AnimationStatus::Closing
+        ) {
             self.pushEntitiesThisTick = true;
         }
     }
 
     pub fn interpolatedProgress(&self, partialTicks: f32) -> f32 {
-        self.progressOld
-            + (self.progress - self.progressOld) * partialTicks.clamp(0.0, 1.0)
+        self.progressOld + (self.progress - self.progressOld) * partialTicks.clamp(0.0, 1.0)
     }
 
     pub const fn colorMetadata(&self) -> i32 {
@@ -222,9 +228,13 @@ mod tests {
     fn final_closing_tick_does_not_run_the_push_sweep() {
         let mut tile = TileEntityShulkerBox::new(BlockPos::new(0, 0, 0), 0);
         tile.receiveClientEvent(1, 1);
-        for _ in 0..10 { tile.update(); }
+        for _ in 0..10 {
+            tile.update();
+        }
         tile.receiveClientEvent(1, 0);
-        for _ in 0..9 { tile.update(); }
+        for _ in 0..9 {
+            tile.update();
+        }
         assert!(tile.pushesEntitiesThisTick());
         tile.update();
         assert_eq!(tile.animationStatus(), AnimationStatus::Closed);

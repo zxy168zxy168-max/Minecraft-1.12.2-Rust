@@ -9,7 +9,9 @@ pub struct CPacketAnimation {
 }
 
 impl CPacketAnimation {
-    pub const fn new(handIn: EnumHand) -> Self { Self { hand: handIn } }
+    pub const fn new(handIn: EnumHand) -> Self {
+        Self { hand: handIn }
+    }
 
     pub fn writePacketData(self) -> RawPacket {
         let mut payload = Vec::with_capacity(1);

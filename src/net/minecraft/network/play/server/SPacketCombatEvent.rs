@@ -60,19 +60,27 @@ impl SPacketCombatEvent {
         Ok(result)
     }
 
-    pub const fn getEventType(&self) -> Event { self.eventType }
-    pub const fn getPlayerId(&self) -> i32 { self.playerId }
-    pub const fn getEntityId(&self) -> i32 { self.entityId }
-    pub const fn getDuration(&self) -> i32 { self.duration }
-    pub fn getDeathMessage(&self) -> Option<&ITextComponent> { self.deathMessage.as_ref() }
+    pub const fn getEventType(&self) -> Event {
+        self.eventType
+    }
+    pub const fn getPlayerId(&self) -> i32 {
+        self.playerId
+    }
+    pub const fn getEntityId(&self) -> i32 {
+        self.entityId
+    }
+    pub const fn getDuration(&self) -> i32 {
+        self.duration
+    }
+    pub fn getDeathMessage(&self) -> Option<&ITextComponent> {
+        self.deathMessage.as_ref()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::net::minecraft::network::PacketBuffer::{
-        write_i32_be, write_string, write_var_i32,
-    };
+    use crate::net::minecraft::network::PacketBuffer::{write_i32_be, write_string, write_var_i32};
 
     #[test]
     fn entity_died_reads_player_attacker_and_component() {
@@ -80,7 +88,12 @@ mod tests {
         write_var_i32(2, &mut payload);
         write_var_i32(17, &mut payload);
         write_i32_be(29, &mut payload);
-        write_string(r#"{"translate":"death.attack.generic"}"#, 32_767, &mut payload).unwrap();
+        write_string(
+            r#"{"translate":"death.attack.generic"}"#,
+            32_767,
+            &mut payload,
+        )
+        .unwrap();
         let packet = SPacketCombatEvent::readPacketData(&RawPacket::new(0x2D, payload)).unwrap();
         assert_eq!(packet.getEventType(), Event::EntityDied);
         assert_eq!(packet.getPlayerId(), 17);

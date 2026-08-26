@@ -1,1 +1,2 @@
-#[path = "MapColor.rs"] pub mod MapColor;
+#[path = "MapColor.rs"]
+pub mod MapColor;

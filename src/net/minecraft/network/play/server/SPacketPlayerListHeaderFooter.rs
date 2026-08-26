@@ -18,8 +18,12 @@ impl SPacketPlayerListHeaderFooter {
         Ok(Self { header, footer })
     }
 
-    pub fn getHeader(&self) -> &ITextComponent { &self.header }
-    pub fn getFooter(&self) -> &ITextComponent { &self.footer }
+    pub fn getHeader(&self) -> &ITextComponent {
+        &self.header
+    }
+    pub fn getFooter(&self) -> &ITextComponent {
+        &self.footer
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -40,7 +44,8 @@ mod tests {
         let mut payload = Vec::new();
         write_string(r#"{"text":"Header"}"#, 32_767, &mut payload).unwrap();
         write_string(r#"{"text":"Footer"}"#, 32_767, &mut payload).unwrap();
-        let packet = SPacketPlayerListHeaderFooter::readPacketData(&RawPacket::new(0x4A, payload)).unwrap();
+        let packet =
+            SPacketPlayerListHeaderFooter::readPacketData(&RawPacket::new(0x4A, payload)).unwrap();
         assert_eq!(packet.getHeader().getUnformattedText(), "Header");
         assert_eq!(packet.getFooter().getUnformattedText(), "Footer");
     }

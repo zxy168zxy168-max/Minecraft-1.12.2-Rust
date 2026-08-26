@@ -1,5 +1,7 @@
 use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
-use crate::net::minecraft::client::gui::GuiTextField::{GuiTextField, GuiTextFieldKey, GuiTextFieldModifiers, GuiTextFieldRenderState};
+use crate::net::minecraft::client::gui::GuiTextField::{
+    GuiTextField, GuiTextFieldKey, GuiTextFieldModifiers, GuiTextFieldRenderState,
+};
 use crate::net::minecraft::network::play::client::CPacketTabComplete::CPacketTabComplete;
 
 #[derive(Debug, Clone)]
@@ -17,7 +19,12 @@ pub struct GuiChat {
 }
 
 impl GuiChat {
-    pub fn new(defaultText: impl Into<String>, width: i32, height: i32, sentMessageCount: usize) -> Self {
+    pub fn new(
+        defaultText: impl Into<String>,
+        width: i32,
+        height: i32,
+        sentMessageCount: usize,
+    ) -> Self {
         let defaultInputFieldText = defaultText.into();
         let mut inputField = GuiTextField::new(0, 4, height - 12, width - 4, 12);
         inputField.setMaxStringLength(256);
@@ -45,7 +52,9 @@ impl GuiChat {
         self.inputField.height = 12;
     }
 
-    pub fn updateScreen(&mut self) { self.inputField.updateCursorCounter(); }
+    pub fn updateScreen(&mut self) {
+        self.inputField.updateCursorCounter();
+    }
 
     pub fn typedText(&mut self, text: &str, font: &FontRenderer) -> bool {
         self.resetRequested();
@@ -53,16 +62,29 @@ impl GuiChat {
         self.inputField.writeText(text, Some(font))
     }
 
-    pub fn keyPressed(&mut self, key: GuiTextFieldKey, modifiers: GuiTextFieldModifiers, font: &FontRenderer) -> bool {
+    pub fn keyPressed(
+        &mut self,
+        key: GuiTextFieldKey,
+        modifiers: GuiTextFieldModifiers,
+        font: &FontRenderer,
+    ) -> bool {
         self.resetRequested();
         self.resetDidComplete();
         self.inputField.keyPressed(key, modifiers, font)
     }
 
-    pub fn selectAll(&mut self, font: &FontRenderer) { self.inputField.selectAll(font); }
-    pub fn getText(&self) -> String { self.inputField.getText() }
-    pub fn getTrimmedText(&self) -> String { self.inputField.getText().trim().to_owned() }
-    pub fn renderState(&self, font: &FontRenderer) -> GuiTextFieldRenderState { self.inputField.buildRenderState(font) }
+    pub fn selectAll(&mut self, font: &FontRenderer) {
+        self.inputField.selectAll(font);
+    }
+    pub fn getText(&self) -> String {
+        self.inputField.getText()
+    }
+    pub fn getTrimmedText(&self) -> String {
+        self.inputField.getText().trim().to_owned()
+    }
+    pub fn renderState(&self, font: &FontRenderer) -> GuiTextFieldRenderState {
+        self.inputField.buildRenderState(font)
+    }
 
     /// MCP `TabCompleter#complete`. On the first press this returns the exact
     /// serverbound request. Once the server response is installed by
@@ -74,7 +96,8 @@ impl GuiChat {
             self.inputField.deleteFromCursor(0, Some(font));
             let cursor = self.inputField.getCursorPosition();
             let wordStart = self.inputField.getNthWordFromPosWS(-1, cursor, false);
-            self.inputField.deleteFromCursor(wordStart as i32 - cursor as i32, Some(font));
+            self.inputField
+                .deleteFromCursor(wordStart as i32 - cursor as i32, Some(font));
             if self.completionIdx >= self.completions.len() {
                 self.completionIdx = 0;
             }
@@ -101,14 +124,23 @@ impl GuiChat {
 
     /// MCP `TabCompleter#setCompletions`. Returns the comma-separated line
     /// which GuiChat displays through `GuiNewChat` with deletion id 1.
-    pub fn setCompletions(&mut self, newCompletions: &[String], font: &FontRenderer) -> Option<String> {
+    pub fn setCompletions(
+        &mut self,
+        newCompletions: &[String],
+        font: &FontRenderer,
+    ) -> Option<String> {
         if !self.requestedCompletions {
             return None;
         }
         self.requestedCompletions = false;
         self.didComplete = false;
         self.completions.clear();
-        self.completions.extend(newCompletions.iter().filter(|value| !value.is_empty()).cloned());
+        self.completions.extend(
+            newCompletions
+                .iter()
+                .filter(|value| !value.is_empty())
+                .cloned(),
+        );
 
         let cursor = self.inputField.getCursorPosition();
         let text = self.inputField.getText();
@@ -119,7 +151,8 @@ impl GuiChat {
             self.inputField.deleteFromCursor(0, Some(font));
             let cursor = self.inputField.getCursorPosition();
             let start = self.inputField.getNthWordFromPosWS(-1, cursor, false);
-            self.inputField.deleteFromCursor(start as i32 - cursor as i32, Some(font));
+            self.inputField
+                .deleteFromCursor(start as i32 - cursor as i32, Some(font));
             self.inputField.writeText(&common, Some(font));
             self.completionDisplayLine = None;
         } else if !self.completions.is_empty() {
@@ -134,26 +167,36 @@ impl GuiChat {
         self.completionDisplayLine.take()
     }
 
-    pub fn resetDidComplete(&mut self) { self.didComplete = false; }
-    pub fn resetRequested(&mut self) { self.requestedCompletions = false; }
+    pub fn resetDidComplete(&mut self) {
+        self.didComplete = false;
+    }
+    pub fn resetRequested(&mut self) {
+        self.requestedCompletions = false;
+    }
 
     pub fn getSentHistory(&mut self, msgPos: i32, sentMessages: &[String]) {
         self.resetRequested();
         self.resetDidComplete();
         let count = sentMessages.len();
         let target = (self.sentHistoryCursor as i32 + msgPos).clamp(0, count as i32) as usize;
-        if target == self.sentHistoryCursor { return; }
+        if target == self.sentHistoryCursor {
+            return;
+        }
         if target == count {
             self.sentHistoryCursor = count;
             self.inputField.setText(&self.historyBuffer);
         } else {
-            if self.sentHistoryCursor == count { self.historyBuffer = self.inputField.getText(); }
+            if self.sentHistoryCursor == count {
+                self.historyBuffer = self.inputField.getText();
+            }
             self.inputField.setText(&sentMessages[target]);
             self.sentHistoryCursor = target;
         }
     }
 
-    pub fn defaultText(&self) -> &str { &self.defaultInputFieldText }
+    pub fn defaultText(&self) -> &str {
+        &self.defaultInputFieldText
+    }
 }
 
 fn utf16_prefix(value: &str, units: usize) -> String {
@@ -166,13 +209,21 @@ fn utf16_slice(value: &str, start: usize, end: usize) -> String {
 }
 
 fn common_prefix(values: &[String]) -> String {
-    let Some(first) = values.first() else { return String::new(); };
+    let Some(first) = values.first() else {
+        return String::new();
+    };
     let mut prefix = first.chars().collect::<Vec<_>>();
     for value in &values[1..] {
         let chars = value.chars().collect::<Vec<_>>();
-        let matching = prefix.iter().zip(chars.iter()).take_while(|(left, right)| left == right).count();
+        let matching = prefix
+            .iter()
+            .zip(chars.iter())
+            .take_while(|(left, right)| left == right)
+            .count();
         prefix.truncate(matching);
-        if prefix.is_empty() { break; }
+        if prefix.is_empty() {
+            break;
+        }
     }
     prefix.into_iter().collect()
 }
@@ -195,24 +246,27 @@ mod tests {
     fn completion_requests_prefix_then_cycles_server_results() {
         let font = FontRenderer::test_metric_renderer();
         let mut chat = GuiChat::new("/give Pla", 320, 240, 0);
-        let request = chat.complete(&font).expect("first tab requests server completions");
+        let request = chat
+            .complete(&font)
+            .expect("first tab requests server completions");
         assert_eq!(request.getMessage(), "/give Pla");
-        let display = chat.setCompletions(
-            &["Player905".to_owned(), "Player906".to_owned()], &font,
-        );
+        let display = chat.setCompletions(&["Player905".to_owned(), "Player906".to_owned()], &font);
         assert_eq!(display, None);
         assert_eq!(chat.getText(), "/give Player90");
         // A second request is required after the common prefix was inserted,
         // matching TabCompleter#setCompletions.
-        let request = chat.complete(&font).expect("common prefix requests the narrowed set");
+        let request = chat
+            .complete(&font)
+            .expect("common prefix requests the narrowed set");
         assert_eq!(request.getMessage(), "/give Player90");
-        let display = chat.setCompletions(
-            &["Player905".to_owned(), "Player906".to_owned()], &font,
-        );
+        let display = chat.setCompletions(&["Player905".to_owned(), "Player906".to_owned()], &font);
         assert_eq!(display.as_deref(), Some("Player905, Player906"));
         assert_eq!(chat.getText(), "/give Player905");
         assert!(chat.complete(&font).is_none());
-        assert_eq!(chat.takeCompletionDisplayLine().as_deref(), Some("Player905, Player906"));
+        assert_eq!(
+            chat.takeCompletionDisplayLine().as_deref(),
+            Some("Player905, Player906")
+        );
         assert_eq!(chat.getText(), "/give Player906");
     }
 }

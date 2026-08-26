@@ -1,11 +1,11 @@
 use crate::compat::Java::JavaRandom;
 use crate::net::minecraft::client::gui::FontRenderer::FontRenderer;
-use crate::net::minecraft::client::gui::GuiSubtitleOverlay::GuiSubtitleOverlay;
 use crate::net::minecraft::client::gui::GuiOverlayDebug::{DebugOverlayData, GuiOverlayDebug};
+use crate::net::minecraft::client::gui::GuiSubtitleOverlay::GuiSubtitleOverlay;
+use crate::net::minecraft::scoreboard::ScorePlayerTeam::ScorePlayerTeam;
+use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
 use crate::net::minecraft::util::EnumHandSide::EnumHandSide;
 use crate::net::minecraft::world::GameType::GameType;
-use crate::net::minecraft::scoreboard::Scoreboard::Scoreboard;
-use crate::net::minecraft::scoreboard::ScorePlayerTeam::ScorePlayerTeam;
 
 const REGENERATION_POTION_ID: u8 = 10;
 const HUNGER_POTION_ID: u8 = 17;
@@ -39,7 +39,6 @@ pub struct HudTexturedQuad {
     pub alpha: f32,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HudSolidRect {
     pub x: i32,
@@ -51,7 +50,13 @@ pub struct HudSolidRect {
 
 impl HudSolidRect {
     pub const fn new(x: i32, y: i32, width: i32, height: i32, color: u32) -> Self {
-        Self { x, y, width, height, color }
+        Self {
+            x,
+            y,
+            width,
+            height,
+            color,
+        }
     }
 }
 
@@ -136,7 +141,9 @@ impl Default for GuiIngame {
 }
 
 impl GuiIngame {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     /// Ports the normal-player branches of `GuiIngame.renderHotbar`,
     /// `renderAttackIndicator`, and `renderPlayerStats` from 1.12.2.
@@ -238,7 +245,7 @@ impl GuiIngame {
                     textureY: 22,
                     textureWidth: 29,
                     textureHeight: 24,
-                alpha: 1.0,
+                    alpha: 1.0,
                 });
             }
 
@@ -284,7 +291,12 @@ impl GuiIngame {
             self.appendHorseJumpBar(&mut frame.experienceBar, guiWidth, guiHeight, power);
         } else if gameType.isSurvivalOrAdventure() {
             self.appendExperience(
-                &mut frame, guiWidth, guiHeight, experience, experienceLevel, xpBarCap,
+                &mut frame,
+                guiWidth,
+                guiHeight,
+                experience,
+                experienceLevel,
+                xpBarCap,
             );
         }
 
@@ -306,7 +318,14 @@ impl GuiIngame {
         self.appendPotionEffects(&mut frame.potionEffects, guiWidth, activePotionEffects);
 
         if let Some(scoreboard) = scoreboard {
-            self.appendScoreboard(&mut frame, guiWidth, guiHeight, scoreboard, localPlayerName, fontRenderer);
+            self.appendScoreboard(
+                &mut frame,
+                guiWidth,
+                guiHeight,
+                scoreboard,
+                localPlayerName,
+                fontRenderer,
+            );
         }
         let (overlayText, overlayRemaining) = if self.overlayMessageTime > 0 {
             (Some(self.overlayMessage.as_str()), self.overlayMessageTime)
@@ -342,8 +361,10 @@ impl GuiIngame {
         if self.titlesTimer > 0 {
             let remaining = self.titlesTimer as f32 - partialTicks.clamp(0.0, 1.0);
             let mut alpha = 255_i32;
-            if self.titlesTimer > self.titleFadeOut + self.titleDisplayTime && self.titleFadeIn > 0 {
-                let elapsed = (self.titleFadeIn + self.titleDisplayTime + self.titleFadeOut) as f32 - remaining;
+            if self.titlesTimer > self.titleFadeOut + self.titleDisplayTime && self.titleFadeIn > 0
+            {
+                let elapsed = (self.titleFadeIn + self.titleDisplayTime + self.titleFadeOut) as f32
+                    - remaining;
                 alpha = (elapsed * 255.0 / self.titleFadeIn as f32) as i32;
             }
             if self.titlesTimer <= self.titleFadeOut && self.titleFadeOut > 0 {
@@ -358,7 +379,8 @@ impl GuiIngame {
                         text: self.displayedTitle.clone(),
                         x: guiWidth / 2 - fontRenderer.get_string_width(&self.displayedTitle) * 2,
                         y: guiHeight / 2 - 40,
-                        color, outline: true,
+                        color,
+                        outline: true,
                     },
                 });
                 frame.titleTexts.push(HudScaledText {
@@ -367,14 +389,17 @@ impl GuiIngame {
                         text: self.displayedSubTitle.clone(),
                         x: guiWidth / 2 - fontRenderer.get_string_width(&self.displayedSubTitle),
                         y: guiHeight / 2 + 10,
-                        color, outline: true,
+                        color,
+                        outline: true,
                     },
                 });
             }
         }
 
         if let Some(debugData) = debugData {
-            let debug = self.overlayDebug.buildFrame(guiWidth, debugData, fontRenderer);
+            let debug = self
+                .overlayDebug
+                .buildFrame(guiWidth, debugData, fontRenderer);
             frame.debugRectangles = debug.rectangles;
             frame.debugTexts = debug.texts;
         }
@@ -408,11 +433,42 @@ impl GuiIngame {
     ) -> IngameHudFrame {
         let fontRenderer = FontRenderer::test_metric_renderer();
         self.buildFrameWithFont(
-            guiWidth, guiHeight, currentHotbarSlot, offhandNonEmpty, primaryHand, gameType,
-            playerHealth, 20.0, absorptionAmount, foodLevel, saturationLevel, 0, 300, false, false, &[],
-            false, None, None, experience, experienceLevel, xpBarCap,
-            hurtResistantTime, playerTicksExisted, systemTimeMillis, scoreboard, localPlayerName,
-            actionBarText, actionBarAge, 0.0, false, [0.0; 3], 0.0, 0.0, None, &fontRenderer,
+            guiWidth,
+            guiHeight,
+            currentHotbarSlot,
+            offhandNonEmpty,
+            primaryHand,
+            gameType,
+            playerHealth,
+            20.0,
+            absorptionAmount,
+            foodLevel,
+            saturationLevel,
+            0,
+            300,
+            false,
+            false,
+            &[],
+            false,
+            None,
+            None,
+            experience,
+            experienceLevel,
+            xpBarCap,
+            hurtResistantTime,
+            playerTicksExisted,
+            systemTimeMillis,
+            scoreboard,
+            localPlayerName,
+            actionBarText,
+            actionBarAge,
+            0.0,
+            false,
+            [0.0; 3],
+            0.0,
+            0.0,
+            None,
+            &fontRenderer,
         )
     }
 
@@ -422,7 +478,8 @@ impl GuiIngame {
         location: [f32; 3],
         systemTimeMillis: u64,
     ) {
-        self.subtitleOverlay.soundPlay(subtitle, location, systemTimeMillis);
+        self.subtitleOverlay
+            .soundPlay(subtitle, location, systemTimeMillis);
     }
 
     pub fn setDefaultTitlesTimes(&mut self) {
@@ -432,7 +489,9 @@ impl GuiIngame {
     }
 
     pub fn updateTick(&mut self) {
-        if self.overlayMessageTime > 0 { self.overlayMessageTime -= 1; }
+        if self.overlayMessageTime > 0 {
+            self.overlayMessageTime -= 1;
+        }
         if self.titlesTimer > 0 {
             self.titlesTimer -= 1;
             if self.titlesTimer <= 0 {
@@ -456,7 +515,12 @@ impl GuiIngame {
         displayTime: i32,
         timeFadeOut: i32,
     ) {
-        if title.is_none() && subTitle.is_none() && timeFadeIn < 0 && displayTime < 0 && timeFadeOut < 0 {
+        if title.is_none()
+            && subTitle.is_none()
+            && timeFadeIn < 0
+            && displayTime < 0
+            && timeFadeOut < 0
+        {
             self.displayedTitle.clear();
             self.displayedSubTitle.clear();
             self.titlesTimer = 0;
@@ -466,9 +530,15 @@ impl GuiIngame {
         } else if let Some(subTitle) = subTitle {
             self.displayedSubTitle = subTitle.to_owned();
         } else {
-            if timeFadeIn >= 0 { self.titleFadeIn = timeFadeIn; }
-            if displayTime >= 0 { self.titleDisplayTime = displayTime; }
-            if timeFadeOut >= 0 { self.titleFadeOut = timeFadeOut; }
+            if timeFadeIn >= 0 {
+                self.titleFadeIn = timeFadeIn;
+            }
+            if displayTime >= 0 {
+                self.titleDisplayTime = displayTime;
+            }
+            if timeFadeOut >= 0 {
+                self.titleFadeOut = timeFadeOut;
+            }
             if self.titlesTimer > 0 {
                 self.titlesTimer = self.titleFadeIn + self.titleDisplayTime + self.titleFadeOut;
             }
@@ -484,8 +554,11 @@ impl GuiIngame {
         localPlayerName: &str,
         fontRenderer: &FontRenderer,
     ) {
-        let Some(objective) = scoreboard.getSidebarObjective(localPlayerName) else { return; };
-        let mut scores = scoreboard.getSortedScores(objective)
+        let Some(objective) = scoreboard.getSidebarObjective(localPlayerName) else {
+            return;
+        };
+        let mut scores = scoreboard
+            .getSortedScores(objective)
             .into_iter()
             .filter(|score| !score.getPlayerName().starts_with('#'))
             .collect::<Vec<_>>();
@@ -494,7 +567,10 @@ impl GuiIngame {
         }
         let mut maximumWidth = fontRenderer.get_string_width(objective.getDisplayName());
         for score in &scores {
-            let name = ScorePlayerTeam::formatPlayerName(scoreboard.getPlayersTeam(score.getPlayerName()), score.getPlayerName());
+            let name = ScorePlayerTeam::formatPlayerName(
+                scoreboard.getPlayersTeam(score.getPlayerName()),
+                score.getPlayerName(),
+            );
             let combined = format!("{name}: §c{}", score.getScorePoints());
             maximumWidth = maximumWidth.max(fontRenderer.get_string_width(&combined));
         }
@@ -505,14 +581,47 @@ impl GuiIngame {
         for (index, score) in scores.iter().enumerate() {
             let row = index as i32 + 1;
             let y = bottom - row * 9;
-            let name = ScorePlayerTeam::formatPlayerName(scoreboard.getPlayersTeam(score.getPlayerName()), score.getPlayerName());
+            let name = ScorePlayerTeam::formatPlayerName(
+                scoreboard.getPlayersTeam(score.getPlayerName()),
+                score.getPlayerName(),
+            );
             let points = format!("§c{}", score.getScorePoints());
-            frame.scoreboardRectangles.push(HudSolidRect::new(left - 2, y, right - (left - 2), 9, 0x5000_0000));
-            frame.scoreboardTexts.push(HudText { text: name, x: left, y, color: 0x20FF_FFFF, outline: false });
-            frame.scoreboardTexts.push(HudText { text: points.clone(), x: right - fontRenderer.get_string_width(&points), y, color: 0x20FF_FFFF, outline: false });
+            frame.scoreboardRectangles.push(HudSolidRect::new(
+                left - 2,
+                y,
+                right - (left - 2),
+                9,
+                0x5000_0000,
+            ));
+            frame.scoreboardTexts.push(HudText {
+                text: name,
+                x: left,
+                y,
+                color: 0x20FF_FFFF,
+                outline: false,
+            });
+            frame.scoreboardTexts.push(HudText {
+                text: points.clone(),
+                x: right - fontRenderer.get_string_width(&points),
+                y,
+                color: 0x20FF_FFFF,
+                outline: false,
+            });
             if row == scores.len() as i32 {
-                frame.scoreboardRectangles.push(HudSolidRect::new(left - 2, y - 10, right - (left - 2), 9, 0x6000_0000));
-                frame.scoreboardRectangles.push(HudSolidRect::new(left - 2, y - 1, right - (left - 2), 1, 0x5000_0000));
+                frame.scoreboardRectangles.push(HudSolidRect::new(
+                    left - 2,
+                    y - 10,
+                    right - (left - 2),
+                    9,
+                    0x6000_0000,
+                ));
+                frame.scoreboardRectangles.push(HudSolidRect::new(
+                    left - 2,
+                    y - 1,
+                    right - (left - 2),
+                    1,
+                    0x5000_0000,
+                ));
                 let title = objective.getDisplayName();
                 frame.scoreboardTexts.push(HudText {
                     text: title.to_owned(),
@@ -561,7 +670,7 @@ impl GuiIngame {
                     textureY: 69,
                     textureWidth: filled,
                     textureHeight: 5,
-                alpha: 1.0,
+                    alpha: 1.0,
                 });
             }
         }
@@ -619,7 +728,8 @@ impl GuiIngame {
 
         self.playerHealth = currentHealth;
         let previousHealth = self.lastPlayerHealth;
-        self.rand.set_seed((self.updateCounter.wrapping_mul(312_871)) as i64);
+        self.rand
+            .set_seed((self.updateCounter.wrapping_mul(312_871)) as i64);
 
         let foodLevel = foodLevel.clamp(0, 20);
         let left = guiWidth / 2 - 91;
@@ -635,15 +745,25 @@ impl GuiIngame {
         let totalHeartSlots = ((maxHealth + absorption as f32) / 2.0).ceil() as i32;
         let mut absorptionRemaining = absorption;
 
-        let regenFlashHeart = if effects.iter().any(|effect| effect.getPotionId() == REGENERATION_POTION_ID) {
-            self.updateCounter.rem_euclid((maxHealth + 5.0).ceil() as i32)
+        let regenFlashHeart = if effects
+            .iter()
+            .any(|effect| effect.getPotionId() == REGENERATION_POTION_ID)
+        {
+            self.updateCounter
+                .rem_euclid((maxHealth + 5.0).ceil() as i32)
         } else {
             -1
         };
         let heartTextureY = if hardcore { 45 } else { 0 };
-        let heartVariantOffset = if effects.iter().any(|effect| effect.getPotionId() == POISON_POTION_ID) {
+        let heartVariantOffset = if effects
+            .iter()
+            .any(|effect| effect.getPotionId() == POISON_POTION_ID)
+        {
             36
-        } else if effects.iter().any(|effect| effect.getPotionId() == WITHER_POTION_ID) {
+        } else if effects
+            .iter()
+            .any(|effect| effect.getPotionId() == WITHER_POTION_ID)
+        {
             72
         } else {
             0
@@ -674,7 +794,12 @@ impl GuiIngame {
                 y -= 2;
             }
             let x = left + heartIndex.rem_euclid(10) * 8;
-            output.push(icon_quad(x, y, 16 + if flash { 9 } else { 0 }, heartTextureY));
+            output.push(icon_quad(
+                x,
+                y,
+                16 + if flash { 9 } else { 0 },
+                heartTextureY,
+            ));
 
             if flash {
                 if heartIndex * 2 + 1 < previousHealth {
@@ -686,10 +811,20 @@ impl GuiIngame {
 
             if absorptionRemaining > 0 {
                 if absorptionRemaining == absorption && absorption % 2 == 1 {
-                    output.push(icon_quad(x, y, 16 + heartVariantOffset + 153, heartTextureY));
+                    output.push(icon_quad(
+                        x,
+                        y,
+                        16 + heartVariantOffset + 153,
+                        heartTextureY,
+                    ));
                     absorptionRemaining -= 1;
                 } else {
-                    output.push(icon_quad(x, y, 16 + heartVariantOffset + 144, heartTextureY));
+                    output.push(icon_quad(
+                        x,
+                        y,
+                        16 + heartVariantOffset + 144,
+                        heartTextureY,
+                    ));
                     absorptionRemaining -= 2;
                 }
             } else if heartIndex * 2 + 1 < currentHealth {
@@ -700,17 +835,17 @@ impl GuiIngame {
         }
 
         if showFood {
-            let (foodBackgroundX, foodFullX, foodHalfX) =
-                if effects.iter().any(|effect| effect.getPotionId() == HUNGER_POTION_ID) {
-                    (133, 88, 97)
-                } else {
-                    (16, 52, 61)
-                };
+            let (foodBackgroundX, foodFullX, foodHalfX) = if effects
+                .iter()
+                .any(|effect| effect.getPotionId() == HUNGER_POTION_ID)
+            {
+                (133, 88, 97)
+            } else {
+                (16, 52, 61)
+            };
             for foodIndex in 0..10 {
                 let mut y = baseline;
-                if saturationLevel <= 0.0
-                    && self.updateCounter.rem_euclid(foodLevel * 3 + 1) == 0
-                {
+                if saturationLevel <= 0.0 && self.updateCounter.rem_euclid(foodLevel * 3 + 1) == 0 {
                     y += self.rand.next_i32_bound(3) - 1;
                 }
                 let x = right - foodIndex * 8 - 9;
@@ -728,7 +863,11 @@ impl GuiIngame {
             let remaining = (air as f64 * 10.0 / 300.0).ceil() as i32 - consumed;
             for bubble in 0..(consumed + remaining) {
                 let x = right - bubble * 8 - 9;
-                let (textureX, textureY) = if bubble < consumed { (16, 18) } else { (25, 18) };
+                let (textureX, textureY) = if bubble < consumed {
+                    (16, 18)
+                } else {
+                    (25, 18)
+                };
                 output.push(icon_quad(x, baseline - 10, textureX, textureY));
             }
         }
@@ -746,14 +885,30 @@ impl GuiIngame {
         let x = guiWidth / 2 - 91;
         let y = guiHeight - 32 + 3;
         output.push(HudTexturedQuad {
-            texture: HudTexture::Icons, x, y, width: 182, height: 5,
-            textureX: 0, textureY: 84, textureWidth: 182, textureHeight: 5, alpha: 1.0,
+            texture: HudTexture::Icons,
+            x,
+            y,
+            width: 182,
+            height: 5,
+            textureX: 0,
+            textureY: 84,
+            textureWidth: 182,
+            textureHeight: 5,
+            alpha: 1.0,
         });
         let filled = (horseJumpPower * 183.0) as i32;
         if filled > 0 {
             output.push(HudTexturedQuad {
-                texture: HudTexture::Icons, x, y, width: filled, height: 5,
-                textureX: 0, textureY: 89, textureWidth: filled, textureHeight: 5, alpha: 1.0,
+                texture: HudTexture::Icons,
+                x,
+                y,
+                width: filled,
+                height: 5,
+                textureX: 0,
+                textureY: 89,
+                textureWidth: filled,
+                textureHeight: 5,
+                alpha: 1.0,
             });
         }
     }
@@ -801,7 +956,9 @@ impl GuiIngame {
         guiWidth: i32,
         effects: &[crate::net::minecraft::potion::PotionEffect::PotionEffect],
     ) {
-        if effects.is_empty() { return; }
+        if effects.is_empty() {
+            return;
+        }
         let mut beneficialCount = 0;
         let mut harmfulCount = 0;
         let mut sorted = effects.to_vec();
@@ -816,18 +973,26 @@ impl GuiIngame {
             let natural = if (a.getDuration() <= 32_147 || b.getDuration() <= 32_147)
                 && (!a.getIsAmbient() || !b.getIsAmbient())
             {
-                a.getIsAmbient().cmp(&b.getIsAmbient())
+                a.getIsAmbient()
+                    .cmp(&b.getIsAmbient())
                     .then_with(|| a.getDuration().cmp(&b.getDuration()))
                     .then_with(|| a_color.cmp(&b_color))
             } else {
-                a.getIsAmbient().cmp(&b.getIsAmbient())
+                a.getIsAmbient()
+                    .cmp(&b.getIsAmbient())
                     .then_with(|| a_color.cmp(&b_color))
             };
             natural.reverse()
         });
         for effect in &sorted {
-            let Some(meta) = crate::net::minecraft::potion::Potion::potion_meta(effect.getPotionId()) else { continue; };
-            if !meta.hasStatusIcon() || !effect.doesShowParticles() { continue; }
+            let Some(meta) =
+                crate::net::minecraft::potion::Potion::potion_meta(effect.getPotionId())
+            else {
+                continue;
+            };
+            if !meta.hasStatusIcon() || !effect.doesShowParticles() {
+                continue;
+            }
             let mut x = guiWidth;
             let mut y = 1;
             if meta.beneficial {
@@ -845,15 +1010,35 @@ impl GuiIngame {
                     + (effect.getDuration() as f32 * std::f32::consts::PI / 5.0).cos()
                         * (flash as f32 / 10.0 * 0.25).clamp(0.0, 0.25);
             }
-            let (frameX, frameY) = if effect.getIsAmbient() { (165, 166) } else { (141, 166) };
+            let (frameX, frameY) = if effect.getIsAmbient() {
+                (165, 166)
+            } else {
+                (141, 166)
+            };
             output.push(HudTexturedQuad {
-                texture: HudTexture::Inventory, x, y, width: 24, height: 24,
-                textureX: frameX, textureY: frameY, textureWidth: 24, textureHeight: 24, alpha: 1.0,
+                texture: HudTexture::Inventory,
+                x,
+                y,
+                width: 24,
+                height: 24,
+                textureX: frameX,
+                textureY: frameY,
+                textureWidth: 24,
+                textureHeight: 24,
+                alpha: 1.0,
             });
             let (iconX, iconY) = meta.iconRect();
             output.push(HudTexturedQuad {
-                texture: HudTexture::Inventory, x: x + 3, y: y + 3, width: 18, height: 18,
-                textureX: iconX, textureY: iconY, textureWidth: 18, textureHeight: 18, alpha,
+                texture: HudTexture::Inventory,
+                x: x + 3,
+                y: y + 3,
+                width: 18,
+                height: 18,
+                textureX: iconX,
+                textureY: iconY,
+                textureWidth: 18,
+                textureHeight: 18,
+                alpha,
             });
         }
     }
@@ -878,8 +1063,15 @@ fn visible_width(text: &str) -> i32 {
     let mut width = 0;
     let mut formatting = false;
     for character in text.chars() {
-        if formatting { formatting = false; continue; }
-        if character == '§' { formatting = true; } else { width += 6; }
+        if formatting {
+            formatting = false;
+            continue;
+        }
+        if character == '§' {
+            formatting = true;
+        } else {
+            width += 6;
+        }
     }
     width
 }
@@ -917,18 +1109,21 @@ mod tests {
     fn hotbar_coordinates_match_mcp_render_hotbar() {
         let mut gui = GuiIngame::new();
         let frame = frame(&mut gui, GameType::Survival);
-        assert_eq!(frame.hotbar[0], HudTexturedQuad {
-            texture: HudTexture::Widgets,
-            x: 69,
-            y: 158,
-            width: 182,
-            height: 22,
-            textureX: 0,
-            textureY: 0,
-            textureWidth: 182,
-            textureHeight: 22,
+        assert_eq!(
+            frame.hotbar[0],
+            HudTexturedQuad {
+                texture: HudTexture::Widgets,
+                x: 69,
+                y: 158,
+                width: 182,
+                height: 22,
+                textureX: 0,
+                textureY: 0,
+                textureWidth: 182,
+                textureHeight: 22,
                 alpha: 1.0,
-        });
+            }
+        );
         assert_eq!(frame.hotbar[1].x, 148);
         assert_eq!(frame.hotbar[1].y, 157);
         assert_eq!(frame.crosshair[0].x, 153);
@@ -949,28 +1144,82 @@ mod tests {
     fn absorption_uses_vanilla_yellow_heart_uvs() {
         let mut gui = GuiIngame::new();
         let frame = gui.buildFrame(
-            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
-            20.0, 4.0, 20, 5.0, 0.0, 0, 7, 0, 1, 2_000,
-            None, "", None, 0,
+            320,
+            180,
+            0,
+            false,
+            EnumHandSide::Right,
+            GameType::Survival,
+            20.0,
+            4.0,
+            20,
+            5.0,
+            0.0,
+            0,
+            7,
+            0,
+            1,
+            2_000,
+            None,
+            "",
+            None,
+            0,
         );
-        assert!(frame.playerStats.iter().any(|quad| quad.textureX == 160 && quad.textureY == 0));
+        assert!(frame
+            .playerStats
+            .iter()
+            .any(|quad| quad.textureX == 160 && quad.textureY == 0));
     }
 
     #[test]
     fn offhand_frame_uses_primary_hand_opposite() {
         let mut gui = GuiIngame::new();
         let rightHanded = gui.buildFrame(
-            320, 180, 0, true, EnumHandSide::Right, GameType::Survival,
-            20.0, 0.0, 20, 5.0, 0.0, 0, 7, 0, 1, 2_000,
-            None, "", None, 0,
+            320,
+            180,
+            0,
+            true,
+            EnumHandSide::Right,
+            GameType::Survival,
+            20.0,
+            0.0,
+            20,
+            5.0,
+            0.0,
+            0,
+            7,
+            0,
+            1,
+            2_000,
+            None,
+            "",
+            None,
+            0,
         );
         assert_eq!(rightHanded.hotbar[2].x, 40);
         assert_eq!(rightHanded.hotbar[2].textureX, 24);
 
         let leftHanded = gui.buildFrame(
-            320, 180, 0, true, EnumHandSide::Left, GameType::Survival,
-            20.0, 0.0, 20, 5.0, 0.0, 0, 7, 0, 2, 2_050,
-            None, "", None, 0,
+            320,
+            180,
+            0,
+            true,
+            EnumHandSide::Left,
+            GameType::Survival,
+            20.0,
+            0.0,
+            20,
+            5.0,
+            0.0,
+            0,
+            7,
+            0,
+            2,
+            2_050,
+            None,
+            "",
+            None,
+            0,
         );
         assert_eq!(leftHanded.hotbar[2].x, 251);
         assert_eq!(leftHanded.hotbar[2].textureX, 53);
@@ -989,31 +1238,54 @@ mod tests {
     fn experience_bar_and_level_match_mcp_geometry() {
         let mut gui = GuiIngame::new();
         let frame = gui.buildFrame(
-            320, 180, 0, false, EnumHandSide::Right, GameType::Survival,
-            20.0, 0.0, 20, 5.0, 0.5, 12, 31, 0, 1, 2_000,
-            None, "", None, 0,
+            320,
+            180,
+            0,
+            false,
+            EnumHandSide::Right,
+            GameType::Survival,
+            20.0,
+            0.0,
+            20,
+            5.0,
+            0.5,
+            12,
+            31,
+            0,
+            1,
+            2_000,
+            None,
+            "",
+            None,
+            0,
         );
-        assert_eq!(frame.experienceBar[0], HudTexturedQuad {
-            texture: HudTexture::Icons,
-            x: 69,
-            y: 151,
-            width: 182,
-            height: 5,
-            textureX: 0,
-            textureY: 64,
-            textureWidth: 182,
-            textureHeight: 5,
+        assert_eq!(
+            frame.experienceBar[0],
+            HudTexturedQuad {
+                texture: HudTexture::Icons,
+                x: 69,
+                y: 151,
+                width: 182,
+                height: 5,
+                textureX: 0,
+                textureY: 64,
+                textureWidth: 182,
+                textureHeight: 5,
                 alpha: 1.0,
-        });
+            }
+        );
         assert_eq!(frame.experienceBar[1].width, 91);
         assert_eq!(frame.experienceBar[1].textureY, 69);
-        assert_eq!(frame.experienceLevel, Some(HudText {
-            text: "12".to_owned(),
-            x: 154,
-            y: 145,
-            color: 8_453_920,
-            outline: true,
-        }));
+        assert_eq!(
+            frame.experienceLevel,
+            Some(HudText {
+                text: "12".to_owned(),
+                x: 154,
+                y: 145,
+                color: 8_453_920,
+                outline: true,
+            })
+        );
     }
 
     #[test]
@@ -1021,8 +1293,22 @@ mod tests {
         let mut gui = GuiIngame::new();
         let mut quads = Vec::new();
         gui.appendPlayerStats(
-            &mut quads, 320, 180, 40.0, 40.0, 0.0, 20, 5.0,
-            0, 300, false, false, &[], true, 0, 2_000,
+            &mut quads,
+            320,
+            180,
+            40.0,
+            40.0,
+            0.0,
+            20,
+            5.0,
+            0,
+            300,
+            false,
+            false,
+            &[],
+            true,
+            0,
+            2_000,
         );
         // 40 max health = 20 heart slots, so a second row is present.
         assert!(quads.iter().any(|quad| quad.textureY == 0 && quad.y < 141));
@@ -1046,8 +1332,22 @@ mod tests {
         let mut gui = GuiIngame::new();
         let mut stats = Vec::new();
         gui.appendPlayerStats(
-            &mut stats, 320, 180, 20.0, 20.0, 0.0, 20, 5.0,
-            0, 300, false, false, &[], false, 0, 2_000,
+            &mut stats,
+            320,
+            180,
+            20.0,
+            20.0,
+            0.0,
+            20,
+            5.0,
+            0,
+            300,
+            false,
+            false,
+            &[],
+            false,
+            0,
+            2_000,
         );
         assert!(!stats.iter().any(|quad| quad.textureY == 27));
 

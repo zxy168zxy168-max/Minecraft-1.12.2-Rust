@@ -14,12 +14,26 @@ pub struct GameProfile {
 
 impl GameProfile {
     pub fn new(id: Option<Uuid>, name: impl Into<String>) -> Self {
-        Self { id, name: name.into(), properties: Vec::new() }
+        Self {
+            id,
+            name: name.into(),
+            properties: Vec::new(),
+        }
     }
 
-    pub const fn getId(&self) -> Option<Uuid> { self.id }
-    pub fn getName(&self) -> &str { &self.name }
-    pub fn getProperties(&self) -> &[Property] { &self.properties }
-    pub fn addProperty(&mut self, property: Property) { self.properties.push(property); }
-    pub fn isComplete(&self) -> bool { self.id.is_some() && !self.name.is_empty() }
+    pub const fn getId(&self) -> Option<Uuid> {
+        self.id
+    }
+    pub fn getName(&self) -> &str {
+        &self.name
+    }
+    pub fn getProperties(&self) -> &[Property] {
+        &self.properties
+    }
+    pub fn addProperty(&mut self, property: Property) {
+        self.properties.push(property);
+    }
+    pub fn isComplete(&self) -> bool {
+        self.id.is_some() && !self.name.is_empty()
+    }
 }

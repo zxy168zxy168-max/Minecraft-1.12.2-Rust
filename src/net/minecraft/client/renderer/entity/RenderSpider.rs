@@ -1,9 +1,12 @@
 use crate::net::minecraft::client::entity::EntityOtherClient::MobEntityType;
-use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 use crate::net::minecraft::client::renderer::entity::RenderCaveSpider::RenderCaveSpider;
+use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SpiderVariant { Spider, CaveSpider }
+pub enum SpiderVariant {
+    Spider,
+    CaveSpider,
+}
 
 pub struct RenderSpider;
 
@@ -17,7 +20,9 @@ impl RenderSpider {
     }
     pub fn texture(variant: SpiderVariant) -> ResourceLocation {
         match variant {
-            SpiderVariant::Spider => ResourceLocation::new("minecraft", "textures/entity/spider/spider.png"),
+            SpiderVariant::Spider => {
+                ResourceLocation::new("minecraft", "textures/entity/spider/spider.png")
+            }
             SpiderVariant::CaveSpider => RenderCaveSpider::texture(),
         }
     }
@@ -27,5 +32,4 @@ impl RenderSpider {
             SpiderVariant::CaveSpider => RenderCaveSpider::preScale(),
         }
     }
-
 }

@@ -25,7 +25,13 @@ impl SPacketUpdateHealth {
         Ok(result)
     }
 
-    pub const fn getHealth(&self) -> f32 { self.health }
-    pub const fn getFoodLevel(&self) -> i32 { self.foodLevel }
-    pub const fn getSaturationLevel(&self) -> f32 { self.saturationLevel }
+    pub const fn getHealth(&self) -> f32 {
+        self.health
+    }
+    pub const fn getFoodLevel(&self) -> i32 {
+        self.foodLevel
+    }
+    pub const fn getSaturationLevel(&self) -> f32 {
+        self.saturationLevel
+    }
 }

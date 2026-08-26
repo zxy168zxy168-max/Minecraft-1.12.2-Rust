@@ -11,23 +11,43 @@ pub enum DimensionType {
 }
 
 impl DimensionType {
-    pub const VALUES: [DimensionType; 3] = [DimensionType::Overworld, DimensionType::Nether, DimensionType::TheEnd];
+    pub const VALUES: [DimensionType; 3] = [
+        DimensionType::Overworld,
+        DimensionType::Nether,
+        DimensionType::TheEnd,
+    ];
 
     pub const fn getId(self) -> i32 {
-        match self { Self::Overworld => 0, Self::Nether => -1, Self::TheEnd => 1 }
+        match self {
+            Self::Overworld => 0,
+            Self::Nether => -1,
+            Self::TheEnd => 1,
+        }
     }
     pub const fn getName(self) -> &'static str {
-        match self { Self::Overworld => "overworld", Self::Nether => "the_nether", Self::TheEnd => "the_end" }
+        match self {
+            Self::Overworld => "overworld",
+            Self::Nether => "the_nether",
+            Self::TheEnd => "the_end",
+        }
     }
     pub const fn getSuffix(self) -> &'static str {
-        match self { Self::Overworld => "", Self::Nether => "_nether", Self::TheEnd => "_end" }
+        match self {
+            Self::Overworld => "",
+            Self::Nether => "_nether",
+            Self::TheEnd => "_end",
+        }
     }
     pub fn getById(id: i32) -> Result<Self, String> {
-        Self::VALUES.into_iter().find(|value| value.getId() == id)
+        Self::VALUES
+            .into_iter()
+            .find(|value| value.getId() == id)
             .ok_or_else(|| format!("Invalid dimension id {id}"))
     }
     pub fn func_193417_a(name: &str) -> Result<Self, String> {
-        Self::VALUES.into_iter().find(|value| value.getName() == name)
+        Self::VALUES
+            .into_iter()
+            .find(|value| value.getName() == name)
             .ok_or_else(|| format!("Invalid dimension {name}"))
     }
 }

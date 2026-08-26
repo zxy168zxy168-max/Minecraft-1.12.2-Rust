@@ -40,8 +40,12 @@ pub struct GuiRecipeOverlay {
 }
 
 impl GuiRecipeOverlay {
-    pub const fn isVisible(&self) -> bool { self.visible }
-    pub const fn listIndex(&self) -> Option<usize> { self.listIndex }
+    pub const fn isVisible(&self) -> bool {
+        self.visible
+    }
+    pub const fn listIndex(&self) -> Option<usize> {
+        self.listIndex
+    }
 
     #[allow(clippy::too_many_arguments)]
     pub fn open(
@@ -92,9 +96,8 @@ impl GuiRecipeOverlay {
         let top = self.top as f32;
         let topBoundary = (panelCenterY - 100) as f32;
         if top < topBoundary {
-            self.top = (self.top as f32
-                - buttonWidth * ((top - topBoundary) / buttonWidth).ceil())
-                as i32;
+            self.top =
+                (self.top as f32 - buttonWidth * ((top - topBoundary) / buttonWidth).ceil()) as i32;
         }
 
         self.visible = true;
@@ -102,9 +105,14 @@ impl GuiRecipeOverlay {
         self.buttons.clear();
         for (index, recipeId) in craftable.into_iter().chain(nonCraftable).enumerate() {
             let isCraftable = index < craftableCount;
-            let Some(recipe) = CraftingManager::getRecipe(recipeId) else { continue; };
+            let Some(recipe) = CraftingManager::getRecipe(recipeId) else {
+                continue;
+            };
             let (ingredientWidth, ingredientHeight) = if recipe.getKind() == RecipeKind::Shaped {
-                (recipe.definition().width as usize, recipe.definition().height as usize)
+                (
+                    recipe.definition().width as usize,
+                    recipe.definition().height as usize,
+                )
             } else {
                 (3, 3)
             };
@@ -125,7 +133,9 @@ impl GuiRecipeOverlay {
 
     /// MCP accepts only the primary mouse button while the overlay is open.
     pub fn click(&mut self, mouseX: i32, mouseY: i32, mouseButton: i32) -> Option<i32> {
-        if !self.visible || mouseButton != 0 { return None; }
+        if !self.visible || mouseButton != 0 {
+            return None;
+        }
         self.buttons
             .iter()
             .find(|button| button.rect.contains(mouseX, mouseY))
@@ -133,7 +143,9 @@ impl GuiRecipeOverlay {
     }
 
     pub fn tick(&mut self, partialTicks: f32) {
-        if self.visible { self.animationTicks += partialTicks; }
+        if self.visible {
+            self.animationTicks += partialTicks;
+        }
     }
 
     pub fn close(&mut self) {
@@ -174,7 +186,12 @@ mod tests {
         let mut overlay = GuiRecipeOverlay::default();
         overlay.visible = true;
         overlay.buttons = vec![RecipeOverlayButtonState {
-            rect: GuiRect { x: 0, y: 0, width: 24, height: 24 },
+            rect: GuiRect {
+                x: 0,
+                y: 0,
+                width: 24,
+                height: 24,
+            },
             recipeId: 11,
             craftable: true,
             ingredientWidth: 1,
@@ -188,7 +205,12 @@ mod tests {
     #[test]
     fn overlay_switches_to_five_column_placement_after_sixteen_recipes() {
         let button = RecipeOverlayButtonState {
-            rect: GuiRect { x: 0, y: 0, width: 24, height: 24 },
+            rect: GuiRect {
+                x: 0,
+                y: 0,
+                width: 24,
+                height: 24,
+            },
             recipeId: 11,
             craftable: true,
             ingredientWidth: 1,

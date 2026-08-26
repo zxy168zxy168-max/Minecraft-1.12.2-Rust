@@ -59,20 +59,29 @@ impl ContainerChest {
         })
     }
 
-    pub const fn getNumRows(&self) -> usize { self.numRows }
-    pub const fn lowerSlotCount(&self) -> usize { self.numRows * 9 }
-    pub fn slotCount(&self) -> usize { self.inventorySlots.len() }
-    pub fn slots(&self) -> &[ItemStack] { &self.inventorySlots }
-    pub fn getSlot(&self, slotId: usize) -> Option<&ItemStack> { self.inventorySlots.get(slotId) }
+    pub const fn getNumRows(&self) -> usize {
+        self.numRows
+    }
+    pub const fn lowerSlotCount(&self) -> usize {
+        self.numRows * 9
+    }
+    pub fn slotCount(&self) -> usize {
+        self.inventorySlots.len()
+    }
+    pub fn slots(&self) -> &[ItemStack] {
+        &self.inventorySlots
+    }
+    pub fn getSlot(&self, slotId: usize) -> Option<&ItemStack> {
+        self.inventorySlots.get(slotId)
+    }
 
     pub fn putStackInSlot(&mut self, slotId: i32, stack: ItemStack) -> Result<(), CodecError> {
-        let index = usize::try_from(slotId)
-            .map_err(|_| CodecError::InvalidData(format!("negative ContainerChest slot {slotId}")))?;
+        let index = usize::try_from(slotId).map_err(|_| {
+            CodecError::InvalidData(format!("negative ContainerChest slot {slotId}"))
+        })?;
         let maximum = self.inventorySlots.len().saturating_sub(1);
         let slot = self.inventorySlots.get_mut(index).ok_or_else(|| {
-            CodecError::InvalidData(format!(
-                "ContainerChest slot {slotId} outside 0..{maximum}"
-            ))
+            CodecError::InvalidData(format!("ContainerChest slot {slotId} outside 0..{maximum}"))
         })?;
         *slot = stack;
         Ok(())
@@ -129,8 +138,12 @@ impl ContainerChest {
         }
     }
 
-    pub fn getNextTransactionID(&mut self) -> i16 { self.base.getNextTransactionID() }
-    pub fn resetQuickCraft(&mut self) { self.base.resetDrag(); }
+    pub fn getNextTransactionID(&mut self) -> i16 {
+        self.base.getNextTransactionID()
+    }
+    pub fn resetQuickCraft(&mut self) {
+        self.base.resetDrag();
+    }
 
     pub fn quickCraft(
         &mut self,
@@ -141,7 +154,8 @@ impl ContainerChest {
     ) -> bool {
         let previousEvent = self.base.dragEvent;
         self.base.dragEvent = Container::getDragEvent(dragType);
-        if (previousEvent != 1 || self.base.dragEvent != 2) && previousEvent != self.base.dragEvent {
+        if (previousEvent != 1 || self.base.dragEvent != 2) && previousEvent != self.base.dragEvent
+        {
             self.resetQuickCraft();
             return false;
         }
@@ -162,10 +176,15 @@ impl ContainerChest {
                 }
             }
             1 => {
-                let Ok(index) = usize::try_from(slotId) else { return false; };
-                let Some(slotStack) = self.inventorySlots.get(index) else { return false; };
+                let Ok(index) = usize::try_from(slotId) else {
+                    return false;
+                };
+                let Some(slotStack) = self.inventorySlots.get(index) else {
+                    return false;
+                };
                 if Container::canAddItemToSlot(slotStack, cursor, true)
-                    && (self.base.dragMode == 2 || cursor.getCount() > self.base.dragSlots.len() as i32)
+                    && (self.base.dragMode == 2
+                        || cursor.getCount() > self.base.dragSlots.len() as i32)
                 {
                     self.base.dragSlots.insert(index)
                 } else {
@@ -186,9 +205,18 @@ impl ContainerChest {
                         {
                             continue;
                         }
-                        let oldCount = if existing.isEmpty() { 0 } else { existing.getCount() };
+                        let oldCount = if existing.isEmpty() {
+                            0
+                        } else {
+                            existing.getCount()
+                        };
                         let mut placed = source.clone();
-                        Container::computeStackSize(slotCount, self.base.dragMode, &mut placed, oldCount);
+                        Container::computeStackSize(
+                            slotCount,
+                            self.base.dragMode,
+                            &mut placed,
+                            oldCount,
+                        );
                         if placed.getCount() > placed.getMaxStackSize() {
                             placed.setCount(placed.getMaxStackSize());
                         }
@@ -227,11 +255,17 @@ impl ContainerChest {
         let mut changed = false;
         if stack.getMaxStackSize() > 1 {
             for &index in &indices {
-                if stack.isEmpty() { break; }
+                if stack.isEmpty() {
+                    break;
+                }
                 let existing = self.inventorySlots[index].clone();
-                if existing.isEmpty() || !existing.canStackWith(stack) { continue; }
+                if existing.isEmpty() || !existing.canStackWith(stack) {
+                    continue;
+                }
                 let capacity = stack.getMaxStackSize() - existing.getCount();
-                if capacity <= 0 { continue; }
+                if capacity <= 0 {
+                    continue;
+                }
                 let moved = capacity.min(stack.getCount());
                 let mut merged = existing;
                 merged.grow(moved);
@@ -241,8 +275,12 @@ impl ContainerChest {
             }
         }
         for &index in &indices {
-            if stack.isEmpty() { break; }
-            if !self.inventorySlots[index].isEmpty() { continue; }
+            if stack.isEmpty() {
+                break;
+            }
+            if !self.inventorySlots[index].isEmpty() {
+                continue;
+            }
             let moved = stack.getMaxStackSize().min(stack.getCount());
             self.inventorySlots[index] = stack.splitStack(moved);
             changed = true;
@@ -252,9 +290,13 @@ impl ContainerChest {
 
     /// Port of `ContainerChest.transferStackInSlot`.
     pub fn transferStackInSlot(&mut self, index: usize) -> ItemStack {
-        if index >= self.inventorySlots.len() { return ItemStack::EMPTY; }
+        if index >= self.inventorySlots.len() {
+            return ItemStack::EMPTY;
+        }
         let original = self.inventorySlots[index].clone();
-        if original.isEmpty() { return ItemStack::EMPTY; }
+        if original.isEmpty() {
+            return ItemStack::EMPTY;
+        }
         let mut moving = original.clone();
         let lower = self.lowerSlotCount();
         let merged = if index < lower {
@@ -272,22 +314,32 @@ impl ContainerChest {
     /// `Container.slotClick` SWAP branch. The chest hotbar starts after the
     /// lower inventory and the 27 player main-inventory slots.
     pub fn swapWithHotbar(&mut self, slotId: usize, hotbarIndex: usize) -> bool {
-        if slotId >= self.inventorySlots.len() || hotbarIndex >= 9 { return false; }
+        if slotId >= self.inventorySlots.len() || hotbarIndex >= 9 {
+            return false;
+        }
         let hotbarSlot = self.lowerSlotCount() + 27 + hotbarIndex;
-        if slotId == hotbarSlot { return false; }
+        if slotId == hotbarSlot {
+            return false;
+        }
         self.inventorySlots.swap(slotId, hotbarSlot);
         true
     }
 
     pub fn throwFromSlot(&mut self, slotId: usize, wholeStack: bool) -> bool {
-        let Some(stack) = self.inventorySlots.get_mut(slotId) else { return false; };
-        if stack.isEmpty() { return false; }
+        let Some(stack) = self.inventorySlots.get_mut(slotId) else {
+            return false;
+        };
+        if stack.isEmpty() {
+            return false;
+        }
         let amount = if wholeStack { stack.getCount() } else { 1 };
         !stack.splitStack(amount).isEmpty()
     }
 
     pub fn pickupAll(&mut self, cursor: &mut ItemStack, reverse: bool) -> bool {
-        if cursor.isEmpty() || cursor.getCount() >= cursor.getMaxStackSize() { return false; }
+        if cursor.isEmpty() || cursor.getCount() >= cursor.getMaxStackSize() {
+            return false;
+        }
         let indices: Vec<usize> = if reverse {
             (0..self.inventorySlots.len()).rev().collect()
         } else {
@@ -296,12 +348,20 @@ impl ContainerChest {
         let mut changed = false;
         for pass in 0..2 {
             for &index in &indices {
-                if cursor.getCount() >= cursor.getMaxStackSize() { break; }
+                if cursor.getCount() >= cursor.getMaxStackSize() {
+                    break;
+                }
                 let stack = self.inventorySlots[index].clone();
-                if stack.isEmpty() || !stack.canStackWith(cursor) { continue; }
-                if pass == 0 && stack.getCount() == stack.getMaxStackSize() { continue; }
+                if stack.isEmpty() || !stack.canStackWith(cursor) {
+                    continue;
+                }
+                if pass == 0 && stack.getCount() == stack.getMaxStackSize() {
+                    continue;
+                }
                 let moved = (cursor.getMaxStackSize() - cursor.getCount()).min(stack.getCount());
-                if moved <= 0 { continue; }
+                if moved <= 0 {
+                    continue;
+                }
                 let mut remaining = stack;
                 remaining.shrink(moved);
                 cursor.grow(moved);
@@ -318,7 +378,12 @@ mod tests {
     use super::*;
 
     fn stack(id: i16, count: u8) -> ItemStack {
-        ItemStack { itemId: id, count, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]
@@ -331,7 +396,8 @@ mod tests {
             ITextComponent::fromPlainText("Chest"),
             27,
             &player,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(chest.getNumRows(), 3);
         assert_eq!(chest.getSlot(27 + 27).unwrap().getCount(), 2);
         chest.putStackInSlot(0, stack(1, 8)).unwrap();

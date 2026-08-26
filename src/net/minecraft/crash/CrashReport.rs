@@ -76,18 +76,12 @@ impl CrashReport {
             "Operating System",
             format!("{} ({})", std::env::consts::OS, std::env::consts::ARCH),
         );
-        self.systemDetailsCategory.addCrashSection(
-            "Rust Client Version",
-            env!("CARGO_PKG_VERSION"),
-        );
-        self.systemDetailsCategory.addCrashSection(
-            "Rust Package",
-            env!("CARGO_PKG_NAME"),
-        );
-        self.systemDetailsCategory.addCrashSection(
-            "Thread",
-            std::thread::current().name().unwrap_or("main"),
-        );
+        self.systemDetailsCategory
+            .addCrashSection("Rust Client Version", env!("CARGO_PKG_VERSION"));
+        self.systemDetailsCategory
+            .addCrashSection("Rust Package", env!("CARGO_PKG_NAME"));
+        self.systemDetailsCategory
+            .addCrashSection("Thread", std::thread::current().name().unwrap_or("main"));
     }
 
     pub fn getDescription(&self) -> &str {
@@ -149,7 +143,10 @@ impl CrashReport {
         let toFile = toFile.as_ref();
         if let Some(parent) = toFile.parent() {
             if let Err(error) = fs::create_dir_all(parent) {
-                log::error!("Could not create crash report directory {}: {error}", parent.display());
+                log::error!(
+                    "Could not create crash report directory {}: {error}",
+                    parent.display()
+                );
                 return false;
             }
         }
@@ -159,17 +156,20 @@ impl CrashReport {
                 true
             }
             Err(error) => {
-                log::error!("Could not save crash report to {}: {error}", toFile.display());
+                log::error!(
+                    "Could not save crash report to {}: {error}",
+                    toFile.display()
+                );
                 false
             }
         }
     }
 
     pub fn defaultClientReportPath(&self, gameDir: impl AsRef<Path>) -> PathBuf {
-        gameDir
-            .as_ref()
-            .join("crash-reports")
-            .join(format!("crash-{}-client.txt", formatFileTime(self.createdAt)))
+        gameDir.as_ref().join("crash-reports").join(format!(
+            "crash-{}-client.txt",
+            formatFileTime(self.createdAt)
+        ))
     }
 
     fn getWittyComment(time: SystemTime) -> &'static str {
@@ -185,13 +185,19 @@ impl CrashReport {
 }
 
 fn formatSystemTime(time: SystemTime) -> String {
-    let seconds = time.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    let seconds = time
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
     let (year, month, day, hour, minute, second) = splitUtc(seconds);
     format!("{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}:{second:02} UTC")
 }
 
 fn formatFileTime(time: SystemTime) -> String {
-    let seconds = time.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    let seconds = time
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
     let (year, month, day, hour, minute, second) = splitUtc(seconds);
     format!("{year:04}-{month:02}-{day:02}_{hour:02}.{minute:02}.{second:02}")
 }

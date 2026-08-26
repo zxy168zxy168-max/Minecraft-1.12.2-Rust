@@ -32,7 +32,9 @@ impl EnumPlayerModelParts {
         }
     }
 
-    pub const fn getPartMask(self) -> u8 { 1_u8 << self.getPartId() }
+    pub const fn getPartMask(self) -> u8 {
+        1_u8 << self.getPartId()
+    }
 
     pub const fn getPartName(self) -> &'static str {
         match self {

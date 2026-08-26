@@ -23,6 +23,10 @@ impl SPacketEntityStatus {
         Ok(result)
     }
 
-    pub const fn getEntityId(&self) -> i32 { self.entityId }
-    pub const fn getOpCode(&self) -> i8 { self.logicOpcode }
+    pub const fn getEntityId(&self) -> i32 {
+        self.entityId
+    }
+    pub const fn getOpCode(&self) -> i8 {
+        self.logicOpcode
+    }
 }

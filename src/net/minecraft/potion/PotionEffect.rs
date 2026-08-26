@@ -27,12 +27,24 @@ impl PotionEffect {
         }
     }
 
-    pub const fn getPotionId(&self) -> u8 { self.potionId }
-    pub const fn getDuration(&self) -> i32 { self.duration }
-    pub const fn getAmplifier(&self) -> u8 { self.amplifier }
-    pub const fn getIsAmbient(&self) -> bool { self.ambient }
-    pub const fn doesShowParticles(&self) -> bool { self.showParticles }
-    pub const fn getIsPotionDurationMax(&self) -> bool { self.potionDurationMax }
+    pub const fn getPotionId(&self) -> u8 {
+        self.potionId
+    }
+    pub const fn getDuration(&self) -> i32 {
+        self.duration
+    }
+    pub const fn getAmplifier(&self) -> u8 {
+        self.amplifier
+    }
+    pub const fn getIsAmbient(&self) -> bool {
+        self.ambient
+    }
+    pub const fn doesShowParticles(&self) -> bool {
+        self.showParticles
+    }
+    pub const fn getIsPotionDurationMax(&self) -> bool {
+        self.potionDurationMax
+    }
 
     /// `PotionEffect#onUpdate` duration half. Effect-specific periodic actions
     /// are added by their concrete potion classes; absorption only needs the

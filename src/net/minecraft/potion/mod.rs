@@ -1,2 +1,4 @@
-#[path = "PotionEffect.rs"] pub mod PotionEffect;
-#[path = "Potion.rs"] pub mod Potion;
+#[path = "Potion.rs"]
+pub mod Potion;
+#[path = "PotionEffect.rs"]
+pub mod PotionEffect;

@@ -1,13 +1,26 @@
-#[path = "Particle.rs"] pub mod Particle;
-#[path = "ParticleDigging.rs"] pub mod ParticleDigging;
-#[path = "ParticleManager.rs"] pub mod ParticleManager;
-#[path = "ParticleEmitter.rs"] pub mod ParticleEmitter;
-#[path = "ParticleRenderState.rs"] pub mod ParticleRenderState;
-#[path = "ParticleBubble.rs"] pub mod ParticleBubble;
-#[path = "ParticleSmokeNormal.rs"] pub mod ParticleSmokeNormal;
-#[path = "ParticleDragonBreath.rs"] pub mod ParticleDragonBreath;
-#[path = "ParticleEndRod.rs"] pub mod ParticleEndRod;
-#[path = "ParticleSpell.rs"] pub mod ParticleSpell;
-#[path = "ParticleTotem.rs"] pub mod ParticleTotem;
-#[path = "ManagedParticle.rs"] pub mod ManagedParticle;
-#[path = "ParticleSpawnRequest.rs"] pub mod ParticleSpawnRequest;
+#[path = "ManagedParticle.rs"]
+pub mod ManagedParticle;
+#[path = "Particle.rs"]
+pub mod Particle;
+#[path = "ParticleBubble.rs"]
+pub mod ParticleBubble;
+#[path = "ParticleDigging.rs"]
+pub mod ParticleDigging;
+#[path = "ParticleDragonBreath.rs"]
+pub mod ParticleDragonBreath;
+#[path = "ParticleEmitter.rs"]
+pub mod ParticleEmitter;
+#[path = "ParticleEndRod.rs"]
+pub mod ParticleEndRod;
+#[path = "ParticleManager.rs"]
+pub mod ParticleManager;
+#[path = "ParticleRenderState.rs"]
+pub mod ParticleRenderState;
+#[path = "ParticleSmokeNormal.rs"]
+pub mod ParticleSmokeNormal;
+#[path = "ParticleSpawnRequest.rs"]
+pub mod ParticleSpawnRequest;
+#[path = "ParticleSpell.rs"]
+pub mod ParticleSpell;
+#[path = "ParticleTotem.rs"]
+pub mod ParticleTotem;

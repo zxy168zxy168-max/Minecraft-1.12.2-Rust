@@ -31,9 +31,19 @@ impl SPacketSpawnGlobalEntity {
         Ok(result)
     }
 
-    pub const fn getEntityId(&self) -> i32 { self.entityId }
-    pub const fn getType(&self) -> i32 { self.typeId as i32 }
-    pub const fn getX(&self) -> f64 { self.x }
-    pub const fn getY(&self) -> f64 { self.y }
-    pub const fn getZ(&self) -> f64 { self.z }
+    pub const fn getEntityId(&self) -> i32 {
+        self.entityId
+    }
+    pub const fn getType(&self) -> i32 {
+        self.typeId as i32
+    }
+    pub const fn getX(&self) -> f64 {
+        self.x
+    }
+    pub const fn getY(&self) -> f64 {
+        self.y
+    }
+    pub const fn getZ(&self) -> f64 {
+        self.z
+    }
 }

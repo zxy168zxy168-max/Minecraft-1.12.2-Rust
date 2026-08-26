@@ -15,7 +15,9 @@ impl RenderEnderman {
         ResourceLocation::new("minecraft", "textures/entity/enderman/enderman.png")
     }
 
-    pub const fn shadowSize() -> f32 { 0.5 }
+    pub const fn shadowSize() -> f32 {
+        0.5
+    }
 
     pub fn carrying(entity: &EntityOtherClient) -> bool {
         entity.endermanHeldBlockStateId().is_some()

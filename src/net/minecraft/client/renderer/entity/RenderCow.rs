@@ -4,6 +4,10 @@ use crate::net::minecraft::util::ResourceLocation::ResourceLocation;
 pub struct RenderCow;
 
 impl RenderCow {
-    pub fn supports(entityType: MobEntityType) -> bool { entityType.registryName == "cow" }
-    pub fn texture() -> ResourceLocation { ResourceLocation::new("minecraft", "textures/entity/cow/cow.png") }
+    pub fn supports(entityType: MobEntityType) -> bool {
+        entityType.registryName == "cow"
+    }
+    pub fn texture() -> ResourceLocation {
+        ResourceLocation::new("minecraft", "textures/entity/cow/cow.png")
+    }
 }

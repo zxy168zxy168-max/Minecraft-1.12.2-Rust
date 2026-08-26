@@ -64,13 +64,21 @@ impl Container {
     /// currently in a slot. Slot validity and per-slot limits are checked by
     /// the owning container just as they are by `Slot.isItemValid` and
     /// `Slot.getItemStackLimit` in Java.
-    pub fn canAddItemToSlot(slotStack: &ItemStack, stack: &ItemStack, stackSizeMatters: bool) -> bool {
+    pub fn canAddItemToSlot(
+        slotStack: &ItemStack,
+        stack: &ItemStack,
+        stackSizeMatters: bool,
+    ) -> bool {
         if slotStack.isEmpty() {
             return true;
         }
         slotStack.canStackWith(stack)
             && slotStack.getCount()
-                + if stackSizeMatters { 0 } else { stack.getCount() }
+                + if stackSizeMatters {
+                    0
+                } else {
+                    stack.getCount()
+                }
                 <= stack.getMaxStackSize()
     }
 
@@ -99,7 +107,12 @@ mod tests {
     use super::*;
 
     fn stack(id: i16, count: u8) -> ItemStack {
-        ItemStack { itemId: id, count, itemDamage: 0, tagCompound: None }
+        ItemStack {
+            itemId: id,
+            count,
+            itemDamage: 0,
+            tagCompound: None,
+        }
     }
 
     #[test]

@@ -11,7 +11,9 @@ pub struct ReportedException {
 
 impl ReportedException {
     pub fn new(report: CrashReport) -> Self {
-        Self { crashReport: report }
+        Self {
+            crashReport: report,
+        }
     }
 
     pub fn getCrashReport(&self) -> &CrashReport {
