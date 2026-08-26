@@ -1,0 +1,19 @@
+Minecraft-1.12.2-Rust
+Copyright 2026 zxy168zxy168-max and contributors
+
+This project was originally initiated and created by zxy168zxy168-max.
+Original upstream repository:
+https://github.com/zxy168zxy168-max/Minecraft-1.12.2-Rust
+
+The project accepts third-party contributions and derivative works under the
+Apache License, Version 2.0. Contributor authorship remains credited through
+Git history and applicable copyright notices; such contributions do not alter
+the above project-origin attribution.
+
+This project is an independent reimplementation/semantic-port effort and is not
+affiliated with, endorsed by, or sponsored by Mojang Studios or Microsoft.
+Minecraft, Mojang Studios, Microsoft, MCP, OptiFine, and third-party assets,
+source material, trademarks, libraries, resource packs, shader packs, textures,
+sounds, fonts, and models remain subject to their respective owners' rights and
+licenses. The Apache-2.0 license in this repository applies only to code and
+other material for which this project's contributors have authority to license.
