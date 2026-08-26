@@ -3,7 +3,7 @@ name = "minecraft-1-12-2-rust-vulkan"
 version = "0.127.0"
 edition = "2021"
 rust-version = "1.77"
-license = "Proprietary"
+license = "Apache-2.0"
 default-run = "mc112-client"
 
 [lib]
